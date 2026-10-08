@@ -259,3 +259,41 @@
   .sum-grid:not(.four)>.sum:nth-child(3):last-child{grid-column:1/-1}
   .tbl.stackable td.col-sel::before{display:none}
 }
+
+/* ---------- Multi-team extensions (added for Senior Supervisor; reusable by Manager / Deputy / MIS) ----------
+   Presentation only. Built from the same frozen tokens; every foreground/background pair reuses an existing tone pair. */
+/* ScopeBreadcrumb — which subset of the authorised subtree is being shown */
+.scope-crumb{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0;color:var(--muted);font-size:var(--t-meta)}
+.scope-crumb .i{width:14px;height:14px;flex:none}
+.scope-crumb .cr-i{padding:2px 8px;border:0;border-radius:var(--r-sm);background:none;color:var(--text-2);font:inherit;font-weight:500}
+button.cr-i:hover{background:var(--surface-3)}
+.scope-crumb .cr-i.cur{color:var(--text);font-weight:600}
+.scope-crumb .cr-sep{color:var(--muted)}
+/* DimensionSwitcher — one analysis grain at a time (never mixes grains) */
+.dim-switch{display:inline-flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:var(--r);background:var(--surface-3)}
+.dim-switch button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:0;border-radius:6px;background:none;color:var(--muted);font-weight:500;white-space:nowrap}
+.dim-switch button .i{width:16px;height:16px}
+.dim-switch button[aria-pressed="true"]{background:var(--raised);color:var(--text);box-shadow:var(--shadow-1)}
+.dim-switch button:hover:not([aria-pressed="true"]){color:var(--text)}
+/* AttributionBasis + grain label — Current Hierarchy / Historical Attribution / Event Actor stay visibly distinct */
+.basis,.grain,.cov,.lc{display:inline-flex;align-items:center;gap:4px;min-height:22px;padding:0 8px;border-radius:99px;font-size:var(--t-micro);font-weight:500;white-space:nowrap;cursor:help}
+.basis .i,.cov .i,.lc .i{width:14px;height:14px;flex:none}
+.basis.b-current{background:var(--blue-bg);color:var(--blue-fg)}
+.basis.b-hist{background:var(--violet-bg);color:var(--violet-fg)}
+.basis.b-event{background:var(--slate-bg);color:var(--slate-fg)}
+.grain{background:var(--surface-3);color:var(--text-2)}
+.grain b{font-weight:600;color:var(--text)}
+/* MetricCoverage (cov) + LinkConfidence (lc) — icon + text, never colour alone */
+.cov.c-ok,.lc.c-ok{background:var(--green-bg);color:var(--green-fg)}
+.cov.c-partial,.lc.c-partial{background:var(--orange-bg);color:var(--orange-fg)}
+.cov.c-stale{background:var(--amber-bg);color:var(--amber-fg)}
+.cov.c-recon,.lc.c-recon{background:var(--orange-bg);color:var(--orange-fg)}
+.cov.c-undef,.lc.c-undef{background:var(--slate-bg);color:var(--slate-fg)}
+.cov.c-failed{background:var(--red-bg);color:var(--red-fg)}
+.cov:focus-visible,.lc:focus-visible,.basis:focus-visible,.grain:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.tag.src{cursor:help}
+/* Destructive-looking but non-destructive review action (e.g. reject with reason) */
+.btn-danger{border-color:var(--red-dot);background:var(--red-bg);color:var(--red-fg)}
+.scope-badge.view,.scope-badge{white-space:nowrap}
+@media (max-width:760px){.dim-switch{display:flex;width:100%;overflow-x:auto;scrollbar-width:none}.dim-switch button{flex:1 0 auto}}
+@media (forced-colors:active){.cov,.lc,.basis,.grain{border:1px solid CanvasText}}
