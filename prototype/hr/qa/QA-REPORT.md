@@ -1,5 +1,5 @@
 # SN-205 QA report (HR design)
-Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node hr/qa/qa-automated.js`. Final run: **136 PASS, FAILS 0**.
+Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node hr/qa/qa-automated.js`. Final run: **141 PASS, FAILS 0**.
 **HR ROLE RUNTIME IS NOT LIVE VERIFIED.** This QA exercises the design prototype on mock data only; no real non-Admin HR account, no real write.
 
 | Pass | Scope | Result |
@@ -9,7 +9,7 @@ Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777
 | C matrix | 9 views + 7 drawer/deep-link states × 1920/1366/1024/768/390 × (light·comfortable, dim·compact, dark·comfortable·focus): no horizontal page overflow, no JS errors, contrast ≥ 4.5:1 sampled on views (1366, 390) and drawers (1366) | PASS |
 | D regression | Senior (35), Manager (106), Deputy (130), MIS (131) `qa-automated.js` re-run after the additive SN-205 block in `shared/crm-ext.css`: all FAILS 0 | PASS |
 
-Fixed during QA: request `from` (from-parent snapshot) inconsistent with current manager in mock data; identity-chip table cell broke row layout (`display:grid` on `td`); drawer footer hint overflowed; role-switch bar and the longer «NOT LIVE VERIFIED» tag caused horizontal overflow at 390 (fixed in role CSS); QA assertions that matched explanatory sentences or closed `<details>` content were changed to assert controls / `textContent`.
+Fixed during QA: request `from` (from-parent snapshot) inconsistent with current manager in mock data; identity-chip table cell broke row layout (`display:grid` on `td`); drawer footer hint overflowed; role-switch bar and the longer «NOT LIVE VERIFIED» tag caused horizontal overflow at 390 (fixed in role CSS); QA assertions that matched explanatory sentences or closed `<details>` content were changed to assert controls / `textContent`. Review round (Codex): the apply-failure effect is now Unknown (retry not offered before reconcile); reconcile/retry now settle domain state (parent, history, compensation period, request status, audit) idempotently; request-driven transfers keep request ID and review chain in history and audit.
 
 Screenshots (`qa/*.png`): 01 workforce · 02 profile + timeline · 03 transfer preview · 04 termination handover (blocked) · 05 failed request (unknown effect) · 06 access comparison · 07 compensation history · 08 active impersonation · 09 impersonation start · 10 dark/compact/focus · m01/m02 390 · t01 768 · d01 1920.
 Not covered: real assistive technology; a real HR account / real writes (HR runtime NOT LIVE VERIFIED); real volume, CSV/XLSX and SMS; Finance live runtime.
