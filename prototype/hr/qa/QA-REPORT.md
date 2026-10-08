@@ -13,3 +13,8 @@ Fixed during QA: request `from` (from-parent snapshot) inconsistent with current
 
 Screenshots (`qa/*.png`): 01 workforce · 02 profile + timeline · 03 transfer preview · 04 termination handover (blocked) · 05 failed request (unknown effect) · 06 access comparison · 07 compensation history · 08 active impersonation · 09 impersonation start · 10 dark/compact/focus · m01/m02 390 · t01 768 · d01 1920.
 Not covered: real assistive technology; a real HR account / real writes (HR runtime NOT LIVE VERIFIED); real volume, CSV/XLSX and SMS; Finance live runtime.
+
+## Post-merge review fixes (PR #14 re-review on d20f3c6)
+Runner: `qa/qa-postmerge.js` (same server/setup). Covers the six findings: (1) closure confirmed + insert Unknown → manager Unknown, no duplicate interval on reconcile/retry; (2) access retry synchronizes effective rows, unreconstructable → stays partial; (3) termination apply fails closed without verified zero-open evidence, repeat apply refused; (4) compensation dates validated (backdated/overlap/malformed) in UI and at commit; (5) impersonation boundary lives in the shell (`#imp-shell`) on all 9 views, above drawers, no overflow at 390/768/1366; (6) settled request closes the HR step, clears reviewers, keeps provenance, idempotent.
+Results: post-merge pass 0 fails; full HR `qa-automated.js` 0 fails (one stale assertion updated to the new Unknown-manager contract); Senior, Manager, Deputy, MIS suites 0 fails (no shared code changed).
+Limitations: prototype/mock only; HR runtime still NOT LIVE VERIFIED; comp date check uses a simple Jalali range check (no leap-year rule); blocked term/comp applies are shown as «ردشده» items with a failed-state operation.
