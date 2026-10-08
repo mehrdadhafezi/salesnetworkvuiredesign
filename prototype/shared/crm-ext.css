@@ -326,3 +326,35 @@ button.cr-i:hover{background:var(--surface-3)}
 .cov-matrix .cm-recon{border-style:dashed;border-color:var(--orange-dot)}.cov-matrix .cm-recon .cm-s{color:var(--orange-fg)}
 .cov-matrix .cm-undef{border-style:dashed}.cov-matrix .cm-undef .cm-s{color:var(--text-2)}
 .cov-matrix .cm-failed{border-color:var(--red-dot);background:var(--red-bg)}.cov-matrix .cm-failed .cm-s{color:var(--red-fg)}
+
+/* ---- SN-204: MIS shared patterns (additive presentation only; no new colour/radius/spacing tokens, no business capability).
+   SourceRunContext (File › Batch › Run › Source Row — four different things), LineageLadder (identity nodes with per-node confidence),
+   ActionZone (Normal · Advanced/Conditional · Maintenance — icon + text, never colour alone), MaintenanceBoundary header. ---- */
+.sc{display:inline-flex;align-items:baseline;gap:4px;padding:2px 8px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);font-size:var(--t-meta);line-height:1.6;max-width:100%}
+.sc small{color:var(--text-2);font-size:var(--t-micro)}
+.sc b,.sc .linkish{font-weight:600;font-size:var(--t-meta)}
+.sc-run{border-style:dashed}.sc-row{border-color:var(--teal-dot)}
+.src-ctx{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:0}
+.src-ctx .sc-sep{color:var(--muted)}
+.lin-ladder{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.lin-ladder .ln{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--raised)}
+.ln-k{display:grid;font-weight:600}
+.ln-k small{color:var(--text-2);font-weight:400;font-size:var(--t-micro)}
+.ln-n{grid-column:1/-1;color:var(--text-2);font-size:var(--t-meta);line-height:1.8}
+.lin-ladder .ln-partial{border-style:dashed;border-color:var(--orange-dot)}
+.lin-ladder .ln-unknown{border-style:dashed}
+.lin-ladder .ln-conflict{border-color:var(--orange-dot);background:var(--orange-bg)}
+.lin-ladder .ln-k-case{border-inline-start:3px solid var(--slate-dot)}
+@media (max-width:640px){.lin-ladder .ln{grid-template-columns:minmax(0,1fr) auto}.ln-k{grid-column:1/-1}}
+.zone{display:inline-flex;align-items:center;gap:4px;min-height:22px;padding:0 8px;border-radius:var(--r-sm);border:1px solid transparent;font-size:var(--t-micro);font-weight:600;white-space:nowrap}
+.zone .i{width:14px;height:14px;flex:none}
+.zone.z-normal{background:var(--teal-bg);color:var(--teal-fg)}
+.zone.z-adv{background:var(--amber-bg);color:var(--amber-fg);border:1px dashed var(--amber-dot)}
+.zone.z-maint{background:var(--red-bg);color:var(--red-fg);border-color:var(--red-dot)}
+.zone-box{border-color:var(--red-dot)}
+.zone-box-h{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:repeating-linear-gradient(135deg,var(--red-bg) 0 10px,transparent 10px 20px);border-bottom:1px solid var(--red-dot)}
+.zone-box-h>div{flex:1;display:grid;gap:2px}
+.zone-box-h h2{margin:0;font-size:var(--t-lg);font-weight:600}
+.zone-box-h span{color:var(--text-2);font-size:var(--t-meta)}
+.zone-box-h>.i{margin-top:4px;color:var(--red-fg)}
+@media (forced-colors:active){.zone{border:1px solid CanvasText}}
