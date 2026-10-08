@@ -134,6 +134,24 @@
     M.perms.forEach(function (r) { var a = A.rows[r.k]; out[r.k] = a[0] === 'direct' ? a[1] : base[r.k]; });
     return out;
   };
+  // Current-manager text. A confirmed interval closure with an unconfirmed insert leaves the assignment UNKNOWN — never the previous manager.
+  X.mgrText = function (p) { return p.parentUnknown ? 'نامعلوم (UNKNOWN)' : p.parent ? X.name(p.parent) : 'ثبت نشده'; };
+  // Jalali date parser for temporal validation: returns y*10000+m*100+d or null (Persian/Arabic digits accepted; any non-date prefix such as «ماقبل» is ignored).
+  X.dateKey = function (s) {
+    var t = String(s == null ? '' : s).replace(/[۰-۹]/g, function (c) { return c.charCodeAt(0) - 1776; }).replace(/[٠-٩]/g, function (c) { return c.charCodeAt(0) - 1632; });
+    var m = t.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/); if (!m) return null;
+    var y = +m[1], mo = +m[2], d = +m[3]; if (y < 1300 || y > 1500 || mo < 1 || mo > 12 || d < 1 || d > (mo <= 6 ? 31 : mo <= 11 ? 30 : 29)) return null;
+    return y * 10000 + mo * 100 + d;
+  };
+  // Temporal check of a new compensation period against the existing current/history intervals. Returns {ok, msg}.
+  X.compTemporal = function (c, from) {
+    var k = X.dateKey(from); if (!from || !String(from).trim()) return { ok: false, empty: true, msg: '' };
+    if (k == null) return { ok: false, msg: 'تاریخ اثر نامعتبر است؛ قالب ۱۴۰۵/۰۸/۰۱ را به‌کار ببرید.' };
+    var per = (c && c.periods) || [], cur = per[0], hit = null;
+    per.forEach(function (e) { var f = X.dateKey(e.from), t = e.to ? X.dateKey(e.to) : null; if (f != null && k <= f) hit = hit || ['backdate', e.from]; else if (f != null && t != null && k <= t) hit = hit || ['overlap', e.from + ' — ' + e.to]; });
+    if (hit) return { ok: false, msg: hit[0] === 'backdate' ? 'تاریخ اثر باید پس از شروع دوره موجود (' + hit[1] + ') باشد؛ ثبت با تاریخ گذشته یا برابر ممنوع است.' : 'تاریخ اثر با بازه موجود (' + hit[1] + ') همپوشانی دارد.' };
+    return { ok: true, msg: '' };
+  };
   X.finish = function () {};
   X.work = function () {
     var n = function (k) { return M.staff.filter(function (p) { return p.conf.indexOf(k) > -1; }).length; };

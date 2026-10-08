@@ -21,18 +21,48 @@
 
 
   // The operation items are the only claim of what happened; domain state follows them (applied once), never the other way round.
+  // Close the active HR review step once the request is finally settled (idempotent: only a step still «cur» is closed; history text is appended, never replaced).
+  X.closeReqChain = function (r) {
+    r.chain.forEach(function (c) { if (c[1] === 'cur') { c[1] = 'done'; c[2] = c[2] + ' · اعمال نهایی ' + now + ' · ' + M.user.name; } });
+    r.cur = '—'; r.next = '—'; r.settled = true;
+  };
+  // Access rows follow the operation items: only permissions whose item is confirmed OK take the expected value; the rest keep their previous effective state.
+  X.syncAccess = function (op, p) {
+    var A = M.access[p.id]; if (!A) A = M.access[p.id] = { rows: JSON.parse(JSON.stringify(M.access['default'].rows)) };
+    if (!A.own) { A.rows = JSON.parse(JSON.stringify(A.rows)); A.own = true; }
+    var it = op.items, keys = op.keys, exp = op.expected, mappable = !!(keys && exp && it.length - 1 === Math.max(keys.length, 1)), pending = [];
+    if (mappable) keys.forEach(function (k, i) { var x = it[i + 1]; if (x && x[1] === 'ok') A.rows[k] = ['position', exp[k]]; else pending.push(X.permLabel(k) + (x && x[1] === 'unknown' ? ' (نامعلوم)' : '')); });
+    var allOk = it.every(function (x) { return x[1] === 'ok'; });
+    if (allOk && mappable) { p.role = 'ok'; delete A.partial; }
+    else { p.role = 'partial'; A.partial = !mappable ? 'وضعیت مؤثر قابل بازسازی نیست؛ نتیجه ناقص/نامعلوم می‌ماند تا بازخوانی' : 'مجوزهای اعمال‌نشده یا نامعلوم: ' + (pending.join('، ') || 'سمت'); }
+  };
+  X.permLabel = function (k) { var r = M.perms.filter(function (x) { return x.k === k; })[0]; return r ? r.label : k; };
+
+  // The operation items are the only claim of what happened; domain state follows them (applied once), never the other way round.
   X.settleOp = function (op) {
     var it = op.items, p = op.p ? X.s(op.p) : null, okk = function (i) { return it[i] && it[i][1] === 'ok'; };
-    if (op.kind === 'xfer' && !op.done && okk(0) && okk(1)) {
-      p.hist[0].to = now; p.hist.unshift({ from: now, to: null, parent: op.t, pos: X.posL(p.pos), applied: now, actor: M.user.name, src: op.reqId ? 'درخواست ' + op.reqId : 'ویرایش مستقیم', state: 'known' }); p.parent = op.t; op.done = true;
-      if (op.audit) { op.audit.after = 'مدیر: ' + X.name(op.t); op.audit.applied = now; }
-      if (op.reqId) { var r = X.req(op.reqId); st.reqState[r.id] = 'approved'; r.appliedAt = now; r.actual = { before: op.fromName, after: X.name(op.t), ok: true }; }
+    if (op.kind === 'xfer' && !op.done) {
+      // Closing the old interval is its own confirmed effect: it is kept even when the insert outcome is Unknown/Failed (no re-close, no duplicate interval).
+      if (okk(0) && !op.closed) { if (!p.hist[0].to) p.hist[0].to = now; op.closed = true; }
+      if (op.closed) {
+        if (okk(1)) {
+          var ph = op.unk ? p.hist.indexOf(op.unk) : -1; if (ph > -1) p.hist.splice(ph, 1); op.unk = null;
+          p.hist.unshift({ from: now, to: null, parent: op.t, pos: X.posL(p.pos), applied: now, actor: M.user.name, src: op.reqId ? 'درخواست ' + op.reqId : 'ویرایش مستقیم', state: 'known' }); p.parent = op.t; p.parentUnknown = false; op.done = true;
+          if (op.audit) { op.audit.after = 'مدیر: ' + X.name(op.t); op.audit.applied = now; }
+          if (op.reqId) { var r = X.req(op.reqId); st.reqState[r.id] = 'approved'; r.appliedAt = now; r.actual = { before: op.fromName, after: X.name(op.t), ok: true }; X.closeReqChain(r); }
+        } else {
+          var failed = it[1] && it[1][1] === 'failed', src = 'بازه قبلی بسته شد؛ ' + (failed ? 'بازه جدید ثبت نشد — مدیر مؤثر تعیین نشده' : 'ثبت بازه جدید نامعلوم است — مدیر مؤثر تا تطبیق نامعلوم');
+          if (!op.unk) { op.unk = { from: now, to: null, parent: null, pos: '—', state: 'unknown', src: src }; p.hist.unshift(op.unk); } else op.unk.src = src;
+          p.parent = null; p.parentUnknown = true;
+          if (op.audit) op.audit.after = 'مدیر مؤثر نامعلوم (بازه پیشین بسته شد؛ بازه جدید ' + (failed ? 'ثبت نشد' : 'نامعلوم') + ')';
+        }
+      }
     }
     if (op.kind === 'comp' && !op.done && okk(1)) {
       var c = M.comp[p.id], old = c.periods[0]; c.periods.unshift({ from: op.from, to: null, base: op.base, reason: op.reasonText || '', actor: M.user.name, applied: now, before: old ? old.base : '—' }); c.base = op.base; op.done = true;
       if (op.audit) { op.audit.after = 'پایه: ' + op.base; op.audit.applied = now; }
     }
-    if (op.kind === 'access' && it.every(function (x) { return x[1] === 'ok'; })) { p.role = 'ok'; if (M.access[p.id]) delete M.access[p.id].partial; }
+    if (op.kind === 'access') X.syncAccess(op, p);
     if (op.audit) op.audit.res = X.opState(op);
   };
 
@@ -57,7 +87,7 @@
   D.staff = function (id) {
     var p = X.s(id), pos = X.pos(p.pos), emp = X.empOf(p), parent = p.parent ? X.s(p.parent) : null;
     var cell = function (l, t, v) { return '<div class="own"><span class="own-l">' + ic('info') + esc(l) + hint(t) + '</span><b>' + v + '</b></div>'; };
-    var grid = '<div class="own-grid own7">' + cell('سمت', 'سمت کاری؛ با نقش و مجوز یکی نیست', esc(pos.label)) + cell('سطح', 'طبقه کاری', esc(p.lvl)) + cell('نقش عملیاتی نگاشت‌شده', 'نقش وردپرس/قدیمی؛ سمت نیست', esc(pos.role)) + cell('واحد / تیم', 'لزوماً همان والد گزارش‌دهی نیست', esc(p.unit)) + cell('مدیر فعلی', 'والد فعلی؛ اعتبار تاریخی نیست', parent ? esc(parent.name) + (X.isMgrOk(parent.id) ? '' : ' <span class="neg">(غیرفعال)</span>') : 'ثبت نشده') + cell('وضعیت اشتغال', 'غیرفعال بودن به معنی لغو کامل ورود نیست', X.empPill(emp)) + cell('وضعیت دسترسی', 'دسترسی واقعی با پرچم فعال بودن یکی نیست', X.accPill(p.role === 'nouser' ? 'nouser' : p.role)) + '</div>';
+    var grid = '<div class="own-grid own7">' + cell('سمت', 'سمت کاری؛ با نقش و مجوز یکی نیست', esc(pos.label)) + cell('سطح', 'طبقه کاری', esc(p.lvl)) + cell('نقش عملیاتی نگاشت‌شده', 'نقش وردپرس/قدیمی؛ سمت نیست', esc(pos.role)) + cell('واحد / تیم', 'لزوماً همان والد گزارش‌دهی نیست', esc(p.unit)) + cell('مدیر فعلی', 'والد فعلی؛ اعتبار تاریخی نیست', p.parentUnknown ? '<b>نامعلوم (UNKNOWN)</b>' : parent ? esc(parent.name) + (X.isMgrOk(parent.id) ? '' : ' <span class="neg">(غیرفعال)</span>') : 'ثبت نشده') + cell('وضعیت اشتغال', 'غیرفعال بودن به معنی لغو کامل ورود نیست', X.empPill(emp)) + cell('وضعیت دسترسی', 'دسترسی واقعی با پرچم فعال بودن یکی نیست', X.accPill(p.role === 'nouser' ? 'nouser' : p.role)) + '</div>';
     var actions = '<div class="resp-line">' + btn('btn-soft', 'open-xfer:' + p.id, 'پیش‌نمایش تغییر مدیر', 'swap') + (p.pos === 'seller' ? btn('btn-soft', 'open-term:' + p.id, 'بررسی اثر پایان همکاری', 'lock') : '') + btn('btn-soft', 'open-access:' + p.id, 'بازرس دسترسی', 'key') + (M.comp[p.id] ? btn('btn-soft', 'open-comp:' + p.id, 'جبران خدمات', 'wallet') : '') + '</div>';
     var confl = p.conf.length ? sec('ناهمخوانی‌های باز', '', checks(p.conf.map(function (k) { return ['warn', X.CONF[k], k === 'dupProfile' ? 'دو پروفایل ' + p.id + ' و ' + p.dup + ' به یک حساب اشاره می‌کنند؛ ادغام مخرب انجام نمی‌شود' : k === 'noUser' ? 'ورود نیرو ناتمام؛ حساب پیوند نشده' : k === 'inactiveMgr' ? 'مدیر فعلی غیرفعال است؛ جانشین خودکار تعیین نمی‌شود' : k === 'termOpen' ? 'کار باز دارد؛ تحویل (OPD-05) تعریف نشده' : k === 'histGap' ? 'مدیر و سمت پیش از ۱۴۰۵/۰۳/۰۱ نامشخص است' : k === 'roleMismatch' ? 'نقش قدیمی باقی مانده؛ بازنگاشت اجباری نمی‌شود' : k === 'accessPartial' ? 'مجوزهای مورد انتظار کامل اعمال نشد' : 'والد ثبت نشده؛ لزوماً نقص نیست (بسته به سمت)']; }))) : '';
     return top('پروفایل نیرو') + head(esc(p.name), X.empPill(emp) + X.accPill(p.role === 'nouser' ? 'nouser' : p.role), '<span class="mono">' + p.id + '</span><span>موبایل ' + p.mob + ' (فقط تطبیق)</span>') + '<div class="dr-body">' + sec('پیوند هویت', X.basis('snap'), X.linkage(p) + '<p class="ind-note">' + ic('info') + ' شخص، پروفایل نیرو و حساب وردپرس سه شناسه مستقل‌اند؛ برابری شناسه عددی در دو جدول یکی بودن آن‌ها نیست. هویت شخص سراسری هنوز تعریف نشده.</p>', 'primary') + sec('موجودیت‌های جدا', '', grid + actions) + confl +
@@ -86,7 +116,7 @@
       var okc = X.isMgrOk(c.id) && !X.isDesc(c.id, p.id), on = keep.target === c.id;
       return '<label class="recip' + (okc ? '' : ' off') + (on ? ' on' : '') + '"><input type="radio" name="xt" class="cbx" data-xt="' + c.id + '"' + (on ? ' checked' : '') + (okc ? '' : ' disabled') + '><span class="r-main"><b>' + esc(c.name) + '</b><span>' + esc(X.posL(c.pos)) + (X.isMgrOk(c.id) ? '' : ' — غیرفعال: قابل انتخاب نیست') + (X.isDesc(c.id, p.id) ? ' — زیرمجموعه خود فرد (چرخه)' : '') + '</span></span></label>';
     }).join('') + '</div>';
-    var eff = [['subject', 'فرد', esc(p.name) + ' · ' + esc(X.posL(p.pos))], ['cur', 'مدیر فعلی', cur ? esc(cur.name) : 'ثبت نشده'], ['tgt', 'مدیر مقصد', t ? esc(t.name) : 'انتخاب نشده'], ['pos', 'بافت سمت', 'سمت و سطح ' + esc(p.lvl) + ' تغییر نمی‌کند'], ['rq', 'تاریخ اثر درخواستی', 'پشتیبانی‌شده تأیید نشده؛ فقط «زمان اعمال» ثبت می‌شود'], ['ap', 'زمان اعمال واقعی', 'هنگام اعمال ثبت می‌شود (کنونی: ' + now + ')'], ['ch', 'مسیر بررسی', 'ویرایش مستقیم: منابع انسانی؛ نهایی‌کردن درخواست جدا است (تأیید مرحله‌ای ≠ انتقال)']];
+    var eff = [['subject', 'فرد', esc(p.name) + ' · ' + esc(X.posL(p.pos))], ['cur', 'مدیر فعلی', p.parentUnknown ? '<b>نامعلوم (UNKNOWN)</b>' : cur ? esc(cur.name) : 'ثبت نشده'], ['tgt', 'مدیر مقصد', t ? esc(t.name) : 'انتخاب نشده'], ['pos', 'بافت سمت', 'سمت و سطح ' + esc(p.lvl) + ' تغییر نمی‌کند'], ['rq', 'تاریخ اثر درخواستی', 'پشتیبانی‌شده تأیید نشده؛ فقط «زمان اعمال» ثبت می‌شود'], ['ap', 'زمان اعمال واقعی', 'هنگام اعمال ثبت می‌شود (کنونی: ' + now + ')'], ['ch', 'مسیر بررسی', 'ویرایش مستقیم: منابع انسانی؛ نهایی‌کردن درخواست جدا است (تأیید مرحله‌ای ≠ انتقال)']];
     var accessAfter = '<p class="ind-note">' + ic('key') + ' دسترسی: سمت و نقش بدون تغییر؛ فقط ارث‌بری استثناهای فاکتور/شماره اضافه از والد ممکن است عوض شود (جزئیات در بازرس دسترسی).</p>';
     var resp = o ? checks([['info', fa(o.leads) + ' لید · ' + fa(o.inv) + ' فاکتور · ' + fa(o.cust) + ' مشتری · ' + fa(o.tasks) + ' وظیفه باز', 'مسئولیت عملیاتی فعلی نزد خود فرد و فروش می‌ماند'], ['warn', 'دیده‌شدن زیر مدیر جدید ≠ انتقال پرونده یا استحقاق مالی', 'تحویل کار باز (OPD-05) مشروط و تعریف‌نشده است؛ انتقال خودکار انجام نمی‌شود']]) : checks([['q', 'اثر کار باز برای این نقش ارزیابی نشده', 'نامعلوم است و صفر فرض نمی‌شود']]);
     var bl = same ? ['no', 'مدیر مقصد با مدیر فعلی یکی است', 'تغییری وجود ندارد'] : cyc ? ['no', 'چرخه: مقصد زیرمجموعه خود فرد است', 'سلسله‌مراتب نامعتبر می‌شود'] : inact ? ['no', 'مدیر مقصد غیرفعال است', 'جانشین خودکار انتخاب نمی‌شود'] : effc ? ['warn', 'تعارض تاریخ اثر', 'بازه جدید با بازه فعلی هم‌پوشانی دارد؛ تاریخ اثر و زمان اعمال جدا ثبت می‌شوند'] : t ? ['ok', 'مقصد فعال و بدون چرخه است', 'بررسی دوباره هنگام ثبت'] : ['info', 'مدیر مقصد را انتخاب کنید', ''];
@@ -97,11 +127,11 @@
   };
   X.isDesc = function (id, anc) { var p = X.s(id), n = 0; while (p && p.parent && n++ < 20) { if (p.parent === anc) return true; p = X.s(p.parent); } return false; };
   X.xferSpec = function (p, t) {
-    var cur = p.parent ? X.name(p.parent) : 'ثبت نشده', o = p.open;
+    var cur = X.mgrText(p), o = p.open;
     return { kind: 'xfer', id: p.id, zone: 'cond', title: 'تأیید تغییر مدیر', subject: p.name + ' · ' + p.id, pre: '', changes: ['مدیر: ' + cur + ' ← ' + t.name, 'بازه جدید با تاریخ اثر برابر زمان اعمال'], unchanged: ['سمت، سطح و نقش عملیاتی', 'مالک اولیه، عامل رویداد و مالک اعتبار گذشته', 'مسئول فعلی پرونده‌ها/فاکتورها (تحویل کار جدا و تعریف‌نشده است)'], affected: [p.name, 'مدیر پیشین: ' + cur, 'مدیر جدید: ' + t.name, o ? fa(o.leads + o.inv + o.cust + o.tasks) + ' مورد کار باز (بدون انتقال)' : 'اثر کار باز ارزیابی نشده'], effective: 'زمان اعمال (' + now + '). تاریخ اثر آینده‌نگر پشتیبانی‌شده تأیید نشده.', commit: 'ثبت تغییر مدیر', p: p.id, t: t.id };
   };
   X.commitXfer = function (sp, forceV) {
-    var p = X.s(sp.p), t = X.s(sp.t), v = forceV || st.flow, rq = sp.r || null, fromName = p.parent ? X.name(p.parent) : '—';
+    var p = X.s(sp.p), t = X.s(sp.t), v = forceV || st.flow, rq = sp.r || null, fromName = p.parentUnknown ? 'نامعلوم' : p.parent ? X.name(p.parent) : '—';
     var items = [['بستن بازه فعلی مدیر', 'ok', ''], ['ثبت بازه جدید با مدیر مقصد', v === 'xunknown' ? 'unknown' : 'ok', v === 'xunknown' ? 'پاسخ ثبت نرسید؛ ممکن است ثبت شده باشد' : ''], ['به‌روزرسانی ارث‌بری دسترسی', v === 'xpartial' ? 'failed' : 'ok', v === 'xpartial' ? 'اعمال دسترسی ناموفق؛ قابل تکرار' : ''], ['حفظ تاریخچه و اعتبار گذشته (بدون بازنویسی)', 'ok', '']];
     if (v === 'xunknown') items[1][0] = 'ثبت بازه جدید با مدیر مقصد (پس از بستن بازه فعلی)';
     var op = X.newOp({ kind: 'xfer', title: (rq ? 'اعمال ' + rq + ': ' : '') + 'تغییر مدیر ' + p.name + ' به ' + t.name, requested: items.length, items: items, p: p.id, t: t.id, reqId: rq, fromName: fromName, note: 'تغییر ساختار فقط دیده‌شدن/مسیر را عوض می‌کند؛ مسئول فعلی کارها و مالک اعتبار تغییر نکرد.' });
@@ -120,15 +150,32 @@
     var cmp = ' <div class="own-grid"><div class="own"><span class="own-l">' + ic('wallet') + 'اعتبار کسب‌شده گذشته</span><b>حفظ می‌شود؛ بدون بازمحاسبه یا بازپس‌گیری</b></div><div class="own"><span class="own-l">' + ic('history') + 'استحقاق آینده</span><b>تصمیم جدا؛ این اقدام آن را تعیین نمی‌کند</b></div></div>';
     return top('بررسی اثر پایان همکاری') + head('پایان همکاری ' + esc(p.name), statePill, '<span class="mono">' + p.id + '</span><span>پایان همکاری ≠ غیرفعال‌کردن کاربر</span>') + '<div class="dr-body">' +
       sec('وضعیت اشتغال و دسترسی (دو چیز جدا)', '', '<div class="rva"><div class="rv-c"><span class="own-l">' + ic('user') + 'وضعیت اشتغال</span><b>' + esc(X.EMP[X.empOf(p)].label) + ' ← پایان همکاری</b></div><div class="rv-vs" aria-hidden="true">' + ic('swap') + '</div><div class="rv-c rv-act"><span class="own-l">' + ic('key') + 'وضعیت دسترسی</span><b>نقش/نشست: لغو نمی‌شود · زمان لغو تعریف نشده</b></div></div><p class="ind-note">' + ic('alert') + ' شاخه فعلی کد فقط پرچم فعال‌بودن و تاریخ پایان را ثبت می‌کند؛ لغو نقش، نشست و انتقال کامل کار از آن نتیجه نمی‌شود. زمان لغو دسترسی باید صریح تعیین شود.</p>', 'primary') +
-      sec('مدیر و مسئولیت فعلی', '', '<dl class="exc-dl hcp"><div><dt>مدیر فعلی</dt><dd>' + (p.parent ? esc(X.name(p.parent)) + (X.isMgrOk(p.parent) ? '' : ' (غیرفعال)') : 'ثبت نشده') + '</dd></div><div><dt>مسئول فعلی کارها</dt><dd>خود فرد (تا تحویل)</dd></div><div><dt>مسئول بعدی / مسئولیت آینده</dt><dd><b>نامشخص (UNKNOWN)</b> — تا تعیین سیاست OPD-05</dd></div></dl>') + sec('کار باز و محافظت‌شده', open === 'blocked' ? pill('مسدودکننده', 'red', 'lock') : '', rows) +
+      sec('مدیر و مسئولیت فعلی', '', '<dl class="exc-dl hcp"><div><dt>مدیر فعلی</dt><dd>' + (p.parentUnknown ? '<b>نامعلوم (UNKNOWN)</b>' : p.parent ? esc(X.name(p.parent)) + (X.isMgrOk(p.parent) ? '' : ' (غیرفعال)') : 'ثبت نشده') + '</dd></div><div><dt>مسئول فعلی کارها</dt><dd>خود فرد (تا تحویل)</dd></div><div><dt>مسئول بعدی / مسئولیت آینده</dt><dd><b>نامشخص (UNKNOWN)</b> — تا تعیین سیاست OPD-05</dd></div></dl>') + sec('کار باز و محافظت‌شده', open === 'blocked' ? pill('مسدودکننده', 'red', 'lock') : '', rows) +
       sec('مسئولیت فاکتور و مشتری', '', checks([['info', 'فاکتورها و ارتباط‌های مالی حفظ می‌شود', 'پایان همکاری حذف مالی نیست'], ['info', 'مسئول فروش/مالی فعلی دست‌نخورده', 'تغییر خودکار نداریم']])) + sec('مرز جبران خدمات', '', cmp) +
       sec('موارد تحویل حل‌نشده', unres.length ? pill(fa(unres.length) + ' مورد', 'amber', 'alert') : '', unres.length ? checks(unres.map(function (u) { return ['no', u, '']; })) + '<p class="ind-note">' + ic('lock') + ' بازنشانی یا انتقال خودکار مسئولیت پیشنهاد نمی‌شود؛ مسئول بعدی باید نام‌برده و مجاز باشد.</p>' : checks([['ok', 'کار باز نیست و مسئولیت بی‌صاحب نمی‌ماند', 'تأییدشده در این پیش‌نمایش']]) + '<p class="ind-note">' + ic('info') + ' حتی بدون کار باز، این اقدام فقط وضعیت اشتغال را عوض می‌کند و «آف‌بوردینگ کامل» نیست.</p>') + '</div>' +
       foot(done ? btn('btn-lg', 'x', 'پایان همکاری قبلاً ثبت شده', 'check', true) : open === 'clear' ? btn('btn-primary btn-lg', 'term-review:' + p.id, 'ادامه: تأیید با بررسی اثر', 'send') : btn('btn-lg', 'x', 'اعمال غیرفعال — تحویل ناتمام (OPD-05)', 'lock', true), null, 'هیچ بازتخصیص خودکار وجود ندارد');
   };
   X.termSpec = function (p) {
-    return { kind: 'term', id: p.id, zone: 'restr', title: 'تأیید پایان همکاری', subject: p.name + ' · ' + p.id, pre: '', changes: ['وضعیت اشتغال: فعال ← پایان همکاری', 'پروفایل غیرفعال و تاریخ پایان ثبت می‌شود'], unchanged: ['نقش و نشست حساب (لغو نمی‌شود؛ زمان‌بندی تعریف نشده)', 'اعتبار کسب‌شده گذشته و فاکتورها', 'مالک اولیه و تاریخچه'], affected: [p.name, 'مدیر فعلی: ' + (p.parent ? X.name(p.parent) : '—'), 'کار باز: ندارد (تأییدشده)'], effective: 'زمان اعمال (' + now + '). تاریخ اثر درخواستی جدا نگه داشته می‌شود.', ack: 'می‌دانم این فقط وضعیت اشتغال را عوض می‌کند و لغو دسترسی یا تحویل کامل نیست.', commit: 'ثبت پایان همکاری', p: p.id };
+    return { kind: 'term', id: p.id, zone: 'restr', title: 'تأیید پایان همکاری', subject: p.name + ' · ' + p.id, pre: '', changes: ['وضعیت اشتغال: فعال ← پایان همکاری', 'پروفایل غیرفعال و تاریخ پایان ثبت می‌شود'], unchanged: ['نقش و نشست حساب (لغو نمی‌شود؛ زمان‌بندی تعریف نشده)', 'اعتبار کسب‌شده گذشته و فاکتورها', 'مالک اولیه و تاریخچه'], affected: [p.name, 'مدیر فعلی: ' + (p.parentUnknown ? 'نامعلوم' : p.parent ? X.name(p.parent) : '—'), 'کار باز: ندارد (تأییدشده)'], effective: 'زمان اعمال (' + now + '). تاریخ اثر درخواستی جدا نگه داشته می‌شود.', ack: 'می‌دانم این فقط وضعیت اشتغال را عوض می‌کند و لغو دسترسی یا تحویل کامل نیست.', commit: 'ثبت پایان همکاری', p: p.id };
+  };
+  // Fail-closed handover guard: evidence must exist, be verified, and protected/open work must be zero. Anything else (including a repeat apply) changes nothing.
+  X.termGuard = function (p) {
+    var o = p.open;
+    if (X.empOf(p) === 'terminated') return { ok: false, why: 'پایان همکاری قبلاً ثبت شده؛ ثبت دوباره انجام نمی‌شود' };
+    if (!o) return { ok: false, why: 'شواهد کار باز/تحویل وجود ندارد؛ مسدود (OPD-05)' };
+    if (!o.verified) return { ok: false, why: 'اسنپ‌شات کار باز تأیید نشده؛ مسدود (OPD-05)' };
+    var total = (o.leads || 0) + (o.inv || 0) + (o.cust || 0) + (o.tasks || 0);
+    if (total > 0) return { ok: false, why: fa(total) + ' مورد کار باز/محافظت‌شده؛ گیرنده تحویل تعریف نشده (OPD-05)' };
+    return { ok: true, why: '' };
   };
   X.commitTerm = function (sp) {
+    var g = X.termGuard(X.s(sp.p));
+    if (!g.ok) {
+      var q = X.s(sp.p), bi = [['وضعیت اشتغال ← پایان همکاری', 'rejected', g.why], ['غیرفعال‌سازی پروفایل و تاریخ پایان', 'rejected', g.why], ['لغو نقش و نشست حساب', 'skipped', 'این اقدام لغو نمی‌کند'], ['تحویل کار باز', 'skipped', 'گیرنده‌ای تعریف نشده']];
+      var bop = X.newOp({ kind: 'term', blocked: true, retry: false, title: 'پایان همکاری ' + q.name + ' (مسدود)', requested: bi.length, items: bi, note: 'مسدود و بدون تغییر: ' + g.why + '. هیچ وضعیتی نوشته نشد.' });
+      pushAudit({ act: 'پایان همکاری (مسدود)', subj: q.id, req: sp.r || '—', before: 'وضعیت: ' + X.EMP[X.empOf(q)].label, after: 'بدون تغییر — ' + g.why, reason: sp.reasonText || '', chain: sp.r ? 'درخواست‌دهنده ← تأیید مرحله‌ای ← منابع انسانی' : 'مسیر مستقیم', eff: '—', applied: '—', res: 'failed', corr: 'hr-' + bop.id.slice(3) });
+      return bop;
+    }
     var p = X.s(sp.p), items = [['وضعیت اشتغال ← پایان همکاری', 'ok', ''], ['غیرفعال‌سازی پروفایل و تاریخ پایان', 'ok', ''], ['لغو نقش و نشست حساب', 'skipped', 'این اقدام لغو نمی‌کند؛ زمان لغو دسترسی تعریف نشده'], ['تحویل کار باز', 'skipped', 'کار بازی نبود (تأییدشده)']];
     var op = X.newOp({ kind: 'term', title: 'پایان همکاری ' + p.name, requested: items.length, items: items, note: 'فقط وضعیت اشتغال تغییر کرد؛ آف‌بوردینگ کامل ادعا نمی‌شود و دسترسی به‌جای دیگر باید صریحاً لغو شود.' });
     st.staffEdit[p.id] = { emp: 'terminated' };
@@ -151,8 +198,8 @@
     if (r.changed) notes.push(['warn', 'درخواست پیش از بررسی تغییر کرده', r.changed + '؛ پیش از تأیید دوباره بخوانید']);
     if (r.targetInactive) notes.push(['no', 'مدیر مقصد غیرفعال است', 'اعمال بدون بررسی تازه سیاست مجاز نیست']);
     if (r.oos) notes.push(['no', 'درخواست خارج از محدوده است', 'بررسی با رتبه بالاتر انجام نمی‌شود']);
-    var o = p.open, termBlock = r.type === 'terminate' && o && (o.leads + o.inv + o.cust + o.tasks) > 0;
-    if (termBlock) notes.push(['no', 'تحویل کار باز ناتمام است (OPD-05)', fa(o.leads + o.inv + o.cust + o.tasks) + ' مورد باز؛ گیرنده تعریف نشده — اعمال نهایی مسدود/مشروط']);
+    var o = p.open, tg = r.type === 'terminate' ? X.termGuard(p) : { ok: true }, termBlock = !tg.ok;
+    if (termBlock) notes.push(['no', 'تحویل کار باز تأیید نشده است (OPD-05)', tg.why + ' — اعمال نهایی مسدود (fail-closed)']);
     if (s === 'pending_review') notes.push(['info', 'منابع انسانی در کد می‌تواند مرحله منتظر را نهایی کند', 'عبور از زنجیره بدون سیاست مصوب است (HR-G11) و اینجا عرضه نمی‌شود']);
     var blockedStep = r.changed || r.oos || r.targetInactive;
     var acts = '';
@@ -179,7 +226,9 @@
       if (!op.done) { st.reqState[r.id] = 'failed'; r.fail = 'ثبت بازه جدید پس از بستن بازه فعلی ناموفق/نامعلوم بود'; r.actual = { before: op.fromName, after: 'نامعلوم', ok: false }; op.note = 'اثر واقعی نامعلوم است: ابتدا بخوانید؛ اعمال دوباره کور ممنوع است.'; }
       return op;
     }
-    sp.p = p.id; op = X.commitTerm(sp); st.reqState[r.id] = 'approved'; r.appliedAt = now; r.actual = { before: 'فعال', after: 'پایان همکاری', ok: true }; return op;
+    sp.p = p.id; op = X.commitTerm(sp);
+    if (op.blocked) { r.blockNote = op.note; return op; }
+    st.reqState[r.id] = 'approved'; r.appliedAt = now; r.actual = { before: 'فعال', after: 'پایان همکاری', ok: true }; X.closeReqChain(r); return op;
   };
 
   /* ---------- Access-State Inspector ---------- */
@@ -195,13 +244,13 @@
   X.accessSpec = function (p, pos) {
     var A = M.access[p.id] || M.access['default'], aft = X.accessAfter(p, pos), ch = [];
     M.perms.forEach(function (r) { var a = A.rows[r.k][1]; if (aft[r.k] !== a) ch.push(r.label + ': ' + (a === 'allow' ? 'مجاز' : 'غیرمجاز') + ' ← ' + (aft[r.k] === 'allow' ? 'مجاز' : 'غیرمجاز') + (r.sens ? ' (حساس)' : '')); });
-    return { kind: 'access', id: p.id, zone: 'restr', title: 'تأیید تغییر سمت و دسترسی', subject: p.name + ' · ' + p.id, pre: '', changes: ['سمت: ' + X.posL(p.pos) + ' ← ' + X.posL(pos)].concat(ch), unchanged: ['استثناهای مستقیم فاکتور/شماره اضافه', 'نقش‌ها و قابلیت‌های نامرتبط', 'اعتبارنامه (گذرواژه) و سابقه', 'مدیر فعلی و تاریخچه'], affected: [p.name, 'نگاشت سمت ← نقش عملیاتی', fa(ch.length) + ' مجوز محصولی'], effective: 'زمان اعمال (' + now + '). فعال‌بودن پرچم، اثبات ورود قابل‌استفاده نیست.', commit: 'ثبت تغییر سمت', p: p.id, pos: pos, n: ch.length };
+    return { kind: 'access', id: p.id, zone: 'restr', title: 'تأیید تغییر سمت و دسترسی', subject: p.name + ' · ' + p.id, pre: '', changes: ['سمت: ' + X.posL(p.pos) + ' ← ' + X.posL(pos)].concat(ch), unchanged: ['استثناهای مستقیم فاکتور/شماره اضافه', 'نقش‌ها و قابلیت‌های نامرتبط', 'اعتبارنامه (گذرواژه) و سابقه', 'مدیر فعلی و تاریخچه'], affected: [p.name, 'نگاشت سمت ← نقش عملیاتی', fa(ch.length) + ' مجوز محصولی'], effective: 'زمان اعمال (' + now + '). فعال‌بودن پرچم، اثبات ورود قابل‌استفاده نیست.', commit: 'ثبت تغییر سمت', p: p.id, pos: pos, n: ch.length, keys: M.perms.filter(function (r) { return A.rows[r.k][1] !== aft[r.k]; }).map(function (r) { return r.k; }) };
   };
   X.commitAccess = function (sp) {
     var p = X.s(sp.p), v = st.flow, n = Math.max(sp.n, 1), items = [['به‌روزرسانی سمت', 'ok', '']];
     for (var i = 0; i < n; i++) items.push(['مجوز ' + fa(i + 1) + ' از ' + fa(n), v === 'accpartial' && i === n - 1 ? 'failed' : 'ok', v === 'accpartial' && i === n - 1 ? 'اعمال ناموفق؛ وضعیت مؤثر با مورد انتظار فرق دارد' : '']);
-    var op = X.newOp({ kind: 'access', title: 'تغییر سمت ' + p.name, requested: items.length, items: items, p: p.id, note: 'نقش‌های نامرتبط و استثناهای مستقیم بازنشانی نشدند.' });
-    p.pos = sp.pos; p.role = items.some(function (x) { return x[1] !== 'ok'; }) ? 'partial' : 'ok'; if (p.role === 'partial') M.access[p.id] = { rows: (M.access[p.id] || M.access['default']).rows, partial: 'آخرین مجوز اعمال نشد' };
+    var op = X.newOp({ kind: 'access', title: 'تغییر سمت ' + p.name, requested: items.length, items: items, p: p.id, keys: sp.keys, expected: X.accessAfter(p, sp.pos), note: 'نقش‌های نامرتبط و استثناهای مستقیم بازنشانی نشدند.' });
+    p.pos = sp.pos; X.settleOp(op);
     op.audit = pushAudit({ act: 'تغییر سمت', subj: p.id, req: '—', before: 'سمت پیشین', after: X.posL(sp.pos) + (p.role === 'partial' ? ' (دسترسی ناقص)' : ''), reason: sp.reasonText || '', chain: 'مسیر مستقیم', eff: now, applied: now, res: X.opState(op), corr: 'hr-' + op.id.slice(3) });
     return op;
   };
@@ -218,8 +267,8 @@
       var cur = i === 0 && !e.to;
       return '<li class="ei' + (cur ? ' ei-cur' : '') + (e.gap ? ' ei-inc' : '') + '"><span class="ei-dot" aria-hidden="true"></span><div class="ei-b"><div class="ei-h"><b>' + (cur ? 'فعلی' : 'تاریخی') + '</b>' + (cur ? pill('دوره جاری', 'teal', 'clock') : '') + (e.gap ? pill('ناقص', 'amber', 'layers') : '') + '</div><dl class="ei-dl"><div><dt>تاریخ اثر</dt><dd>' + esc(e.from) + ' — ' + (e.to ? esc(e.to) : 'ادامه دارد') + '</dd></div><div><dt>پایه</dt><dd>' + esc(e.base) + ' ' + c.cur + '</dd></div><div><dt>قبل ← بعد</dt><dd>' + esc(e.before) + ' ← ' + esc(e.base) + '</dd></div><div><dt>دلیل</dt><dd>' + esc(e.reason) + '</dd></div><div><dt>زمان اعمال</dt><dd>' + esc(e.applied || 'ثبت نشده') + '</dd></div><div><dt>عامل</dt><dd>' + esc(e.actor) + '</dd></div></dl></div></li>';
     }).join('');
-    var valid = keep.base && ok3(keep.reason) && keep.from, p0 = c.periods[0];
-    var form = '<div class="form-grid"><div><label class="lbl" for="cp-b">پایه جدید (' + (c.cur || 'IRT') + ')</label><input class="input" id="cp-b" inputmode="numeric" data-cpbase value="' + esc(keep.base || '') + '" placeholder="مثلاً ۳۴٬۰۰۰٬۰۰۰"></div><div><label class="lbl" for="cp-f">تاریخ اثر</label><input class="input" id="cp-f" data-cpfrom value="' + esc(keep.from || '') + '" placeholder="۱۴۰۵/۰۸/۰۱"></div><div><label class="lbl" for="cp-r">دلیل</label><input class="input" id="cp-r" data-cpreason value="' + esc(keep.reason || '') + '"></div></div><p class="ind-note">' + ic('alert') + ' بازه قبلی پیش از ثبت بازه جدید بسته می‌شود و تراکنش یکپارچه تأیید نشده؛ قفل پس از حقوق نیز تأییدنشده است. اعتبار کسب‌شده گذشته دوباره محاسبه نمی‌شود.</p>';
+    var tv = X.compTemporal(c, keep.from), valid = keep.base && ok3(keep.reason) && tv.ok, p0 = c.periods[0];
+    var form = '<div class="form-grid"><div><label class="lbl" for="cp-b">پایه جدید (' + (c.cur || 'IRT') + ')</label><input class="input" id="cp-b" inputmode="numeric" data-cpbase value="' + esc(keep.base || '') + '" placeholder="مثلاً ۳۴٬۰۰۰٬۰۰۰"></div><div><label class="lbl" for="cp-f">تاریخ اثر</label><input class="input" id="cp-f" data-cpfrom value="' + esc(keep.from || '') + '" placeholder="۱۴۰۵/۰۸/۰۱"' + (!tv.ok && !tv.empty ? ' aria-invalid="true" aria-describedby="cp-fe"' : '') + '>' + (!tv.ok && !tv.empty ? '<p class="field-err" id="cp-fe" role="alert">' + esc(tv.msg) + '</p>' : '') + '</div><div><label class="lbl" for="cp-r">دلیل</label><input class="input" id="cp-r" data-cpreason value="' + esc(keep.reason || '') + '"></div></div><p class="ind-note">' + ic('alert') + ' بازه قبلی پیش از ثبت بازه جدید بسته می‌شود و تراکنش یکپارچه تأیید نشده؛ قفل پس از حقوق نیز تأییدنشده است. اعتبار کسب‌شده گذشته دوباره محاسبه نمی‌شود.</p>';
     return top('جبران خدمات') + head(esc(p.name), pill('حساس', 'amber', 'alert') + (c.com ? pill('واجد کمیسیون: ' + c.rule, 'teal', 'checkCircle') : pill('بدون کمیسیون', 'slate', 'ban')), '<span class="mono">' + p.id + '</span><span>جدا از کیف پول و مالی</span>') + '<div class="dr-body">' +
       sec('وضعیت فعلی', X.basis('hist'), c.base ? '<div class="facets"><div class="facet"><span class="muted">پایه</span><b>' + esc(c.base) + ' ' + c.cur + '</b></div><div class="facet"><span class="muted">کمیسیون (ارجاع، نه موتور)</span><b>' + (c.com ? esc(c.rule) + ' · ' + esc(c.mode) : 'ندارد') + '</b></div><div class="facet"><span class="muted">واحد</span><b>' + c.cur + '</b></div></div>' : h.stateBlock('empty', 'دوره‌ای ثبت نشده', 'جبران خدمات تعریف نشده؛ صفر نیست.', ''), 'primary') +
       (c.overlap ? '<section class="sec"><div class="note warn">' + ic('alert') + '<span><b>هشدار یکپارچگی:</b> ' + esc(c.overlap) + '</span></div></section>' : '') +
@@ -231,7 +280,13 @@
     return { kind: 'comp', id: p.id, zone: 'restr', title: 'تأیید دوره جبران خدمات', subject: p.name + ' · ' + p.id, pre: '', changes: ['پایه: ' + (p0 ? p0.base : '—') + ' ← ' + keep.base + ' ' + (c.cur || 'IRT'), 'بازه قبلی بسته می‌شود و بازه جدید از ' + keep.from + ' ثبت می‌شود'], unchanged: ['اعتبار کسب‌شده و استحقاق گذشته (بدون بازمحاسبه)', 'کیف پول، پرداخت و موتور کمیسیون', 'ارجاع قاعده کمیسیون'], affected: [p.name, 'دوره فعلی و تاریخچه', 'ممیزی قبل/بعد'], effective: 'تاریخ اثر ' + keep.from + ' · زمان اعمال ' + now + ' (دو چیز جدا).', ack: 'می‌دانم قفل پس از حقوق تأیید نشده و شکست میانه‌راه ممکن است نامعلوم بماند.', commit: 'ثبت دوره جبران خدمات', p: p.id, base: keep.base, from: keep.from };
   };
   X.commitComp = function (sp) {
-    var p = X.s(sp.p), c = M.comp[p.id], v = st.flow, unk = v === 'compunknown';
+    var p = X.s(sp.p), c = M.comp[p.id], v = st.flow, unk = v === 'compunknown', tv = X.compTemporal(c, sp.from);
+    if (!tv.ok) {   // re-checked at commit: an invalid temporal range never closes or rewrites the current interval
+      var bi = [['بستن دوره قبلی', 'rejected', tv.msg || 'تاریخ اثر نامعتبر'], ['ثبت دوره جدید', 'rejected', tv.msg || 'تاریخ اثر نامعتبر'], ['حفظ اعتبار کسب‌شده گذشته (بدون بازمحاسبه)', 'skipped', 'تغییری انجام نشد']];
+      var bop = X.newOp({ kind: 'comp', blocked: true, retry: false, title: 'دوره جبران خدمات ' + p.name + ' (مسدود)', requested: 3, items: bi, p: p.id, note: 'مسدود و بدون تغییر: ' + (tv.msg || 'تاریخ اثر نامعتبر') + ' دوره فعلی دست‌نخورده ماند.' });
+      pushAudit({ act: 'ثبت دوره جبران (مسدود)', subj: p.id, req: '—', before: 'پایه: ' + (c.periods[0] ? c.periods[0].base : '—'), after: 'بدون تغییر — ' + (tv.msg || 'تاریخ نامعتبر'), reason: sp.reasonText || '', chain: '—', eff: sp.from || '—', applied: '—', res: 'failed', corr: 'hr-' + bop.id.slice(3) });
+      return bop;
+    }
     var items = [['بستن دوره قبلی', 'ok', ''], ['ثبت دوره جدید', unk ? 'unknown' : 'ok', unk ? 'پاسخ ثبت نرسید پس از بستن دوره قبلی' : ''], ['حفظ اعتبار کسب‌شده گذشته (بدون بازمحاسبه)', 'ok', '']];
     var op = X.newOp({ kind: 'comp', title: 'دوره جبران خدمات ' + p.name, requested: 3, items: items, p: p.id, base: sp.base, from: sp.from, reasonText: sp.reasonText, note: unk ? 'دوره قبلی بسته شد؛ وضعیت دوره جدید نامعلوم است — پیش از هر تکرار بخوانید.' : 'اعتبار کسب‌شده گذشته دوباره محاسبه نشد.' });
     var old = c.periods[0]; if (old && !old.to) old.to = 'ماقبل ' + sp.from;
