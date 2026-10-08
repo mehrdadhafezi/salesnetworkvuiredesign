@@ -62,6 +62,7 @@ textarea.input{height:auto;min-height:64px;padding:8px 12px;resize:vertical}
 .imp-shell:empty{display:none}
 .imp-shell .imp-bar{margin:0;border-radius:0;border-width:0 0 3px}
 body.imp-on .drawer{top:var(--imp-h,0px)}
+@media (max-width:760px){body.imp-on .drawer{top:auto;height:min(92dvh,calc(100dvh - var(--imp-h,0px)))}}
 @media (max-width:760px){.imp-shell .imp-bar{padding:8px 12px;gap:6px}.imp-shell .imp-bar>div{min-width:0}.imp-shell .imp-bar .btn{width:100%;white-space:normal;height:auto;min-height:44px}}
 .imp-bar>.i{flex:none;width:20px;height:20px;color:var(--red-fg)}
 .imp-bar>div{flex:1;display:grid;gap:2px;min-width:200px}

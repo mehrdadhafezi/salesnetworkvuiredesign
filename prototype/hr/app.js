@@ -13,9 +13,10 @@
     var n = $('#imp-shell'); if (!n) return; var html = st.imp ? X.impBar() : '';
     if (n.getAttribute('data-h') !== html) { n.innerHTML = html; n.setAttribute('data-h', html); }
     document.body.classList.toggle('imp-on', !!st.imp);
-    document.body.style.setProperty('--imp-h', st.imp ? n.offsetHeight + 'px' : '0px');
+    document.body.style.setProperty('--imp-h', st.imp ? Math.max(0, Math.ceil(n.getBoundingClientRect().bottom)) + 'px' : '0px');
   };
   window.addEventListener('resize', function () { if (st.imp) X.syncImp(); });
+  window.addEventListener('scroll', function () { if (st.imp) X.syncImp(); }, { passive: true });
   function result(op) { C.closeDrawer(); C.render(); C.openDrawer('result', op.id); }
 
   function onClick(t, e) {

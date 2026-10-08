@@ -109,6 +109,32 @@ ok(r.op&&r.st==='approved'&&r.states==='done,done,done'&&r.cur==='—'&&r.next==
 await p.evaluate(()=>{HRX.st.rq='closed';HRX.C.go('req');HRX.C.openDrawer('req','R-502')});await p.waitForTimeout(300);
 t=await p.innerText('#drawer');ok(/بررسی‌کننده فعلی\s*\n?\s*—/.test(t)&&!/hourglass/.test(await p.innerHTML('#drawer'))&&await p.locator('#drawer .chain .c-cur').count()===0,'F6: request drawer shows no active reviewer step after settlement');
 
+
+// ===== Codex round 2 (head 06011df)
+await fresh('view=req');
+r=await ev(()=>{const X=HRX,p=X.s('HP-311');const k=p.open;const run=()=>{const op=X.commitTerm(X.termSpec(p));return {b:!!op.blocked,e:X.empOf(p)}};const out={};
+ p.open={verified:true,leads:0,inv:0};out.partial=run();p.open={verified:true,leads:0,inv:0,cust:0,tasks:NaN};out.nan=run();p.open={verified:true,leads:0,inv:0,cust:0,tasks:-1};out.neg=run();p.open=k;return out});
+ok(r.partial.b&&r.nan.b&&r.neg.b&&r.partial.e!=='terminated','R2: verified snapshot with missing/NaN/negative counts → fail closed (missing ≠ zero)');
+r=await ev(()=>{const X=HRX,p=X.s('HP-304');p.role='ok';const op={kind:'access',p:p.id,items:[['a','ok',''],['b','ok','']]};op.audit={};X.settleOp(op);return {s:X.opState(op),a:op.audit.res,role:p.role}});
+ok(r.s==='partial'&&r.a==='partial'&&r.role==='partial','R2: unreconstructable access op reports partial in state and audit (not complete)');
+r=await ev(()=>{const X=HRX,p=X.s('HP-301');const a0=HR.audit.length;const hl=p.hist.length;X.st.flow='xunknown';const op=X.commitXfer(X.xferSpec(p,X.s('HP-120')));const n1=p.hist.length;X.st.flow=null;const op2=X.commitXfer(X.xferSpec(p,X.s('HP-110')));const a={blocked:!!op2.blocked,same:p.hist.length===n1,unk:p.parentUnknown,parent:p.parent,st:X.opState(op2),aud:HR.audit[0].res};X.reconcileOp(op);return Object.assign(a,{after:p.parent,live:p.hist.filter(h=>!h.to).length})});
+ok(r.blocked&&r.same&&r.unk&&r.parent===null&&r.st==='blocked'&&r.aud==='blocked','R2: second transfer while manager Unknown is blocked, no mutation; state/audit = blocked');
+ok(r.after==='HP-120'&&r.live===1,'R2: original op reconcile still settles to the first target (one live interval)');
+await ev(()=>{HRX.C.closeDrawer();HRX.C.go('onb');HRX.C.openDrawer('xfer','HP-301',{target:'HP-110'})});await p.waitForTimeout(250);
+r=await ev(()=>{const X=HRX,p=X.s('HP-302');X.st.flow='xunknown';X.commitXfer(X.xferSpec(p,X.s('HP-120')));X.st.flow=null;HRX.C.closeDrawer();HRX.C.openDrawer('xfer','HP-302',{target:'HP-110'});return 1});await p.waitForTimeout(250);
+ok(await p.locator('#drawer [data-act^="xfer-review:"]').isDisabled(),'R2: transfer preview continue disabled while manager Unknown');
+r=await ev(()=>{const X=HRX;return ['abc۱۴۰۵/۰۸/۰۱','۱۴۰۵/۰۸/۰۱-extra','x1405/08/01','۱۴۰۵/۰۸/۰۱','ماقبل ۱۴۰۵/۰۸/۰۱'].map(d=>X.dateKey(d)!=null)});
+ok(JSON.stringify(r)==='[false,false,false,true,true]','R2: date must match the whole string (internal «ماقبل …» form still parsed)');
+await fresh('view=comp');
+r=await ev(()=>{const X=HRX,c=HR.comp['HP-301'];X.st.flow='compunknown';const sp=X.compSpec(X.s('HP-301'),{base:'۳۴٬۰۰۰٬۰۰۰',from:'۱۴۰۵/۰۸/۰۱'});sp.reasonText='x';const op=X.commitComp(sp);const a={mark:c.unresolved===op.id,st:X.opState(op)};X.st.flow=null;const sp2=X.compSpec(X.s('HP-301'),{base:'۱',from:'۱۴۰۶/۰۱/۰۱'});sp2.reasonText='x';const n=c.periods.length;const op2=X.commitComp(sp2);Object.assign(a,{blocked:!!op2.blocked,aud:HR.audit[0].res,same:c.periods.length===n,valid:X.compTemporal(c,'۱۴۰۶/۰۱/۰۱').ok});X.reconcileOp(op);return Object.assign(a,{clear:c.unresolved===undefined,n2:c.periods.length-n,okNow:X.compTemporal(c,'۱۴۰۶/۰۱/۰۱').ok})});
+ok(r.mark&&r.st==='unknown'&&r.blocked&&r.same&&!r.valid&&r.aud==='blocked','R2: compensation Unknown marks domain; any further write (even later date) blocked, outcome=blocked');
+ok(r.clear&&r.n2===1&&r.okNow,'R2: reconcile clears the marker, one period inserted, writes allowed again');
+await fresh('view=req&rq=review&flow=reqtermblock');await p.waitForTimeout(300);
+t=await p.evaluate(()=>{HRX.X;const op=HRX.commitTerm(HRX.termSpec(HRX.s('HP-304')));return HRX.C.openDrawer('result',op.id),op.id});await p.waitForTimeout(300);
+ok((await p.innerText('#drawer')).includes('مسدود'),'R2: result drawer labels guarded no-op as «مسدود», not failed');
+for(const w of [390,360]){await fresh('view=work&imp=1',w,700);await p.evaluate(()=>HRX.C.openDrawer('staff','HP-303'));await p.waitForTimeout(350);
+ const g=await p.evaluate(()=>{const d=document.querySelector('#drawer').getBoundingClientRect();const b=document.querySelector('#imp-shell').getBoundingClientRect();return {bottom:d.bottom,vh:innerHeight,top:d.top,barBottom:b.bottom}});
+ ok(g.bottom<=g.vh+1&&g.top>=g.barBottom-1,'R2: mobile drawer ('+w+') fits below impersonation bar and above viewport bottom');}
 // ===== cross-cutting
 ok(p.errs.length===0,'no JS errors in post-merge pass ('+p.errs.slice(0,2).join('|')+')');
 console.log('FAILS',fail.length);await b.close();process.exit(fail.length?1:0)})();
