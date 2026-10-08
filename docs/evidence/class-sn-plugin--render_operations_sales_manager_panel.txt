@@ -1,0 +1,2 @@
+389: 
+390: 	public function render_operations_sales_manager_panel(): string { return class_exists('SN_Operations_Flow') ? SN_Operations_Flow::instance()->render_sales_manager_panel() : ''; }

@@ -1,0 +1,286 @@
+6076: 
+6077: 	public function render_converter_panel( string $context = '' ): string {
+6078: 		if ( ! is_user_logged_in() ) {
+6079: 			$login_id = (int) get_option( 'sn_login_page_id', 0 );
+6080: 			$url = $login_id ? get_permalink( $login_id ) : wp_login_url();
+6081: 			return '<script>window.location.href=' . wp_json_encode( $url ) . ';</script><div class="sn-notice">در حال انتقال به صفحه ورود...</div>';
+6082: 		}
+6083: 		$user_id = get_current_user_id();
+6084: 		$is_converter_user = $this->is_converter( $user_id );
+6085: 		$is_seller_user = $this->is_seller( $user_id );
+6086: 		$is_supervisor = $this->is_supervisor( $user_id );
+6087: 		$context = sanitize_key( $context );
+6088: 		$context = in_array( $context, [ 'seller', 'supervisor' ], true ) ? $context : '';
+6089: 		$is_embedded = $context !== '';
+6090: 		$has_context_access = ( 'seller' === $context && $is_seller_user ) || ( 'supervisor' === $context && $is_supervisor );
+6091: 		if ( ! current_user_can( 'manage_options' ) && ( $is_embedded ? ! $has_context_access : ( ! $is_converter_user && ! $is_supervisor ) ) ) {
+6092: 			return '<div class="sn-notice sn-error" dir="rtl">دسترسی به این فهرست تبدیل مجاز نیست.</div>';
+6093: 		}
+6094: 		global $wpdb; $t = $this->tables();
+6095: 		if ( 'seller' === $context ) {
+6096: 			// A finance callback can be missed by a request failure. Repair only this
+6097: 			// seller's fully-paid seller_self links before reading their own queue.
+6098: 			$this->repair_paid_assessment_cases_for_seller( $user_id, 20 );
+6099: 		}
+6100: 		// The converter queue is ordered by the moment a case entered the
+6101: 		// converter's responsibility, not by later customer/payment activity.
+6102: 		// The id tie-breaker keeps rows deterministic when assignments share a
+6103: 		// second-level timestamp.
+6104: 		$order_by = "COALESCE(assigned_at, created_at) DESC, id DESC";
+6105: 		if ( 'seller' === $context ) {
+6106: 			$sql = $wpdb->prepare( "SELECT * FROM {$t['cases']} WHERE seller_id=%d AND converter_id=%d AND conversion_route='seller_self' AND operational_archived_at IS NULL ORDER BY {$order_by} LIMIT 300", $user_id, $user_id );
+6107: 		} elseif ( 'supervisor' === $context ) {
+6108: 			$sql = $wpdb->prepare( "SELECT * FROM {$t['cases']} WHERE supervisor_id=%d AND converter_id=%d AND (conversion_route IS NULL OR conversion_route<>'seller_self') AND operational_archived_at IS NULL ORDER BY {$order_by} LIMIT 300", $user_id, $user_id );
+6109: 		} else {
+6110: 			$sql = current_user_can( 'manage_options' )
+6111: 				? "SELECT * FROM {$t['cases']} WHERE converter_id IS NOT NULL AND operational_archived_at IS NULL ORDER BY {$order_by} LIMIT 300"
+6112: 				: ( $is_supervisor && ! $is_converter_user
+6113: 					? $wpdb->prepare( "SELECT * FROM {$t['cases']} WHERE converter_id=%d AND supervisor_id=%d AND operational_archived_at IS NULL ORDER BY {$order_by} LIMIT 300", $user_id, $user_id )
+6114: 					: $wpdb->prepare( "SELECT * FROM {$t['cases']} WHERE converter_id=%d AND operational_archived_at IS NULL ORDER BY {$order_by} LIMIT 300", $user_id ) );
+6115: 		}
+6116: 		$cases = $wpdb->get_results( $sql ) ?: [];
+6117: 		$source_invoice_codes = [];
+6118: 		$source_invoice_ids = array_values( array_unique( array_filter( array_map( static fn( $case ) => absint( $case->source_invoice_id ?? 0 ), $cases ) ) ) );
+6119: 		if ( $source_invoice_ids ) {
+6120: 			$source_placeholders = implode( ',', array_fill( 0, count( $source_invoice_ids ), '%d' ) );
+6121: 			foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT id,invoice_code FROM {$wpdb->prefix}sn_invoices WHERE id IN ({$source_placeholders})", ...$source_invoice_ids ) ) ?: [] as $source_invoice ) {
+6122: 				$source_invoice_codes[ (int) $source_invoice->id ] = (string) $source_invoice->invoice_code;
+6123: 			}
+6124: 		}
+6125: 		$payments_by_case = $this->payment_rows_for_cases( array_map( static fn( $case ) => (int) $case->id, $cases ) );
+6126: 		foreach ( $cases as $index => $case ) {
+6127: 			$cases[ $index ] = $this->sync_live_case_option_prices( $case, ! empty( $payments_by_case[ (int) $case->id ] ) );
+6128: 		}
+6129: 		$notice = wp_doing_ajax() ? '' : sanitize_text_field( wp_unslash( $_GET['sn_dot_message'] ?? '' ) );
+6130: 		$status_filters = [ 'assigned', 'contacted', 'customer_declined', 'payment_link_sent', 'payment_rejected', 'deposit_paid', 'completed' ];
+6131: 		$contact_filters = [ 'new', 'no_answer', 'contacted', 'follow_up', 'confirmed', 'customer_declined', 'payment_link' ];
+6132: 		$completed_count = count( array_filter( $cases, static fn( $c ) => (string) $c->status === 'completed' ) );
+6133: 		$settlement_count = count( array_filter( $cases, static fn( $c ) => (string) $c->status === 'deposit_paid' ) );
+6134: 		$follow_up_count = count( array_filter( $cases, static fn( $c ) => in_array( (string) ( $c->converter_contact_status ?: 'new' ), [ 'new', 'no_answer', 'follow_up' ], true ) && ! in_array( (string) $c->status, [ 'completed', 'customer_declined' ], true ) ) );
+6135: 		$due_followup_count = count( array_filter( $cases, fn( $c ) => (string) ( $c->converter_contact_status ?? '' ) === 'follow_up' && ! empty( $c->converter_followup_at ) && $this->mysql_timestamp( (string) $c->converter_followup_at ) <= time() && ! in_array( (string) $c->status, [ 'completed', 'customer_declined' ], true ) ) );
+6136: 
+6137: 		// Seller-like workspace context for optional manual invoice issuance.
+6138: 		$can_issue_invoice = false; // CRM-30: no standalone pre-invoice tab for converters.
+6139: 		$products = [];
+6140: 		$provinces = [];
+6141: 		if ( $can_issue_invoice ) {
+6142: 			$products = SN_Helpers::get_sn_products();
+6143: 			$products = $this->filter_products_for_user( $products, $user_id );
+6144: 			if ( class_exists( 'SN_Projects' ) ) { $products = SN_Projects::instance()->filter_sellable_products( $products, $user_id ); }
+6145: 			if ( class_exists( 'SN_Seller_Flow' ) ) { $products = SN_Seller_Flow::instance()->decorate_products( $products ); }
+6146: 			$provinces = SN_Helpers::get_provinces();
+6147: 		}
+6148: 		$max_invoice_products = max( 0, (int) get_option( 'sn_invoice_max_products', '2' ) );
+6149: 		$payment_presets_raw = (string) get_option( 'sn_partial_payment_presets', '1000000,2000000,3000000,5000000' );
+6150: 		$payment_presets = [];
+6151: 		foreach ( preg_split( '/[,،;\n\r]+/u', $payment_presets_raw ) ?: [] as $preset_raw ) {
+6152: 			$preset = (float) preg_replace( '/[^0-9.]/', '', strtr( trim( (string) $preset_raw ), [ '۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9','٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9' ] ) );
+6153: 			if ( $preset > 0 ) { $payment_presets[ (string) (int) round( $preset ) ] = $preset; }
+6154: 		}
+6155: 		$payment_presets = array_values( $payment_presets );
+6156: 		sort( $payment_presets, SORT_NUMERIC );
+6157: 		if ( ! $payment_presets ) { $payment_presets = [ 1000000, 2000000, 3000000, 5000000 ]; }
+6158: 
+6159: 		$current_user = wp_get_current_user();
+6160: 		$display_name = trim( (string) $current_user->display_name ) ?: (string) $current_user->user_login;
+6161: 		ob_start(); ?>
+6162: 		<div class="sn-panel sn-portal sn-dot-converter sn-converter-seller-ui<?php echo $is_embedded ? ' sn-dot-converter-embedded' : ''; ?>" dir="rtl" id="sn-dot-converter-panel" data-sn-context="<?php echo esc_attr( $context ); ?>" data-sn-max-products="<?php echo esc_attr( (string) $max_invoice_products ); ?>" data-sn-can-issue-invoice="<?php echo $can_issue_invoice ? '1' : '0'; ?>">
+6163: 			<?php if ( ! $is_embedded ) : ?>
+6164: 			<div class="sn-panel-header">
+6165: 				<h2><?php echo $is_supervisor && ! $is_converter_user ? 'پنل تبدیل‌کننده (تخصیص‌های خودم)' : 'پنل تبدیل‌کننده'; ?> — <?php echo esc_html( $display_name ); ?></h2>
+6166: 				<div class="sn-panel-user-actions">
+6167: 					<div class="sn-panel-user-chip"><span>کاربر</span><strong><?php echo esc_html( $display_name ); ?></strong><small><?php echo $is_supervisor && ! $is_converter_user ? 'سرپرست — در نقش تبدیل‌کننده' : 'تبدیل‌کننده'; ?> | #<?php echo esc_html( (string) $user_id ); ?></small></div>
+6168: 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="sn-panel-logout-form"><input type="hidden" name="action" value="sn_seller_logout"><button type="submit" class="sn-btn sn-btn-sm sn-btn-secondary">خروج</button></form>
+6169: 				</div>
+6170: 			</div>
+6171: 
+6172: 			<div class="sn-tabs sn-converter-main-tabs">
+6173: 				<button type="button" class="sn-tab active" data-tab="converter-cases">پرونده‌های من <span class="sn-tab-badge is-visible"><?php echo esc_html( number_format_i18n( count( $cases ) ) ); ?></span></button>
+6174: 				<?php if ( $can_issue_invoice ) : ?><button type="button" class="sn-tab" data-tab="new-invoice">صدور پیش‌فاکتور</button><?php endif; ?>
+6175: 				<button type="button" class="sn-tab" data-tab="invoices">فاکتورهای من</button>
+6176: 				<button type="button" class="sn-tab" data-tab="customer-actions">رفتار مشتریان</button>
+6177: 				<button type="button" class="sn-tab" data-tab="wallet">کیف پول من</button>
+6178: 			</div>
+6179: 			<?php endif; ?>
+6180: 
+6181: 			<div id="sn-tab-converter-cases" class="sn-tab-content active">
+6182: 				<?php if ( $is_embedded ) : ?>
+6183: 				<div class="sn-card sn-dot-embedded-heading"><div><span>دات‌فلو</span><h3><?php echo 'seller' === $context ? 'آماده‌های تبدیل من' : 'تبدیل‌های من'; ?></h3><p><?php echo 'seller' === $context ? 'فقط پرونده‌هایی که هنگام ثبت فاکتور «تبدیل توسط خودم» را انتخاب کرده‌اید نمایش داده می‌شوند.' : 'فقط پرونده‌هایی که با «تخصیص به خودم» برداشته‌اید نمایش داده می‌شوند.'; ?></p></div></div>
+6184: 				<?php endif; ?>
+6185: 				<?php if ( $notice !== '' ) : ?><div class="sn-notice <?php echo sanitize_key( $_GET['sn_dot_result'] ?? '' ) === 'success' ? 'sn-success' : 'sn-error'; ?>"><?php echo esc_html( $notice ); ?></div><?php endif; ?>
+6186: 				<div class="sn-converter-simple-summary" aria-label="خلاصه پرونده‌ها">
+6187: 					<span><strong><?php echo esc_html( number_format_i18n( count( $cases ) ) ); ?></strong> کل پرونده</span>
+6188: 					<span><strong><?php echo esc_html( number_format_i18n( $follow_up_count ) ); ?></strong> نیازمند پیگیری</span>
+6189: 					<span class="<?php echo $due_followup_count > 0 ? 'is-overdue' : ''; ?>"><strong><?php echo esc_html( number_format_i18n( $due_followup_count ) ); ?></strong> تماس سررسیدشده</span>
+6190: 					<span><strong><?php echo esc_html( number_format_i18n( $settlement_count ) ); ?></strong> دارای مانده</span>
+6191: 					<span><strong><?php echo esc_html( number_format_i18n( $completed_count ) ); ?></strong> تکمیل‌شده</span>
+6192: 				</div>
+6193: 				<?php if ( $cases ) : ?>
+6194: 				<div class="sn-converter-case-toolbar sn-converter-case-toolbar-simple">
+6195: 					<div class="sn-converter-toolbar-title"><strong>پرونده‌های من</strong><span><strong class="sn-dot-filter-result-count"><?php echo esc_html( number_format_i18n( count( $cases ) ) ); ?></strong> مورد</span></div>
+6196: 					<div class="sn-converter-toolbar-fields sn-converter-toolbar-fields-simple">
+6197: 						<label class="sn-converter-search"><span>جست‌وجو</span><input type="search" data-sn-dot-filter="search" placeholder="نام، موبایل، فاکتور یا شماره پرونده" autocomplete="off"></label>
+6198: 						<label><span>مرحله پرونده</span><select data-sn-dot-filter="status"><option value="">همه مرحله‌ها</option><?php foreach ( $status_filters as $status_filter ) : ?><option value="<?php echo esc_attr( $status_filter ); ?>"><?php echo esc_html( $this->status_label( $status_filter ) ); ?></option><?php endforeach; ?></select></label>
+6199: 						<label><span>نتیجه تماس</span><select data-sn-dot-filter="contact"><option value="">همه نتایج</option><?php foreach ( $contact_filters as $contact_filter ) : ?><option value="<?php echo esc_attr( $contact_filter ); ?>"><?php echo esc_html( $this->contact_status_label( $contact_filter ) ); ?></option><?php endforeach; ?></select></label>
+6200: 						<button type="button" class="sn-btn sn-btn-secondary sn-dot-filter-reset">پاک کردن فیلتر</button>
+6201: 					</div>
+6202: 				</div>
+6203: 				<?php else : ?><div class="sn-card sn-empty-state"><?php echo 'seller' === $context ? 'هنوز فاکتور اعتبارسنجی آماده‌ای با مسیر «تبدیل توسط خودم» ندارید.' : ( 'supervisor' === $context ? 'هنوز پرونده‌ای را به خودتان تخصیص نداده‌اید.' : 'هنوز پرونده‌ای به شما تخصیص داده نشده است.' ); ?></div><?php endif; ?>
+6204: 
+6205: 				<div class="sn-dot-converter-case-list sn-converter-case-list-simple">
+6206: 				<?php foreach ( $cases as $case ) :
+6207: 					$options = json_decode( (string) $case->options_snapshot_json, true ); $options = is_array( $options ) ? $options : [];
+6208: 					$payments = $payments_by_case[ (int) $case->id ] ?? []; $has_payment = ! empty( $payments );
+6209: 					$payment_summary = $this->case_payment_summary( $case ); $remaining = (float) $payment_summary['remaining'];
+6210: 					$contact_status = sanitize_key( (string) ( $case->converter_contact_status ?: 'new' ) );
+6211: 					$has_converter_action = $contact_status !== 'new' || trim( (string) ( $case->converter_note ?? '' ) ) !== '' || ! in_array( (string) $case->status, [ 'assigned', 'ready_for_conversion' ], true );
+6212: 					$content_id = 'sn-dot-case-content-' . (int) $case->id;
+6213: 					$location = trim( trim( (string) $case->province ) . ( trim( (string) $case->city ) !== '' ? '، ' . trim( (string) $case->city ) : '' ), '، ' );
+6214: 					$search_text = implode( ' ', [ (string) $case->id, (string) $case->customer_name, (string) $case->customer_phone, (string) $case->province, (string) $case->city, (string) $case->selected_option_title ] );
+6215: 					$entered_timestamp = $this->mysql_timestamp( (string) ( $case->assigned_at ?: $case->created_at ?: $case->updated_at ) );
+6216: 					$open_payments = array_filter( $payments, static fn( $p ) => in_array( (string) $p->status, [ 'pending', 'pending_finance' ], true ) );
+6217: 					$source_invoice_code = (string) ( $source_invoice_codes[ (int) $case->source_invoice_id ] ?? '' );
+6218: 					$source_invoice_label = $source_invoice_code !== '' ? $source_invoice_code : ( '#' . (int) $case->source_invoice_id );
+6219: 					$search_text .= ' ' . $source_invoice_label;
+6220: 					$followup_at = trim( (string) ( $case->converter_followup_at ?? '' ) );
+6221: 					$followup_due = $contact_status === 'follow_up' && $followup_at !== '' && $this->mysql_timestamp( $followup_at ) <= time();
+6222: 					$followup_date_input = $followup_at !== '' ? SN_Helpers::gregorian_to_jalali_input_value( $followup_at ) : '';
+6223: 					$followup_timestamp = SN_Helpers::site_mysql_timestamp( $followup_at, 0 );
+6224: 					$followup_time_input = $followup_timestamp > 0 ? SN_Helpers::tehran_format( 'H:i', $followup_timestamp ) : '';
+6225: 					$no_answer_attempts = max( 0, (int) ( $case->converter_no_answer_attempts ?? 0 ) );
+6226: 				?>
+6227: 					<article class="sn-dot-converter-case sn-converter-case-simple<?php echo $has_converter_action ? '' : ' is-no-action'; ?><?php echo $followup_due ? ' is-followup-due' : ''; ?>" id="dot-case-<?php echo esc_attr( (string) $case->id ); ?>" data-sn-dot-case data-search="<?php echo esc_attr( $search_text ); ?>" data-status="<?php echo esc_attr( (string) $case->status ); ?>" data-contact="<?php echo esc_attr( $contact_status ); ?>" data-no-action="<?php echo $has_converter_action ? '0' : '1'; ?>" data-updated="<?php echo esc_attr( (string) $entered_timestamp ); ?>" data-progress="<?php echo esc_attr( (string) $payment_summary['percent'] ); ?>">
+6228: 						<button type="button" class="sn-dot-case-toggle sn-converter-case-simple-row" aria-expanded="false" aria-controls="<?php echo esc_attr( $content_id ); ?>">
+6229: 							<span class="sn-converter-simple-person"><span class="sn-converter-case-id">پرونده #<?php echo esc_html( (string) $case->id ); ?><small>فاکتور <bdi dir="ltr"><?php echo esc_html( $source_invoice_label ); ?></bdi></small></span><span><strong><?php echo esc_html( (string) $case->customer_name ); ?></strong><small><bdi dir="ltr"><?php echo esc_html( (string) $case->customer_phone ); ?></bdi><?php echo $location !== '' ? ' · ' . esc_html( $location ) : ''; ?></small></span></span>
+6230: 							<span class="sn-converter-simple-option"><small>گزینه</small><strong><?php echo esc_html( (string) ( $case->selected_option_title ?: 'انتخاب نشده' ) ); ?></strong></span>
+6231: 							<span class="sn-converter-simple-payment"><small><?php echo $payment_summary['completed'] ? 'وضعیت پرداخت' : 'مانده'; ?></small><strong><?php echo $payment_summary['completed'] ? 'تسویه شده' : esc_html( number_format_i18n( $remaining ) . ' تومان' ); ?></strong></span>
+6232: 							<span class="sn-converter-simple-status"><span class="sn-badge"><?php echo esc_html( $this->contact_status_label( $contact_status ) ); ?><?php echo $contact_status === 'no_answer' ? ' · ' . esc_html( number_format_i18n( $no_answer_attempts ) ) . ' بار' : ''; ?></span><?php if ( $followup_due ) : ?><span class="sn-dot-followup-due-tag">یادآور تماس</span><?php elseif ( $contact_status === 'follow_up' && $followup_at !== '' ) : ?><small><?php echo esc_html( $this->jalali_datetime( $followup_at ) ); ?></small><?php endif; ?><?php if ( ! empty( $case->validation_fee_gifted ) ) : ?><span class="sn-dot-validation-gift-tag sn-converter-gift-tag">اعتبارسنجی هدیه</span><?php endif; ?></span>
+6233: 							<span class="sn-converter-simple-open">باز کردن پرونده <i aria-hidden="true">⌄</i></span>
+6234: 						</button>
+6235: 						<div class="sn-dot-case-content sn-converter-case-simple-content" id="<?php echo esc_attr( $content_id ); ?>" hidden>
+6236: 							<div class="sn-converter-simple-details">
+6237: 								<div class="sn-converter-simple-facts">
+6238: 									<div><span>مبلغ گزینه</span><strong><?php echo esc_html( number_format_i18n( (float) $case->selected_option_price ) ); ?> تومان</strong></div>
+6239: 									<div><span>پرداخت‌شده</span><strong><?php echo esc_html( number_format_i18n( (float) $payment_summary['paid'] ) ); ?> تومان</strong></div>
+6240: 									<div><span>مانده</span><strong><?php echo esc_html( number_format_i18n( $remaining ) ); ?> تومان</strong></div>
+6241: 									<div><span>آخرین فعالیت</span><strong><?php echo esc_html( $this->jalali_datetime( (string) $case->updated_at ) ); ?></strong></div>
+6242: 									<div><span>تماس مجدد</span><strong><?php echo esc_html( $followup_at !== '' ? $this->jalali_datetime( $followup_at ) : '—' ); ?></strong></div>
+6243: 								</div>
+6244: 								<?php if ( $followup_due ) : ?><div class="sn-notice sn-error sn-dot-followup-reminder"><strong>یادآور:</strong> زمان تماس مجدد این مشتری رسیده است.</div><?php endif; ?>
+6245: 
+6246: 								<section class="sn-converter-simple-step">
+6247: 									<div class="sn-converter-simple-step-head"><span>۱</span><div><strong>نتیجه تماس با مشتری</strong><small>جواب نداده، تماس مجدد، انصراف یا ادامه به ارسال لینک پرداخت را مشخص کنید.</small></div></div>
+6248: 									<form class="sn-dot-action-form sn-dot-converter-update" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+6249: 										<input type="hidden" name="action" value="sn_dot_converter_update"><input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>"><?php wp_nonce_field( 'sn_dot_converter_update_' . (int) $case->id ); ?>
+6250: 										<div class="sn-converter-simple-followup-grid">
+6251: 											<label><span>نتیجه تماس *</span><select name="contact_status" required><option value="" <?php selected( in_array( $contact_status, [ 'new', 'contacted', 'confirmed' ], true ) ); ?>>انتخاب نتیجه</option><option value="no_answer" <?php selected( $contact_status, 'no_answer' ); ?>>جواب نداده (<?php echo esc_html( number_format_i18n( $no_answer_attempts ) ); ?> بار ثبت‌شده)</option><option value="follow_up" <?php selected( $contact_status, 'follow_up' ); ?>>تماس مجدد</option><option value="customer_declined" <?php selected( $contact_status, 'customer_declined' ); ?>>انصراف</option><option value="payment_link" <?php selected( $contact_status, 'payment_link' ); ?>>ارسال لینک پرداخت</option></select></label>
+6252: 											<label class="sn-dot-followup-at-field" data-sn-dot-status-field="follow_up" hidden><span>تاریخ شمسی و ساعت تهران *</span><span class="sn-dot-followup-date-time"><input type="text" class="sn-jalali-date" name="followup_date" value="<?php echo esc_attr( $followup_date_input ); ?>" placeholder="۱۴۰۵/۰۶/۲۰" autocomplete="off" aria-label="تاریخ شمسی تماس مجدد"><input type="time" name="followup_time" value="<?php echo esc_attr( $followup_time_input ); ?>" step="300" aria-label="ساعت تهران تماس مجدد"></span><input type="hidden" name="followup_at" value=""><small>فقط پس از انتخاب کامل تاریخ شمسی و ساعت تهران، ثبت تماس مجدد فعال می‌شود و یادآور پنل و پیامک مسئول فعلی تنظیم خواهد شد.</small></label>
+6253: 											<?php if ( ! $has_payment ) : ?><label><span>محصول نهایی</span><select name="option_key"><option value="">هنوز انتخاب نشده</option><?php foreach ( $options as $option ) : if ( empty( $option['active'] ) ) { continue; } ?><option value="<?php echo esc_attr( (string) $option['key'] ); ?>" <?php selected( (string) $case->selected_option_key, (string) $option['key'] ); ?>><?php echo esc_html( (string) $option['title'] . ' — ' . number_format_i18n( (float) $option['price'] ) . ' تومان' ); ?></option><?php endforeach; ?></select></label><?php else : ?><input type="hidden" name="option_key" value="<?php echo esc_attr( (string) $case->selected_option_key ); ?>"><?php endif; ?>
+6254: 											<label class="sn-converter-simple-note"><span>یادداشت</span><textarea name="note" rows="2" placeholder="مثلاً: مشتری فردا تماس می‌گیرد"><?php echo esc_textarea( (string) $case->converter_note ); ?></textarea></label>
+6255: 											<label class="sn-converter-simple-note sn-dot-decline-reason-field" data-sn-dot-status-field="customer_declined"><span>علت انصراف *</span><textarea name="decline_reason" rows="2" placeholder="علت دقیق انصراف مشتری را ثبت کنید"><?php echo esc_textarea( (string) ( $case->converter_decline_reason ?? '' ) ); ?></textarea></label>
+6256: 										</div>
+6257: 										<button class="sn-btn sn-btn-primary sn-converter-simple-save" type="submit">ذخیره نتیجه تماس</button>
+6258: 									</form>
+6259: 								</section>
+6260: 
+6261: 								<section class="sn-converter-simple-step sn-dot-payment-step" data-sn-dot-payment-step data-has-payment="<?php echo $has_payment ? '1' : '0'; ?>"<?php echo $has_payment || $contact_status === 'payment_link' ? '' : ' hidden'; ?>>
+6262: 									<div class="sn-converter-simple-step-head"><span>۲</span><div><strong>دریافت وجه</strong><small><?php echo $payment_summary['completed'] ? 'این پرونده تسویه شده است.' : 'مبلغ مرحله بعد را مشخص کنید و لینک را برای مشتری بفرستید.'; ?></small></div></div>
+6263: 									<div class="sn-converter-simple-pay-status"><span>پرداخت‌شده <strong><?php echo esc_html( number_format_i18n( (float) $payment_summary['paid'] ) ); ?> تومان</strong></span><span>مانده <strong><?php echo esc_html( number_format_i18n( $remaining ) ); ?> تومان</strong></span><span><?php echo esc_html( number_format_i18n( $payment_summary['percent'] ) ); ?>٪</span></div>
+6264: 									<?php if ( ! in_array( (string) $case->status, [ 'completed', 'customer_declined' ], true ) ) : ?>
+6265: 										<?php if ( $open_payments ) : ?><div class="sn-notice sn-info sn-converter-simple-open-payment">یک لینک پرداخت فعال است. ابتدا همان پرداخت را پیگیری کنید؛ بعد از تعیین تکلیف، مرحله بعد باز می‌شود.</div><?php endif; ?>
+6266: 										<?php if ( ! $open_payments && $remaining > 0 ) : ?>
+6267: 										<div class="sn-converter-simple-payment-actions">
+6268: 											<form class="sn-dot-action-form sn-dot-deposit-form sn-converter-simple-stage-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+6269: 												<input type="hidden" name="action" value="sn_dot_create_payment"><input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>"><input type="hidden" name="payment_type" value="deposit"><?php wp_nonce_field( 'sn_dot_create_payment_' . (int) $case->id ); ?>
+6270: 												<label><span><?php echo (float) $case->paid_amount > 0 ? 'مبلغ مرحله بعد' : 'مبلغ مرحله اول'; ?></span><input name="deposit_amount" inputmode="numeric" required placeholder="مثلاً ۲۰,۰۰۰,۰۰۰"></label>
+6271: 												<button class="sn-btn sn-btn-primary" type="submit">ارسال لینک این مرحله</button>
+6272: 											</form>
+6273: 											<form class="sn-dot-action-form sn-converter-simple-full-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="sn_dot_create_payment"><input type="hidden" name="case_id" value="<?php echo esc_attr( (string) $case->id ); ?>"><input type="hidden" name="payment_type" value="<?php echo (float) $case->paid_amount > 0 ? 'balance' : 'full'; ?>"><?php wp_nonce_field( 'sn_dot_create_payment_' . (int) $case->id ); ?><button class="sn-btn sn-btn-secondary" type="submit">تسویه کامل مانده — <?php echo esc_html( number_format_i18n( $remaining ) ); ?> تومان</button></form>
+6274: 										</div>
+6275: 										<?php endif; ?>
+6276: 									<?php endif; ?>
+6277: 									<?php if ( $payments ) : ?><details class="sn-converter-simple-history"><summary>مشاهده سوابق و لینک‌های پرداخت</summary><div><?php $this->render_case_payment_overview( $case, $payments, true ); ?></div></details><?php endif; ?>
+6278: 								</section>
+6279: 							</div>
+6280: 						</div>
+6281: 					</article>
+6282: 				<?php endforeach; ?>
+6283: 					<div class="sn-card sn-empty-state sn-dot-filter-empty" hidden>پرونده‌ای با این فیلتر پیدا نشد.</div>
+6284: 				</div>
+6285: 			</div>
+6286: 
+6287: 			<?php if ( ! $is_embedded ) : ?>
+6288: 			<?php if ( $can_issue_invoice ) : ?>
+6289: 			<div id="sn-tab-new-invoice" class="sn-tab-content">
+6290: 				<div class="sn-card sn-converter-invoice-card">
+6291: 					<h3>ثبت فاکتور جدید</h3>
+6292: 					<p class="sn-note">این فاکتور مستقل از پرونده‌های دات‌فلو صادر می‌شود و در تب «فاکتورهای من» خودتان نمایش داده خواهد شد.</p>
+6293: 					<div id="sn-converter-invoice-notice"></div>
+6294: 					<div class="sn-form-grid">
+6295: 						<div class="sn-field"><label>نام مشتری *</label><input type="text" id="sn-converter-cust-name" placeholder="نام و نام خانوادگی"></div>
+6296: 						<div class="sn-field"><label>شماره موبایل مشتری *</label><input type="tel" id="sn-converter-cust-phone" inputmode="tel" placeholder="09xxxxxxxxx"></div>
+6297: 						<div class="sn-field"><label>شماره دوم مشتری (اختیاری؛ فقط اطلاعات تماس)</label><input type="tel" id="sn-converter-cust-phone-secondary" inputmode="tel" placeholder="09xxxxxxxxx"></div>
+6298: 						<div class="sn-field"><label>استان</label><select id="sn-converter-cust-prov"><option value="">انتخاب استان</option><?php foreach ( $provinces as $province ) : ?><option value="<?php echo esc_attr( $province ); ?>"><?php echo esc_html( $province ); ?></option><?php endforeach; ?></select></div>
+6299: 						<div class="sn-field"><label>شهر</label><input type="text" id="sn-converter-cust-city" placeholder="نام شهر"></div>
+6300: 						<div class="sn-field sn-full sn-converter-shipping-field" hidden><label>آدرس کامل مشتری *</label><textarea id="sn-converter-cust-address" rows="3" autocomplete="street-address" placeholder="استان، شهر، خیابان، کوچه و پلاک"></textarea><small class="sn-muted">برای محصول عادی/فیزیکی اجباری است.</small></div>
+6301: 						<div class="sn-field sn-converter-shipping-field" hidden><label>کد پستی</label><input type="text" id="sn-converter-cust-postal" inputmode="numeric" autocomplete="postal-code" maxlength="10" placeholder="۱۰ رقم (اختیاری)"></div>
+6302: 						<div class="sn-field sn-full">
+6303: 							<label>محصول‌ها *</label>
+6304: 							<div id="sn-converter-products-multi" class="sn-products-multi">
+6305: 								<div class="sn-product-row">
+6306: 									<select class="sn-converter-product-select"><option value="">انتخاب محصول</option><?php foreach ( $products as $product ) : ?><option value="<?php echo esc_attr( (string) $product['id'] ); ?>" data-price="<?php echo esc_attr( (string) $product['price'] ); ?>" data-sn-product-type="<?php echo esc_attr( (string) ( $product['sales_product_type'] ?? 'product' ) ); ?>"><?php echo esc_html( (string) $product['name'] ); ?> — <?php echo esc_html( SN_Helpers::format_price( (float) $product['price'] ) ); ?></option><?php endforeach; ?></select>
+6307: 									<input type="number" class="sn-converter-product-qty" min="1" value="1" aria-label="تعداد">
+6308: 									<button type="button" class="sn-btn sn-btn-ghost sn-converter-remove-product" style="display:none">حذف</button>
+6309: 								</div>
+6310: 							</div>
+6311: 							<button type="button" id="sn-converter-add-product" class="sn-btn sn-btn-secondary sn-btn-sm" data-max-products="<?php echo esc_attr( (string) $max_invoice_products ); ?>">+ افزودن محصول دیگر</button>
+6312: 							<small class="sn-muted"><?php echo $max_invoice_products > 0 ? esc_html( sprintf( 'حداکثر %d محصول در هر پیش‌فاکتور', $max_invoice_products ) ) : 'تعداد محصولات بدون محدودیت است'; ?></small>
+6313: 							<div id="sn-converter-products-total" class="sn-products-total">جمع: ۰ تومان</div>
+6314: 						</div>
+6315: 						<div class="sn-field"><label>نوع پرداخت مشتری *</label><select id="sn-converter-payment-plan"><option value="full">پرداخت کامل فاکتور</option><option value="partial">پیش‌پرداخت</option></select></div>
+6316: 						<div class="sn-field sn-converter-prepayment-fields" hidden>
+6317: 							<label>مبلغ پیش‌پرداخت این مرحله *</label>
+6318: 							<select id="sn-converter-prepayment-choice"><option value="">انتخاب مبلغ پیش‌پرداخت</option><?php foreach ( $payment_presets as $preset ) : ?><option value="<?php echo esc_attr( (string) (int) $preset ); ?>"><?php echo esc_html( SN_Helpers::format_price( (float) $preset ) ); ?></option><?php endforeach; ?><option value="custom">سایر — ورود مبلغ</option></select>
+6319: 							<input type="text" id="sn-converter-prepayment-custom" inputmode="numeric" placeholder="مبلغ پیش‌پرداخت به تومان" hidden>
+6320: 							<small class="sn-muted">مبلغ این مرحله باید بیشتر از صفر و حداکثر برابر جمع کل فاکتور باشد.</small>
+6321: 						</div>
+6322: 					</div>
+6323: 					<button type="button" id="sn-converter-create-invoice" class="sn-btn sn-btn-primary">صدور پیش‌فاکتور و ارسال پیامک</button>
+6324: 				</div>
+6325: 			</div>
+6326: 			<?php endif; ?>
+6327: 
+6328: 			<div id="sn-tab-invoices" class="sn-tab-content">
+6329: 				<div class="sn-subtabs sn-converter-invoice-status-tabs">
+6330: 					<button type="button" class="sn-subtab active" data-status="all">همه <span class="sn-invoice-tab-count">—</span></button>
+6331: 					<button type="button" class="sn-subtab" data-status="pre_invoice">در جریان <span class="sn-invoice-tab-count">—</span></button>
+6332: 					<button type="button" class="sn-subtab" data-status="paid">پرداخت شده <span class="sn-invoice-tab-count">—</span></button>
+6333: 					<button type="button" class="sn-subtab" data-status="staged_incomplete">مرحله‌ای تکمیل‌نشده <span class="sn-invoice-tab-count">—</span></button>
+6334: 					<button type="button" class="sn-subtab" data-status="staged_completed">مرحله‌ای تکمیل‌شده <span class="sn-invoice-tab-count">—</span></button>
+6335: 					<button type="button" class="sn-subtab" data-status="rejected">رد / لغو <span class="sn-invoice-tab-count">—</span></button>
+6336: 				</div>
+6337: 				<div class="sn-card sn-converter-invoice-search-card"><label>جستجوی فاکتور<br><input type="search" id="sn-converter-invoice-search" placeholder="کد فاکتور، نام یا موبایل مشتری"></label><p class="sn-note">فاکتورهای دستی شما و همه پرداخت‌های دات‌فلو مربوط به پرونده‌هایی که تبدیل کرده‌اید، در این بخش نمایش داده می‌شوند.</p></div>
+6338: 				<div id="sn-converter-invoices-notice"></div>
+6339: 				<div id="sn-converter-invoices-loading" class="sn-loading" hidden>در حال بارگذاری...</div>
+6340: 				<div id="sn-converter-invoices-list"></div>
+6341: 			</div>
+6342: 
+6343: 			<div id="sn-tab-customer-actions" class="sn-tab-content">
+6344: 				<div class="sn-card sn-staff-customer-actions" data-page="1" data-loaded="0">
+6345: 					<h3>رفتار مشتریان در صفحه فاکتور</h3>
+6346: 					<p class="sn-muted">رفتار مشتری در فاکتورهای دستی شما و فاکتورهای مبدأ پرونده‌هایی که به شما تخصیص داده شده‌اند.</p>
+6347: 					<div class="sn-staff-customer-actions-toolbar"><input type="search" class="sn-staff-customer-actions-search" placeholder="کد فاکتور، نام یا موبایل مشتری"><button type="button" class="sn-btn sn-btn-secondary sn-staff-customer-actions-filter">جستجو</button></div>
+6348: 					<div class="sn-staff-customer-actions-loading sn-loading" hidden>در حال بارگذاری...</div>
+6349: 					<div class="sn-staff-customer-actions-list"></div><div class="sn-staff-customer-actions-pager"></div>
+6350: 				</div>
+6351: 			</div>
+6352: 
+6353: 			<div id="sn-tab-wallet" class="sn-tab-content">
+6354: 				<?php if ( class_exists( 'SN_Purpose_Commission' ) ) { echo SN_Purpose_Commission::render_dual_wallet_cards( $user_id, 25 ); } else { ?>
+6355: 				<section class="sn-project-wallet sn-project-wallet-integrated"><header><div><span>پورسانت پروژه‌ها</span><h3>کیف پول بیاوین</h3></div><button type="button" class="sn-project-wallet-refresh">بروزرسانی</button></header><div class="sn-project-wallet-body" data-loaded="0">در حال دریافت کیف پول...</div></section>
+6356: 				<?php } ?>
+6357: 			</div>
+6358: 			<?php endif; ?>
+6359: 		</div>
+6360: 		<?php return ob_get_clean();
+6361: 	}

@@ -1,0 +1,111 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل MIS" [level=1]
+  - heading "پنل MIS" [level=2]
+  - generic: کاربر
+  - strong: "MIS ماکسیمم #7"
+  - generic: "MIS | #7"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - button "👥 کار امروز" [active]
+  - button "🧾 آپلود فایل"
+  - button "📊 تخصیص / برگشت"
+  - button "💼 تحویل به فروش"
+  - button "💳 گزارش شماره‌ها"
+  - button "⚙️ پرونده‌ها"
+  - button "• ابزار سریع"
+  - button "• برنامه پخش"
+  - button "• ساخت لید"
+  - button "• لاگ و عیب‌یابی"
+  - link "• گزارش‌های MIS":
+    - /url: /crm-mis/?sn_ui_active_tab=mis-report#mis-report
+  - generic: میز کار MIS
+  - heading "الان باید چه کار کنم؟" [level=3]
+  - paragraph: پرونده «پرونده تستی» الان در وضعیت «دست فروش؛ بخشی قابل برگشت» است.
+  - strong: دست فروش؛ بخشی قابل برگشت
+  - generic: 1 شماره هنوز لید/فاکتور نشده و قابل برگشت به MIS است.
+  - link "برگشت یا گزارش":
+    - /url: /crm-mis/?sn_ui_active_tab=mis-batches-list&sn_mis_batch_id=1&sn_pool_batch_id=1#mis-batches-list
+  - generic "مسیر ساده دیتا":
+    - strong: "1"
+    - generic: شماره سالم
+    - generic: از فایل‌های آپلودشده
+    - strong: "1"
+    - generic: منتظر تخصیص
+    - generic: باید مدیر فروش بگیرد
+    - strong: "0"
+    - generic: دست مدیر فروش
+    - generic: مالک اولیه مشخص شده
+    - strong: "0"
+    - generic: آماده تحویل
+    - generic: قابل ورود به فروش
+    - strong: "1"
+    - generic: دست تیم فروش
+    - generic: در زنجیره فروش
+    - strong: "1"
+    - generic: قابل برگشت
+    - generic: هنوز قفل فروش/فاکتور نشده
+  - heading "پرونده‌ها با زبان عملیاتی" [level=3]
+  - generic: برای هر پرونده فقط یک وضعیت و یک دکمه اصلی نمایش داده می‌شود.
+  - table:
+    - rowgroup:
+      - row "پرونده وضعیت الان شماره سالم منتظر تخصیص دست مدیر آماده تحویل دست فروش قابل برگشت کار بعدی":
+        - columnheader "پرونده"
+        - columnheader "وضعیت الان"
+        - columnheader "شماره سالم"
+        - columnheader "منتظر تخصیص"
+        - columnheader "دست مدیر"
+        - columnheader "آماده تحویل"
+        - columnheader "دست فروش"
+        - columnheader "قابل برگشت"
+        - columnheader "کار بعدی"
+    - rowgroup:
+      - row "MIS-20260825-R7IX پرونده تستی دست فروش؛ بخشی قابل برگشت 1 0 0 0 1 1 برگشت یا گزارش":
+        - cell "MIS-20260825-R7IX پرونده تستی":
+          - code: MIS-20260825-R7IX
+          - strong: پرونده تستی
+        - cell "دست فروش؛ بخشی قابل برگشت":
+          - generic: دست فروش؛ بخشی قابل برگشت
+        - cell "1"
+        - cell "0"
+        - cell "0"
+        - cell "0"
+        - cell "1"
+        - cell "1"
+        - cell "برگشت یا گزارش":
+          - link "برگشت یا گزارش":
+            - /url: /crm-mis/?sn_ui_active_tab=mis-batches-list&sn_mis_batch_id=1&sn_pool_batch_id=1#mis-batches-list
+  - heading "ترجمه وضعیت‌ها" [level=3]
+  - strong: منتظر تخصیص
+  - generic: "شماره سالم است، ولی هنوز به هیچ مدیر فروشی وصل نشده. کار درست: تخصیص به مدیر فروش."
+  - strong: دست مدیر فروش
+  - generic: مالک مدیر فروش مشخص شده، اما هنوز به فروشنده/زنجیره فروش تحویل نشده.
+  - strong: آماده تحویل
+  - generic: "شماره آماده ورود به فروش است. کار درست: آماده‌سازی/تحویل به فروش."
+  - strong: قابل برگشت
+  - generic: شماره هنوز لید یا فاکتور نشده؛ برگشت یعنی مالک فعلی حذف می‌شود و دوباره به «منتظر تخصیص» برمی‌گردد.
+  - generic "جزئیات بیشتر / آخرین آپلود":
+    - strong: جزئیات بیشتر / آخرین آپلود
+  - heading "تست و عیب‌یابی مدیرکل" [level=3]
+  - table:
+    - rowgroup:
+      - row "مرحله وضعیت عدد/خلاصه اقدام بعدی":
+        - columnheader "مرحله"
+        - columnheader "وضعیت"
+        - columnheader "عدد/خلاصه"
+        - columnheader "اقدام بعدی"
+    - rowgroup
+  - generic "وضعیت جدول‌های MIS":
+    - strong: وضعیت جدول‌های MIS
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

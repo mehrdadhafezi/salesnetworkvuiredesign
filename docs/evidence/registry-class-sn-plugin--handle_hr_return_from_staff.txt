@@ -1,0 +1,17 @@
+2311: 
+2312: 	public function handle_hr_return_from_staff(): void
+2313: 	{
+2314: 		check_admin_referer('sn_hr_return_from_staff');
+2315: 		$data = $this->sn_staff_view_data();
+2316: 		if (! $data) { wp_die('زمان مشاهده پنل به پایان رسیده است.'); }
+2317: 		$actor = get_user_by('id', (int) $data['actor']);
+2318: 		if (! $actor) { wp_die('حساب منابع انسانی در دسترس نیست.'); }
+2319: 		$this->sn_clear_staff_view_cookie();
+2320: 		wp_clear_auth_cookie();
+2321: 		wp_set_current_user((int) $actor->ID);
+2322: 		wp_set_auth_cookie((int) $actor->ID, false, is_ssl());
+2323: 		$url = $this->sn_portal_page_url('hr');
+2324: 		wp_safe_redirect($url !== '' ? $url : home_url('/'));
+2325: 		exit;
+2326: 	}
+2327: 

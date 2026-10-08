@@ -1,0 +1,43 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل فروشنده" [level=1]
+  - 'heading "پنل فروشنده — فروشنده ماکسیمم #6" [level=2]'
+  - generic: کاربر
+  - strong: "فروشنده ماکسیمم #6"
+  - generic: "فروشنده‌ها | #6"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "اعلان‌های گفت‌وگو با بیاوین":
+    - generic: 🔔
+    - generic: ۰
+  - button "باز کردن منوی پنل": ☰
+  - button "🧾 شماره‌های من"
+  - button "📊 آماده‌های تبدیل"
+  - button "💼 نیاز به اقدام مجدد"
+  - button "💳 فاکتورها"
+  - button "⚙️ رفتار مشتریان"
+  - button "• درخواست اضافه کردن شماره"
+  - button "• کیف پول من"
+  - heading "درخواست اضافه کردن شماره" [level=3]
+  - paragraph: اگر شماره‌ای خارج از لیست تخصیص‌یافته داری و می‌خواهی برای آن پیش‌فاکتور صادر کنی، اینجا ثبت کن. پس از تایید مدیر فروش، شماره با برچسب «درخواست شماره تایید شده» وارد لیست شماره‌های تو می‌شود.
+  - text: شماره موبایل مشتری *
+  - textbox "شماره موبایل مشتری *" [active]:
+    - /placeholder: 09xxxxxxxxx
+  - text: نام مشتری
+  - textbox "نام مشتری":
+    - /placeholder: اختیاری
+  - text: یادداشت
+  - textbox "یادداشت":
+    - /placeholder: علت درخواست یا توضیح کوتاه، اختیاری
+  - button "ثبت درخواست"
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

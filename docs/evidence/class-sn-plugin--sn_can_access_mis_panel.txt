@@ -1,0 +1,7 @@
+11959: 
+11960: 	private function sn_can_access_mis_panel(): bool
+11961: 	{
+11962: 		if (current_user_can('manage_options')) { return true; }
+11963: 		if (! is_user_logged_in()) { return false; }
+11964: 		return $this->sn_fast_hr_position_for_user(get_current_user_id()) === 'mis';
+11965: 	}

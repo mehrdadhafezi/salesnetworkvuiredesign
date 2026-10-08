@@ -1,0 +1,46 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل MIS" [level=1]
+  - heading "پنل MIS" [level=2]
+  - generic: کاربر
+  - strong: "MIS ماکسیمم #7"
+  - generic: "MIS | #7"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - button "👥 کار امروز"
+  - button "🧾 آپلود فایل" [active]
+  - button "📊 تخصیص / برگشت"
+  - button "💼 تحویل به فروش"
+  - button "💳 گزارش شماره‌ها"
+  - button "⚙️ پرونده‌ها"
+  - button "• ابزار سریع"
+  - button "• برنامه پخش"
+  - button "• ساخت لید"
+  - button "• لاگ و عیب‌یابی"
+  - link "• گزارش‌های MIS":
+    - /url: /crm-mis/?sn_ui_active_tab=mis-report#mis-report
+  - generic "2 ورود فایل اطلاعات":
+    - generic: "2"
+    - strong: ورود فایل اطلاعات
+  - generic: جدول ردیف‌های MIS ساخته نشده است یا گزارش سلامت جدول قدیمی است. از همینجا بازسازی امن جدول‌های MIS را اجرا کنید.
+  - button "بازسازی امن جدول‌های MIS"
+  - heading "نتیجه آخرین ورود فایل" [level=3]
+  - strong: آپلود قابل استفاده است
+  - text: — اینجا مشخص می‌شود فایل درست وارد شده یا باید ردیف‌های تکراری/نامعتبر را اصلاح کنید.
+  - paragraph: "تخصیص سریع MIS: کل 1، معتبر 1، واجد شرایط 1، آیتم ساخته‌شده 1."
+  - generic: "کل: 0"
+  - generic: "معتبر: 0"
+  - generic: "تکراری: 0"
+  - generic: "نامعتبر: 0"
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

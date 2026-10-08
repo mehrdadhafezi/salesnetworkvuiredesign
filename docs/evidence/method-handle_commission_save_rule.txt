@@ -1,0 +1,59 @@
+33040: 
+33041: 			public function handle_commission_save_rule(): void
+33042: 			{
+33043: 				if (! $this->sn_can_view_finance()) {
+33044: 					wp_die('دسترسی غیرمجاز');
+33045: 				}
+33046: 				check_admin_referer('sn_commission_save_rule');
+33047: 				$this->sn_ensure_commission_tables();
+33048: 				global $wpdb;
+33049: 				$table = $wpdb->prefix . 'sn_commission_rules';
+33050: 				$rule_id = absint($_POST['rule_id'] ?? 0);
+33051: 				if ($rule_id > 0 && isset($_POST['toggle_active'])) {
+33052: 					$active = (int) $_POST['toggle_active'] ? 1 : 0;
+33053: 					$wpdb->update($table, ['is_active' => $active, 'updated_at' => current_time('mysql')], ['id' => $rule_id]);
+33054: 					update_option('sn_commission_rule_report', ['status' => 'ok', 'message' => $active ? 'قانون فعال شد.' : 'قانون غیرفعال شد.', 'rule_id' => $rule_id], false);
+33055: 					wp_safe_redirect(wp_get_referer() ?: home_url('/'));
+33056: 					exit;
+33057: 				}
+33058: 				$title = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
+33059: 				if ($title === '') {
+33060: 					update_option('sn_commission_rule_report', ['status' => 'error', 'message' => 'عنوان قانون الزامی است.'], false);
+33061: 					wp_safe_redirect(wp_get_referer() ?: home_url('/'));
+33062: 					exit;
+33063: 				}
+33064: 				$data = [
+33065: 					'rule_code' => $this->sn_commission_rule_code(),
+33066: 					'title' => $title,
+33067: 					'description' => sanitize_textarea_field(wp_unslash($_POST['description'] ?? '')),
+33068: 					'applies_to_position' => sanitize_key(wp_unslash($_POST['applies_to_position'] ?? '')),
+33069: 					'applies_to_level' => sanitize_key(wp_unslash($_POST['applies_to_level'] ?? '')),
+33070: 					'payment_method' => sanitize_key(wp_unslash($_POST['payment_method'] ?? '')),
+33071: 					'invoice_status' => sanitize_text_field(wp_unslash($_POST['invoice_status'] ?? '')),
+33072: 					'employment_status' => sanitize_key(wp_unslash($_POST['employment_status'] ?? '')),
+33073: 					'employment_type' => $this->sn_normalize_commission_employment_type(sanitize_text_field(wp_unslash($_POST['employment_type'] ?? ''))),
+33074: 					'calculation_type' => $this->sn_commission_normalize_calculation_type(sanitize_text_field(wp_unslash($_POST['calculation_type'] ?? 'invoice_percent_fixed'))),
+33075: 					'rate_percent' => max(0, (float) ($_POST['rate_percent'] ?? 0)),
+33076: 					'fixed_amount' => max(0, (float) ($_POST['fixed_amount'] ?? 0)),
+33077: 					'daily_base_amount' => ($_POST['daily_base_amount'] ?? '') === '' ? null : max(0, (float) $_POST['daily_base_amount']),
+33078: 					'attendance_first_before' => $this->sn_commission_time_value(sanitize_text_field(wp_unslash($_POST['attendance_first_before'] ?? '10:30')), '10:30:00'),
+33079: 					'attendance_last_after' => $this->sn_commission_time_value(sanitize_text_field(wp_unslash($_POST['attendance_last_after'] ?? '15:00')), '15:00:00'),
+33080: 					'min_invoice_amount' => ($_POST['min_invoice_amount'] ?? '') === '' ? null : max(0, (float) $_POST['min_invoice_amount']),
+33081: 					'max_invoice_amount' => ($_POST['max_invoice_amount'] ?? '') === '' ? null : max(0, (float) $_POST['max_invoice_amount']),
+33082: 					'effective_from' => ($__sn_rule_effective_from = SN_Helpers::jalali_to_gregorian_date(sanitize_text_field(wp_unslash($_POST['effective_from'] ?? '')))) !== '' ? $__sn_rule_effective_from : null,
+33083: 					'effective_to' => ($__sn_rule_effective_to = SN_Helpers::jalali_to_gregorian_date(sanitize_text_field(wp_unslash($_POST['effective_to'] ?? '')))) !== '' ? $__sn_rule_effective_to : null,
+33084: 					'is_active' => ! empty($_POST['is_active']) ? 1 : 0,
+33085: 					'priority' => (int) ($_POST['priority'] ?? 0),
+33086: 					'created_at' => current_time('mysql'),
+33087: 					'updated_at' => current_time('mysql'),
+33088: 				];
+33089: 				$wpdb->insert($table, $this->sn_filter_existing_columns($table, $data));
+33090: 				update_option('sn_commission_rule_report', [
+33091: 					'status' => $wpdb->insert_id ? 'ok' : 'error',
+33092: 					'message' => $wpdb->insert_id ? 'قانون پورسانت ساخته شد.' : ('خطا در ساخت قانون: ' . sanitize_text_field((string) $wpdb->last_error)),
+33093: 					'rule_id' => (int) $wpdb->insert_id,
+33094: 				], false);
+33095: 				wp_safe_redirect(wp_get_referer() ?: home_url('/'));
+33096: 				exit;
+33097: 			}
+33098: 

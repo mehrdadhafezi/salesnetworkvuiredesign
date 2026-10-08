@@ -1,0 +1,108 @@
+27917: 
+27918: 			public function ajax_update_lead_status(): void
+27919: 			{
+27920: 				if (! is_user_logged_in() || ! check_ajax_referer('sn_public', 'nonce', false)) {
+27921: 					SN_Helpers::send_json(false, 'دسترسی غیرمجاز');
+27922: 					return;
+27923: 				}
+27924: 				// اطمینان از وجود ستون lead_status
+27925: 				$this->maybe_create_tables();
+27926: 				$user   = wp_get_current_user();
+27927: 				$lead_id = absint($_POST['lead_id'] ?? 0);
+27928: 				$has_status = array_key_exists('lead_status', $_POST);
+27929: 				$status  = $has_status ? sanitize_text_field(wp_unslash($_POST['lead_status'] ?? '')) : null;
+27930: 				$note    = sanitize_textarea_field(wp_unslash($_POST['note'] ?? ''));
+27931: 				$not_purchase_reason = sanitize_textarea_field(wp_unslash($_POST['not_purchase_reason'] ?? ''));
+27932: 				$callback_at = sanitize_text_field(wp_unslash($_POST['callback_at'] ?? ''));
+27933: 
+27934: 				if (! $lead_id) {
+27935: 					SN_Helpers::send_json(false, 'شناسه نامعتبر');
+27936: 					return;
+27937: 				}
+27938: 
+27939: 				global $wpdb;
+27940: 				// فروشنده فقط lead های خودش رو میتونه آپدیت کنه
+27941: 				$source_lead = $wpdb->get_row($wpdb->prepare(
+27942: 					"SELECT seller_id,lead_status FROM {$wpdb->prefix}sn_leads WHERE id=%d",
+27943: 					$lead_id
+27944: 				));
+27945: 				if (! $source_lead) {
+27946: 					SN_Helpers::send_json(false, 'شماره یافت نشد');
+27947: 					return;
+27948: 				}
+27949: 				$owner = (int) $source_lead->seller_id;
+27950: 				if ((int) $owner !== (int) $user->ID && ! current_user_can('manage_options')) {
+27951: 					SN_Helpers::send_json(false, 'دسترسی غیرمجاز');
+27952: 					return;
+27953: 				}
+27954: 				$flow = class_exists('SN_Seller_Flow') ? SN_Seller_Flow::instance() : null;
+27955: 				if ($flow && $has_status && (string) $status !== '') {
+27956: 					$status_slug = $flow->status_slug((string) $status);
+27957: 					if ($status_slug !== '') { $status = $flow->status_label($status_slug); }
+27958: 				}
+27959: 				if ($flow && $flow->is_archived('legacy_lead', $lead_id)) {
+27960: 					SN_Helpers::send_json(false, 'این شماره بایگانی شده و قابل ویرایش نیست.');
+27961: 					return;
+27962: 				}
+27963: 				if ($flow && $has_status) {
+27964: 					$flow_validation = $flow->validate_status_change((string) $status, $not_purchase_reason);
+27965: 					if (is_wp_error($flow_validation)) {
+27966: 						SN_Helpers::send_json(false, $flow_validation->get_error_message());
+27967: 						return;
+27968: 					}
+27969: 				}
+27970: 
+27971: 				// وضعیت را فقط وقتی عمداً ارسال شده ذخیره کن؛ این جلوی پاک‌شدن اتفاقی وضعیت‌ها را می‌گیرد.
+27972: 				$data = ['note' => $note];
+27973: 				if ($has_status) {
+27974: 					// مقدار خالی فقط وقتی allow_clear=1 باشد وضعیت را پاک می‌کند.
+27975: 					$allow_clear = ! empty($_POST['allow_clear']);
+27976: 					if ($status !== '' || $allow_clear) {
+27977: 						$data['lead_status'] = $status;
+27978: 						// چهار وضعیت مرحله اول مسیر اختصاصی خودشان را دارند؛ مخصوصاً
+27979: 						// «جواب نداده» نباید با تنظیم قدیمی فوراً از پنل فروشنده خارج شود.
+27980: 						$is_stage_one_status = $flow && $flow->status_slug((string) $status) !== '';
+27981: 						$route = ! $is_stage_one_status && $status !== '' ? $wpdb->get_row($wpdb->prepare("SELECT destination_panel, move_to_destination FROM {$wpdb->prefix}sn_lead_statuses WHERE label=%s AND is_active=1 LIMIT 1", $status), ARRAY_A) : null;
+27982: 						if ($route && ! empty($route['move_to_destination']) && ! empty($route['destination_panel'])) {
+27983: 							$data['destination_panel'] = sanitize_key((string) $route['destination_panel']);
+27984: 							$data['destination_routed_at'] = current_time('mysql');
+27985: 						} elseif ($allow_clear && $status === '') {
+27986: 							$data['destination_panel'] = null;
+27987: 							$data['destination_routed_at'] = null;
+27988: 						}
+27989: 					}
+27990: 				}
+27991: 
+27992: 				if ($flow) { $wpdb->query('START TRANSACTION'); }
+27993: 				$result = $wpdb->update($wpdb->prefix . 'sn_leads', $data, ['id' => $lead_id]);
+27994: 				if ($result === false) {
+27995: 					if ($flow) { $wpdb->query('ROLLBACK'); }
+27996: 					error_log('SN update_lead_status DB error: ' . sanitize_text_field((string) $wpdb->last_error));
+27997: 					SN_Helpers::send_json(false, 'ذخیره وضعیت انجام نشد؛ لطفاً دوباره تلاش کنید.');
+27998: 					return;
+27999: 				}
+28000: 				$flow_state = [];
+28001: 				if ($flow) {
+28002: 					$flow_result = $flow->apply_activity([
+28003: 						'source_kind' => 'legacy_lead',
+28004: 						'source_id' => $lead_id,
+28005: 						'seller_user_id' => (int) $owner,
+28006: 						'actor_user_id' => (int) $user->ID,
+28007: 						'status_label' => (string) $status,
+28008: 						'not_purchase_reason' => $not_purchase_reason,
+28009: 						'callback_at' => $callback_at,
+28010: 						'status_changed' => $has_status,
+28011: 						'changed_field' => 'lead_status',
+28012: 					]);
+28013: 					if (is_wp_error($flow_result)) {
+28014: 						$wpdb->query('ROLLBACK');
+28015: 						SN_Helpers::send_json(false, $flow_result->get_error_message());
+28016: 						return;
+28017: 					}
+28018: 					$flow_state = $flow_result;
+28019: 					$wpdb->query('COMMIT');
+28020: 				}
+28021: 				if ($has_status && $status !== '' && class_exists('SN_Campaign_Tracking')) { SN_Campaign_Tracking::mark_lead_status($lead_id, (string) $status); }
+28022: 				SN_Helpers::send_json(true, 'وضعیت بروزرسانی شد', $flow_state);
+28023: 			}
+28024: 

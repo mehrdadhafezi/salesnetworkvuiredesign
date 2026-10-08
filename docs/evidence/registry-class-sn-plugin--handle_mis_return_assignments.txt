@@ -1,0 +1,301 @@
+22052: 
+22053: 	public function handle_mis_return_assignments(): void
+22054: 	{
+22055: 		$this->sn_mis_clear_performance_cache();
+22056: 		if (! $this->sn_can_access_mis_panel()) { wp_die('دسترسی غیرمجاز'); }
+22057: 		check_admin_referer('sn_mis_return_assignments');
+22058: 		if (class_exists('SN_Migration_Service')) { (new SN_Migration_Service())->repair_mis_schema(); (new SN_Migration_Service())->migrate(); }
+22059: 		global $wpdb;
+22060: 		$batch_id = absint($_POST['batch_id'] ?? 0);
+22061: 		$manager_id = absint($_POST['manager_user_id'] ?? 0);
+22062: 		$include_distribution = ! empty($_POST['include_distribution']);
+22063: 		$limit = max(1, min(2000, absint($_POST['limit'] ?? 500)));
+22064: 		$run_mode = sanitize_key(wp_unslash($_POST['run_mode'] ?? 'dry_run'));
+22065: 		$confirm = sanitize_text_field(wp_unslash($_POST['confirm'] ?? ''));
+22066: 		$reason = sanitize_textarea_field(wp_unslash($_POST['reason'] ?? 'برگشت تخصیص MIS'));
+22067: 		$rows_table = $wpdb->prefix . 'sn_mis_data_rows';
+22068: 		$pool_table = $wpdb->prefix . 'sn_mis_lead_pool';
+22069: 		$items_table = $wpdb->prefix . 'sn_distribution_items';
+22070: 		$report = [
+22071: 			'action' => $run_mode === 'apply' ? 'mis_return_assignments_apply' : 'mis_return_assignments_dry_run',
+22072: 			'batch_id' => $batch_id,
+22073: 			'manager_user_id' => $manager_id,
+22074: 			'include_distribution' => $include_distribution,
+22075: 			'limit' => $limit,
+22076: 			'eligible_rows' => 0,
+22077: 			'returned_rows' => 0,
+22078: 			'returned_pool_rows' => 0,
+22079: 			'returned_distribution_items' => 0,
+22080: 			'recovered_orphan_distribution_items' => 0,
+22081: 			'hard_batch_distribution_items' => 0,
+22082: 			'blocked_converted' => 0,
+22083: 			'blocked_invoice' => 0,
+22084: 			'skipped_has_distribution' => 0,
+22085: 			'preview' => [],
+22086: 			'errors' => [],
+22087: 			'updated_at' => current_time('mysql'),
+22088: 		];
+22089: 		if (! $batch_id) { $report['errors'][] = 'batch_required'; }
+22090: 		if ($run_mode === 'apply' && $confirm !== 'RETURN') { $report['errors'][] = 'confirmation_required'; }
+22091: 		if (! $this->sn_mis_table_exists('sn_mis_data_rows')) { $report['errors'][] = 'mis_rows_table_missing'; }
+22092: 		if ($include_distribution && ! $this->sn_distribution_tables_ready()) { $report['errors'][] = 'distribution_tables_missing'; }
+22093: 		$eligible = [];
+22094: 		if (empty($report['errors'])) {
+22095: 			$where = ['r.batch_id=%d', 'r.row_status=%s', 'r.assigned_manager_user_id IS NOT NULL', 'r.assigned_manager_user_id>0'];
+22096: 			$args = [$batch_id, 'valid'];
+22097: 			if ($manager_id > 0) { $where[] = 'r.assigned_manager_user_id=%d'; $args[] = $manager_id; }
+22098: 			$args[] = $limit;
+22099: 			$rows = $wpdb->get_results($wpdb->prepare("SELECT r.* FROM {$rows_table} r WHERE " . implode(' AND ', $where) . " ORDER BY r.id ASC LIMIT %d", ...$args)) ?: [];
+22100: 			foreach ($rows as $row) {
+22101: 				$row_id = (int) $row->id;
+22102: 				$pool_ids = $this->sn_mis_table_exists('sn_mis_lead_pool') ? array_map('intval', (array) $wpdb->get_col($wpdb->prepare("SELECT id FROM {$pool_table} WHERE source_row_id=%d", $row_id))) : [];
+22103: 				$item_args = [$row_id];
+22104: 				$item_sql = "SELECT * FROM {$items_table} WHERE (source_type='mis_data_row' AND source_id=%d";
+22105: 				if ($pool_ids) {
+22106: 					$item_sql .= ' OR pool_item_id IN (' . implode(',', array_fill(0, count($pool_ids), '%d')) . ') OR (source_type=\'mis_pool\' AND source_id IN (' . implode(',', array_fill(0, count($pool_ids), '%d')) . '))';
+22107: 					$item_args = array_merge($item_args, $pool_ids, $pool_ids);
+22108: 				} else {
+22109: 					$item_sql .= ')';
+22110: 				}
+22111: 				$items = $this->sn_distribution_tables_ready() ? ($wpdb->get_results($wpdb->prepare($item_sql, ...$item_args)) ?: []) : [];
+22112: 				$has_distribution = ! empty($items) || ! empty($pool_ids);
+22113: 				$converted = false;
+22114: 				$invoice_locked = false;
+22115: 				foreach ($items as $item) {
+22116: 					$status = sanitize_key((string) ($item->status ?? ''));
+22117: 					$item_id_for_lock = (int) ($item->id ?? 0);
+22118: 					if ((int) ($item->live_lead_id ?? 0) > 0 || in_array($status, ['converted','lead_created','live_lead_created'], true)) {
+22119: 						$converted = true;
+22120: 						break;
+22121: 					}
+22122: 					if ($item_id_for_lock > 0 && $this->sn_distribution_item_has_invoice_lock($item_id_for_lock)) {
+22123: 						$invoice_locked = true;
+22124: 						break;
+22125: 					}
+22126: 				}
+22127: 				if ($converted) { $report['blocked_converted']++; continue; }
+22128: 				if ($invoice_locked) { $report['blocked_invoice']++; continue; }
+22129: 				if ($has_distribution && ! $include_distribution) { $report['skipped_has_distribution']++; continue; }
+22130: 				$eligible[] = ['row' => $row, 'pool_ids' => $pool_ids, 'items' => $items];
+22131: 				if (count($report['preview']) < 25) {
+22132: 					$report['preview'][] = [
+22133: 						'row_id' => $row_id,
+22134: 						'name' => (string) ($row->customer_name ?? ''),
+22135: 						'phone' => $this->sn_mask_phone((string) (($row->normalized_phone ?? '') ?: ($row->customer_phone ?? ''))),
+22136: 						'manager' => $this->sn_user_label((int) ($row->assigned_manager_user_id ?? 0)),
+22137: 						'pool_count' => count($pool_ids),
+22138: 						'distribution_item_count' => count($items),
+22139: 					];
+22140: 				}
+22141: 			}
+22142: 
+22143: 			// Backward-compatible recovery: older MIS quick assignment created distribution items
+22144: 			// without syncing sn_mis_data_rows.assigned_manager_user_id. In that state the
+22145: 			// normal return query sees eligible_rows=0 while the manager still owns the
+22146: 			// numbers. When include_distribution is explicitly checked, recover those
+22147: 			// safe orphaned distribution items too. Only live/converted/invoiced items
+22148: 			// stay locked; seller statuses are snapshotted in logs and reset on return.
+22149: 			if ($include_distribution && $this->sn_distribution_tables_ready()) {
+22150: 				$seen_row_ids = [];
+22151: 				foreach ($eligible as $entry) {
+22152: 					if (! empty($entry['row']->id)) { $seen_row_ids[(int) $entry['row']->id] = true; }
+22153: 				}
+22154: 				$remaining_limit = max(0, $limit - count($eligible));
+22155: 				if ($remaining_limit > 0) {
+22156: 					$orphan_where = [
+22157: 						'r.batch_id=%d',
+22158: 						"r.row_status='valid'",
+22159: 						"di.source_type='mis_data_row'",
+22160: 						'(di.live_lead_id IS NULL OR di.live_lead_id=0)',
+22161: 						"COALESCE(di.status,'') NOT IN ('converted','lead_created','live_lead_created','cancelled','archived','referral_cancelled','returned_to_mis')",
+22162: 					];
+22163: 					$orphan_args = [$batch_id];
+22164: 					if ($manager_id > 0) {
+22165: 						$orphan_where[] = 'di.current_owner_user_id=%d';
+22166: 						$orphan_args[] = $manager_id;
+22167: 					} else {
+22168: 						// "All managers in this case" must recover every active distribution item in the batch,
+22169: 						// even if an earlier broken return/sync left owner fields inconsistent.
+22170: 						$orphan_where[] = '1=1';
+22171: 					}
+22172: 					if ($seen_row_ids) {
+22173: 						$orphan_where[] = 'r.id NOT IN (' . implode(',', array_fill(0, count($seen_row_ids), '%d')) . ')';
+22174: 						$orphan_args = array_merge($orphan_args, array_keys($seen_row_ids));
+22175: 					}
+22176: 					$orphan_args[] = $remaining_limit;
+22177: 					$orphan_rows = $wpdb->get_results($wpdb->prepare(
+22178: 						"SELECT r.*, di.id AS orphan_distribution_item_id, di.current_owner_user_id AS orphan_owner_user_id, di.current_owner_position AS orphan_owner_position, di.status AS orphan_distribution_status
+22179: 						 FROM {$rows_table} r
+22180: 						 INNER JOIN {$items_table} di ON di.source_type='mis_data_row' AND di.source_id=r.id
+22181: 						 WHERE " . implode(' AND ', $orphan_where) . "
+22182: 						 ORDER BY r.id ASC LIMIT %d",
+22183: 						...$orphan_args
+22184: 					)) ?: [];
+22185: 					foreach ($orphan_rows as $row) {
+22186: 						$orphan_item_id = (int) ($row->orphan_distribution_item_id ?? 0);
+22187: 						if ($orphan_item_id > 0 && $this->sn_distribution_item_has_invoice_lock($orphan_item_id)) {
+22188: 							$report['blocked_invoice']++;
+22189: 							continue;
+22190: 						}
+22191: 						$item = (object) [
+22192: 							'id' => $orphan_item_id,
+22193: 							'current_owner_user_id' => (int) ($row->orphan_owner_user_id ?? 0),
+22194: 							'current_owner_position' => (string) ($row->orphan_owner_position ?? ''),
+22195: 							'status' => (string) ($row->orphan_distribution_status ?? ''),
+22196: 						];
+22197: 						$eligible[] = ['row' => $row, 'pool_ids' => [], 'items' => [$item], 'recovered_orphan' => true];
+22198: 						$report['recovered_orphan_distribution_items']++;
+22199: 						if (count($report['preview']) < 25) {
+22200: 							$report['preview'][] = [
+22201: 								'row_id' => (int) ($row->id ?? 0),
+22202: 								'name' => (string) ($row->customer_name ?? ''),
+22203: 								'phone' => $this->sn_mask_phone((string) (($row->normalized_phone ?? '') ?: ($row->customer_phone ?? ''))),
+22204: 								'manager' => $this->sn_user_label((int) ($row->orphan_owner_user_id ?? 0)),
+22205: 								'pool_count' => 0,
+22206: 								'distribution_item_count' => 1,
+22207: 								'recovered_orphan' => true,
+22208: 							];
+22209: 						}
+22210: 					}
+22211: 				}
+22212: 			}
+22213: 
+22214: 			// Final hard fallback for real-world recovery cases:
+22215: 			// Some historical/bulk paths left items visible in the sales-manager panel while the
+22216: 			// MIS row assignment columns or source-row join context were not enough for the
+22217: 			// conservative return selector. When the operator explicitly checks
+22218: 			// include_distribution, scan distribution_items by batch_id itself and return every
+22219: 			// safe, non-converted, non-invoiced item from the selected MIS batch.
+22220: 			if ($include_distribution && $this->sn_distribution_tables_ready()) {
+22221: 				$seen_item_ids = [];
+22222: 				$seen_row_ids_for_hard = [];
+22223: 				foreach ($eligible as $entry) {
+22224: 					if (! empty($entry['row']->id)) { $seen_row_ids_for_hard[(int) $entry['row']->id] = true; }
+22225: 					foreach ((array) ($entry['items'] ?? []) as $seen_item) {
+22226: 						if (! empty($seen_item->id)) { $seen_item_ids[(int) $seen_item->id] = true; }
+22227: 					}
+22228: 				}
+22229: 				$hard_remaining_limit = max(0, $limit - count($eligible));
+22230: 				if ($hard_remaining_limit > 0) {
+22231: 					$hard_where = [
+22232: 						'(COALESCE(di.batch_id, r.batch_id)= %d OR r.batch_id=%d)',
+22233: 						'r.id IS NOT NULL',
+22234: 						"r.row_status='valid'",
+22235: 						'(di.live_lead_id IS NULL OR di.live_lead_id=0)',
+22236: 						"COALESCE(di.status,'') NOT IN ('converted','lead_created','live_lead_created','cancelled','archived','referral_cancelled')",
+22237: 					];
+22238: 					$hard_args = [$batch_id, $batch_id];
+22239: 					if ($manager_id > 0) {
+22240: 						$hard_where[] = '(di.current_owner_user_id=%d OR r.assigned_manager_user_id=%d)';
+22241: 						$hard_args[] = $manager_id;
+22242: 						$hard_args[] = $manager_id;
+22243: 					}
+22244: 					if ($seen_item_ids) {
+22245: 						$hard_where[] = 'di.id NOT IN (' . implode(',', array_fill(0, count($seen_item_ids), '%d')) . ')';
+22246: 						$hard_args = array_merge($hard_args, array_keys($seen_item_ids));
+22247: 					}
+22248: 					$hard_args[] = $hard_remaining_limit;
+22249: 					$hard_rows = $wpdb->get_results($wpdb->prepare(
+22250: 						"SELECT r.*, di.id AS hard_distribution_item_id, di.current_owner_user_id AS hard_owner_user_id, di.current_owner_position AS hard_owner_position, di.final_seller_user_id AS hard_final_seller_user_id, di.status AS hard_distribution_status, di.seller_contact_status AS hard_seller_contact_status, di.seller_customer_name AS hard_seller_customer_name
+22251: 						 FROM {$items_table} di
+22252: 						 LEFT JOIN {$pool_table} p ON (di.pool_item_id=p.id OR (di.source_type='mis_pool' AND di.source_id=p.id))
+22253: 						 LEFT JOIN {$rows_table} r ON ((di.source_type='mis_data_row' AND r.id=di.source_id) OR (p.source_row_id IS NOT NULL AND r.id=p.source_row_id))
+22254: 						 WHERE " . implode(' AND ', $hard_where) . "
+22255: 						 ORDER BY di.id ASC LIMIT %d",
+22256: 						...$hard_args
+22257: 					)) ?: [];
+22258: 					foreach ($hard_rows as $row) {
+22259: 						$hard_item_id = (int) ($row->hard_distribution_item_id ?? 0);
+22260: 						if ($hard_item_id < 1 || isset($seen_item_ids[$hard_item_id])) { continue; }
+22261: 						if ($this->sn_distribution_item_has_invoice_lock($hard_item_id)) {
+22262: 							$report['blocked_invoice']++;
+22263: 							continue;
+22264: 						}
+22265: 						$item = (object) [
+22266: 							'id' => $hard_item_id,
+22267: 							'current_owner_user_id' => (int) ($row->hard_owner_user_id ?? 0),
+22268: 							'current_owner_position' => (string) ($row->hard_owner_position ?? ''),
+22269: 							'final_seller_user_id' => (int) ($row->hard_final_seller_user_id ?? 0),
+22270: 							'status' => (string) ($row->hard_distribution_status ?? ''),
+22271: 							'seller_contact_status' => (string) ($row->hard_seller_contact_status ?? ''),
+22272: 							'seller_customer_name' => (string) ($row->hard_seller_customer_name ?? ''),
+22273: 						];
+22274: 						$eligible[] = ['row' => $row, 'pool_ids' => [], 'items' => [$item], 'hard_batch_distribution_recovery' => true];
+22275: 						$seen_item_ids[$hard_item_id] = true;
+22276: 						$seen_row_ids_for_hard[(int) ($row->id ?? 0)] = true;
+22277: 						$report['recovered_orphan_distribution_items']++;
+22278: 						$report['hard_batch_distribution_items'] = (int) ($report['hard_batch_distribution_items'] ?? 0) + 1;
+22279: 						if (count($report['preview']) < 25) {
+22280: 							$report['preview'][] = [
+22281: 								'row_id' => (int) ($row->id ?? 0),
+22282: 								'item_id' => $hard_item_id,
+22283: 								'name' => (string) ($row->customer_name ?? ''),
+22284: 								'phone' => $this->sn_mask_phone((string) (($row->normalized_phone ?? '') ?: ($row->customer_phone ?? ''))),
+22285: 								'manager' => $this->sn_user_label((int) ($row->hard_owner_user_id ?? 0)),
+22286: 								'pool_count' => 0,
+22287: 								'distribution_item_count' => 1,
+22288: 								'hard_batch_distribution_recovery' => true,
+22289: 							];
+22290: 						}
+22291: 					}
+22292: 				}
+22293: 			}
+22294: 			$report['eligible_rows'] = count($eligible);
+22295: 		}
+22296: 		if (empty($report['errors']) && $run_mode === 'apply') {
+22297: 			foreach ($eligible as $entry) {
+22298: 				$row = $entry['row'];
+22299: 				$row_id = (int) $row->id;
+22300: 				foreach ((array) $entry['items'] as $item) {
+22301: 					$item_id = (int) ($item->id ?? 0);
+22302: 					if ($item_id < 1) { continue; }
+22303: 					$previous_snapshot = [
+22304: 						'current_owner_user_id' => (int) ($item->current_owner_user_id ?? 0),
+22305: 						'current_owner_position' => (string) ($item->current_owner_position ?? ''),
+22306: 						'final_seller_user_id' => (int) ($item->final_seller_user_id ?? 0),
+22307: 						'status' => (string) ($item->status ?? ''),
+22308: 						'seller_contact_status' => (string) ($item->seller_contact_status ?? ''),
+22309: 						'seller_customer_name' => (string) ($item->seller_customer_name ?? ''),
+22310: 					];
+22311: 					$this->sn_distribution_log($item_id, 'returned_to_mis', get_current_user_id(), (int) ($item->current_owner_user_id ?? 0), 0, (string) ($item->current_owner_position ?? ''), 'mis', 0, $reason, ['reason' => 'mis_return_assignment', 'row_id' => $row_id, 'previous' => $previous_snapshot]);
+22312: 					$reset_data = [
+22313: 						'current_owner_user_id' => null,
+22314: 						'current_owner_position' => 'mis',
+22315: 						'current_step_order' => 0,
+22316: 						'final_seller_user_id' => null,
+22317: 						'seller_customer_name' => null,
+22318: 						'seller_province' => null,
+22319: 						'seller_city' => null,
+22320: 						'seller_contact_status' => null,
+22321: 						'seller_sale_probability' => 0,
+22322: 						'seller_next_followup_at' => null,
+22323: 						'seller_notes' => null,
+22324: 						'seller_updated_by' => null,
+22325: 						'seller_updated_at' => null,
+22326: 						'status' => 'returned_to_mis',
+22327: 						'updated_at' => current_time('mysql'),
+22328: 					];
+22329: 					$wpdb->update($items_table, $this->sn_filter_existing_columns($items_table, $reset_data), ['id' => $item_id]);
+22330: 					$report['returned_distribution_items']++;
+22331: 				}
+22332: 				foreach ((array) $entry['pool_ids'] as $pool_id) {
+22333: 					$wpdb->delete($pool_table, ['id' => (int) $pool_id]);
+22334: 					$report['returned_pool_rows']++;
+22335: 				}
+22336: 				$wpdb->update($rows_table, ['assigned_manager_user_id' => null, 'assigned_at' => null, 'updated_at' => current_time('mysql')], ['id' => $row_id]);
+22337: 				$report['returned_rows']++;
+22338: 			}
+22339: 			$remaining_assigned = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$rows_table} WHERE batch_id=%d AND assigned_manager_user_id IS NOT NULL AND assigned_manager_user_id>0", $batch_id));
+22340: 			if ($this->sn_mis_table_exists('sn_mis_import_batches')) {
+22341: 				$batch_update = ['updated_at' => current_time('mysql')];
+22342: 				if ($remaining_assigned < 1) { $batch_update['assigned_manager_user_id'] = null; $batch_update['import_status'] = 'imported'; }
+22343: 				$wpdb->update($wpdb->prefix . 'sn_mis_import_batches', $batch_update, ['id' => $batch_id]);
+22344: 			}
+22345: 			$this->sn_mis_log($batch_id, 'mis_assignments_returned', ['manager_user_id' => $manager_id, 'include_distribution' => $include_distribution], $report, $reason);
+22346: 		}
+22347: 		update_option('sn_mis_return_assignments_report', $report, false);
+22348: 		update_option('sn_mis_last_report', $report, false);
+22349: 		wp_safe_redirect(add_query_arg(['sn_mis_batch_id' => $batch_id, 'sn_ui_active_tab' => 'mis-batches-list', 'sn_mis_return_report' => '1'], wp_get_referer() ?: home_url('/')) . '#mis-batches-list');
+22350: 		exit;
+22351: 	}
+22352: 

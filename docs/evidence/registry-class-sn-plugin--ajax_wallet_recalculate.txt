@@ -1,0 +1,54 @@
+36022: 
+36023: 			public function ajax_wallet_recalculate(): void
+36024: 			{
+36025: 				$valid_nonce = check_ajax_referer('sn_admin', 'nonce', false) || check_ajax_referer('sn_public', 'nonce', false);
+36026: 				if (! $valid_nonce || (! current_user_can('manage_options') && ! $this->sn_can_view_finance())) {
+36027: 					SN_Helpers::send_json(false, 'دسترسی غیرمجاز');
+36028: 					return;
+36029: 				}
+36030: 				if (class_exists('SN_Purpose_Commission') && SN_Purpose_Commission::is_matrix_engine_enabled()) {
+36031: 					SN_Purpose_Commission::instance()->queue_backfill();
+36032: 					SN_Helpers::send_json(true, 'بازبینی فاکتورهای قدیمی در صف قرار گرفت. گزارش پیشرفت در صفحهٔ پورسانت نمایش داده می‌شود.');
+36033: 					return;
+36034: 				}
+36035: 				global $wpdb;
+36036: 				$rows = array_map(static fn($row) => (object) $row, $this->sn_commission_invoice_rows_for_wallet(null, 2000));
+36037: 				$count = 0;
+36038: 				$scanned = 0;
+36039: 				$ready = 0;
+36040: 				$no_rule = 0;
+36041: 				$existing = 0;
+36042: 				foreach ($rows as $inv) {
+36043: 					$scanned++;
+36044: 					$payload = $this->sn_commission_engine_wallet_payload((int) $inv->id, $inv);
+36045: 					$seller_id = (int) (($payload['context']['seller_id'] ?? 0));
+36046: 					$amount = (float) ($payload['commission_amount'] ?? 0);
+36047: 					if (! $seller_id || $amount <= 0 || empty($payload['matched_rule_ids'])) {
+36048: 						$no_rule++;
+36049: 						continue;
+36050: 					}
+36051: 					if ($this->sn_wallet_existing_commission_transaction_id((int) $inv->id, $seller_id)) {
+36052: 						$existing++;
+36053: 						continue;
+36054: 					}
+36055: 					$ready++;
+36056: 					$before = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}sn_wallet_transactions WHERE invoice_id=%d AND user_id=%d AND type='commission_engine'", (int)$inv->id, $seller_id));
+36057: 					$this->sn_credit_wallet_for_invoice((int) $inv->id, $inv, true);
+36058: 					$after = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}sn_wallet_transactions WHERE invoice_id=%d AND user_id=%d AND type='commission_engine'", (int)$inv->id, $seller_id));
+36059: 					if ($after > $before) {
+36060: 						$count += ($after - $before);
+36061: 					}
+36062: 				}
+36063: 				update_option('sn_wallet_finance_recalculate_report', [
+36064: 					'scanned' => $scanned,
+36065: 					'ready' => $ready,
+36066: 					'created' => $count,
+36067: 					'existing' => $existing,
+36068: 					'no_rule_or_amount' => $no_rule,
+36069: 					'updated_at' => current_time('mysql'),
+36070: 				], false);
+36071: 				SN_Helpers::send_json(true, sprintf('محاسبه مجدد انجام شد. بررسی‌شده: %d، آماده: %d، تراکنش جدید: %d، موجود از قبل: %d، بدون قانون/مبلغ: %d', $scanned, $ready, $count, $existing, $no_rule));
+36072: 			}
+36073: 
+36074: 			/** Lightweight workflow additions for v1.0.7. */
+36075: 			private function sn_customer_action_labels(): array

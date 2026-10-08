@@ -1,0 +1,6 @@
+29244: 
+29245: 			private function sn_can_reject_payment(): bool
+29246: 			{
+29247: 				return current_user_can('manage_options') || current_user_can('sn_reject_payment');
+29248: 			}
+29249: 

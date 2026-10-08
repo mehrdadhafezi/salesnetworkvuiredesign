@@ -1,0 +1,138 @@
+14921: 
+14922: 	public function render_supervisor_panel(): string
+14923: 	{
+14924: 		if (! is_user_logged_in()) {
+14925: 			return '<p class="sn-notice">لطفاً وارد شوید.</p>';
+14926: 		}
+14927: 		$user = wp_get_current_user();
+14928: 		$is_supervisor = $this->sn_current_user_can_supervisor_panel();
+14929: 		if (! $is_supervisor) {
+14930: 			$position = $this->sn_hr_position_for_user((int) $user->ID);
+14931: 			$roles = array_filter(array_map('sanitize_key', (array) $user->roles));
+14932: 			return '<div class="sn-notice sn-error" dir="rtl"><strong>دسترسی غیرمجاز.</strong><div class="sn-muted" style="margin-top:6px">شناسه کاربر: #' . esc_html((string) $user->ID) . ' | سمت HR: ' . esc_html($position !== '' ? $position : 'نامشخص') . ' | نقش‌های وردپرس: ' . esc_html($roles ? implode(', ', $roles) : 'ندارد') . ' | مقدار مورد انتظار: supervisor</div></div>';
+14933: 		}
+14934: 
+14935: 		ob_start();
+14936: 	?>
+14937: 		<div class="sn-panel" dir="rtl" id="sn-supervisor-panel">
+14938: 			<div class="sn-panel-header">
+14939: 				<h2>پنل سرپرست</h2>
+14940: 				<a class="sn-btn sn-btn-secondary" href="#sn-reports-panel">گزارش جامع</a>
+14941: 				<?php echo $this->sn_panel_user_actions_markup(); ?>
+14942: 			</div>
+14943: 
+14944: 				<div class="sn-tabs">
+14945: 					<button type="button" class="sn-tab active" data-tab="sellers">فروشندگان و آمار</button>
+14946: 					<button type="button" class="sn-tab" data-tab="converter-stats">تبدیل‌کنندگان و آمار</button>
+14947: 				<button type="button" class="sn-tab" data-tab="my-conversions">تبدیل‌های من</button>
+14948: 				<button type="button" class="sn-tab" data-tab="assign">تخصیص شماره</button>
+14949: 				<button type="button" class="sn-tab" data-tab="needs-action">آماده‌های تبدیل</button>
+14950: 				<button type="button" class="sn-tab" data-tab="subscriptions">اشتراک‌های فروشنده</button>
+14951: 				<button type="button" class="sn-tab" data-tab="distribution-logs">لاگ و خطا</button>
+14952: 				<button type="button" class="sn-tab" data-tab="unassign">جدا کردن سرنخ زنده/قدیمی</button>
+14953: 				<button type="button" class="sn-tab" data-tab="invoices">فاکتورها</button>
+14954: 				<button type="button" class="sn-tab" data-tab="customer-actions">رفتار مشتریان</button>
+14955: 				<button type="button" class="sn-tab" data-tab="hr-requests">درخواست HR</button>
+14956: 				<button type="button" class="sn-tab" data-tab="wallet">کیف پول</button>
+14957: 			</div>
+14958: 
+14959: 			<!-- لیست فروشندگان -->
+14960: 			<div id="sn-tab-sellers" class="sn-tab-content active">
+14961: 
+14962: 			<div class="sn-card sn-supervisor-summary-card">
+14963: 				<div class="sn-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:end">
+14964: 					<div><strong>سرنخ‌های زنده/قدیمی</strong>
+14965: 						<div id="sn-sum-total" class="sn-badge">...</div>
+14966: 					</div>
+14967: 					<div><strong>دارای فروشنده</strong>
+14968: 						<div id="sn-sum-assigned" class="sn-badge">...</div>
+14969: 					</div>
+14970: 					<div><strong>آزاد/قدیمی</strong>
+14971: 						<div id="sn-sum-unassigned" class="sn-badge">...</div>
+14972: 					</div>
+14973: 					<div><strong>تعداد در بازه</strong>
+14974: 						<div id="sn-sum-range" class="sn-badge">...</div>
+14975: 					</div>
+14976: 					<div><strong>دارای فاکتور</strong>
+14977: 						<div id="sn-sum-invoiced" class="sn-badge">...</div>
+14978: 					</div>
+14979: 					<div><strong>فروش موفق</strong>
+14980: 						<div id="sn-sum-paid" class="sn-badge">...</div>
+14981: 					</div>
+14982: 					<div class="sn-field"><label>از تاریخ</label><input type="text" class="sn-jalali-date" id="sn-date-from" placeholder="1403/02/18"></div>
+14983: 					<div class="sn-field"><label>تا تاریخ</label><input type="text" class="sn-jalali-date" id="sn-date-to" placeholder="1403/02/18"></div>
+14984: 					<div class="sn-field"><label>از ساعت تهران</label><input type="time" id="sn-time-from"></div>
+14985: 					<div class="sn-field"><label>تا ساعت تهران</label><input type="time" id="sn-time-to"></div>
+14986: 					<div class="sn-field"><label>فروشنده</label><select id="sn-summary-seller"><option value="">همه</option></select></div>
+14987: 					<div class="sn-field"><label>وضعیت تماس</label><select id="sn-summary-lead-status"><option value="">همه</option></select></div>
+14988: 					<div class="sn-field"><label>کد واردات/شماره</label><input type="text" id="sn-summary-import-code"></div>
+14989: 					<div class="sn-field"><label>تخصیص</label><select id="sn-summary-assignment"><option value="">همه</option><option value="assigned">تخصیص‌شده</option><option value="unassigned">تخصیص‌نشده</option></select></div>
+14990: 					<div><button type="button" id="sn-summary-filter" class="sn-btn sn-btn-secondary">اعمال فیلتر</button></div>
+14991: 					<?php if (current_user_can('manage_options')) : ?><div><button type="button" id="sn-summary-export" class="sn-btn sn-btn-ghost">خروجی CSV</button></div><?php endif; ?>
+14992: 				</div>
+14993: 			</div>
+14994: 				<div id="sn-sellers-loading" class="sn-loading">در حال بارگذاری...</div>
+14995: 				<div id="sn-sellers-table"></div>
+14996: 			</div>
+14997: 
+14998: 			<!-- تخصیص شماره: جریان یکپارچه V4 با ظاهر پنل سرپرست -->
+14999: 			<div id="sn-tab-assign" class="sn-tab-content sn-lazy-tab" data-sn-lazy-tab="assign" style="display:none">
+15000: 				<div class="sn-card sn-loading">برای جلوگیری از کندی، این بخش بعد از باز کردن تب بارگذاری می‌شود...</div>
+15001: 			</div>
+15002: 
+15003: 			<div id="sn-tab-needs-action" class="sn-tab-content sn-lazy-tab" data-sn-lazy-tab="needs-action" style="display:none">
+15004: 				<div class="sn-card sn-loading">پرونده‌های آماده تبدیل در حال بارگذاری هستند...</div>
+15005: 			</div>
+15006: 
+15007: 			<div id="sn-tab-subscriptions" class="sn-tab-content sn-lazy-tab" data-sn-lazy-tab="subscriptions" style="display:none">
+15008: 				<div class="sn-card sn-loading">اشتراک‌های فروشنده بعد از باز کردن تب بارگذاری می‌شوند...</div>
+15009: 			</div>
+15010: 
+15011: 			<div id="sn-tab-distribution-logs" class="sn-tab-content sn-lazy-tab" data-sn-lazy-tab="distribution-logs" style="display:none">
+15012: 				<div class="sn-card sn-loading">لاگ‌ها بعد از باز کردن تب بارگذاری می‌شوند...</div>
+15013: 			</div>
+15014: 
+15015: 			<div id="sn-tab-unassign" class="sn-tab-content" style="display:none">
+15016: 				<div class="sn-card">
+15017: 					<h3>جدا کردن لید از فروشنده</h3>
+15018: 					<div id="sn-unassign-notice"></div>
+15019: 					<div class="sn-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+15020: 						<div class="sn-field"><label>فروشنده</label><select id="sn-unassign-seller">
+15021: 								<option value="">همه فروشنده‌ها</option>
+15022: 							</select></div>
+15023: 						<div class="sn-field"><label>آخرین N شماره</label><input type="number" id="sn-unassign-count" min="1" placeholder="مثلاً 20"></div>
+15024: 						<div class="sn-field"><label>از تاریخ تخصیص</label><input type="text" class="sn-jalali-date" id="sn-unassign-date-from" placeholder="1403/02/18"></div>
+15025: 						<div class="sn-field"><label>تا تاریخ تخصیص</label><input type="text" class="sn-jalali-date" id="sn-unassign-date-to" placeholder="1403/02/18"></div>
+15026: 						<div class="sn-field"><label>از ساعت تهران</label><input type="time" id="sn-unassign-time-from"></div>
+15027: 						<div class="sn-field"><label>تا ساعت تهران</label><input type="time" id="sn-unassign-time-to"></div>
+15028: 						<div class="sn-field"><label>وضعیت تماس</label><select id="sn-unassign-lead-status"><option value="">همه</option></select></div>
+15029: 						<div class="sn-field"><label>کد واردات/شماره</label><input type="text" id="sn-unassign-import-code"></div>
+15030: 					</div>
+15031: 					<button type="button" id="sn-do-unassign" class="sn-btn sn-btn-secondary">جدا کردن و برگشت به لیست قابل تخصیص</button>
+15032: 				</div>
+15033: 			</div>
+15034: 
+15035: 			<div id="sn-tab-invoices" class="sn-tab-content sn-lazy-tab" data-sn-lazy-tab="invoices" style="display:none">
+15036: 				<div class="sn-card sn-loading">گزارش فاکتورها بعد از باز کردن تب بارگذاری می‌شود...</div>
+15037: 			</div>
+15038: 			<div id="sn-tab-customer-actions" class="sn-tab-content" style="display:none">
+15039: 				<?php $this->sn_render_staff_customer_actions_section(); ?>
+15040: 			</div>
+15041: 			<div id="sn-tab-hr-requests" class="sn-tab-content sn-lazy-tab" data-sn-lazy-tab="hr-requests" style="display:none">
+15042: 				<div class="sn-card sn-loading">درخواست‌های HR بعد از باز کردن تب بارگذاری می‌شوند...</div>
+15043: 			</div>
+15044: 			<div id="sn-tab-wallet" class="sn-tab-content sn-lazy-tab" data-sn-lazy-tab="wallet" style="display:none">
+15045: 				<div class="sn-card sn-loading">کیف پول بعد از باز کردن تب بارگذاری می‌شود...</div>
+15046: 			</div>
+15047: 				<div id="sn-tab-converter-stats" class="sn-tab-content sn-lazy-tab" data-sn-lazy-tab="converter-stats" style="display:none">
+15048: 					<div class="sn-card sn-loading">آمار تبدیل‌کنندگان بعد از باز کردن تب بارگذاری می‌شود...</div>
+15049: 				</div>
+15050: 				<div id="sn-tab-my-conversions" class="sn-tab-content sn-lazy-tab" data-sn-lazy-tab="my-conversions" style="display:none">
+15051: 					<div class="sn-card sn-loading">تبدیل‌های تخصیص‌یافته به خودتان بعد از باز کردن تب بارگذاری می‌شوند...</div>
+15052: 				</div>
+15053: 		</div>
+15054: 	<?php
+15055: 		return ob_get_clean() . $this->sn_dashboard_reporting_content();
+15056: 	}
+15057: 
+15058: 	// --- صفحه فاکتور مشتری ---

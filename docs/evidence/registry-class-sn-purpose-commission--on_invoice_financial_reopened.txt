@@ -1,0 +1,4 @@
+703: 	public function on_invoice_financial_reopened( int $invoice_id, $invoice = null, string $reason = '' ): void {
+704: 		$this->reverse_commission_credits( $invoice_id, $reason ?: 'بازگشت به بررسی مالی', true );
+705: 	}
+706: 

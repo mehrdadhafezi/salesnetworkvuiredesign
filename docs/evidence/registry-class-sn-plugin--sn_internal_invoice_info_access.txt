@@ -1,0 +1,78 @@
+29274: 
+29275: 			private function sn_internal_invoice_info_access($invoice, int $viewer_user_id = 0, string $invoice_code = ''): array
+29276: 			{
+29277: 				$viewer_user_id = $viewer_user_id > 0 ? $viewer_user_id : (int) get_current_user_id();
+29278: 				$invoice_id = (int) ($invoice->id ?? 0);
+29279: 				$seller_id = (int) ($invoice->seller_id ?? 0);
+29280: 				$user_can_manage_options = $viewer_user_id > 0 && user_can($viewer_user_id, 'manage_options');
+29281: 				$is_super_admin = $viewer_user_id > 0 && function_exists('is_super_admin') && is_super_admin($viewer_user_id);
+29282: 				$base = [
+29283: 					'allowed' => false,
+29284: 					'current_user_id' => $viewer_user_id,
+29285: 					'user_can_manage_options' => $user_can_manage_options ? 'yes' : 'no',
+29286: 					'is_super_admin' => $is_super_admin ? 'yes' : 'no',
+29287: 					'invoice_code' => $invoice_code !== '' ? $invoice_code : (string) ($invoice->invoice_code ?? ''),
+29288: 					'invoice_id' => $invoice_id,
+29289: 					'invoice_seller_id' => $seller_id,
+29290: 					'debug_branch' => 'internal_invoice_info_permission',
+29291: 					'permission_branch' => 'none',
+29292: 					'reason' => 'not_checked',
+29293: 				];
+29294: 				if (! $invoice || ! is_user_logged_in() || $viewer_user_id <= 0) {
+29295: 					$base['permission_branch'] = 'preflight';
+29296: 					$base['reason'] = 'missing_invoice_or_logged_in_user';
+29297: 					return $base;
+29298: 				}
+29299: 				if ($user_can_manage_options || $is_super_admin) {
+29300: 					$base['allowed'] = true;
+29301: 					$base['permission_branch'] = $user_can_manage_options ? 'manage_options' : 'super_admin';
+29302: 					$base['reason'] = 'admin_read_only_invoice_info';
+29303: 					return $base;
+29304: 				}
+29305: 				if ($this->sn_can_view_finance()) {
+29306: 					$base['allowed'] = true;
+29307: 					$base['permission_branch'] = 'finance';
+29308: 					$base['reason'] = 'finance_read_permission';
+29309: 					return $base;
+29310: 				}
+29311: 				$user = $viewer_user_id === (int) get_current_user_id() ? wp_get_current_user() : get_user_by('id', $viewer_user_id);
+29312: 				if (! $user) {
+29313: 					$base['permission_branch'] = 'preflight';
+29314: 					$base['reason'] = 'viewer_user_not_found';
+29315: 					return $base;
+29316: 				}
+29317: 				$roles = (array) $user->roles;
+29318: 				if (in_array('sn_seller', $roles, true)) {
+29319: 					$base['allowed'] = $seller_id === (int) $user->ID;
+29320: 					$base['permission_branch'] = 'seller_owner';
+29321: 					$base['reason'] = $base['allowed'] ? 'seller_own_invoice' : 'seller_not_invoice_owner';
+29322: 					return $base;
+29323: 				}
+29324: 				if ($invoice_id > 0 && class_exists('SN_Scope_Service')) {
+29325: 					$scope_service = new SN_Scope_Service();
+29326: 					$position = $scope_service->get_viewer_position_slug((int) $user->ID);
+29327: 					if (in_array($position, ['supervisor', 'senior_supervisor', 'sales_manager', 'sales_deputy'], true)) {
+29328: 						$base['allowed'] = $scope_service->can_view_invoice((int) $user->ID, $invoice_id);
+29329: 						$base['permission_branch'] = 'scope_' . $position;
+29330: 						$base['reason'] = $base['allowed'] ? 'scope_invoice_allowed' : 'scope_invoice_denied';
+29331: 						$base['viewer_position'] = $position;
+29332: 						return $base;
+29333: 					}
+29334: 				}
+29335: 				if (in_array('sn_supervisor', $roles, true)) {
+29336: 					$base['allowed'] = $seller_id > 0 && (int) get_user_meta($seller_id, 'sn_supervisor_id', true) === (int) $user->ID;
+29337: 					$base['permission_branch'] = 'legacy_supervisor';
+29338: 					$base['reason'] = $base['allowed'] ? 'legacy_supervisor_seller_match' : 'legacy_supervisor_seller_mismatch';
+29339: 					return $base;
+29340: 				}
+29341: 				if (in_array('sn_sales_manager', $roles, true)) {
+29342: 					$base['allowed'] = true;
+29343: 					$base['permission_branch'] = 'legacy_sales_manager';
+29344: 					$base['reason'] = 'legacy_sales_manager';
+29345: 					return $base;
+29346: 				}
+29347: 				$base['permission_branch'] = 'none';
+29348: 				$base['reason'] = 'no_internal_invoice_read_permission';
+29349: 				return $base;
+29350: 			}
+29351: 

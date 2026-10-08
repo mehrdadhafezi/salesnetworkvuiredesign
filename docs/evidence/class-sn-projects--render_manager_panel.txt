@@ -1,0 +1,3 @@
+2866: 	public function render_manager_panel(): string {
+2867: 		return class_exists( 'SN_Operations_Flow' ) ? SN_Operations_Flow::instance()->render_sales_manager_panel() : '';
+2868: 	}

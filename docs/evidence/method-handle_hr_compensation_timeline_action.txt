@@ -1,0 +1,125 @@
+19613: 
+19614: 	public function handle_hr_compensation_timeline_action(): void
+19615: 	{
+19616: 		if (! $this->sn_can_manage_hr_panel()) {
+19617: 			wp_die('دسترسی غیرمجاز');
+19618: 		}
+19619: 		check_admin_referer('sn_hr_compensation_timeline_action');
+19620: 		if (class_exists('SN_Migration_Service')) {
+19621: 			(new SN_Migration_Service())->migrate();
+19622: 		}
+19623: 		$redirect_base = $this->sn_hr_panel_return_url();
+19624: 		global $wpdb;
+19625: 		$table = $wpdb->prefix . 'sn_hr_compensation_history';
+19626: 		$report = ['status' => 'error', 'message' => 'ثبت بازه انجام نشد.', 'errors' => [], 'updated_at' => current_time('mysql')];
+19627: 		if (! class_exists('SN_HR_Service') || ! $this->sn_table_exists_quiet($table)) {
+19628: 			$report['errors'][] = 'table_or_service_missing';
+19629: 			update_option('sn_hr_compensation_timeline_report', $report, false);
+19630: 			wp_safe_redirect(add_query_arg('sn_msg', 'hr_compensation_timeline_error', $redirect_base) . '#hr-compensation');
+19631: 			exit;
+19632: 		}
+19633: 		$confirm = strtoupper(sanitize_text_field(wp_unslash($_POST['confirm_apply'] ?? '')));
+19634: 		$user_id = absint($_POST['user_id'] ?? 0);
+19635: 		$effective_from = SN_Helpers::jalali_to_gregorian_date(sanitize_text_field(wp_unslash($_POST['effective_from'] ?? '')));
+19636: 		$effective_to = SN_Helpers::jalali_to_gregorian_date(sanitize_text_field(wp_unslash($_POST['effective_to'] ?? '')));
+19637: 		$reason = sanitize_textarea_field(wp_unslash($_POST['reason'] ?? ''));
+19638: 		$profile = (new SN_HR_Service())->get_profile_by_user_id($user_id);
+19639: 		if ($confirm !== 'APPLY') { $report['errors'][] = 'confirm_apply_required'; }
+19640: 		if (! $profile) { $report['errors'][] = 'profile_missing'; }
+19641: 		if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $effective_from)) { $report['errors'][] = 'effective_from_invalid'; }
+19642: 		if ($effective_to !== '' && ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $effective_to)) { $report['errors'][] = 'effective_to_invalid'; }
+19643: 		if ($effective_to !== '' && $effective_from !== '' && $effective_to < $effective_from) { $report['errors'][] = 'effective_to_before_from'; }
+19644: 		if ($reason === '') { $report['errors'][] = 'reason_required'; }
+19645: 		if (! empty($report['errors'])) {
+19646: 			update_option('sn_hr_compensation_timeline_report', $report, false);
+19647: 			wp_safe_redirect(add_query_arg('sn_msg', 'hr_compensation_timeline_error', $redirect_base) . '#hr-compensation');
+19648: 			exit;
+19649: 		}
+19650: 
+19651: 		$profile_id = (int) $profile->id;
+19652: 		$open_rows = $wpdb->get_results($wpdb->prepare(
+19653: 			"SELECT * FROM {$table} WHERE user_id=%d AND is_active=1 AND effective_from < %s AND (effective_to IS NULL OR effective_to >= %s) ORDER BY effective_from DESC, id DESC",
+19654: 			$user_id,
+19655: 			$effective_from,
+19656: 			$effective_from
+19657: 		), ARRAY_A) ?: [];
+19658: 		$closed_previous = 0;
+19659: 		if (count($open_rows) > 1) {
+19660: 			$report['errors'][] = 'multiple_overlapping_history_rows';
+19661: 			update_option('sn_hr_compensation_timeline_report', $report, false);
+19662: 			wp_safe_redirect(add_query_arg('sn_msg', 'hr_compensation_timeline_error', $redirect_base) . '#hr-compensation');
+19663: 			exit;
+19664: 		}
+19665: 		if ($open_rows) {
+19666: 			$previous_end = (new DateTimeImmutable($effective_from, new DateTimeZone('UTC')))->modify('-1 day')->format('Y-m-d');
+19667: 			$wpdb->update($table, ['effective_to' => $previous_end, 'updated_by' => get_current_user_id() ?: null, 'updated_at' => current_time('mysql'), 'change_reason' => trim($reason . "\nAuto-closed by new compensation period")], ['id' => (int) $open_rows[0]['id']]);
+19668: 			$closed_previous = 1;
+19669: 		}
+19670: 		$overlap_sql = "SELECT COUNT(*) FROM {$table} WHERE user_id=%d AND is_active=1 AND effective_from <= %s AND (effective_to IS NULL OR effective_to >= %s)";
+19671: 		$overlap_to = $effective_to !== '' ? $effective_to : '9999-12-31';
+19672: 		$remaining_overlap = (int) $wpdb->get_var($wpdb->prepare($overlap_sql, $user_id, $overlap_to, $effective_from));
+19673: 		if ($remaining_overlap > 0) {
+19674: 			$report['errors'][] = 'overlapping_history_period';
+19675: 			update_option('sn_hr_compensation_timeline_report', $report, false);
+19676: 			wp_safe_redirect(add_query_arg('sn_msg', 'hr_compensation_timeline_error', $redirect_base) . '#hr-compensation');
+19677: 			exit;
+19678: 		}
+19679: 		$commission_override_mode = $this->sn_commission_normalize_override_mode(sanitize_text_field(wp_unslash($_POST['commission_override_mode'] ?? 'inherit')));
+19680: 		$commission_rule_id = absint($_POST['commission_rule_id'] ?? 0) ?: null;
+19681: 		if ($commission_override_mode !== 'manual_rule') { $commission_rule_id = null; }
+19682: 		$payload = [
+19683: 			'profile_id' => $profile_id,
+19684: 			'user_id' => $user_id,
+19685: 			'base_salary' => ($_POST['base_salary'] ?? '') === '' ? null : absint($_POST['base_salary']),
+19686: 			'salary_currency' => in_array((string) ($_POST['salary_currency'] ?? ''), ['IRT', 'IRR'], true) ? (string) $_POST['salary_currency'] : 'IRT',
+19687: 			'commission_enabled' => $commission_override_mode === 'disabled' ? 0 : 1,
+19688: 			'commission_rule_id' => $commission_rule_id,
+19689: 			'commission_override_mode' => $commission_override_mode,
+19690: 			'effective_from' => $effective_from,
+19691: 			'effective_to' => $effective_to !== '' ? $effective_to : null,
+19692: 			'employment_type' => sanitize_key(wp_unslash($_POST['employment_type'] ?? '')) ?: ($profile->employment_type ?? null),
+19693: 			'employment_status' => sanitize_key(wp_unslash($_POST['employment_status'] ?? '')) ?: ($profile->employment_status ?? 'active'),
+19694: 			'position_slug_snapshot' => $this->sn_hr_position_slug_by_id((int) $profile->position_id),
+19695: 			'level_slug_snapshot' => $this->sn_hr_level_slug_by_id((int) $profile->level_id),
+19696: 			'notes' => sanitize_textarea_field(wp_unslash($_POST['notes'] ?? '')),
+19697: 			'is_active' => 1,
+19698: 			'locked_after_payroll' => 0,
+19699: 			'created_by' => get_current_user_id() ?: null,
+19700: 			'updated_by' => get_current_user_id() ?: null,
+19701: 			'change_reason' => $reason,
+19702: 			'created_at' => current_time('mysql'),
+19703: 			'updated_at' => current_time('mysql'),
+19704: 		];
+19705: 		$inserted = $wpdb->insert($table, $this->sn_filter_existing_columns($table, $payload));
+19706: 		if (! $inserted) {
+19707: 			$report['errors'][] = sanitize_text_field((string) $wpdb->last_error);
+19708: 			update_option('sn_hr_compensation_timeline_report', $report, false);
+19709: 			wp_safe_redirect(add_query_arg('sn_msg', 'hr_compensation_timeline_error', $redirect_base) . '#hr-compensation');
+19710: 			exit;
+19711: 		}
+19712: 		if ($effective_to === '' || $effective_to >= SN_Helpers::tehran_today_gregorian()) {
+19713: 			$this->sn_hr_compensation_update($profile_id, $user_id, [
+19714: 				'base_salary' => $payload['base_salary'],
+19715: 				'salary_currency' => $payload['salary_currency'],
+19716: 				'commission_enabled' => $payload['commission_enabled'],
+19717: 				'default_commission_rule_id' => $payload['commission_rule_id'],
+19718: 				'commission_override_mode' => $payload['commission_override_mode'],
+19719: 				'effective_from' => $payload['effective_from'],
+19720: 				'effective_to' => $payload['effective_to'],
+19721: 				'notes' => $payload['notes'],
+19722: 				'is_active' => 1,
+19723: 			], $reason ?: 'HR compensation timeline current profile sync');
+19724: 		}
+19725: 		$this->sn_hr_panel_log_profile($profile_id, $user_id, 'hr_compensation_history_created', $open_rows ? $open_rows[0] : null, $payload, ['reason' => $reason, 'closed_previous' => $closed_previous]);
+19726: 		update_option('sn_hr_compensation_timeline_report', [
+19727: 			'status' => 'ok',
+19728: 			'message' => 'بازه تاریخی حقوق و پورسانت ثبت شد.',
+19729: 			'user_id' => $user_id,
+19730: 			'history_id' => (int) $wpdb->insert_id,
+19731: 			'closed_previous' => $closed_previous,
+19732: 			'updated_at' => current_time('mysql'),
+19733: 		], false);
+19734: 		wp_safe_redirect(add_query_arg('sn_msg', 'hr_compensation_timeline_saved', $redirect_base) . '#hr-compensation');
+19735: 		exit;
+19736: 	}
+19737: 

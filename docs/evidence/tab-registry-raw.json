@@ -1,0 +1,303 @@
+[
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "function": "render_converter_panel",
+    "line": 6173,
+    "key": "converter-cases",
+    "context": "ton></form>\n\t\t\t\t</div>\n\t\t\t</div>\n\n\t\t\t<div class=\"sn-tabs sn-converter-main-tabs\">\n\t\t\t\t<button type=\"button\" class=\"sn-tab active\" data-tab=\"converter-cases\">پرونده‌های من <span class=\"sn-tab-badge is-visible\"><?php echo esc_html( number_format_i18n( count( $cases ) ) ); ?></span></button>\n\t\t\t\t<?php if ( $can_issue_invoice ) : ?><button type=\"button\" class=\"sn-tab\" data-tab=\"new-invoice\">صدور پیش‌فاکتور</button><?php endif; ?>\n\t\t\t\t<button type=\"button\" clas"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "function": "render_converter_panel",
+    "line": 6174,
+    "key": "new-invoice",
+    "context": "format_i18n( count( $cases ) ) ); ?></span></button>\n\t\t\t\t<?php if ( $can_issue_invoice ) : ?><button type=\"button\" class=\"sn-tab\" data-tab=\"new-invoice\">صدور پیش‌فاکتور</button><?php endif; ?>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"invoices\">فاکتورهای من</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"wallet\">کیف پول من</button>\n\t\t\t</div>\n\t\t\t"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "function": "render_converter_panel",
+    "line": 6175,
+    "key": "invoices",
+    "context": "e=\"button\" class=\"sn-tab\" data-tab=\"new-invoice\">صدور پیش‌فاکتور</button><?php endif; ?>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"invoices\">فاکتورهای من</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"wallet\">کیف پول من</button>\n\t\t\t</div>\n\t\t\t<?php endif; ?>\n\n\t\t\t<div id=\"sn-tab-converter-cases\" class=\"sn-tab-content active\">\n\t\t\t\t<?php if ( $is_e"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "function": "render_converter_panel",
+    "line": 6176,
+    "key": "customer-actions",
+    "context": "f; ?>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"invoices\">فاکتورهای من</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"wallet\">کیف پول من</button>\n\t\t\t</div>\n\t\t\t<?php endif; ?>\n\n\t\t\t<div id=\"sn-tab-converter-cases\" class=\"sn-tab-content active\">\n\t\t\t\t<?php if ( $is_embedded ) : ?>\n\t\t\t\t<div class=\"sn-card sn-dot-embedded-heading\"><div><span>دات‌فلو<"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "function": "render_converter_panel",
+    "line": 6177,
+    "key": "wallet",
+    "context": "\t<button type=\"button\" class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"wallet\">کیف پول من</button>\n\t\t\t</div>\n\t\t\t<?php endif; ?>\n\n\t\t\t<div id=\"sn-tab-converter-cases\" class=\"sn-tab-content active\">\n\t\t\t\t<?php if ( $is_embedded ) : ?>\n\t\t\t\t<div class=\"sn-card sn-dot-embedded-heading\"><div><span>دات‌فلو</span><h3><?php echo 'seller' === $context ? 'آماده‌های تبدیل من' : 'تبدیل‌های من'; ?></h3><"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_seller_panel",
+    "line": 13670,
+    "key": "leads",
+    "context": "$this->sn_panel_user_actions_markup(); ?>\n\t\t\t</div>\n\n\t\t\t<!-- تب‌ها -->\n\t\t\t<div class=\"sn-tabs\">\n\t\t\t\t<button class=\"sn-tab active\" data-tab=\"leads\">شماره‌های من <span class=\"sn-tab-badge\" id=\"sn-seller-tab-badge-no-status\" hidden>۰</span></button>\n\t\t\t\t<?php if ($show_manual_invoice_tab) : ?><button class=\"sn-tab\" data-tab=\"new-invoice\">صدور پیش‌فاکتور</button><?php endif; ?>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"my-conversions\">آماده‌های تبدیل</button>\n\t\t\t\t<"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_seller_panel",
+    "line": 13671,
+    "key": "new-invoice",
+    "context": "e\" id=\"sn-seller-tab-badge-no-status\" hidden>۰</span></button>\n\t\t\t\t<?php if ($show_manual_invoice_tab) : ?><button class=\"sn-tab\" data-tab=\"new-invoice\">صدور پیش‌فاکتور</button><?php endif; ?>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"my-conversions\">آماده‌های تبدیل</button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"repeat-actions\">نیاز به اقدام مجدد <span class=\"sn-tab-badge\" id=\"sn-seller-tab-badge-repeat-actions\" hidden>۰</span></button>\n\t\t\t\t<button class=\"sn-tab"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_seller_panel",
+    "line": 13672,
+    "key": "my-conversions",
+    "context": "invoice_tab) : ?><button class=\"sn-tab\" data-tab=\"new-invoice\">صدور پیش‌فاکتور</button><?php endif; ?>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"my-conversions\">آماده‌های تبدیل</button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"repeat-actions\">نیاز به اقدام مجدد <span class=\"sn-tab-badge\" id=\"sn-seller-tab-badge-repeat-actions\" hidden>۰</span></button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"invoices\">فاکتورها</button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"customer-acti"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_seller_panel",
+    "line": 13673,
+    "key": "repeat-actions",
+    "context": "</button><?php endif; ?>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"my-conversions\">آماده‌های تبدیل</button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"repeat-actions\">نیاز به اقدام مجدد <span class=\"sn-tab-badge\" id=\"sn-seller-tab-badge-repeat-actions\" hidden>۰</span></button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"invoices\">فاکتورها</button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<?php if ($can_request_extra_number) : ?><butt"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_seller_panel",
+    "line": 13674,
+    "key": "invoices",
+    "context": "اقدام مجدد <span class=\"sn-tab-badge\" id=\"sn-seller-tab-badge-repeat-actions\" hidden>۰</span></button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"invoices\">فاکتورها</button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<?php if ($can_request_extra_number) : ?><button class=\"sn-tab\" data-tab=\"extra-number-request\">درخواست اضافه کردن شماره</button><?php endif; ?>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"wallet\">کیف پول من</button>\n"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_seller_panel",
+    "line": 13675,
+    "key": "customer-actions",
+    "context": "eat-actions\" hidden>۰</span></button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"invoices\">فاکتورها</button>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<?php if ($can_request_extra_number) : ?><button class=\"sn-tab\" data-tab=\"extra-number-request\">درخواست اضافه کردن شماره</button><?php endif; ?>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"wallet\">کیف پول من</button>\n\t\t\t</div>\n\n\t\t\t<!-- لیست شماره‌ها / سرنخ‌های قدیمی -->\n\t\t\t<div id="
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_seller_panel",
+    "line": 13676,
+    "key": "extra-number-request",
+    "context": "s=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<?php if ($can_request_extra_number) : ?><button class=\"sn-tab\" data-tab=\"extra-number-request\">درخواست اضافه کردن شماره</button><?php endif; ?>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"wallet\">کیف پول من</button>\n\t\t\t</div>\n\n\t\t\t<!-- لیست شماره‌ها / سرنخ‌های قدیمی -->\n\t\t\t<div id=\"sn-tab-leads\" class=\"sn-tab-content active\">\n\t\t\t\t<div class=\"sn-card sn-helper-card\">\n\t\t\t\t\t<strong>مرحله اول پیگیری شم"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_seller_panel",
+    "line": 13677,
+    "key": "wallet",
+    "context": "button class=\"sn-tab\" data-tab=\"extra-number-request\">درخواست اضافه کردن شماره</button><?php endif; ?>\n\t\t\t\t<button class=\"sn-tab\" data-tab=\"wallet\">کیف پول من</button>\n\t\t\t</div>\n\n\t\t\t<!-- لیست شماره‌ها / سرنخ‌های قدیمی -->\n\t\t\t<div id=\"sn-tab-leads\" class=\"sn-tab-content active\">\n\t\t\t\t<div class=\"sn-card sn-helper-card\">\n\t\t\t\t\t<strong>مرحله اول پیگیری شماره</strong>\n\t\t\t\t\t<p class=\"sn-note\">برای هر شماره وضعیت تماس را ثبت کنید و پیش‌فاکتور را از داخل همان شماره"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14945,
+    "key": "sellers",
+    "context": "o $this->sn_panel_user_actions_markup(); ?>\n\t\t\t</div>\n\n\t\t\t\t<div class=\"sn-tabs\">\n\t\t\t\t\t<button type=\"button\" class=\"sn-tab active\" data-tab=\"sellers\">فروشندگان و آمار</button>\n\t\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"converter-stats\">تبدیل‌کنندگان و آمار</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"my-conversions\">تبدیل‌های من</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"assign\">تخصیص شماره</button>\n\t\t\t\t<button type="
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14946,
+    "key": "converter-stats",
+    "context": "button type=\"button\" class=\"sn-tab active\" data-tab=\"sellers\">فروشندگان و آمار</button>\n\t\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"converter-stats\">تبدیل‌کنندگان و آمار</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"my-conversions\">تبدیل‌های من</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"assign\">تخصیص شماره</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"needs-action\">آماده‌های تبدیل</button>\n\t\t\t\t<button ty"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14947,
+    "key": "my-conversions",
+    "context": "on type=\"button\" class=\"sn-tab\" data-tab=\"converter-stats\">تبدیل‌کنندگان و آمار</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"my-conversions\">تبدیل‌های من</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"assign\">تخصیص شماره</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"needs-action\">آماده‌های تبدیل</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"subscriptions\">اشتراک‌های فروشنده</button>\n\t\t\t\t<button type=\""
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14948,
+    "key": "assign",
+    "context": "\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"my-conversions\">تبدیل‌های من</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"assign\">تخصیص شماره</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"needs-action\">آماده‌های تبدیل</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"subscriptions\">اشتراک‌های فروشنده</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"distribution-logs\">لاگ و خطا</button>\n\t\t\t\t<button type=\""
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14949,
+    "key": "needs-action",
+    "context": "/button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"assign\">تخصیص شماره</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"needs-action\">آماده‌های تبدیل</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"subscriptions\">اشتراک‌های فروشنده</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"distribution-logs\">لاگ و خطا</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"unassign\">جدا کردن سرنخ زنده/قدیمی</button>\n\t\t\t"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14950,
+    "key": "subscriptions",
+    "context": "\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"needs-action\">آماده‌های تبدیل</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"subscriptions\">اشتراک‌های فروشنده</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"distribution-logs\">لاگ و خطا</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"unassign\">جدا کردن سرنخ زنده/قدیمی</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"invoices\">فاکتورها</button>\n\t\t\t\t<button ty"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14951,
+    "key": "distribution-logs",
+    "context": "button type=\"button\" class=\"sn-tab\" data-tab=\"subscriptions\">اشتراک‌های فروشنده</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"distribution-logs\">لاگ و خطا</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"unassign\">جدا کردن سرنخ زنده/قدیمی</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"invoices\">فاکتورها</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<button type"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14952,
+    "key": "unassign",
+    "context": "\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"distribution-logs\">لاگ و خطا</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"unassign\">جدا کردن سرنخ زنده/قدیمی</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"invoices\">فاکتورها</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"hr-requests\">درخواست HR</button>\n\t\t\t\t<button type=\"but"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14953,
+    "key": "invoices",
+    "context": "utton type=\"button\" class=\"sn-tab\" data-tab=\"unassign\">جدا کردن سرنخ زنده/قدیمی</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"invoices\">فاکتورها</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"hr-requests\">درخواست HR</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"wallet\">کیف پول</button>\n\t\t\t</div>\n\n\t\t\t<!-- لیست فروشندگان -->\n\t\t"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14954,
+    "key": "customer-actions",
+    "context": "</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"invoices\">فاکتورها</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"hr-requests\">درخواست HR</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"wallet\">کیف پول</button>\n\t\t\t</div>\n\n\t\t\t<!-- لیست فروشندگان -->\n\t\t\t<div id=\"sn-tab-sellers\" class=\"sn-tab-content active\">\n\n\t\t\t<div class=\"sn-car"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14955,
+    "key": "hr-requests",
+    "context": "\t<button type=\"button\" class=\"sn-tab\" data-tab=\"customer-actions\">رفتار مشتریان</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"hr-requests\">درخواست HR</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"wallet\">کیف پول</button>\n\t\t\t</div>\n\n\t\t\t<!-- لیست فروشندگان -->\n\t\t\t<div id=\"sn-tab-sellers\" class=\"sn-tab-content active\">\n\n\t\t\t<div class=\"sn-card sn-supervisor-summary-card\">\n\t\t\t\t<div class=\"sn-grid\" style=\"display:grid;grid-template-co"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_supervisor_panel",
+    "line": 14956,
+    "key": "wallet",
+    "context": "ton>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"hr-requests\">درخواست HR</button>\n\t\t\t\t<button type=\"button\" class=\"sn-tab\" data-tab=\"wallet\">کیف پول</button>\n\t\t\t</div>\n\n\t\t\t<!-- لیست فروشندگان -->\n\t\t\t<div id=\"sn-tab-sellers\" class=\"sn-tab-content active\">\n\n\t\t\t<div class=\"sn-card sn-supervisor-summary-card\">\n\t\t\t\t<div class=\"sn-grid\" style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:end\">\n\t\t\t\t\t<div><stron"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27004,
+    "key": "general",
+    "context": "sn_admin', 'sn_settings_nonce'); ?>\n\t\t\t\t<div class=\"sn-admin-tabs\">\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab active\" data-tab=\"general\">عمومی</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"sms\">پیامک</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"bale\">بله / Safir</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"financial\">مالی / درگاه</button>\n\t\t\t\t\t<button type=\"bu"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27005,
+    "key": "sms",
+    "context": "tton\" class=\"button sn-admin-tab active\" data-tab=\"general\">عمومی</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"sms\">پیامک</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"bale\">بله / Safir</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"financial\">مالی / درگاه</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"wheel\">گردونه شانس</button>\n\t\t\t\t\t<button type"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27006,
+    "key": "bale",
+    "context": "on type=\"button\" class=\"button sn-admin-tab\" data-tab=\"sms\">پیامک</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"bale\">بله / Safir</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"financial\">مالی / درگاه</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"wheel\">گردونه شانس</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"wallet\">کیف پول</button>\n\t\t\t\t\t<button"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27007,
+    "key": "financial",
+    "context": "=\"button\" class=\"button sn-admin-tab\" data-tab=\"bale\">بله / Safir</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"financial\">مالی / درگاه</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"wheel\">گردونه شانس</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"wallet\">کیف پول</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"commission\">پورسانت</button>\n\t\t\t\t\t<butt"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27008,
+    "key": "wheel",
+    "context": "on\" class=\"button sn-admin-tab\" data-tab=\"financial\">مالی / درگاه</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"wheel\">گردونه شانس</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"wallet\">کیف پول</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"commission\">پورسانت</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"invoice\">فاکتور / کارت‌به‌کارت</button>\n\t\t\t"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27009,
+    "key": "wallet",
+    "context": "\"button\" class=\"button sn-admin-tab\" data-tab=\"wheel\">گردونه شانس</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"wallet\">کیف پول</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"commission\">پورسانت</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"invoice\">فاکتور / کارت‌به‌کارت</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"pages\">صفحات</button>\n\t\t\t\t\t<but"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27010,
+    "key": "commission",
+    "context": "pe=\"button\" class=\"button sn-admin-tab\" data-tab=\"wallet\">کیف پول</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"commission\">پورسانت</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"invoice\">فاکتور / کارت‌به‌کارت</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"pages\">صفحات</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"dot\">دات ستینگ</button>\n\t\t\t\t\t<butt"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27011,
+    "key": "invoice",
+    "context": "button\" class=\"button sn-admin-tab\" data-tab=\"commission\">پورسانت</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"invoice\">فاکتور / کارت‌به‌کارت</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"pages\">صفحات</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"dot\">دات ستینگ</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"dot-marketing\">مارکتینگ دات فلو</button"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27012,
+    "key": "pages",
+    "context": "ss=\"button sn-admin-tab\" data-tab=\"invoice\">فاکتور / کارت‌به‌کارت</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"pages\">صفحات</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"dot\">دات ستینگ</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"dot-marketing\">مارکتینگ دات فلو</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"projects\">پروژه‌ها</button>\n\t\t\t\t\t<butt"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27013,
+    "key": "dot",
+    "context": " type=\"button\" class=\"button sn-admin-tab\" data-tab=\"pages\">صفحات</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"dot\">دات ستینگ</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"dot-marketing\">مارکتینگ دات فلو</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"projects\">پروژه‌ها</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"reset\">ریست کلی</button>\n\t\t\t\t</d"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27014,
+    "key": "dot-marketing",
+    "context": "ype=\"button\" class=\"button sn-admin-tab\" data-tab=\"dot\">دات ستینگ</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"dot-marketing\">مارکتینگ دات فلو</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"projects\">پروژه‌ها</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"reset\">ریست کلی</button>\n\t\t\t\t</div>\n\n\t\t\t\t<div class=\"sn-admin-tab-panel active\" id=\"sn-settings-general\">\n\t\t\t\t\t<table cla"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27015,
+    "key": "projects",
+    "context": "s=\"button sn-admin-tab\" data-tab=\"dot-marketing\">مارکتینگ دات فلو</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"projects\">پروژه‌ها</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"reset\">ریست کلی</button>\n\t\t\t\t</div>\n\n\t\t\t\t<div class=\"sn-admin-tab-panel active\" id=\"sn-settings-general\">\n\t\t\t\t\t<table class=\"form-table\"><tr><th>توضیح</th><td>تنظیمات کلی شبکه فروش. تنظیمات هر بخش از تب‌های بالا قابل مدیریت است"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_admin_settings",
+    "line": 27016,
+    "key": "reset",
+    "context": "\"button\" class=\"button sn-admin-tab\" data-tab=\"projects\">پروژه‌ها</button>\n\t\t\t\t\t<button type=\"button\" class=\"button sn-admin-tab\" data-tab=\"reset\">ریست کلی</button>\n\t\t\t\t</div>\n\n\t\t\t\t<div class=\"sn-admin-tab-panel active\" id=\"sn-settings-general\">\n\t\t\t\t\t<table class=\"form-table\"><tr><th>توضیح</th><td>تنظیمات کلی شبکه فروش. تنظیمات هر بخش از تب‌های بالا قابل مدیریت است.</td></tr></table>\n\t\t\t\t</div>\n\n\t\t\t\t<div class=\"sn-admin-tab-panel\" id=\"sn-settings-bale\">\n\t\t"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_financial_panel",
+    "line": 30877,
+    "key": "needs_review",
+    "context": "=\"sn-section-title\">صف بررسی پرداخت</h3>\n\t\t\t\t\t\t<div class=\"sn-subtabs sn-financial-tabs\">\n\t\t\t\t\t\t\t<button class=\"sn-subtab active\" data-tab=\"needs_review\">در انتظار بررسی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"receipt_uploaded\">فیش‌های آپلودشده</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"online_paid\">پرداخت درگاهی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"approved\">تایید شده مالی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_financial_panel",
+    "line": 30878,
+    "key": "receipt_uploaded",
+    "context": "-tabs\">\n\t\t\t\t\t\t\t<button class=\"sn-subtab active\" data-tab=\"needs_review\">در انتظار بررسی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"receipt_uploaded\">فیش‌های آپلودشده</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"online_paid\">پرداخت درگاهی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"approved\">تایید شده مالی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"rejected\">رد شده مالی</button>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t\t<div id=\"sn-financial-gatew"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_financial_panel",
+    "line": 30879,
+    "key": "online_paid",
+    "context": "</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"receipt_uploaded\">فیش‌های آپلودشده</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"online_paid\">پرداخت درگاهی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"approved\">تایید شده مالی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"rejected\">رد شده مالی</button>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t\t<div id=\"sn-financial-gateway-export\" class=\"sn-fin-v2-gateway-export\" hidden>\n\t\t\t\t\t\t\t<form class=\"sn-fin-v2-gatew"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_financial_panel",
+    "line": 30880,
+    "key": "approved",
+    "context": "آپلودشده</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"online_paid\">پرداخت درگاهی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"approved\">تایید شده مالی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"rejected\">رد شده مالی</button>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t\t<div id=\"sn-financial-gateway-export\" class=\"sn-fin-v2-gateway-export\" hidden>\n\t\t\t\t\t\t\t<form class=\"sn-fin-v2-gateway-export-form\" method=\"post\" action=\"<?php echo esc_url(admin_url('admin-post."
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "function": "render_financial_panel",
+    "line": 30881,
+    "key": "rejected",
+    "context": "اخت درگاهی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"approved\">تایید شده مالی</button>\n\t\t\t\t\t\t\t<button class=\"sn-subtab\" data-tab=\"rejected\">رد شده مالی</button>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t\t<div id=\"sn-financial-gateway-export\" class=\"sn-fin-v2-gateway-export\" hidden>\n\t\t\t\t\t\t\t<form class=\"sn-fin-v2-gateway-export-form\" method=\"post\" action=\"<?php echo esc_url(admin_url('admin-post.php')); ?>\">\n\t\t\t\t\t\t\t\t<input type=\"hidden\" name=\"action\" value=\"sn_financial_g"
+  }
+]

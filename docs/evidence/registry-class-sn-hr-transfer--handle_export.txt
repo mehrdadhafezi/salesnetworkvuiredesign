@@ -1,0 +1,60 @@
+284: 
+285: 	public function handle_export(): void {
+286: 		if ( ! $this->can_manage_hr() ) {
+287: 			wp_die( 'دسترسی غیرمجاز' );
+288: 		}
+289: 		check_admin_referer( 'sn_hr_export_users' );
+290: 		$scope = sanitize_key( wp_unslash( $_POST['export_scope'] ?? 'all' ) );
+291: 		$selected_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) ( $_POST['selected_user_ids'] ?? [] ) ) ) ) );
+292: 		if ( 'selected' === $scope && empty( $selected_ids ) ) {
+293: 			wp_die( 'حداقل یک کاربر HR را برای خروجی انتخاب کنید.' );
+294: 		}
+295: 		if ( count( $selected_ids ) > 5000 ) {
+296: 			wp_die( 'در خروجی انتخابی حداکثر ۵۰۰۰ کاربر قابل انتخاب است؛ برای تعداد بیشتر گزینه همه کاربران را بزنید.' );
+297: 		}
+298: 		if ( ! in_array( $scope, [ 'all', 'selected' ], true ) ) {
+299: 			$scope = 'all';
+300: 		}
+301: 		global $wpdb;
+302: 		foreach ( [ 'sn_hr_profiles', 'sn_hr_positions', 'sn_hr_levels', 'sn_hr_assignments' ] as $required_table ) {
+303: 			if ( ! $this->table_exists( $wpdb->prefix . $required_table ) ) {
+304: 				wp_die( 'جداول منابع انسانی کامل نیستند؛ ابتدا مهاجرت/فعال‌سازی افزونه را اجرا کنید.' );
+305: 			}
+306: 		}
+307: 		$last_profile_id = 0;
+308: 		$rows = $this->fetch_export_rows( $scope, $selected_ids, $last_profile_id, 500 );
+309: 		if ( '' !== (string) $wpdb->last_error ) {
+310: 			wp_die( 'خواندن اطلاعات خروجی انجام نشد. جزئیات در لاگ وردپرس ثبت شده است.' );
+311: 		}
+312: 		$this->send_csv_header( 'sn-hr-users-' . SN_Helpers::tehran_format( 'Y-m-d-His' ) . '.csv' );
+313: 		$output = fopen( 'php://output', 'wb' );
+314: 		if ( false === $output ) {
+315: 			wp_die( 'ساخت فایل خروجی ممکن نشد.' );
+316: 		}
+317: 		$headers = $this->export_headers();
+318: 		fputcsv( $output, $headers, ',', '"', '\\' );
+319: 		$exported = 0;
+320: 		while ( true ) {
+321: 			foreach ( $rows as $row ) {
+322: 				$last_profile_id = max( $last_profile_id, (int) $row['profile_id'] );
+323: 				$values = [];
+324: 				foreach ( $headers as $header ) {
+325: 					$values[] = $this->safe_csv_cell( (string) ( $row[ $header ] ?? '' ) );
+326: 				}
+327: 				fputcsv( $output, $values, ',', '"', '\\' );
+328: 				$exported++;
+329: 			}
+330: 			if ( count( $rows ) < 500 ) {
+331: 				break;
+332: 			}
+333: 			$rows = $this->fetch_export_rows( $scope, $selected_ids, $last_profile_id, 500 );
+334: 			if ( '' !== (string) $wpdb->last_error ) {
+335: 				error_log( 'SN HR export stopped after ' . $exported . ' rows: ' . sanitize_text_field( (string) $wpdb->last_error ) );
+336: 				break;
+337: 			}
+338: 		}
+339: 		fclose( $output );
+340: 		$this->log_export( $scope, $selected_ids, $exported );
+341: 		exit;
+342: 	}
+343: 

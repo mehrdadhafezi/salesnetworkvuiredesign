@@ -1,0 +1,65 @@
+9157: 
+9158: 	private function sn_hr_apply_user_access_for_position(int $user_id, string $position_slug): void
+9159: 	{
+9160: 		$user = get_user_by('id', $user_id);
+9161: 		if (! $user instanceof WP_User) {
+9162: 			return;
+9163: 		}
+9164: 		$role = $this->sn_hr_legacy_role_for_position($position_slug);
+9165: 		if ($role === '') {
+9166: 			return;
+9167: 		}
+9168: 		$role_caps = ['read' => true];
+9169: 		if ($role === 'sn_converter') { $role_caps['sn_manage_dot_conversion'] = true; }
+9170: 		if ($role === 'sn_after_sales') { $role_caps['sn_view_customer_profiles'] = true; }
+9171: 		if ($role === 'sn_sales_manager') {
+9172: 			$role_caps['sn_view_sales_reports'] = true;
+9173: 			$role_caps['sn_manage_supervisor_leads'] = true;
+9174: 			$role_caps['sn_export_sales_reports'] = true;
+9175: 		}
+9176: 		if ($role === 'sn_shipping_expert') { $role_caps['sn_manage_shipping'] = true; }
+9177: 		if ($role === 'sn_operations_sales_manager') { $role_caps['sn_manage_operations_sales'] = true; }
+9178: 		if ($role === 'sn_operations_sales_supervisor') { $role_caps['sn_supervise_operations_sales'] = true; }
+9179: 		if ($role === 'sn_operations_sales_expert') { $role_caps['sn_work_operations_sales'] = true; }
+9180: 		if ($role === 'sn_operations_executive_manager') { $role_caps['sn_manage_operations_execution'] = true; }
+9181: 		if ($role === 'sn_operations_execution_expert') { $role_caps['sn_work_operations_execution'] = true; }
+9182: 		if (! get_role($role)) {
+9183: 			add_role($role, $this->sn_hr_persian_label($position_slug) ?: $role, $role_caps);
+9184: 		}
+9185: 		if (! get_role($role)) {
+9186: 			return;
+9187: 		}
+9188: 		// HR positions are mutually exclusive inside this plugin. Remove only the
+9189: 		// plugin-managed operational roles so an old position cannot keep exposing
+9190: 		// a previous panel after an HR transfer. Unrelated WordPress roles/caps and
+9191: 		// all historical HR records remain untouched.
+9192: 		$previous_roles = (array) $user->roles;
+9193: 		$managed_roles = [
+9194: 			'sn_seller', 'sn_supervisor', 'sn_senior_supervisor', 'sn_sales_manager',
+9195: 			'sn_sales_deputy', 'sn_converter', 'sn_financial', 'sn_financial_approval',
+9196: 			'sn_finance', 'sn_hr', 'sn_mis', 'sn_after_sales', 'sn_shipping_expert', 'sn_operations_sales_manager',
+9197: 			'sn_operations_sales_supervisor', 'sn_operations_sales_expert', 'sn_operations_executive_manager',
+9198: 			'sn_operations_execution_expert',
+9199: 		];
+9200: 		foreach ($managed_roles as $managed_role) {
+9201: 			if ($managed_role !== $role && in_array($managed_role, (array) $user->roles, true)) {
+9202: 				$user->remove_role($managed_role);
+9203: 			}
+9204: 		}
+9205: 		if (! in_array($role, (array) $user->roles, true)) {
+9206: 			$user->add_role($role);
+9207: 		}
+9208: 		$finance_caps = ['sn_view_finance', 'sn_approve_payment', 'sn_reject_payment'];
+9209: 		$is_finance_position = $position_slug === 'finance';
+9210: 		$was_finance_role = (bool) array_intersect($previous_roles, ['sn_financial', 'sn_financial_approval', 'sn_finance']);
+9211: 		if ($is_finance_position) {
+9212: 			foreach ($finance_caps as $finance_cap) { $user->add_cap($finance_cap); }
+9213: 		} elseif ($was_finance_role) {
+9214: 			foreach ($finance_caps as $finance_cap) { $user->remove_cap($finance_cap); }
+9215: 		}
+9216: 		update_user_meta($user_id, 'sn_hr_position', sanitize_key($position_slug));
+9217: 		update_user_meta($user_id, 'sn_position', sanitize_key($position_slug));
+9218: 		clean_user_cache($user_id);
+9219: 		unset($this->sn_hr_position_for_user_cache[$user_id], $this->sn_hr_position_for_user_cache['fast:' . $user_id]);
+9220: 	}
+9221: 

@@ -1,0 +1,44 @@
+241: 
+242: 	public function ajax_search_users(): void {
+243: 		if ( ! $this->can_manage_hr() ) {
+244: 			wp_send_json_error( [ 'message' => 'دسترسی غیرمجاز' ], 403 );
+245: 		}
+246: 		check_ajax_referer( 'sn_hr_transfer_search_users', 'nonce' );
+247: 		global $wpdb;
+248: 		if ( ! $this->table_exists( $wpdb->prefix . 'sn_hr_profiles' ) || ! $this->table_exists( $wpdb->prefix . 'sn_hr_positions' ) ) {
+249: 			wp_send_json_error( [ 'message' => 'جداول منابع انسانی هنوز آماده نیستند.' ], 503 );
+250: 		}
+251: 		$q = sanitize_text_field( wp_unslash( $_POST['q'] ?? '' ) );
+252: 		$query_length = function_exists( 'mb_strlen' ) ? mb_strlen( $q, 'UTF-8' ) : strlen( $q );
+253: 		if ( '' !== $q && ! ctype_digit( $q ) && $query_length < 2 ) {
+254: 			wp_send_json_success( [ 'users' => [] ] );
+255: 		}
+256: 		$where = '1=1';
+257: 		$args = [];
+258: 		if ( '' !== $q ) {
+259: 			$like = '%' . $wpdb->esc_like( $q ) . '%';
+260: 			$where = '(CAST(p.user_id AS CHAR)=%s OR COALESCE(NULLIF(p.hr_display_name,\'\'),u.display_name) LIKE %s OR u.user_login LIKE %s OR u.user_email LIKE %s OR p.employee_code LIKE %s OR p.work_phone LIKE %s)';
+261: 			array_push( $args, $q, $like, $like, $like, $like, $like );
+262: 		}
+263: 		$sql = "SELECT p.user_id, COALESCE(NULLIF(p.hr_display_name,''),u.display_name,CONCAT('#',p.user_id)) display_name, u.user_login, u.user_email, p.employee_code, pos.label position_label
+264: 			FROM {$wpdb->prefix}sn_hr_profiles p
+265: 			LEFT JOIN {$wpdb->users} u ON u.ID=p.user_id
+266: 			LEFT JOIN {$wpdb->prefix}sn_hr_positions pos ON pos.id=p.position_id
+267: 			WHERE {$where}
+268: 			ORDER BY p.is_active DESC, display_name ASC, p.user_id ASC
+269: 			LIMIT 30";
+270: 		$rows = $args ? $wpdb->get_results( $wpdb->prepare( $sql, ...$args ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
+271: 		$users = [];
+272: 		foreach ( (array) $rows as $row ) {
+273: 			$users[] = [
+274: 				'id' => (int) $row['user_id'],
+275: 				'name' => sanitize_text_field( (string) $row['display_name'] ),
+276: 				'login' => sanitize_text_field( (string) $row['user_login'] ),
+277: 				'email' => sanitize_email( (string) $row['user_email'] ),
+278: 				'employeeCode' => sanitize_text_field( (string) $row['employee_code'] ),
+279: 				'position' => sanitize_text_field( (string) $row['position_label'] ),
+280: 			];
+281: 		}
+282: 		wp_send_json_success( [ 'users' => $users ] );
+283: 	}
+284: 

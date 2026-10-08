@@ -1,0 +1,10 @@
+583: 
+584: 	public function on_payment_stage_approved( int $invoice_id, $invoice = null, array $context = [] ): void {
+585: 		if ( ! self::is_matrix_engine_enabled() ) { return; }
+586: 		$this->maybe_upgrade();
+587: 		$stage_no = max( 1, absint( $context['stage_no'] ?? 1 ) );
+588: 		$stage_amount = (float) ( $context['stage_amount'] ?? 0 );
+589: 		if ( $stage_amount <= 0 ) { return; }
+590: 		$this->post_commissions_for_stage( $invoice_id, $stage_no, $stage_amount, $invoice );
+591: 	}
+592: 

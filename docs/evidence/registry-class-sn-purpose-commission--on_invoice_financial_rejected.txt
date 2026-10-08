@@ -1,0 +1,13 @@
+691: 
+692: 	public function on_invoice_financial_rejected( int $invoice_id, $invoice = null, string $reason = '' ): void {
+693: 		/*
+694: 		 * Rejecting a pending stage does not invalidate older approved stages.
+695: 		 * A full financial cancellation is different: the caller prefixes the
+696: 		 * reason with «لغو توسط مالی», so all purpose commissions must be reversed.
+697: 		 */
+698: 		$normalized = trim( (string) $reason );
+699: 		if ( strpos( $normalized, 'لغو توسط مالی' ) !== false || strpos( strtolower( $normalized ), 'cancel' ) !== false ) {
+700: 			$this->reverse_commission_credits( $invoice_id, $normalized ?: 'لغو مالی', false );
+701: 		}
+702: 	}
+703: 	public function on_invoice_financial_reopened( int $invoice_id, $invoice = null, string $reason = '' ): void {

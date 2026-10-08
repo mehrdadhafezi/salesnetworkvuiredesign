@@ -1,0 +1,43 @@
+35806: 
+35807: 			private function sn_wallet_autopost_recent_supervisor_commissions(int $supervisor_id, int $limit = 100): array
+35808: 			{
+35809: 				global $wpdb;
+35810: 				$report = ['scanned' => 0, 'created' => 0, 'existing' => 0, 'no_scope' => 0, 'no_amount' => 0];
+35811: 				$supervisor_id = absint($supervisor_id);
+35812: 				if ($supervisor_id < 1 || (float) get_option('sn_supervisor_commission_value', '0') <= 0 || ! $this->sn_table_exists_quiet($wpdb->prefix . 'sn_invoices') || ! $this->sn_wallet_table_exists($wpdb->prefix . 'sn_wallet_transactions')) {
+35813: 					return $report;
+35814: 				}
+35815: 				$seller_ids = $this->sn_scope_seller_ids_for_panel($supervisor_id, 'supervisor');
+35816: 				if (! $seller_ids) {
+35817: 					$report['no_scope'] = 1;
+35818: 					return $report;
+35819: 				}
+35820: 				$limit = max(1, min(300, $limit));
+35821: 				$ph = implode(',', array_fill(0, count($seller_ids), '%d'));
+35822: 				$approved_condition = $this->sn_commission_paid_approved_invoice_condition('i');
+35823: 				$args = array_merge(array_values(array_map('intval', $seller_ids)), [$limit]);
+35824: 				$rows = $wpdb->get_results($wpdb->prepare(
+35825: 					"SELECT i.* FROM {$wpdb->prefix}sn_invoices i
+35826: 					 WHERE i.seller_id IN ({$ph}) AND {$approved_condition}
+35827: 					 ORDER BY COALESCE(i.approved_at,i.financial_reviewed_at,i.paid_at,i.created_at) DESC, i.id DESC
+35828: 					 LIMIT %d",
+35829: 					...$args
+35830: 				), ARRAY_A) ?: [];
+35831: 				foreach ($rows as $inv) {
+35832: 					$report['scanned']++;
+35833: 					$invoice_id = (int) ($inv['id'] ?? 0);
+35834: 					if ($invoice_id < 1) { continue; }
+35835: 					$before = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}sn_wallet_transactions WHERE invoice_id=%d AND user_id=%d AND wallet_type='supervisor' AND type='supervisor_commission'", $invoice_id, $supervisor_id));
+35836: 					$this->sn_credit_wallet_for_invoice($invoice_id, $inv, true);
+35837: 					$after = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}sn_wallet_transactions WHERE invoice_id=%d AND user_id=%d AND wallet_type='supervisor' AND type='supervisor_commission'", $invoice_id, $supervisor_id));
+35838: 					if ($after > $before) {
+35839: 						$report['created'] += ($after - $before);
+35840: 					} elseif ($before > 0) {
+35841: 						$report['existing']++;
+35842: 					} else {
+35843: 						$report['no_amount']++;
+35844: 					}
+35845: 				}
+35846: 				return $report;
+35847: 			}
+35848: 

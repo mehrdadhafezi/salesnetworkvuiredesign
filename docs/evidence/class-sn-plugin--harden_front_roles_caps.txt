@@ -1,0 +1,38 @@
+2075: 	public function harden_front_roles_caps(): void
+2076: 	{
+2077: 		if ((string) get_option('sn_roles_hardened_version', '') === SN_VERSION) { return; }
+2078: 		if ($this->sn_defer_heavy_admin_runtime()) { return; }
+2079: 		$role_specs = [
+2080: 			'sn_supervisor' => ['سرپرست فروش', []], 'sn_senior_supervisor' => ['سرپرست ارشد فروش', []],
+2081: 			'sn_sales_deputy' => ['معاون فروش', []], 'sn_seller' => ['فروشنده', []],
+2082: 			'sn_converter' => ['تبدیل‌کننده', ['sn_manage_dot_conversion']],
+2083: 			'sn_hr' => ['منابع انسانی', []], 'sn_mis' => ['MIS', []], 'sn_finance' => ['مالی', []],
+2084: 			'sn_after_sales' => ['خدمات پس از فروش', ['sn_view_customer_profiles']],
+2085: 			'sn_sales_manager' => ['مدیر فروش', ['sn_view_sales_reports', 'sn_manage_supervisor_leads', 'sn_export_sales_reports']],
+2086: 			'sn_campaign_partner' => ['پارتنر کمپین', ['sn_view_campaign_reports']],
+2087: 			'sn_shipping_expert' => ['کارشناس ارسال', ['sn_manage_shipping']],
+2088: 			'sn_operations_sales_manager' => ['مدیر فروش عملیات', ['sn_manage_operations_sales']],
+2089: 			'sn_operations_sales_supervisor' => ['سرپرست فروش عملیات', ['sn_supervise_operations_sales']],
+2090: 			'sn_operations_sales_expert' => ['کارشناس فروش عملیات', ['sn_work_operations_sales']],
+2091: 			'sn_operations_executive_manager' => ['مدیر اجرایی عملیات', ['sn_manage_operations_execution']],
+2092: 			'sn_operations_execution_expert' => ['کارشناس اجرایی عملیات', ['sn_work_operations_execution']],
+2093: 		];
+2094: 		foreach ($role_specs as $role_key => $role_spec) {
+2095: 			$role_label = (string) ($role_spec[0] ?? $role_key);
+2096: 			$role_caps = array_fill_keys(array_merge(['read'], (array) ($role_spec[1] ?? [])), true);
+2097: 			if (! get_role($role_key)) {
+2098: 				add_role($role_key, $role_label, $role_caps);
+2099: 			}
+2100: 			$role = get_role($role_key);
+2101: 			if (! $role) {
+2102: 				continue;
+2103: 			}
+2104: 			foreach (array_keys($role_caps) as $role_cap) { $role->add_cap($role_cap); }
+2105: 			foreach (['edit_posts', 'delete_posts', 'publish_posts', 'upload_files', 'edit_pages', 'delete_pages', 'manage_options', 'list_users', 'create_users', 'edit_users', 'delete_users'] as $cap) {
+2106: 				$role->remove_cap($cap);
+2107: 			}
+2108: 		}
+2109: 		update_option('sn_roles_hardened_version', SN_VERSION, false);
+2110: 	}
+2111: 
+2112: 	// جلوگیری از redirect به wp-admin برای فروشندگان

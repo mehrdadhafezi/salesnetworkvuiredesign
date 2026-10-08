@@ -1,0 +1,24 @@
+7343: 
+7344: 	public function render_my_panel(): string
+7345: 	{
+7346: 		if (! is_user_logged_in()) {
+7347: 			return $this->render_unified_panel_login();
+7348: 		}
+7349: 		if (current_user_can('sn_view_campaign_reports') && ! current_user_can('manage_options') && class_exists('SN_Campaign_Tracking')) {
+7350: 			return SN_Campaign_Tracking::instance()->render_partner_portal();
+7351: 		}
+7352: 		if (! class_exists('SN_HR_Service')) {
+7353: 			return '<div class="sn-panel" dir="rtl"><div class="sn-notice sn-error">سرویس منابع انسانی در دسترس نیست.</div></div>';
+7354: 		}
+7355: 		$resolved = (new SN_HR_Service())->resolve_panel_for_user(get_current_user_id());
+7356: 		if (current_user_can('manage_options') && in_array((string) ($resolved['panel_key'] ?? ''), ['unknown_panel', 'admin_dashboard'], true)) {
+7357: 			return $this->render_admin_front_dashboard();
+7358: 		}
+7359: 		$shortcode = sanitize_key((string) ($resolved['shortcode'] ?? ''));
+7360: 		$route_type = (string) ($resolved['route_type'] ?? 'placeholder');
+7361: 		if ($shortcode && $shortcode !== 'sn_my_panel' && $route_type !== 'placeholder' && shortcode_exists($shortcode)) {
+7362: 			$this->sn_enqueue_public_panel_assets($shortcode);
+7363: 			return $this->sn_render_my_panel_entry_card($resolved, $shortcode) . $this->sn_dashboard_reporting_content();
+7364: 		}
+7365: 		return $this->sn_render_my_panel_entry_card($resolved, '') . $this->sn_dashboard_reporting_content();
+7366: 	}

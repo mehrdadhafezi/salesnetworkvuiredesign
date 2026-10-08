@@ -1,0 +1,13 @@
+33387: 
+33388: 			public function handle_commission_save_posting_flag(): void
+33389: 			{
+33390: 				if (! $this->sn_can_view_finance()) {
+33391: 					wp_die('دسترسی غیرمجاز');
+33392: 				}
+33393: 				check_admin_referer('sn_commission_save_posting_flag');
+33394: 				update_option('sn_enable_commission_wallet_posting', ! empty($_POST['enable_posting']) ? '1' : '0', false);
+33395: 				update_option('sn_commission_wallet_posting_report', ['status' => 'ok', 'message' => 'کلید فعال‌سازی ذخیره شد.', 'enabled' => ! empty($_POST['enable_posting'])], false);
+33396: 				wp_safe_redirect((wp_get_referer() ?: home_url('/')) . '#sn-commission-preview');
+33397: 				exit;
+33398: 			}
+33399: 

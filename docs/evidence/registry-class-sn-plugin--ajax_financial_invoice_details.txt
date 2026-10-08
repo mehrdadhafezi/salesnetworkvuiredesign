@@ -1,0 +1,111 @@
+36810: 
+36811: 			public function ajax_financial_invoice_details(): void
+36812: 			{
+36813: 				if (! is_user_logged_in()) { if (function_exists('status_header')) { status_header(403); } SN_Helpers::send_json(false, 'دسترسی غیرمجاز'); return; }
+36814: 				$valid = check_ajax_referer('sn_admin', 'nonce', false) || check_ajax_referer('sn_public', 'nonce', false);
+36815: 				if (! $valid) { SN_Helpers::send_json(false, 'نانس نامعتبر'); return; }
+36816: 				$invoice_id = absint($_POST['invoice_id'] ?? 0);
+36817: 				if ($invoice_id < 1) { SN_Helpers::send_json(false, 'شناسه فاکتور نامعتبر است'); return; }
+36818: 				$this->maybe_create_tables();
+36819: 				global $wpdb;
+36820: 				$hr_table = $wpdb->prefix . 'sn_hr_profiles';
+36821: 				$details_join_hr = $this->sn_table_exists_quiet($hr_table);
+36822: 				$details_seller_expr = $details_join_hr ? "COALESCE(NULLIF(hp.hr_display_name,''),u.display_name)" : "u.display_name";
+36823: 				$details_hr_join = $details_join_hr ? " LEFT JOIN {$hr_table} hp ON hp.user_id=i.seller_id AND hp.is_active=1" : '';
+36824: 				$invoice = $wpdb->get_row($wpdb->prepare("SELECT i.*, {$details_seller_expr} seller_name FROM {$wpdb->prefix}sn_invoices i LEFT JOIN {$wpdb->users} u ON u.ID=i.seller_id{$details_hr_join} WHERE i.id=%d LIMIT 1", $invoice_id));
+36825: 				if (! $invoice) { SN_Helpers::send_json(false, 'فاکتور یافت نشد'); return; }
+36826: 				if (! $this->sn_can_view_finance() && ! $this->sn_can_resend_invoice_sms($invoice)) { if (function_exists('status_header')) { status_header(403); } SN_Helpers::send_json(false, 'این فاکتور در محدوده دسترسی شما نیست'); return; }
+36827: 				$is_dot_marketing = (int) ($invoice->seller_id ?? 0) > 0 && (string) get_user_meta((int) $invoice->seller_id, '_sn_dot_marketing_seller', true) === '1';
+36828: 				$totals = $this->sn_invoice_payment_totals($invoice);
+36829: 				$stage_table = $wpdb->prefix . 'sn_invoice_payment_stages';
+36830: 				$payment_table = $wpdb->prefix . 'sn_payments';
+36831: 				$stages = $this->sn_table_exists_quiet($stage_table) ? ($wpdb->get_results($wpdb->prepare("SELECT * FROM {$stage_table} WHERE invoice_id=%d ORDER BY stage_no ASC,id ASC", $invoice_id), ARRAY_A) ?: []) : [];
+36832: 				$payments = $this->sn_table_exists_quiet($payment_table) ? ($wpdb->get_results($wpdb->prepare("SELECT * FROM {$payment_table} WHERE invoice_id=%d ORDER BY payment_stage_no ASC,id ASC", $invoice_id), ARRAY_A) ?: []) : [];
+36833: 				$user_ids = [];
+36834: 				foreach ($stages as $stage) { foreach (['issued_by_user_id','approved_by_user_id'] as $field) { $uid = absint($stage[$field] ?? 0); if ($uid) { $user_ids[] = $uid; } } }
+36835: 				foreach ($payments as $payment) { $uid = absint($payment['uploaded_by_user_id'] ?? 0); if ($uid) { $user_ids[] = $uid; } }
+36836: 				$user_ids = array_values(array_unique($user_ids));
+36837: 				$user_names = [];
+36838: 				if ($user_ids) { foreach (get_users(['include'=>$user_ids,'fields'=>['ID','display_name','user_login']]) as $u) { $user_names[(int)$u->ID] = (string) ($u->display_name ?: $u->user_login); } }
+36839: 				$jalali_datetime = static function ($value): string {
+36840: 					$value = trim((string) $value); if ($value === '') { return '—'; }
+36841: 					return str_replace(' ', ' - ', SN_Helpers::gregorian_to_jalali_date($value));
+36842: 				};
+36843: 				$stage_status_labels = ['pending'=>'در انتظار پرداخت','receipt_uploaded'=>'فیش ثبت شده','pending_financial_approval'=>'در انتظار تایید مالی','paid'=>'پرداخت شده','approved'=>'تایید شده','rejected'=>'رد شده','cancelled'=>'لغو شده','expired'=>'منقضی'];
+36844: 				$stage_type_labels = ['full'=>'پرداخت کامل','partial'=>'پیش‌پرداخت','remaining'=>'تکمیل مانده','final'=>'تسویه نهایی'];
+36845: 				$stage_rows = [];
+36846: 				foreach ($stages as $stage) {
+36847: 					$status = sanitize_key((string) ($stage['status'] ?? 'pending'));
+36848: 					$type = sanitize_key((string) ($stage['stage_type'] ?? 'partial'));
+36849: 					$stage_rows[] = [
+36850: 						'stage_no'=>(int)($stage['stage_no'] ?? 0),
+36851: 						'stage_type'=>$type,
+36852: 						'stage_type_label'=>$stage_type_labels[$type] ?? ($type ?: '—'),
+36853: 						'amount'=>(float)($stage['requested_amount'] ?? 0),
+36854: 						'amount_fmt'=>SN_Helpers::format_price((float)($stage['requested_amount'] ?? 0)),
+36855: 						'status'=>$status,
+36856: 						'status_label'=>$stage_status_labels[$status] ?? ($status ?: '—'),
+36857: 						'pay_method_label'=>SN_Helpers::pay_method_label((string)($stage['pay_method'] ?? '')),
+36858: 						'payment_source_label'=>SN_Helpers::payment_source_label((string)($stage['payment_source'] ?? '')),
+36859: 						'payment_ref_id'=>sanitize_text_field((string)($stage['payment_ref_id'] ?? '')),
+36860: 						'issued_by_name'=>$user_names[absint($stage['issued_by_user_id'] ?? 0)] ?? '',
+36861: 						'approved_by_name'=>$user_names[absint($stage['approved_by_user_id'] ?? 0)] ?? '',
+36862: 						'created_at_jalali'=>$jalali_datetime($stage['created_at'] ?? ''),
+36863: 						'paid_at_jalali'=>$jalali_datetime(($stage['paid_at'] ?? '') ?: ($stage['approved_at'] ?? '')),
+36864: 						'note'=>sanitize_textarea_field((string)($stage['note'] ?? '')),
+36865: 					];
+36866: 				}
+36867: 				$payment_status_labels = ['pending'=>'در انتظار','paid'=>'پرداخت شده','approved'=>'تایید شده','rejected'=>'رد شده','failed'=>'ناموفق','expired'=>'منقضی'];
+36868: 				$payment_rows = [];
+36869: 				foreach ($payments as $payment) {
+36870: 					$status = sanitize_key((string)($payment['status'] ?? 'pending'));
+36871: 					$payment_rows[] = [
+36872: 						'id'=>(int)($payment['id'] ?? 0),
+36873: 						'stage_no'=>(int)($payment['payment_stage_no'] ?? 1),
+36874: 						'amount'=>(float)($payment['amount'] ?? 0),
+36875: 						'amount_fmt'=>SN_Helpers::format_price((float)($payment['amount'] ?? 0)),
+36876: 						'status'=>$status,
+36877: 						'status_label'=>$payment_status_labels[$status] ?? ($status ?: '—'),
+36878: 						'pay_method_label'=>SN_Helpers::pay_method_label((string)($payment['pay_method'] ?? '')),
+36879: 						'payment_source_label'=>SN_Helpers::payment_source_label((string)($payment['payment_source'] ?? ($payment['uploaded_by_type'] ?? ''))),
+36880: 						'ref_id'=>sanitize_text_field((string)($payment['ref_id'] ?? '')),
+36881: 						'uploaded_by_name'=>$user_names[absint($payment['uploaded_by_user_id'] ?? 0)] ?? '',
+36882: 						'created_at_jalali'=>$jalali_datetime($payment['created_at'] ?? ''),
+36883: 					];
+36884: 				}
+36885: 				$activity_rows=[]; $activity_table=$wpdb->prefix.'sn_activity_logs';
+36886: 				if ($this->sn_table_exists_quiet($activity_table)) {
+36887: 					$raw_activity=$wpdb->get_results($wpdb->prepare("SELECT a.*,u.display_name,u.user_login FROM {$activity_table} a LEFT JOIN {$wpdb->users} u ON u.ID=a.user_id WHERE a.invoice_id=%d AND a.action IN ('payment_rejected','seller_resend_to_financial','invoice_recontact_requested','customer_payment_submitted','seller_payment_submitted','supervisor_payment_submitted','converter_payment_submitted','finance_stage_reconciled','financial_approval_reopened','invoice_payment_completed','invoice_partial_payment_approved') ORDER BY a.id DESC LIMIT 100",$invoice_id),ARRAY_A) ?: [];
+36888: 					$activity_labels=['payment_rejected'=>'رد توسط مالی','seller_resend_to_financial'=>'اصلاح و ارسال مجدد برای مالی','invoice_recontact_requested'=>'ارتباط مجدد با کارشناس','customer_payment_submitted'=>'ثبت اطلاعات واریزی مشتری','seller_payment_submitted'=>'ثبت واریز فروشنده','supervisor_payment_submitted'=>'ثبت فیش سرپرست','converter_payment_submitted'=>'ثبت فیش تبدیل‌کننده','finance_stage_reconciled'=>'هماهنگ‌سازی مرحله مالی','financial_approval_reopened'=>'بازگشت تایید مالی به بررسی','invoice_payment_completed'=>'تایید و تکمیل واریزی','invoice_partial_payment_approved'=>'تایید پیش‌پرداخت'];
+36889: 					foreach ($raw_activity as $a) { $ctx=json_decode((string)($a['context'] ?? ''),true); $ctx=is_array($ctx)?$ctx:[]; $note=isset($ctx['reason'])?(string)$ctx['reason']:(isset($ctx['note'])?(string)$ctx['note']:(string)($a['description'] ?? '')); $activity_rows[]=['action'=>(string)$a['action'],'label'=>$activity_labels[(string)$a['action']] ?? (string)$a['action'],'note'=>sanitize_textarea_field($note),'description'=>sanitize_textarea_field((string)($a['description'] ?? '')),'actor_name'=>(string)(($a['display_name'] ?? '') ?: ($a['user_login'] ?? '') ?: 'سیستم / مشتری'),'created_at_jalali'=>$jalali_datetime($a['created_at'] ?? '')]; }
+36890: 				}
+36891: 
+36892: 				SN_Helpers::send_json(true, '', [
+36893: 					'invoice'=>[
+36894: 						'id'=>(int)$invoice->id,
+36895: 						'invoice_code'=>(string)$invoice->invoice_code,
+36896: 						'customer_name'=>(string)$invoice->customer_name,
+36897: 						'customer_phone'=>(string)$invoice->customer_phone,
+36898: 						'seller_name'=>(string)($invoice->seller_name ?: ('#'.(int)$invoice->seller_id)),
+36899: 						'product_name'=>$this->sn_invoice_items_label((int)$invoice->id, (int)$invoice->product_id),
+36900: 						'status'=>(string)$invoice->status,
+36901: 						'status_label'=>SN_Helpers::status_label((string)$invoice->status),
+36902: 						'receipt_url'=>(string)(($invoice->receipt_url ?? '') ?: ($invoice->receipt_file ?? '')),
+36903: 						'financial_reject_reason'=>in_array((string)$invoice->status,['rejected','financial_rejected'],true) ? (string)(($invoice->financial_reject_reason ?? '') ?: ($invoice->rejected_reason ?? '')) : '',
+36904: 						'total_amount'=>(float)$totals['total'],
+36905: 						'total_amount_fmt'=>SN_Helpers::format_price((float)$totals['total']),
+36906: 						'paid_amount'=>(float)$totals['paid'],
+36907: 						'paid_amount_fmt'=>SN_Helpers::format_price((float)$totals['paid']),
+36908: 						'remaining_amount'=>(float)$totals['remaining'],
+36909: 						'remaining_amount_fmt'=>SN_Helpers::format_price((float)$totals['remaining']),
+36910: 						'is_fully_settled'=>(float)$totals['remaining'] <= 0.5,
+36911: 						'created_at_jalali'=>$jalali_datetime($invoice->created_at ?? ''),
+36912: 						'is_dot_marketing'=>$is_dot_marketing,
+36913: 						'finance_tag'=>$is_dot_marketing ? 'مارکتینگ دات فلو' : '',
+36914: 					],
+36915: 					'stages'=>$stage_rows,
+36916: 					'payments'=>$payment_rows,
+36917: 					'activities'=>$activity_rows,
+36918: 				]);
+36919: 			}
+36920: 

@@ -1,0 +1,64 @@
+30689: 
+30690: 			public function ajax_financial_cancel_invoice(): void
+30691: 			{
+30692: 				if (! $this->sn_can_reject_payment()) { if (function_exists('status_header')) { status_header(403); } SN_Helpers::send_json(false,'دسترسی غیرمجاز'); return; }
+30693: 				$valid=check_ajax_referer('sn_admin','nonce',false)||check_ajax_referer('sn_public','nonce',false);
+30694: 				if (! $valid) { SN_Helpers::send_json(false,'نانس نامعتبر'); return; }
+30695: 				$id=absint($_POST['invoice_id'] ?? 0);
+30696: 				$reason=sanitize_textarea_field(wp_unslash($_POST['reason'] ?? ''));
+30697: 				$refund_confirmed=!empty($_POST['refund_confirmed']);
+30698: 				if ($id<1 || $reason==='') { SN_Helpers::send_json(false,'شناسه فاکتور و دلیل لغو الزامی است'); return; }
+30699: 				if (class_exists('SN_Dot_Flow') && method_exists(SN_Dot_Flow::instance(),'financial_cancellation_guard')) {
+30700: 					$guard=(array) SN_Dot_Flow::instance()->financial_cancellation_guard($id);
+30701: 					if (isset($guard['allowed']) && ! $guard['allowed']) { SN_Helpers::send_json(false,(string)($guard['message'] ?? 'این فاکتور در وضعیت قابل لغو مستقیم نیست')); return; }
+30702: 				}
+30703: 				$this->sn_ensure_payment_migrations();
+30704: 				global $wpdb;
+30705: 				$invoice_table=$wpdb->prefix.'sn_invoices';
+30706: 				$stage_table=$wpdb->prefix.'sn_invoice_payment_stages';
+30707: 				$payments_table=$wpdb->prefix.'sn_payments';
+30708: 				$wpdb->query('START TRANSACTION');
+30709: 				$inv=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$invoice_table} WHERE id=%d FOR UPDATE",$id));
+30710: 				if (! $inv) { $wpdb->query('ROLLBACK'); SN_Helpers::send_json(false,'فاکتور یافت نشد'); return; }
+30711: 				if (in_array((string)($inv->status ?? ''),['cancelled','payment_archived'],true)) { $wpdb->query('COMMIT'); SN_Helpers::send_json(true,'این فاکتور قبلاً لغو شده است'); return; }
+30712: 				$totals=$this->sn_invoice_payment_totals($inv);
+30713: 				$paid=max(0,(float)($totals['paid'] ?? 0));
+30714: 				if ($paid>0.5 && ! $refund_confirmed) { $wpdb->query('ROLLBACK'); SN_Helpers::send_json(false,'برای فاکتوری که واریزی تاییدشده دارد، تایید انجام/پیگیری عودت وجه الزامی است'); return; }
+30715: 				$now=current_time('mysql');
+30716: 				$update=$this->sn_filter_existing_columns($invoice_table,[
+30717: 					'status'=>'cancelled','invoice_status'=>'cancelled','payment_status'=>'cancelled','payment_workflow_status'=>'archived',
+30718: 					'payment_archived_at'=>$now,'payment_archived_by'=>get_current_user_id(),'payment_archive_reason'=>$reason,
+30719: 					'financial_return_state'=>$paid>0.5?'cancelled_by_finance_refund':'cancelled_by_finance','returned_to_seller_at'=>$now,
+30720: 					'repeat_action_status'=>'cancelled_by_finance','repeat_action_cancel_reason'=>$reason,'updated_at'=>$now,
+30721: 				]);
+30722: 				if (false===$wpdb->update($invoice_table,$update,['id'=>$id])) { $wpdb->query('ROLLBACK'); SN_Helpers::send_json(false,'ثبت لغو مالی انجام نشد'); return; }
+30723: 				if ($this->sn_table_exists_quiet($stage_table)) {
+30724: 					$wpdb->query($wpdb->prepare("UPDATE {$stage_table} SET status='cancelled', note=CONCAT(COALESCE(note,''), %s), updated_at=%s WHERE invoice_id=%d AND status NOT IN ('paid','approved','cancelled')", "\nلغو توسط مالی: ".$reason, $now, $id));
+30725: 				}
+30726: 				if ($this->sn_table_exists_quiet($payments_table)) {
+30727: 					$wpdb->query($wpdb->prepare("UPDATE {$payments_table} SET status='cancelled', payment_source='finance_cancelled', updated_at=%s WHERE invoice_id=%d AND status IN ('pending','verified')",$now,$id));
+30728: 				}
+30729: 				if (!empty($inv->lead_id) && $this->sn_table_exists_quiet($wpdb->prefix.'sn_leads')) {
+30730: 					$wpdb->update($wpdb->prefix.'sn_leads',['status'=>'assigned'],['id'=>(int)$inv->lead_id]);
+30731: 				}
+30732: 				$wpdb->query('COMMIT');
+30733: 				if (! empty($inv->wc_order_id) && function_exists('wc_get_order')) {
+30734: 					$reopened_order = wc_get_order((int)$inv->wc_order_id);
+30735: 					if ($reopened_order && (string)$reopened_order->get_meta('_sn_finance_reopened', true) === '1') {
+30736: 						$reopened_order->update_status('cancelled', 'لغو مالی پس از بازگشت فاکتور به بررسی: ' . $reason);
+30737: 						$reopened_order->delete_meta_data('_sn_finance_reopened');
+30738: 						$reopened_order->save();
+30739: 					}
+30740: 				}
+30741: 				$this->sn_close_payment_action_item($id,'payment_cancelled_by_finance',get_current_user_id(),'لغو توسط واحد مالی: '.$reason);
+30742: 				$this->sn_log_activity($id,(int)($inv->lead_id ?? 0),'invoice_cancelled_by_finance','فاکتور توسط واحد مالی لغو شد',['reason'=>$reason,'paid_total'=>$paid,'refund_confirmed'=>$refund_confirmed,'actor_user_id'=>get_current_user_id(),'wc_order_id'=>(int)($inv->wc_order_id ?? 0)]);
+30743: 				$dot_handled=false;
+30744: 				if (class_exists('SN_Dot_Flow') && method_exists(SN_Dot_Flow::instance(),'on_financial_cancelled')) {
+30745: 					$dot_handled=(bool) SN_Dot_Flow::instance()->on_financial_cancelled($id,$reason);
+30746: 				}
+30747: 				// The Dot handler owns its case balance, while this shared event also
+30748: 				// reverses wallet/project commissions. Both paths are idempotent.
+30749: 				do_action('sn_invoice_financial_rejected',$id,$inv,'لغو توسط مالی: '.$reason);
+30750: 				SN_Helpers::send_json(true,$paid>0.5?'لغو مالی ثبت شد. عودت وجه به‌صورت عملیاتی خارج از این افزونه باید تکمیل/کنترل شود.':'فاکتور لغو شد و دیگر وارد صف تایید مالی نمی‌شود.',['status'=>'cancelled','status_label'=>SN_Helpers::status_label('cancelled'),'paid_total'=>$paid,'wc_order_id'=>(int)($inv->wc_order_id ?? 0)]);
+30751: 			}
+30752: 

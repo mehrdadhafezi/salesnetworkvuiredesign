@@ -1,0 +1,276 @@
+13610: 
+13611: 	public function render_seller_panel(): string
+13612: 	{
+13613: 		if (! is_user_logged_in()) {
+13614: 			// در shortcode نمیشه header ارسال کرد — با JS redirect کن
+13615: 			$auth_page_id  = (int) get_option('sn_auth_page_id', 0);
+13616: 			$panel_page_id = (int) get_option('sn_seller_panel_page_id', 0);
+13617: 			$current_url   = get_permalink($panel_page_id) ?: home_url($_SERVER['REQUEST_URI'] ?? '/');
+13618: 			if ($auth_page_id) {
+13619: 				$login_url = add_query_arg('redirect_to', urlencode($current_url), get_permalink($auth_page_id));
+13620: 				return '<script>window.location.href=' . json_encode($login_url) . ';</script>'
+13621: 					. '<div class="sn-notice">در حال انتقال به صفحه ورود...</div>';
+13622: 			}
+13623: 			return '<div class="sn-notice sn-error">صفحه ورود فروشنده تنظیم نشده — از پنل ادمین → تنظیمات، ID صفحه ورود را وارد کنید.</div>';
+13624: 		}
+13625: 		$user = wp_get_current_user();
+13626: 		if (! in_array('sn_seller', (array) $user->roles, true) && $this->sn_hr_position_for_user((int) $user->ID) !== 'seller') {
+13627: 			$position = $this->sn_hr_position_for_user((int) $user->ID);
+13628: 			$roles = array_filter(array_map('sanitize_key', (array) $user->roles));
+13629: 			return '<div class="sn-panel" dir="rtl"><div class="sn-notice sn-error"><strong>دسترسی غیرمجاز — این صفحه فقط برای فروشندگان است.</strong><div class="sn-muted" style="margin-top:6px">شناسه کاربر: #' . esc_html((string) $user->ID) . ' | سمت HR: ' . esc_html($position !== '' ? $position : 'نامشخص') . ' | نقش‌های وردپرس: ' . esc_html($roles ? implode(', ', $roles) : 'ندارد') . ' | مقدار مورد انتظار: seller</div></div></div>';
+13630: 		}
+13631: 
+13632: 		$products = SN_Helpers::get_sn_products();
+13633: 		if (class_exists('SN_Dot_Flow')) {
+13634: 			$products = SN_Dot_Flow::instance()->filter_products_for_user($products, (int) $user->ID);
+13635: 		}
+13636: 		if (class_exists('SN_Projects')) {
+13637: 			$products = SN_Projects::instance()->filter_sellable_products($products, (int) $user->ID);
+13638: 		}
+13639: 		$product_groups = [];
+13640: 		if (class_exists('SN_Seller_Flow')) {
+13641: 			$products = SN_Seller_Flow::instance()->decorate_products($products);
+13642: 			foreach (SN_Seller_Flow::product_types() as $type_key => $type_label) {
+13643: 				$product_groups[$type_key] = ['label' => $type_label, 'products' => []];
+13644: 			}
+13645: 			foreach ($products as $product_row) {
+13646: 				$type_key = (string) ($product_row['sales_product_type'] ?? 'product');
+13647: 				if (! isset($product_groups[$type_key])) { $type_key = 'product'; }
+13648: 				$product_groups[$type_key]['products'][] = $product_row;
+13649: 			}
+13650: 		}
+13651: 		$provinces = SN_Helpers::get_provinces();
+13652: 		$payment_presets = $this->sn_partial_payment_presets();
+13653: 		$max_invoice_products = $this->sn_invoice_max_products();
+13654: 			$can_issue_invoice = $this->sn_user_can_create_manual_invoice((int) $user->ID);
+13655: 			$can_request_extra_number = $this->sn_user_can_request_extra_number((int) $user->ID);
+13656: 			$manual_invoice_enabled = $this->sn_seller_manual_invoice_enabled();
+13657: 			$team_invoice_source_mode = $this->sn_team_invoice_source_mode_for_user((int) $user->ID);
+13658: 			$show_manual_invoice_tab = $can_issue_invoice && $manual_invoice_enabled;
+13659: 
+13660: 		ob_start();
+13661: 	?>
+13662: 			<div class="sn-panel sn-portal" dir="rtl" id="sn-seller-panel" data-sn-max-products="<?php echo esc_attr((string) $max_invoice_products); ?>" data-sn-can-issue-invoice="<?php echo $can_issue_invoice ? '1' : '0'; ?>" data-sn-can-request-extra-number="<?php echo $can_request_extra_number ? '1' : '0'; ?>" data-sn-manual-invoice-enabled="<?php echo $manual_invoice_enabled ? '1' : '0'; ?>" data-sn-team-invoice-source="<?php echo esc_attr($team_invoice_source_mode); ?>">
+13663: 			<div class="sn-panel-header">
+13664: 				<h2>پنل فروشنده — <?php echo esc_html($this->sn_user_label((int) $user->ID)); ?></h2>
+13665: 				<?php echo $this->sn_panel_user_actions_markup(); ?>
+13666: 			</div>
+13667: 
+13668: 			<!-- تب‌ها -->
+13669: 			<div class="sn-tabs">
+13670: 				<button class="sn-tab active" data-tab="leads">شماره‌های من <span class="sn-tab-badge" id="sn-seller-tab-badge-no-status" hidden>۰</span></button>
+13671: 				<?php if ($show_manual_invoice_tab) : ?><button class="sn-tab" data-tab="new-invoice">صدور پیش‌فاکتور</button><?php endif; ?>
+13672: 				<button class="sn-tab" data-tab="my-conversions">آماده‌های تبدیل</button>
+13673: 				<button class="sn-tab" data-tab="repeat-actions">نیاز به اقدام مجدد <span class="sn-tab-badge" id="sn-seller-tab-badge-repeat-actions" hidden>۰</span></button>
+13674: 				<button class="sn-tab" data-tab="invoices">فاکتورها</button>
+13675: 				<button class="sn-tab" data-tab="customer-actions">رفتار مشتریان</button>
+13676: 				<?php if ($can_request_extra_number) : ?><button class="sn-tab" data-tab="extra-number-request">درخواست اضافه کردن شماره</button><?php endif; ?>
+13677: 				<button class="sn-tab" data-tab="wallet">کیف پول من</button>
+13678: 			</div>
+13679: 
+13680: 			<!-- لیست شماره‌ها / سرنخ‌های قدیمی -->
+13681: 			<div id="sn-tab-leads" class="sn-tab-content active">
+13682: 				<div class="sn-card sn-helper-card">
+13683: 					<strong>مرحله اول پیگیری شماره</strong>
+13684: 					<p class="sn-note">برای هر شماره وضعیت تماس را ثبت کنید و پیش‌فاکتور را از داخل همان شماره صادر کنید. «عدم خرید» دلیل اجباری دارد؛ در «جواب نداده» هر تماس را تا سقف سه بار جدا ثبت کنید.</p>
+13685: 					<p class="sn-note">شماره‌های قدیمی و شماره‌های تحویل‌شده از مسیر MIS/V4 در همین فهرست یکپارچه‌اند و مشاهده یا ویرایش آن‌ها به‌تنهایی سرنخ جدید نمی‌سازد.</p>
+13686: 				</div>
+13687: 				<div id="sn-leads-loading" class="sn-loading">در حال بارگذاری...</div>
+13688: 				<div id="sn-leads-filter-bar"></div>
+13689: 				<div id="sn-leads-list"></div>
+13690: 			</div>
+13691: 
+13692: 			<!-- فرم ثبت فاکتور -->
+13693: 			<?php if ($can_issue_invoice) : ?>
+13694: 			<div id="sn-tab-new-invoice" class="sn-tab-content">
+13695: 				<div class="sn-card">
+13696: 					<h3><?php echo $manual_invoice_enabled ? 'صدور دستی پیش‌فاکتور' : 'صدور پیش‌فاکتور برای شمارهٔ تخصیص‌یافته'; ?></h3>
+13697: 					<div class="sn-notice sn-info"><?php echo $manual_invoice_enabled ? 'مشخصات مشتری را وارد کنید یا یک شماره از فهرست خود انتخاب کنید.' : 'این فرم فقط برای شماره‌ای باز می‌شود که از فهرست «شماره‌های من» انتخاب کرده‌اید.'; ?></div>
+13698: 					<p class="sn-note">بعد از صدور موفق، کد پیش‌فاکتور نمایش داده می‌شود و سپس تب فاکتورها باز می‌شود. کد فاکتور در پنل فروشنده لینک عمومی نیست.</p>
+13699: 					<div id="sn-invoice-notice"></div>
+13700: 					<div class="sn-form-grid">
+13701: 						<div class="sn-field">
+13702: 							<label>نام مشتری *</label>
+13703: 							<input type="text" id="sn-cust-name" placeholder="نام و نام خانوادگی" <?php echo $manual_invoice_enabled ? '' : 'readonly'; ?>>
+13704: 						</div>
+13705: 						<div class="sn-field">
+13706: 							<label>شماره موبایل مشتری *</label>
+13707: 							<input type="tel" id="sn-cust-phone" placeholder="09xxxxxxxxx" <?php echo $manual_invoice_enabled ? '' : 'readonly'; ?>>
+13708: 						</div>
+13709: 						<div class="sn-field"><label>شماره دوم مشتری (اختیاری؛ فقط اطلاعات تماس)</label><input type="tel" id="sn-cust-phone-secondary" placeholder="09xxxxxxxxx" inputmode="tel"></div>
+13710: 						<div class="sn-field">
+13711: 							<label>استان</label>
+13712: 							<select id="sn-cust-prov" <?php echo $manual_invoice_enabled ? '' : 'disabled'; ?>>
+13713: 								<option value="">انتخاب استان</option>
+13714: 								<?php foreach ($provinces as $p) : ?>
+13715: 									<option value="<?php echo esc_attr($p); ?>"><?php echo esc_html($p); ?></option>
+13716: 								<?php endforeach; ?>
+13717: 							</select>
+13718: 						</div>
+13719: 						<div class="sn-field">
+13720: 							<label>شهر</label>
+13721: 							<input type="text" id="sn-cust-city" placeholder="نام شهر" <?php echo $manual_invoice_enabled ? '' : 'readonly'; ?>>
+13722: 						</div>
+13723: 						<div class="sn-field sn-full sn-shipping-customer-fields" hidden>
+13724: 							<label>آدرس کامل مشتری *</label>
+13725: 							<textarea id="sn-cust-address" rows="3" placeholder="خیابان، کوچه، پلاک و واحد"></textarea>
+13726: 						</div>
+13727: 						<div class="sn-field sn-shipping-customer-fields" hidden>
+13728: 							<label>کد پستی</label>
+13729: 							<input type="text" id="sn-cust-postal-code" inputmode="numeric" maxlength="10" placeholder="۱۰ رقم">
+13730: 						</div>
+13731: 						<div class="sn-field sn-full">
+13732: 							<label>محصول‌ها *</label>
+13733: 							<p class="sn-note">محصول‌ها بر اساس چهار نوع «اعتبارسنجی»، «اشتراک»، «محصول عادی» و «محصول*» گروه‌بندی شده‌اند.</p>
+13734: 							<div class="sn-product-catalog-filter">
+13735: 								<input type="search" id="sn-product-search" placeholder="جستجوی نام یا شناسه محصول">
+13736: 								<select id="sn-product-type-filter"><option value="all">همه نوع‌ها</option><?php foreach (SN_Seller_Flow::product_types() as $type_key => $type_label) : ?><option value="<?php echo esc_attr($type_key); ?>"><?php echo esc_html($type_label); ?></option><?php endforeach; ?></select>
+13737: 							</div>
+13738: 							<div id="sn-products-multi" class="sn-products-multi">
+13739: 								<div class="sn-product-row">
+13740: 									<select class="sn-product-select" id="sn-product">
+13741: 										<option value="">انتخاب محصول</option>
+13742: 										<?php if ($product_groups) : ?>
+13743: 											<?php foreach ($product_groups as $type_key => $group) : if (empty($group['products'])) { continue; } ?>
+13744: 											<optgroup label="<?php echo esc_attr((string) $group['label']); ?>">
+13745: 												<?php foreach ($group['products'] as $p) : ?>
+13746: 								<option value="<?php echo esc_attr($p['id']); ?>" data-price="<?php echo esc_attr($p['price']); ?>" data-credit="<?php echo esc_attr((string)($p['credit'] ?? 0)); ?>" data-sn-product-type="<?php echo esc_attr($type_key); ?>" data-sn-dot-assessment="<?php echo $type_key === 'assessment' ? '1' : '0'; ?>"><?php echo esc_html($p['name']); ?> — <?php echo esc_html(SN_Helpers::format_price($p['price'])); ?><?php if (! empty($p['credit'])) : ?> · اعتبار <?php echo esc_html(SN_Helpers::format_price((float)$p['credit'])); ?><?php endif; ?></option>
+13747: 												<?php endforeach; ?>
+13748: 											</optgroup>
+13749: 											<?php endforeach; ?>
+13750: 										<?php else : ?>
+13751: 											<?php foreach ($products as $p) : ?>
+13752: 							<option value="<?php echo esc_attr($p['id']); ?>" data-price="<?php echo esc_attr($p['price']); ?>" data-credit="<?php echo esc_attr((string)($p['credit'] ?? 0)); ?>" data-sn-dot-assessment="<?php echo class_exists('SN_Dot_Flow') && SN_Dot_Flow::instance()->is_assessment_product((int)$p['id']) ? '1' : '0'; ?>"><?php echo esc_html($p['name']); ?> — <?php echo esc_html(SN_Helpers::format_price($p['price'])); ?><?php if (! empty($p['credit'])) : ?> · اعتبار <?php echo esc_html(SN_Helpers::format_price((float)$p['credit'])); ?><?php endif; ?></option>
+13753: 											<?php endforeach; ?>
+13754: 										<?php endif; ?>
+13755: 									</select>
+13756: 									<input type="number" class="sn-product-qty" min="1" value="1" aria-label="تعداد">
+13757: 									<button type="button" class="sn-btn sn-btn-ghost sn-remove-product" style="display:none">حذف</button>
+13758: 								</div>
+13759: 							</div>
+13760: 							<button type="button" id="sn-add-product-row" class="sn-btn sn-btn-secondary sn-btn-sm" data-max-products="<?php echo esc_attr((string) $max_invoice_products); ?>">+ افزودن محصول دیگر</button>
+13761: 							<small id="sn-product-limit-help" class="sn-muted"><?php echo $max_invoice_products > 0 ? esc_html(sprintf('حداکثر %d محصول در هر پیش‌فاکتور', $max_invoice_products)) : 'تعداد محصولات بدون محدودیت است'; ?></small>
+13762: 							<div id="sn-products-total" class="sn-products-total">جمع: ۰ تومان</div>
+13763: 						</div>
+13764: 						<div class="sn-field">
+13765: 							<label>نوع پرداخت مشتری *</label>
+13766: 							<select id="sn-payment-plan"><option value="full">پرداخت کامل فاکتور</option><option value="partial">پیش‌پرداخت</option></select>
+13767: 						</div>
+13768: 						<div class="sn-field sn-prepayment-fields" style="display:none">
+13769: 							<label>مبلغ پیش‌پرداخت این مرحله *</label>
+13770: 							<select id="sn-prepayment-choice"><option value="">انتخاب مبلغ پیش‌پرداخت</option><?php foreach ($payment_presets as $preset) : ?><option value="<?php echo esc_attr((string) (int) $preset); ?>"><?php echo esc_html(SN_Helpers::format_price((float) $preset)); ?></option><?php endforeach; ?><option value="custom">سایر — ورود مبلغ توسط فروشنده</option></select>
+13771: 							<input type="text" id="sn-prepayment-custom" inputmode="numeric" autocomplete="off" placeholder="مبلغ پیش‌پرداخت به تومان" style="display:none;margin-top:8px">
+13772: 							<small id="sn-prepayment-help" class="sn-muted">مبلغ این مرحله باید بیشتر از صفر و حداکثر برابر جمع کل فاکتور باشد.</small>
+13773: 							<div id="sn-prepayment-summary" class="sn-prepayment-summary" aria-live="polite">
+13774: 								<div><span>مبلغ کل فاکتور</span><strong id="sn-prepayment-total-preview">۰ تومان</strong></div>
+13775: 								<div><span>قابل پرداخت در این مرحله</span><strong id="sn-prepayment-due-preview">۰ تومان</strong></div>
+13776: 								<div><span>مانده پس از تأیید همین مرحله</span><strong id="sn-prepayment-remaining-preview">—</strong></div>
+13777: 							</div>
+13778: 						</div>
+13779: 						<fieldset id="sn-dot-conversion-route" class="sn-field sn-full sn-dot-conversion-route" hidden>
+13780: 							<legend>ادامه مسیر محصول اعتبارسنجی *</legend>
+13781: 							<input type="hidden" id="sn-dot-assessment-decision-ui" value="1">
+13782: 							<div class="sn-dot-compact-choice-group">
+13783: 								<span class="sn-dot-compact-choice-title">ارسال پیامک نتیجه اعتبارسنجی</span>
+13784: 								<div class="sn-dot-conversion-route-options sn-dot-compact-options">
+13785: 									<label><input type="radio" id="sn-dot-send-assessment-sms" name="dot_send_assessment_sms" value="1"><span><strong>ارسال شود</strong><small>پس از تسویه و تأیید مالی</small></span></label>
+13786: 									<label><input type="radio" name="dot_send_assessment_sms" value="0"><span><strong>ارسال نشود</strong><small>ورود مستقیم به تبدیل</small></span></label>
+13787: 								</div>
+13788: 							</div>
+13789: 							<div class="sn-dot-compact-choice-group">
+13790: 								<span class="sn-dot-compact-choice-title">ارسال برای سرپرست / تبدیل توسط خودم</span>
+13791: 								<div class="sn-dot-conversion-route-options sn-dot-compact-options is-disabled" id="sn-dot-conversion-owner-options" aria-disabled="true">
+13792: 									<label><input type="radio" name="sn_dot_conversion_route" value="supervisor_queue" disabled><span><strong>ارسال برای سرپرست</strong><small>تخصیص به خودش یا تبدیل‌کننده</small></span></label>
+13793: 									<label><input type="radio" name="sn_dot_conversion_route" value="seller_self" disabled><span><strong>تبدیل توسط خودم</strong><small>در آماده‌های تبدیل فروشنده</small></span></label>
+13794: 								</div>
+13795: 								<small id="sn-dot-conversion-owner-help" class="sn-muted">ابتدا ارسال یا عدم ارسال پیامک نتیجه اعتبارسنجی را انتخاب کنید.</small>
+13796: 							</div>
+13797: 						</fieldset>
+13798: 						<div class="sn-field sn-full"<?php echo $manual_invoice_enabled ? '' : ' style="display:none"'; ?>>
+13799: 							<label><?php echo $manual_invoice_enabled ? 'شماره مشتری از لیست (اختیاری)' : 'شماره تخصیص‌یافته انتخاب‌شده'; ?></label>
+13800: 							<select id="sn-lead-select">
+13801: 								<option value="">— بدون تخصیص —</option>
+13802: 							</select>
+13803: 						</div>
+13804: 						<div class="sn-field sn-full sn-invoice-delivery-options">
+13805: 							<label>روش ارسال لینک پیش‌فاکتور</label>
+13806: 							<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid #d7dce2;border-radius:10px;background:#f8fafc">
+13807: 								<label style="display:inline-flex;align-items:center;gap:7px;margin:0"><input type="checkbox" checked disabled> <span><strong>ارسال پیامک</strong><small style="display:block;color:#64748b">همیشه همراه صدور پیش‌فاکتور</small></span></label>
+13808: 								<label style="display:inline-flex;align-items:center;gap:7px;margin:0"><input type="checkbox" id="sn-send-bale" value="1" checked> <span><strong>ارسال در بله</strong><small style="display:block;color:#64748b">همزمان با پیامک برای شماره مشتری</small></span></label>
+13809: 							</div>
+13810: 							<small class="sn-muted">در صورت برداشتن تیک بله، پیش‌فاکتور فقط از طریق پیامک ارسال می‌شود.</small>
+13811: 						</div>
+13812: 					</div>
+13813: 					<button type="button" id="sn-create-invoice" class="sn-btn sn-btn-primary">صدور پیش‌فاکتور و ارسال پیامک / بله</button>
+13814: 				</div>
+13815: 			</div>
+13816: 			<?php endif; ?>
+13817: 
+13818: 			<div id="sn-tab-my-conversions" class="sn-tab-content" style="display:none">
+13819: 				<div id="sn-seller-my-conversions" data-sn-conversion-context="seller" data-loaded="0">
+13820: 					<div class="sn-card sn-loading">پرونده‌های آماده تبدیل بعد از باز کردن تب بارگذاری می‌شوند...</div>
+13821: 				</div>
+13822: 			</div>
+13823: 
+13824: 			<div id="sn-tab-repeat-actions" class="sn-tab-content">
+13825: 				<?php $this->sn_render_paid_referral_action_section(get_current_user_id(), 'seller'); ?>
+13826: 			</div>
+13827: 
+13828: 			<!-- لیست فاکتورها -->
+13829: 			<div id="sn-tab-invoices" class="sn-tab-content">
+13830: 				<div class="sn-subtabs sn-invoice-status-tabs">
+13831: 					<button type="button" class="sn-subtab active" data-status="all">همه</button>
+13832: 					<button type="button" class="sn-subtab" data-status="pre_invoice">پیش‌فاکتور صادر شده</button>
+13833: 					<button type="button" class="sn-subtab" data-status="paid">پرداخت شده</button>
+13834: 					<button type="button" class="sn-subtab" data-status="staged_incomplete">مرحله‌ای تکمیل‌نشده</button>
+13835: 					<button type="button" class="sn-subtab" data-status="staged_completed">مرحله‌ای تکمیل‌شده</button>
+13836: 					<button type="button" class="sn-subtab" data-status="rejected">رد شده</button>
+13837: 					<button type="button" class="sn-subtab" data-status="cancelled">لغو شده</button>
+13838: 					<button type="button" class="sn-subtab" data-status="recontact">ارتباط مجدد با کارشناس</button>
+13839: 				</div>
+13840: 				<div class="sn-card" style="margin:10px 0">
+13841: 					<label>جستجوی فاکتور<br><input type="search" id="sn-seller-invoice-search" placeholder="کد فاکتور، نام یا موبایل مشتری"></label>
+13842: 					<p class="sn-note">جستجو فقط در فاکتورهای داخلی خودتان انجام می‌شود و به لینک عمومی مشتری وصل نیست.</p>
+13843: 				</div>
+13844: 				<div id="sn-invoices-loading" class="sn-loading">در حال بارگذاری...</div>
+13845: 				<div id="sn-invoices-list"></div>
+13846: 			</div>
+13847: 			<div id="sn-tab-customer-actions" class="sn-tab-content">
+13848: 				<div class="sn-card">
+13849: 					<h3>رفتار مشتریان در صفحه فاکتور</h3>
+13850: 					<p class="sn-muted">باز شدن لینک، مشاهده اطلاعات محصول، کلیک روی گردونه، کد تخفیف، پرداخت و سایر اکشن‌های مشتری اینجا نمایش داده می‌شود.</p>
+13851: 					<div id="sn-customer-actions-loading" class="sn-loading" style="display:none">در حال بارگذاری...</div>
+13852: 					<div id="sn-customer-actions-list"></div>
+13853: 				</div>
+13854: 			</div>
+13855: 			<?php if ($can_request_extra_number) : ?><div id="sn-tab-extra-number-request" class="sn-tab-content">
+13856: 				<div class="sn-card sn-extra-number-request-card">
+13857: 					<h3>درخواست اضافه کردن شماره</h3>
+13858: 					<p class="sn-muted">اگر شماره‌ای خارج از لیست تخصیص‌یافته داری و می‌خواهی برای آن پیش‌فاکتور صادر کنی، اینجا ثبت کن. پس از تایید مدیر فروش، شماره با برچسب «درخواست شماره تایید شده» وارد لیست شماره‌های تو می‌شود.</p>
+13859: 					<div id="sn-extra-number-notice"></div>
+13860: 					<div class="sn-form-grid">
+13861: 						<label>شماره موبایل مشتری *<input type="tel" id="sn-extra-number-phone" inputmode="tel" placeholder="09xxxxxxxxx"></label>
+13862: 						<label>نام مشتری<input type="text" id="sn-extra-number-name" placeholder="اختیاری"></label>
+13863: 						<label class="sn-full">یادداشت<textarea id="sn-extra-number-note" rows="3" placeholder="علت درخواست یا توضیح کوتاه، اختیاری"></textarea></label>
+13864: 					</div>
+13865: 					<button type="button" id="sn-submit-extra-number-request" class="sn-btn sn-btn-primary">ثبت درخواست</button>
+13866: 				</div>
+13867: 			</div><?php endif; ?>
+13868: 
+13869: 			<div id="sn-tab-wallet" class="sn-tab-content">
+13870: 				<div class="sn-project-wallet-view-tabs" role="tablist" aria-label="نوع کیف پول">
+13871: 					<button type="button" class="sn-btn sn-btn-sm is-active" data-sn-wallet-view="sales" role="tab" aria-selected="true">فروش و پورسانت</button>
+13872: 					<button type="button" class="sn-btn sn-btn-sm sn-btn-secondary" data-sn-wallet-view="biavin" role="tab" aria-selected="false">بیاوین</button>
+13873: 				</div>
+13874: 				<div data-sn-wallet-panel="sales">
+13875: 					<div class="sn-subtabs sn-wallet-tabs"><button type="button" class="sn-subtab active" data-wallet-filter="all">همه</button><button type="button" class="sn-subtab" data-wallet-filter="online">کیف پول پرداختی‌های آنلاین</button><button type="button" class="sn-subtab" data-wallet-filter="card_to_card">کیف پول پرداخت‌های کارت‌به‌کارتی</button></div>
+13876: 					<div id="sn-seller-wallet-box" data-loaded="0"><?php echo $this->render_wallet_box_for_user(get_current_user_id(), 'seller', false); ?></div>
+13877: 				</div>
+13878: 				<div data-sn-wallet-panel="biavin" hidden>
+13879: 					<section class="sn-project-wallet sn-project-wallet-integrated"><header><div><span>پورسانت پروژه‌ها</span><h3>کیف پول بیاوین</h3></div><button type="button" class="sn-project-wallet-refresh">بروزرسانی</button></header><div class="sn-project-wallet-body" data-loaded="0">برای مشاهده، تب بیاوین را انتخاب کنید.</div></section>
+13880: 				</div>
+13881: 			</div>
+13882: 		</div>
+13883: 	<?php
+13884: 		return ob_get_clean();
+13885: 	}

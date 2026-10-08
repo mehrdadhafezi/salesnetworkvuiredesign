@@ -1,0 +1,197 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل سرپرست" [level=1]
+  - heading "پنل سرپرست" [level=2]
+  - link "گزارش جامع":
+    - /url: "#sn-reports-panel"
+  - generic: کاربر
+  - strong: "سرپرست ماکسیمم #5"
+  - generic: "سرپرست | #5"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "اعلان‌های گفت‌وگو با بیاوین":
+    - generic: 🔔
+    - generic: ۰
+  - text: پنل سرپرست
+  - button "بستن منوی پنل" [expanded]: ×
+  - button "🧾 فروشندگان و آمار"
+  - button "📊 تبدیل‌کنندگان و آمار"
+  - button "💼 تبدیل‌های من"
+  - button "💳 تخصیص شماره"
+  - button "⚙️ آماده‌های تبدیل"
+  - button "• اشتراک‌های فروشنده"
+  - button "• لاگ و خطا"
+  - button "• جدا کردن سرنخ زنده/قدیمی"
+  - button "• فاکتورها"
+  - button "• رفتار مشتریان"
+  - button "• درخواست HR"
+  - button "• کیف پول"
+  - strong: سرنخ‌های زنده/قدیمی
+  - generic: …
+  - strong: دارای فروشنده
+  - generic: …
+  - strong: آزاد/قدیمی
+  - generic: …
+  - strong: تعداد در بازه
+  - generic: …
+  - strong: دارای فاکتور
+  - generic: …
+  - strong: فروش موفق
+  - generic: …
+  - generic: از تاریخ
+  - textbox "1403/02/18"
+  - button "باز کردن تقویم": تقویم
+  - generic: تا تاریخ
+  - textbox "1403/02/18"
+  - button "باز کردن تقویم": تقویم
+  - generic: از ساعت تهران
+  - textbox
+  - generic: تا ساعت تهران
+  - textbox
+  - generic: فروشنده
+  - combobox:
+    - option "همه" [selected]
+  - generic: وضعیت تماس
+  - combobox:
+    - option "همه" [selected]
+  - generic: کد واردات/شماره
+  - textbox
+  - generic: تخصیص
+  - combobox:
+    - option "همه" [selected]
+    - option "تخصیص‌شده"
+    - option "تخصیص‌نشده"
+  - button "اعمال فیلتر"
+  - strong: پنل آماده است.
+  - text: برای جلوگیری از 504، آمار فروشندگان بعد از ورود خودکار لود نمی‌شود. روی «اعمال فیلتر» یا دکمه زیر بزنید.
+  - button "بارگذاری آمار فروشندگان"
+  - heading "مرکز گزارش‌گیری CRM" [level=2]
+  - paragraph: داده‌های محدودهٔ دسترسی شما؛ انتخاب هر شاخص، ردیف‌های همان گزارش را در این صفحه نشان می‌دهد.
+  - navigation "بخش‌های گزارش":
+    - link "همهٔ گزارش‌ها":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=overview&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "فاکتورها":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=invoices_register&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "پروفایل مشتری‌ها":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=customer_profiles&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "جزئیات فاکتور مشتری":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=customer_invoice_details&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "تخصیص دادهٔ MIS":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=mis_assignments&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "پیش‌فاکتورهای صادرشده":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=pre_invoices&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "فروش‌های تکمیل‌شده":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=sales&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "فروش آنلاین":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=online_sales&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "فروش کارت‌به‌کارت تأییدشده":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=card_sales&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "پیش‌فاکتورهای در انتظار مالی":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=finance_pending&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - link "پیش‌فاکتورهای ردشده":
+      - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=finance_rejected&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+  - text: نوع گزارش
+  - combobox "نوع گزارش":
+    - option "کل دوره یا بازهٔ زمانی" [selected]
+    - option "وضعیت در لحظه"
+  - text: از تاریخ
+  - textbox "از تاریخ":
+    - /placeholder: 1405/07/01
+  - text: از ساعت
+  - textbox "از ساعت"
+  - text: تا تاریخ
+  - textbox "تا تاریخ":
+    - /placeholder: 1405/07/01
+  - text: تا ساعت
+  - textbox "تا ساعت"
+  - text: جستجوی مشتری یا فاکتور
+  - searchbox "جستجوی مشتری یا فاکتور"
+  - text: وضعیت
+  - combobox "وضعیت":
+    - option "همه" [selected]
+    - option "پیش‌فاکتور"
+    - option "انتظار مالی"
+    - option "پرداخت‌شده"
+    - option "تأییدشده"
+    - option "ردشده"
+    - option "لغوشده"
+  - text: سمت
+  - combobox "سمت":
+    - option "همهٔ افراد مجاز" [selected]
+    - option "معاون فروش"
+    - option "مدیر فروش"
+    - option "سرپرست ارشد"
+    - option "سرپرست"
+    - option "فروشنده"
+  - text: فرد و زیرمجموعه
+  - combobox "فرد و زیرمجموعه":
+    - option "همهٔ افراد مجاز" [selected]
+  - button "نمایش گزارش"
+  - strong: "1"
+  - generic: فاکتورها
+  - strong: 15,000 تومان
+  - generic: مجموع مبلغ همین گزارش
+  - paragraph: فهرست همهٔ فاکتورها در محدودهٔ دسترسی، بر اساس زمان صدور؛ برای دیدن مشتریانِ هر فاکتور به تب جزئیات پروفایل مراجعه کنید.
+  - heading "تفکیک به تفکیک فرد" [level=3]
+  - table:
+    - rowgroup:
+      - row "دریافت‌کننده / فروشنده تعداد مبلغ":
+        - columnheader "دریافت‌کننده / فروشنده"
+        - columnheader "تعداد"
+        - columnheader "مبلغ"
+    - rowgroup:
+      - row "فروشنده ماکسیمم 1 15,000 تومان":
+        - cell "فروشنده ماکسیمم"
+        - cell "1"
+        - cell "15,000 تومان"
+  - heading "ریز داده‌ها" [level=3]
+  - link "خروجی CSV":
+    - /url: https://crm.maximumclub.ir/wp-admin/admin-post.php?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=invoices_register&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&action=sn_reporting_export&_wpnonce=11620a0b75
+  - table:
+    - rowgroup:
+      - row "کد فاکتور مشتری موبایل محصول مبلغ فروشنده سرپرست سرپرست ارشد مدیر فروش معاونت وضعیت روش پرداخت وضعیت پرداخت شهر استان تاریخ صدور":
+        - columnheader "کد فاکتور"
+        - columnheader "مشتری"
+        - columnheader "موبایل"
+        - columnheader "محصول"
+        - columnheader "مبلغ"
+        - columnheader "فروشنده"
+        - columnheader "سرپرست"
+        - columnheader "سرپرست ارشد"
+        - columnheader "مدیر فروش"
+        - columnheader "معاونت"
+        - columnheader "وضعیت"
+        - columnheader "روش پرداخت"
+        - columnheader "وضعیت پرداخت"
+        - columnheader "شهر"
+        - columnheader "استان"
+        - columnheader "تاریخ صدور"
+    - rowgroup:
+      - row "89663612 بسی 0910***169 محصول تستی 2 15000.00 فروشنده ماکسیمم سرپرست ماکسیمم سرپرست ارشد ماکسیمم مدیر فروش ماکسیمم معاون فروش ماکسیمم pre_invoice اسلامشهر تهران 1405/07/08 12:31":
+        - cell "89663612"
+        - cell "بسی"
+        - cell "0910***169"
+        - cell "محصول تستی 2"
+        - cell "15000.00"
+        - cell "فروشنده ماکسیمم"
+        - cell "سرپرست ماکسیمم"
+        - cell "سرپرست ارشد ماکسیمم"
+        - cell "مدیر فروش ماکسیمم"
+        - cell "معاون فروش ماکسیمم"
+        - cell "pre_invoice"
+        - cell
+        - cell
+        - cell "اسلامشهر"
+        - cell "تهران"
+        - cell "1405/07/08 12:31"
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

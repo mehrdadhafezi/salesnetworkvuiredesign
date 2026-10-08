@@ -1,0 +1,40 @@
+16728: 
+16729: 	public function handle_hr_save_structure(): void
+16730: 	{
+16731: 		if (! $this->sn_can_manage_hr_panel()) { wp_die('دسترسی غیرمجاز'); }
+16732: 		check_admin_referer('sn_hr_save_structure');
+16733: 		if (class_exists('SN_Migration_Service')) { (new SN_Migration_Service())->migrate(); }
+16734: 		global $wpdb;
+16735: 		$type = sanitize_key(wp_unslash($_POST['structure_type'] ?? ''));
+16736: 		$table = $this->sn_hr_structure_table($type);
+16737: 		if ($table === '') {
+16738: 			wp_safe_redirect($this->sn_hr_panel_return_url(['sn_msg' => 'hr_structure_error']));
+16739: 			exit;
+16740: 		}
+16741: 		$id = absint($_POST['structure_id'] ?? 0);
+16742: 		$old = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $id), ARRAY_A) : null;
+16743: 		$data = [
+16744: 			'label' => sanitize_text_field(wp_unslash($_POST['label'] ?? '')),
+16745: 			'description' => sanitize_textarea_field(wp_unslash($_POST['description'] ?? '')),
+16746: 			'is_active' => ! empty($_POST['is_active']) ? 1 : 0,
+16747: 			'sort_order' => intval($_POST['sort_order'] ?? 0),
+16748: 			'updated_at' => current_time('mysql'),
+16749: 		];
+16750: 		if ($type === 'units') { $data['department_id'] = absint($_POST['department_id'] ?? 0) ?: null; }
+16751: 		if ($type === 'teams') { $data['unit_id'] = absint($_POST['unit_id'] ?? 0) ?: null; }
+16752: 		if ($id) {
+16753: 			$wpdb->update($table, $this->sn_filter_existing_columns($table, $data), ['id' => $id]);
+16754: 			$this->sn_hr_panel_log_profile(0, 0, 'hr_structure_updated', $old, array_merge(['type' => $type, 'id' => $id], $data), []);
+16755: 		} else {
+16756: 			$slug = sanitize_key(wp_unslash($_POST['slug'] ?? ''));
+16757: 			if ($slug !== '' && $data['label'] !== '') {
+16758: 				$data['slug'] = $slug;
+16759: 				$data['created_at'] = current_time('mysql');
+16760: 				$wpdb->insert($table, $this->sn_filter_existing_columns($table, $data));
+16761: 				$this->sn_hr_panel_log_profile(0, 0, 'hr_structure_created', null, array_merge(['type' => $type, 'id' => (int) $wpdb->insert_id], $data), []);
+16762: 			}
+16763: 		}
+16764: 		wp_safe_redirect($this->sn_hr_panel_return_url(['sn_msg' => 'hr_structure_saved']));
+16765: 		exit;
+16766: 	}
+16767: 

@@ -1,0 +1,76 @@
+[
+  {
+    "buttons": [
+      "تقویم",
+      "تقویم",
+      "اعمال فیلتر"
+    ],
+    "id": "sd-overview",
+    "tables": [],
+    "text": "\n\t\t\t\n\t\t\t\t\n\t\t\t\t\tاز تاریخ شمسیتقویم\n\t\t\t\t\tتا تاریخ شمسیتقویم\n\t\t\t\t\tمدیر فروش\n\t\t\t\t\t\t\n\t\t\t\t\t\t\tهمه\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tمدیر فروش ماکسیمم #3\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\tسرپرست ارشد\n\t\t\t\t\t\t\n\t\t\t\t\t\t\tهمه\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tسرپرست ارشد ماکسیمم #4\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\tوضعیت فاکتور\n\t\t\t\t\n\t\t\t\tاعمال فیلتر\n\t\t\t\n\n\t\t\t\n\t\t\t\t\t\t\t\t\t1کل فروشنده‌های قابل مشاهده\n\t\t\t\t\t\t\t\t\t1فروشنده فعال\n\t\t\t\t\t\t\t\t\t0فروشنده غیرفعال\n\t\t\t\t\t\t\t\t\t0کل لیدها\n\t\t\t\t\t\t\t\t\t1کل فاکتورها\n\t\t\t\t\t\t\t\t\t0پیش‌فاکتور\n\t\t\t\t\t\t\t\t\t0فاکتور پرداخت‌شده/تایید شده\n\t\t\t\t\t\t\t\t\t0فاکتور رد شده/returned\n\t\t\t\t\t\t\t\t\t15,000 تومانمبلغ کل فاکتورها\n\t\t\t\t\t\t\t\t\t0 تومانمبلغ پرداخت‌شده\n\t\t\t\t\t\t\t\n\t\t\t"
+  },
+  {
+    "buttons": [],
+    "id": "sd-hierarchy",
+    "tables": [
+      "\n\t\t\t\t\tمدیر فروشسرپرست‌های ارشدفروشنده‌های مستقیم مدیرکل فروشنده‌های زیرمجموعه\n\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tمدیر فروش ماکسیمم #3\n\t\t\t\t\t\t\t\tسرپرست ارشد ماکسیمم #4: 1\n\t\t\t\t\t\t\t\t0\n\t\t\t\t\t\t\t\t1\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t"
+    ],
+    "text": "\n\t\t\t\n\t\t\t\tنمای سلسله‌مراتب\n\t\t\t\t\n\t\t\t\t\tمدیر فروشسرپرست‌های ارشدفروشنده‌های مستقیم مدیرکل فروشنده‌های زیرمجموعه\n\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tمدیر فروش ماکسیمم #3\n\t\t\t\t\t\t\t\tسرپرست ارشد ماکسیمم #4: 1\n\t\t\t\t\t\t\t\t0\n\t\t\t\t\t\t\t\t1\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\n\t\t\t\n\t\t\t"
+  },
+  {
+    "buttons": [],
+    "id": "sd-managers",
+    "tables": [
+      "\n\t\t\tمدیر فروشفروشندهفعاللیدفاکتورپرداخت‌شده/تایید شدهرد شده/returnedمبلغ کلمبلغ پرداخت‌شده\n\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tمدیر فروش ماکسیمم #3\n\t\t\t\t\t\t\t\t\t\t\t\t1\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t0\n\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t0 تومان\n\t\t\t\t\t\n\t\t\t\t\t\t\t\n\t\t"
+    ],
+    "text": "\n\t\t\t\n\t\t\t\tعملکرد مدیران فروش\n\t\t\t\t\t\t\n\t\t\tمدیر فروشفروشندهفعاللیدفاکتورپرداخت‌شده/تایید شدهرد شده/returnedمبلغ کلمبلغ پرداخت‌شده\n\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tمدیر فروش ماکسیمم #3\n\t\t\t\t\t\t\t\t\t\t\t\t1\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t0\n\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t0 تومان\n\t\t\t\t\t\n\t\t\t\t\t\t\t\n\t\t\n\t\t\t\t\t\n\t\t\t"
+  },
+  {
+    "buttons": [],
+    "id": "sd-seniors",
+    "tables": [
+      "\n\t\t\tسرپرست ارشدمدیر فروش بالادستیفروشندهفعاللیدفاکتورپرداخت‌شده/تایید شدهرد شده/returnedمبلغ کلمبلغ پرداخت‌شده\n\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tسرپرست ارشد ماکسیمم #4\n\t\t\t\t\t\tمدیر فروش ماکسیمم #3\t\t\t\t\t\t1\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t0\n\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t0 تومان\n\t\t\t\t\t\n\t\t\t\t\t\t\t\n\t\t"
+    ],
+    "text": "\n\t\t\t\n\t\t\t\tعملکرد سرپرست‌های ارشد\n\t\t\t\t\t\t\n\t\t\tسرپرست ارشدمدیر فروش بالادستیفروشندهفعاللیدفاکتورپرداخت‌شده/تایید شدهرد شده/returnedمبلغ کلمبلغ پرداخت‌شده\n\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tسرپرست ارشد ماکسیمم #4\n\t\t\t\t\t\tمدیر فروش ماکسیمم #3\t\t\t\t\t\t1\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t0\n\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t0 تومان\n\t\t\t\t\t\n\t\t\t\t\t\t\t\n\t\t\n\t\t\t\t\t\n\t\t\t"
+  },
+  {
+    "buttons": [],
+    "id": "sd-supervisors",
+    "tables": [
+      "\n\t\t\tسرپرستبالادستیفروشندهفعاللیدفاکتورپرداخت‌شده/تایید شدهرد شده/returnedمبلغ کلمبلغ پرداخت‌شده\n\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tسرپرست ماکسیمم #5\n\t\t\t\t\t\tسرپرست ارشد ماکسیمم #4\t\t\t\t\t\t1\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t0\n\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t0 تومان\n\t\t\t\t\t\n\t\t\t\t\t\t\t\n\t\t"
+    ],
+    "text": "\n\t\t\t\n\t\t\t\tعملکرد سرپرست‌ها\n\t\t\t\t\t\t\n\t\t\tسرپرستبالادستیفروشندهفعاللیدفاکتورپرداخت‌شده/تایید شدهرد شده/returnedمبلغ کلمبلغ پرداخت‌شده\n\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tسرپرست ماکسیمم #5\n\t\t\t\t\t\tسرپرست ارشد ماکسیمم #4\t\t\t\t\t\t1\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t0\n\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t0 تومان\n\t\t\t\t\t\n\t\t\t\t\t\t\t\n\t\t\n\t\t\t\t\t\n\t\t\t"
+  },
+  {
+    "buttons": [],
+    "id": "sd-sellers",
+    "tables": [
+      "\n\t\t\tفروشندهسرپرست بالادستیفروشندهفعاللیدفاکتورپرداخت‌شده/تایید شدهرد شده/returnedمبلغ کلمبلغ پرداخت‌شده\n\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tفروشنده ماکسیمم #6\n\t\t\t\t\t\tسرپرست ماکسیمم #5\t\t\t\t\t\t1\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t0\n\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t0 تومان\n\t\t\t\t\t\n\t\t\t\t\t\t\t\n\t\t"
+    ],
+    "text": "\n\t\t\t\n\t\t\t\tعملکرد فروشنده‌ها\n\t\t\t\t\t\t\n\t\t\tفروشندهسرپرست بالادستیفروشندهفعاللیدفاکتورپرداخت‌شده/تایید شدهرد شده/returnedمبلغ کلمبلغ پرداخت‌شده\n\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\tفروشنده ماکسیمم #6\n\t\t\t\t\t\tسرپرست ماکسیمم #5\t\t\t\t\t\t1\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t1\n\t\t\t\t\t\t0\n\t\t\t\t\t\t0\n\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t0 تومان\n\t\t\t\t\t\n\t\t\t\t\t\t\t\n\t\t\n\t\t\t\t\t\n\t\t\t"
+  },
+  {
+    "buttons": [
+      "انصراف",
+      "اعمال تخصیص",
+      "برگرداندن به پنل من"
+    ],
+    "id": "sd-distribution",
+    "tables": [],
+    "text": "\n\t\t\t\t\t\t\n\t\t\t\n\t\t\t\t\n\t\t\t\t\tتخصیص شماره\n\t\t\t\t\tفرم و آمار تخصیص به‌صورت سبک لود می‌شوند؛ بدون جدول اضافی و بدون رندر سنگین اولیه.\n\t\t\t\t\n\t\t\t\t0 مانده\n\t\t\t\n\t\t\t\n\t\t\t\t0مانده فعلی در پنل\n\t\t\t\t0آماده تخصیص سریع\n\t\t\t\t4گیرنده‌های مجاز\n\t\t\t\t0پرونده فعال\n\t\t\t\t—آخرین تخصیص\n\t\t\t\t—آخرین برگشت\n\t\t\t\n\t\t\t\t\t\tفعلاً شماره‌ای برای تخصیص به شما تحویل نشده است.\t\t\t\n\n\t\t\t\n\t\t\t\t\t\t\t\t\n\t\t\t\t\n\t\t\t\t\n\t\t\t\t\n\t\t\t\t\t👥تخصیص شماره به گیرنده‌های مجازقابل تخصیص: 0\n\t\t\t\t\t\n\t\t\t\t\t\t\n\t\t\t\t\t\t\tروش تخصیصتعداد مشخص به هر گیرنده انتخاب‌شده\n\t\t\t\t\t\t\tتنظیمات تخصیصتعداد شماره به هر گیرنده انتخاب‌شدهیادداشت\n\t\t\t\t\t\t\tفیلتر داده / پروندهانتخاب پرونده / کد دیتا برای تخصیصهمه پرونده‌های تحویل‌شدهفیلتر پرونده روی تخصیص سریع اعمال می‌شود.\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tسطح مقصد تخصیصسطح مقصد تخصیصهمه سطح‌های مجازمدیر فروشسرپرست ارشدسرپرستفروشندههمه سطح‌های مجاز نمایش داده می‌شود. انتخاب همه سطح انتخاب‌شده\n\t\t\t\t\t\t\t\tگیرنده‌های مجازگیرنده‌های مجاز را انتخاب کن. مدیر فروش ماکسیمم #3 / مدیر فروش سرپرست ارشد ماکسیمم #4 / سرپرست ارشد سرپرست ماکسیمم #5 / سرپرست فروشنده ماکسیمم #6 / فروشندهگیرنده‌ای پیدا نشد\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\n\t\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\tانصرافاعمال تخصیص\n\t\t\t\t\n\t\t\t\n\t\t\t\n\t\t\t\tبرگشت تخصیص‌ها به پنل منسبک/مرحله‌ای\n\t\t\t\tاین فرم بدون اسکن کامل جدول لود می‌شود. خود عملیات برگشت هنگام ثبت، موارد امن و غیرتبدیل‌شده را بررسی می‌کند.\n\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\tپرونده / کد دیتاهمه تخصیص‌های قابل برگشت\n\t\t\t\t\tتعداد برگشت\n\t\t\t\t\tیادداشت\n\t\t\t\t\tبرگرداندن به پنل من\n\t\t\t\t\n\t\t\t\n\t\t\n\t\t\t\t\t"
+  },
+  {
+    "buttons": [],
+    "id": "sd-invoices",
+    "tables": [
+      "\n\t\t\t\t\tکد فاکتورفروشندهوضعیتمبلغوضعیت پرداختتاریخ\n\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t89663612\n\t\t\t\t\t\t\t\tفروشنده ماکسیمم\n\t\t\t\t\t\t\t\tپیش‌فاکتور\n\t\t\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t\t\tپیش‌فاکتور\n\t\t\t\t\t\t\t\t1405/07/08 12:31\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t"
+    ],
+    "text": "\n\t\t\t\n\t\t\t\tآخرین فاکتورهای محدوده معاون فروش\n\t\t\t\t\n\t\t\t\t\tکد فاکتورفروشندهوضعیتمبلغوضعیت پرداختتاریخ\n\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t89663612\n\t\t\t\t\t\t\t\tفروشنده ماکسیمم\n\t\t\t\t\t\t\t\tپیش‌فاکتور\n\t\t\t\t\t\t\t\t15,000 تومان\n\t\t\t\t\t\t\t\tپیش‌فاکتور\n\t\t\t\t\t\t\t\t1405/07/08 12:31\n\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\n\t\t\t\n\t\t\t"
+  },
+  {
+    "buttons": [],
+    "id": "sd-wallet",
+    "tables": [],
+    "text": "سابقه تراکنش‌ها\nهنوز تراکنشی در این کیف پول ثبت نشده است.\nسابقه تراکنش‌ها\nهنوز تراکنشی در این کیف پول ثبت نشده است."
+  }
+]

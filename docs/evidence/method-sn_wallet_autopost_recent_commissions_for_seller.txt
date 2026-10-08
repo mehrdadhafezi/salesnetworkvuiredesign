@@ -1,0 +1,38 @@
+35741: 
+35742: 
+35743: 			private function sn_wallet_autopost_recent_commissions_for_seller(int $seller_id, int $limit = 30): array
+35744: 			{
+35745: 				global $wpdb;
+35746: 				$report = ['scanned' => 0, 'created' => 0, 'existing' => 0, 'ready_no_post' => 0, 'no_rule' => 0];
+35747: 				if ($seller_id < 1 || ! $this->sn_table_exists_quiet($wpdb->prefix . 'sn_invoices')) {
+35748: 					return $report;
+35749: 				}
+35750: 				$rows = $this->sn_commission_invoice_rows_for_wallet($seller_id, max(1, min(100, $limit)));
+35751: 				foreach ($rows as $inv) {
+35752: 					$report['scanned']++;
+35753: 					$invoice_id = (int) ($inv['id'] ?? 0);
+35754: 					if ($invoice_id < 1) { continue; }
+35755: 					$payload = $this->sn_commission_engine_wallet_payload($invoice_id, $inv);
+35756: 					$context = (array) ($payload['context'] ?? []);
+35757: 					$resolved_seller = (int) ($context['seller_id'] ?? 0);
+35758: 					$amount = (float) ($payload['commission_amount'] ?? 0);
+35759: 					if ($resolved_seller !== $seller_id || $amount <= 0 || empty($payload['matched_rule_ids'])) {
+35760: 						$report['no_rule']++;
+35761: 						continue;
+35762: 					}
+35763: 					if ($this->sn_wallet_existing_commission_transaction_id($invoice_id, $seller_id)) {
+35764: 						$report['existing']++;
+35765: 						continue;
+35766: 					}
+35767: 					$before = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}sn_wallet_transactions WHERE invoice_id=%d AND user_id=%d AND wallet_type='seller' AND type='commission_engine'", $invoice_id, $seller_id));
+35768: 					$this->sn_credit_wallet_for_invoice($invoice_id, $inv, true);
+35769: 					$after = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}sn_wallet_transactions WHERE invoice_id=%d AND user_id=%d AND wallet_type='seller' AND type='commission_engine'", $invoice_id, $seller_id));
+35770: 					if ($after > $before) {
+35771: 						$report['created'] += ($after - $before);
+35772: 					} else {
+35773: 						$report['ready_no_post']++;
+35774: 					}
+35775: 				}
+35776: 				return $report;
+35777: 			}
+35778: 

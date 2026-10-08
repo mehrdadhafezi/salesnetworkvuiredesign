@@ -1,0 +1,255 @@
+33098: 
+33099: 			public function handle_commission_run_dry_run(): void
+33100: 			{
+33101: 				if (! $this->sn_can_view_finance()) {
+33102: 					wp_die('دسترسی غیرمجاز');
+33103: 				}
+33104: 				check_admin_referer('sn_commission_run_dry_run');
+33105: 				$this->sn_ensure_commission_tables();
+33106: 				global $wpdb;
+33107: 				$runs_table = $wpdb->prefix . 'sn_commission_dry_runs';
+33108: 				$items_table = $wpdb->prefix . 'sn_commission_dry_run_items';
+33109: 				$date_from = sanitize_text_field(wp_unslash($_POST['date_from'] ?? ''));
+33110: 				$date_to = sanitize_text_field(wp_unslash($_POST['date_to'] ?? ''));
+33111: 				$date_from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from) ? $date_from : '';
+33112: 				$date_to = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to) ? $date_to : '';
+33113: 				$filter_position = sanitize_key(wp_unslash($_POST['position'] ?? ''));
+33114: 				$filter_level = sanitize_key(wp_unslash($_POST['level'] ?? ''));
+33115: 				$filter_payment = sanitize_key(wp_unslash($_POST['payment_method'] ?? ''));
+33116: 				$filter_status = sanitize_text_field(wp_unslash($_POST['invoice_status'] ?? 'paid,approved'));
+33117: 				$filter_seller = absint($_POST['seller_id'] ?? 0);
+33118: 				$calculation_mode = sanitize_key(wp_unslash($_POST['calculation_mode'] ?? 'all_matching'));
+33119: 				if (! in_array($calculation_mode, ['all_matching', 'best_match', 'selected_rule'], true)) {
+33120: 					$calculation_mode = 'all_matching';
+33121: 				}
+33122: 				$selected_rule_id = absint($_POST['selected_rule_id'] ?? 0);
+33123: 				$title = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
+33124: 				$run_code = $this->sn_commission_run_code();
+33125: 				$wpdb->insert($runs_table, [
+33126: 					'run_code' => $run_code,
+33127: 					'title' => $title ?: 'پیش‌نمایش پورسانت ' . current_time('mysql'),
+33128: 					'date_from' => $date_from ?: null,
+33129: 					'date_to' => $date_to ?: null,
+33130: 					'status' => 'completed',
+33131: 					'approval_status' => 'generated',
+33132: 					'created_by' => get_current_user_id() ?: null,
+33133: 					'summary_json' => '{}',
+33134: 					'created_at' => current_time('mysql'),
+33135: 				]);
+33136: 				$run_id = (int) $wpdb->insert_id;
+33137: 				if (! $run_id) {
+33138: 					update_option('sn_commission_dry_run_report', ['status' => 'error', 'message' => sanitize_text_field((string) $wpdb->last_error)], false);
+33139: 					wp_safe_redirect(wp_get_referer() ?: home_url('/'));
+33140: 					exit;
+33141: 				}
+33142: 
+33143: 				$invoice_cols = $this->sn_table_columns($wpdb->prefix . 'sn_invoices');
+33144: 				$where = ['1=1'];
+33145: 				$args = [];
+33146: 				if ($date_from !== '') { $where[] = 'i.created_at >= %s'; $args[] = $date_from . ' 00:00:00'; }
+33147: 				if ($date_to !== '') { $where[] = 'i.created_at <= %s'; $args[] = $date_to . ' 23:59:59'; }
+33148: 				if ($filter_seller > 0) { $where[] = 'i.seller_id=%d'; $args[] = $filter_seller; }
+33149: 				if ($filter_status !== '') {
+33150: 					$statuses = array_values(array_filter(array_map('sanitize_key', array_map('trim', explode(',', $filter_status)))));
+33151: 					if ($statuses) {
+33152: 						$where[] = 'i.status IN (' . implode(',', array_fill(0, count($statuses), '%s')) . ')';
+33153: 						$args = array_merge($args, $statuses);
+33154: 					}
+33155: 				}
+33156: 				$args[] = 1000;
+33157: 				$sql = "SELECT i.* FROM {$wpdb->prefix}sn_invoices i WHERE " . implode(' AND ', $where) . " ORDER BY i.id ASC LIMIT %d";
+33158: 				$invoices = $wpdb->get_results($wpdb->prepare($sql, ...$args), ARRAY_A) ?: [];
+33159: 				$daily_attendance_groups = [];
+33160: 				$summary = [
+33161: 					'calculation_mode' => $calculation_mode,
+33162: 					'selected_rule_id' => $selected_rule_id,
+33163: 					'total_items' => 0,
+33164: 					'matched' => 0,
+33165: 					'no_rule' => 0,
+33166: 					'without_seller' => 0,
+33167: 					'without_amount' => 0,
+33168: 					'history_used' => 0,
+33169: 					'history_missing' => 0,
+33170: 					'commission_disabled_by_history' => 0,
+33171: 					'calculated_total' => 0,
+33172: 					'legacy_total' => 0,
+33173: 					'difference_total' => 0,
+33174: 					'by_payment_method' => [],
+33175: 					'by_employment_type' => [],
+33176: 					'issued_by_other_user' => 0,
+33177: 					'daily_attendance_candidates' => 0,
+33178: 					'daily_attendance_qualified' => 0,
+33179: 					'daily_attendance_total' => 0,
+33180: 				];
+33181: 				foreach ($invoices as $invoice_row) {
+33182: 					$context = $this->sn_resolve_invoice_commission_context((int) ($invoice_row['id'] ?? 0), $invoice_row);
+33183: 					if ($filter_payment !== '' && (string) ($context['payment_method_normalized'] ?? '') !== $filter_payment) { continue; }
+33184: 					if ($filter_position !== '' && (string) ($context['seller_hr_position'] ?? '') !== $filter_position) { continue; }
+33185: 					if ($filter_level !== '' && (string) ($context['seller_hr_level'] ?? '') !== $filter_level) { continue; }
+33186: 					$matcher = $this->sn_find_matching_commission_rule($context);
+33187: 					$all_matched_rules = (array) ($matcher['matched_rules'] ?? []);
+33188: 					$matched_rules = $all_matched_rules;
+33189: 					if ($calculation_mode === 'best_match') {
+33190: 						$matched_rules = $all_matched_rules ? [$all_matched_rules[0]] : [];
+33191: 					} elseif ($calculation_mode === 'selected_rule') {
+33192: 						$matched_rules = [];
+33193: 						if ($selected_rule_id > 0) {
+33194: 							foreach ($all_matched_rules as $candidate_rule) {
+33195: 								if ((int) ($candidate_rule['id'] ?? 0) === $selected_rule_id) {
+33196: 									$matched_rules = [$candidate_rule];
+33197: 									break;
+33198: 								}
+33199: 							}
+33200: 						}
+33201: 					}
+33202: 					$matched_rule = $matched_rules[0] ?? null;
+33203: 					$warning_code = '';
+33204: 					if ($calculation_mode === 'selected_rule' && $selected_rule_id < 1) { $warning_code = 'selected_rule_required'; }
+33205: 					if ($calculation_mode === 'selected_rule' && $selected_rule_id > 0 && ! $matched_rules && $all_matched_rules) { $warning_code = 'selected_rule_not_matching_invoice_context'; }
+33206: 					$rule_source = $matched_rules ? ('commission_rules_' . $calculation_mode) : '';
+33207: 					if (! empty($context['compensation_history_id'])) { $summary['history_used']++; } elseif ((int) ($context['seller_id'] ?? 0) > 0) { $summary['history_missing']++; $warning_code = 'no_compensation_history'; }
+33208: 					$matched_rules = $this->sn_commission_apply_hr_override_to_rules($context, $matched_rules);
+33209: 					$matched_rule = $matched_rules[0] ?? null;
+33210: 					if (($context['commission_override_mode'] ?? 'inherit') === 'disabled') {
+33211: 						$warning_code = 'commission_disabled_by_manual_override';
+33212: 						$summary['commission_disabled_by_history']++;
+33213: 					}
+33214: 					foreach ($matched_rules as $daily_candidate_rule) {
+33215: 						$this->sn_commission_collect_daily_attendance_candidate($daily_attendance_groups, $context, $daily_candidate_rule);
+33216: 					}
+33217: 					$amount = (float) ($context['invoice_total'] ?? 0);
+33218: 					$component_result = $this->sn_commission_calculate_rule_components($matched_rules, $amount);
+33219: 					$calculated = (float) ($component_result['total'] ?? 0);
+33220: 					$seller_id = (int) ($context['seller_id'] ?? 0);
+33221: 					$legacy = $seller_id > 0 ? $this->sn_commission_legacy_for_invoice((int) $context['invoice_id'], $seller_id) : null;
+33222: 					$difference = $legacy === null ? null : $calculated - (float) $legacy;
+33223: 					$item_status = $matched_rules ? 'matched' : 'no_rule';
+33224: 					if (! $seller_id) { $item_status = 'missing_seller'; $summary['without_seller']++; }
+33225: 					if ($amount <= 0) { $item_status = 'missing_amount'; $summary['without_amount']++; }
+33226: 					if ($item_status === 'matched') { $summary['matched']++; } elseif ($item_status === 'no_rule') { $summary['no_rule']++; }
+33227: 					$summary['total_items']++;
+33228: 					$summary['calculated_total'] += $calculated;
+33229: 					if ($legacy !== null) { $summary['legacy_total'] += (float) $legacy; }
+33230: 					if ($difference !== null) { $summary['difference_total'] += $difference; }
+33231: 					$pm = (string) ($context['payment_method_normalized'] ?? 'unknown');
+33232: 					$et = (string) (($context['seller_employment_type'] ?? '') ?: 'unknown');
+33233: 					$summary['by_payment_method'][$pm] = (int) ($summary['by_payment_method'][$pm] ?? 0) + 1;
+33234: 					$summary['by_employment_type'][$et] = (int) ($summary['by_employment_type'][$et] ?? 0) + 1;
+33235: 					if ((int) ($context['issued_by_user_id'] ?? 0) > 0 && (int) ($context['issued_by_user_id'] ?? 0) !== $seller_id) { $summary['issued_by_other_user']++; }
+33236: 					$warning_note = $warning_code ?: ($matched_rules ? '' : (implode(',', array_merge((array) ($context['diagnostics'] ?? []), (array) ($matcher['diagnostics'] ?? []))) ?: 'no active matching rule'));
+33237: 					$notes = [
+33238: 						'mode' => 'dry_run_only',
+33239: 						'calculation_date' => (string) ($context['calculation_date'] ?? ''),
+33240: 						'compensation_history_id' => (int) ($context['compensation_history_id'] ?? 0),
+33241: 						'payment_method_normalized' => $pm,
+33242: 						'employment_type' => $et,
+33243: 						'issued_by_user_id' => (int) ($context['issued_by_user_id'] ?? 0),
+33244: 						'rule_source' => $rule_source,
+33245: 						'warning_code' => $warning_note,
+33246: 						'calculation_mode' => $calculation_mode,
+33247: 						'selected_rule_id' => $selected_rule_id,
+33248: 						'all_candidate_rule_ids' => array_values(array_map(static fn($rule) => (int) ($rule['id'] ?? 0), $all_matched_rules)),
+33249: 						'stack_mode' => $calculation_mode,
+33250: 						'matched_rule_ids' => array_values(array_map(static fn($rule) => (int) ($rule['id'] ?? 0), $matched_rules)),
+33251: 						'commission_components' => (array) ($component_result['components'] ?? []),
+33252: 						'rejected_rules' => array_slice((array) ($matcher['rejected_rules'] ?? []), 0, 12),
+33253: 					];
+33254: 					$wpdb->insert($items_table, $this->sn_filter_existing_columns($items_table, [
+33255: 						'run_id' => $run_id,
+33256: 						'invoice_id' => (int) $context['invoice_id'],
+33257: 						'invoice_code' => (string) $context['invoice_code'],
+33258: 						'seller_user_id' => $seller_id,
+33259: 						'issued_by_user_id' => (int) ($context['issued_by_user_id'] ?? 0),
+33260: 						'seller_position' => (string) ($context['seller_hr_position'] ?? ''),
+33261: 						'seller_level' => (string) ($context['seller_hr_level'] ?? ''),
+33262: 						'employment_type' => $et,
+33263: 						'invoice_amount' => $amount,
+33264: 						'payment_method' => $pm,
+33265: 						'invoice_status' => (string) ($context['invoice_status'] ?? ''),
+33266: 						'matched_rule_id' => $matched_rule ? (int) $matched_rule['id'] : null,
+33267: 						'calculated_commission' => $calculated,
+33268: 						'legacy_commission' => $legacy,
+33269: 						'difference_amount' => $difference,
+33270: 						'item_status' => $item_status,
+33271: 						'notes' => wp_json_encode($notes, JSON_UNESCAPED_UNICODE),
+33272: 						'posting_status' => 'pending',
+33273: 						'compensation_history_id' => (int) ($context['compensation_history_id'] ?? 0) ?: null,
+33274: 						'compensation_effective_from' => ! empty($context['compensation_history']['effective_from']) ? (string) $context['compensation_history']['effective_from'] : null,
+33275: 						'compensation_effective_to' => ! empty($context['compensation_history']['effective_to']) ? (string) $context['compensation_history']['effective_to'] : null,
+33276: 						'rule_source' => $rule_source,
+33277: 						'warning_code' => $warning_code ?: null,
+33278: 						'calculation_date' => (string) ($context['calculation_date'] ?? ''),
+33279: 						'created_at' => current_time('mysql'),
+33280: 					]));
+33281: 				}
+33282: 
+33283: 
+33284: 				foreach ($daily_attendance_groups as $group) {
+33285: 					$summary['daily_attendance_candidates']++;
+33286: 					$rule = (array) ($group['rule'] ?? []);
+33287: 					$daily_amount = round(max(0, (float) ($rule['daily_base_amount'] ?? 0)), 2);
+33288: 					if ($daily_amount <= 0 || ! $this->sn_commission_daily_attendance_group_qualifies($group)) {
+33289: 						continue;
+33290: 					}
+33291: 					$summary['daily_attendance_qualified']++;
+33292: 					$summary['daily_attendance_total'] += $daily_amount;
+33293: 					$summary['calculated_total'] += $daily_amount;
+33294: 					$summary['total_items']++;
+33295: 					$summary['matched']++;
+33296: 					$daily_notes = [
+33297: 						'mode' => 'daily_attendance_bonus',
+33298: 						'calculation_date' => (string) ($group['date'] ?? ''),
+33299: 						'first_invoice_time' => (string) ($group['first_time'] ?? ''),
+33300: 						'last_invoice_time' => (string) ($group['last_time'] ?? ''),
+33301: 						'first_invoice_id' => (int) ($group['first_invoice_id'] ?? 0),
+33302: 						'last_invoice_id' => (int) ($group['last_invoice_id'] ?? 0),
+33303: 						'invoice_count' => (int) ($group['invoice_count'] ?? 0),
+33304: 						'attendance_first_before' => $this->sn_commission_time_value($rule['attendance_first_before'] ?? '', '10:30:00'),
+33305: 						'attendance_last_after' => $this->sn_commission_time_value($rule['attendance_last_after'] ?? '', '15:00:00'),
+33306: 						'daily_base_amount' => (float) ($rule['daily_base_amount'] ?? 0),
+33307: 						'matched_rule_ids' => [(int) ($rule['id'] ?? 0)],
+33308: 						'commission_components' => [[
+33309: 							'rule_id' => (int) ($rule['id'] ?? 0),
+33310: 							'rule_title' => (string) ($rule['title'] ?? ('#' . (int) ($rule['id'] ?? 0))),
+33311: 							'calculation_type' => 'daily_attendance_plus_percent',
+33312: 							'rate_percent' => 0,
+33313: 							'fixed_amount' => 0,
+33314: 							'daily_base_amount' => (float) ($rule['daily_base_amount'] ?? 0),
+33315: 							'commission' => $daily_amount,
+33316: 						]],
+33317: 					];
+33318: 					$wpdb->insert($items_table, $this->sn_filter_existing_columns($items_table, [
+33319: 						'run_id' => $run_id,
+33320: 						'invoice_id' => (int) ($group['last_invoice_id'] ?? 0),
+33321: 						'invoice_code' => 'DAILY-' . (string) ($group['date'] ?? '') . '-' . (int) ($group['seller_id'] ?? 0),
+33322: 						'seller_user_id' => (int) ($group['seller_id'] ?? 0),
+33323: 						'issued_by_user_id' => (int) ($group['seller_id'] ?? 0),
+33324: 						'seller_position' => (string) ($group['seller_position'] ?? ''),
+33325: 						'seller_level' => (string) ($group['seller_level'] ?? ''),
+33326: 						'employment_type' => (string) ($group['employment_type'] ?? 'unknown'),
+33327: 						'invoice_amount' => 0,
+33328: 						'payment_method' => 'daily_attendance',
+33329: 						'invoice_status' => 'daily_bonus',
+33330: 						'matched_rule_id' => (int) ($rule['id'] ?? 0) ?: null,
+33331: 						'calculated_commission' => $daily_amount,
+33332: 						'legacy_commission' => null,
+33333: 						'difference_amount' => null,
+33334: 						'item_status' => 'daily_attendance_bonus',
+33335: 						'notes' => wp_json_encode($daily_notes, JSON_UNESCAPED_UNICODE),
+33336: 						'posting_status' => 'pending',
+33337: 						'compensation_history_id' => ! empty($group['compensation_history_id']) ? (int) $group['compensation_history_id'] : null,
+33338: 						'compensation_effective_from' => $group['compensation_effective_from'] ?? null,
+33339: 						'compensation_effective_to' => $group['compensation_effective_to'] ?? null,
+33340: 						'rule_source' => 'commission_rules_daily_attendance',
+33341: 						'warning_code' => null,
+33342: 						'calculation_date' => (string) ($group['date'] ?? ''),
+33343: 						'created_at' => current_time('mysql'),
+33344: 					]));
+33345: 				}
+33346: 
+33347: 				$wpdb->update($runs_table, ['summary_json' => wp_json_encode($summary, JSON_UNESCAPED_UNICODE)], ['id' => $run_id]);
+33348: 				update_option('sn_commission_dry_run_report', array_merge(['status' => 'ok', 'run_id' => $run_id, 'run_code' => $run_code], $summary), false);
+33349: 				wp_safe_redirect(add_query_arg('sn_commission_run_id', (string) $run_id, wp_get_referer() ?: home_url('/')) . '#sn-commission-preview');
+33350: 				exit;
+33351: 			}
+33352: 

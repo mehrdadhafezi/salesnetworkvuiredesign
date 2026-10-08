@@ -1,0 +1,128 @@
+1513: 
+1514: 	private function render_panel( string $type ): string {
+1515: 		if ( ! is_user_logged_in() ) { return '<div class="sn-ops-panel" dir="rtl">برای ورود به پنل ابتدا وارد حساب شوید.</div>'; }
+1516: 		$uid = get_current_user_id();
+1517: 		$allowed = false;
+1518: 		if ( $type === 'manager' ) { $allowed = $this->can_manage_sales( $uid ); }
+1519: 		elseif ( $type === 'supervisor' ) { $allowed = $this->can_supervise_sales( $uid ); }
+1520: 		elseif ( $type === 'expert' ) { $allowed = current_user_can( 'manage_options' ) || current_user_can( 'sn_work_operations_sales' ) || $this->position_for_user( $uid ) === 'operations_sales_expert'; }
+1521: 		elseif ( $type === 'executive' ) { $allowed = $this->can_execute( $uid ); }
+1522: 		if ( ! $allowed ) { return '<div class="sn-ops-panel" dir="rtl">دسترسی به این پنل مجاز نیست.</div>'; }
+1523: 
+1524: 		$titles = [
+1525: 			'manager' => [ 'مدیر فروش عملیات', 'مسیریابی و تخصیص کارت‌ها به سرپرستان فروش عملیات' ],
+1526: 			'supervisor' => [ 'سرپرست فروش عملیات', 'تخصیص کارت‌های دریافتی به کارشناسان زیرمجموعه' ],
+1527: 			'expert' => [ 'کارشناس فروش عملیات', 'پیگیری فعال‌سازی عادی یا افزایشی مشتری' ],
+1528: 			'executive' => [ 'مدیر اجرایی عملیات', 'صف نهایی اجرای کارت‌های عادی و افزایشی' ],
+1529: 		];
+1530: 		$rows = $this->panel_rows( $type, $uid );
+1531: 		$followups = 0; $completed = 0; $actionable = 0; $stages = [];
+1532: 		foreach ( $rows as $row ) {
+1533: 			$stage = (string) $row->stage; $stages[ $stage ] = $this->status_label( $stage );
+1534: 			if ( ! empty( $row->follow_up_at ) && in_array( $stage, [ 'sales_manager_queue', 'sales_supervisor', 'sales_expert', 'upgrade_payment' ], true ) ) { $followups++; }
+1535: 			if ( in_array( $stage, [ 'completed', 'cancelled' ], true ) ) { $completed++; }
+1536: 			$supervisor_work = $type === 'supervisor' && in_array( $stage, [ 'sales_expert', 'upgrade_payment' ], true ) && (int) $row->sales_expert_user_id === $uid;
+1537: 			if ( ( $type === 'manager' && $stage === 'sales_manager_queue' ) || ( $type === 'supervisor' && $stage === 'sales_supervisor' ) || $supervisor_work || ( $type === 'expert' && in_array( $stage, [ 'sales_expert', 'upgrade_payment' ], true ) ) || ( $type === 'executive' && $stage === 'executive_manager_queue' ) ) { $actionable++; }
+1538: 		}
+1539: 		asort( $stages, SORT_NATURAL );
+1540: 		$action_url = esc_url( admin_url( 'admin-post.php' ) );
+1541: 		$is_admin = current_user_can( 'manage_options' );
+1542: 		$all_operations_managers = $is_admin ? $this->operations_users( 'operations_sales_manager' ) : [];
+1543: 		$bulk_enabled = in_array( $type, [ 'manager', 'supervisor' ], true );
+1544: 		$bulk_action = $type === 'manager' ? 'bulk_assign_supervisor' : 'bulk_assign_expert';
+1545: 		$bulk_target_name = $type === 'manager' ? 'supervisor_user_id' : 'expert_user_id';
+1546: 		$bulk_target_label = $type === 'manager' ? 'سرپرست فروش عملیات' : 'کارشناس فروش عملیات';
+1547: 		$bulk_target_position = $type === 'manager' ? 'operations_sales_supervisor' : 'operations_sales_expert';
+1548: 		$bulk_targets = $bulk_enabled ? ( $is_admin ? $this->operations_users( $bulk_target_position ) : $this->direct_reports( $uid, $bulk_target_position ) ) : [];
+1549: 		$bulk_form_id = wp_unique_id( 'sn-ops-bulk-' . $type . '-' . $uid . '-' );
+1550: 		$card_types = [];
+1551: 		foreach ( $rows as $row ) { $card_types[ (int) $row->content_product_id ] = (string) $row->content_name_snapshot; }
+1552: 		asort( $card_types, SORT_NATURAL );
+1553: 		ob_start(); ?>
+1554: 		<div class="sn-ops-panel sn-ops-panel-<?php echo esc_attr( $type ); ?>" dir="rtl">
+1555: 			<header class="sn-ops-hero">
+1556: 				<div class="sn-ops-hero-copy"><span class="sn-ops-eyebrow">چرخه بیاوین</span><h2><?php echo esc_html( $titles[ $type ][0] ); ?></h2><p><?php echo esc_html( $titles[ $type ][1] ); ?></p></div>
+1557: 				<div class="sn-ops-hero-actions">
+1558: 					<div class="sn-ops-hero-count" aria-label="تعداد کارت‌های این نما"><strong><?php echo esc_html( number_format_i18n( count( $rows ) ) ); ?></strong><span>کارت</span></div>
+1559: 					<?php if ( class_exists( 'SN_Purpose_Commission' ) ) { echo SN_Purpose_Commission::render_wallet_launcher( $uid, 'biavin', 20 ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+1560: 					<a class="sn-ops-logout" href="<?php echo esc_url( wp_logout_url( sn_crm_login_url() ) ); ?>"><span aria-hidden="true">↪</span><strong>خروج</strong></a>
+1561: 				</div>
+1562: 			</header>
+1563: 			<?php echo $this->notice_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+1564: 			<section class="sn-ops-kpis" aria-label="خلاصه وضعیت">
+1565: 				<div><span>کل کارت‌ها</span><strong><?php echo esc_html( number_format_i18n( count( $rows ) ) ); ?></strong></div>
+1566: 				<div><span>نیازمند اقدام من</span><strong><?php echo esc_html( number_format_i18n( $actionable ) ); ?></strong></div>
+1567: 				<div><span>تاریخ تماس ثبت‌شده</span><strong><?php echo esc_html( number_format_i18n( $followups ) ); ?></strong></div>
+1568: 				<div><span>مختومه در سوابق</span><strong><?php echo esc_html( number_format_i18n( $completed ) ); ?></strong></div>
+1569: 			</section>
+1570: 		<div class="sn-ops-toolbar"><label><span>جستجو در کارت‌ها</span><input type="search" data-sn-ops-search placeholder="نام، موبایل، کارت یا مدیر فروش…" autocomplete="off"></label><label><span>فیلتر بر اساس مرحله</span><select data-sn-ops-status><option value="">همه مرحله‌ها</option><?php foreach ( $stages as $stage_key => $stage_label ) : ?><option value="<?php echo esc_attr( $stage_key ); ?>"><?php echo esc_html( $stage_label ); ?></option><?php endforeach; ?></select></label><label><span>نتیجه تماس</span><select data-sn-ops-contact-status><option value="">همه نتایج</option><option value="no_answer">جواب نداده</option><option value="follow_up">تماس مجدد</option><option value="cancelled">انصراف</option></select></label><label><span>فیلتر نوع کارت</span><select data-sn-ops-card-filter><option value="">همه کارت‌ها</option><?php foreach ( $card_types as $product_id => $card_name ) : ?><option value="<?php echo esc_attr( (string) $product_id ); ?>"><?php echo esc_html( $card_name ); ?></option><?php endforeach; ?></select></label></div>
+1571: 			<?php if ( $bulk_enabled ) : ?><section class="sn-ops-bulk-bar" data-sn-ops-bulk-bar>
+1572: 				<div class="sn-ops-bulk-selectors"><label class="sn-ops-select-all"><input type="checkbox" data-sn-ops-select-all> انتخاب همه کارت‌های قابل تخصیص در نتایج فعلی</label><button type="button" data-sn-ops-select-visible>انتخاب همه نتایج فیلترشده</button><button type="button" class="is-secondary" data-sn-ops-clear-selection>پاک‌کردن انتخاب‌ها</button><span><strong data-sn-ops-selected-count>۰</strong> کارت انتخاب شده</span></div>
+1573: 				<form id="<?php echo esc_attr( $bulk_form_id ); ?>" method="post" action="<?php echo $action_url; ?>" class="sn-ops-bulk-form" data-sn-ops-bulk-form>
+1574: 					<input type="hidden" name="action" value="sn_operations_staff_action"><input type="hidden" name="operation_action" value="<?php echo esc_attr( $bulk_action ); ?>"><?php wp_nonce_field( 'sn_operations_bulk_assign' ); ?>
+1575: 					<select name="<?php echo esc_attr( $bulk_target_name ); ?>" data-sn-ops-bulk-target required <?php disabled( ! $bulk_targets ); ?>><option value="">انتخاب <?php echo esc_html( $bulk_target_label ); ?></option><?php foreach ( $bulk_targets as $target ) : ?><option value="<?php echo esc_attr( (string) $target->ID ); ?>"><?php echo esc_html( (string) $target->display_name ); ?></option><?php endforeach; ?></select>
+1576: 					<button type="submit" data-sn-ops-bulk-submit disabled>تخصیص گروهی</button><?php if ( ! $bulk_targets ) : ?><small>ابتدا نیروی زیرمجموعه را در HR تعریف کنید.</small><?php endif; ?>
+1577: 				</form>
+1578: 			</section><?php endif; ?>
+1579: 			<?php if ( $type === 'executive' && class_exists( 'SN_Operations_Execution' ) ) { echo SN_Operations_Execution::instance()->render_manager_bulk( $rows, $uid, $bulk_form_id ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+1580: 			<div class="sn-ops-list" data-sn-ops-list>
+1581: 				<?php if ( ! $rows ) : ?><div class="sn-ops-empty">کارت فعالی در این صف نیست.</div><?php endif; ?>
+1582: 				<?php foreach ( $rows as $row ) :
+1583: 					$nonce = wp_nonce_field( 'sn_operations_staff_' . (int) $row->id, '_wpnonce', true, false );
+1584: 					$options = json_decode( (string) $row->upgrade_options_snapshot_json, true ); $options = is_array( $options ) ? $options : [];
+1585: 					$bulk_selectable = ( $type === 'manager' && (string) $row->stage === 'sales_manager_queue' && (int) $row->operations_sales_manager_user_id > 0 ) || ( $type === 'supervisor' && (string) $row->stage === 'sales_supervisor' );
+1586: 					$contact_status = sanitize_key( (string) ( $row->contact_status ?? '' ) );
+1587: 					if ( $contact_status === '' ) {
+1588: 						// Existing rows predate the dedicated contact_status column. Infer only
+1589: 						// for display/filtering; no historic workflow data is rewritten.
+1590: 						if ( (string) $row->stage === 'cancelled' ) { $contact_status = 'cancelled'; }
+1591: 						elseif ( ! empty( $row->follow_up_at ) ) { $contact_status = 'follow_up'; }
+1592: 						elseif ( (int) $row->no_answer_count > 0 ) { $contact_status = 'no_answer'; }
+1593: 					}
+1594: 					$search = implode( ' ', [ $row->customer_name, $row->customer_phone, $row->content_name_snapshot, $row->subscription_name_snapshot, $row->source_sales_manager_name, $row->operations_manager_name, $row->supervisor_name, $row->expert_name ] );
+1595: 					$search = function_exists( 'mb_strtolower' ) ? mb_strtolower( $search, 'UTF-8' ) : strtolower( $search );
+1596: 				?>
+1597: 				<article class="sn-ops-case" data-sn-ops-card data-search="<?php echo esc_attr( $search ); ?>" data-status="<?php echo esc_attr( (string) $row->stage ); ?>" data-contact-status="<?php echo esc_attr( $contact_status ); ?>" data-card-type="<?php echo esc_attr( (string) (int) $row->content_product_id ); ?>">
+1598: 					<div class="sn-ops-case-head">
+1599: 						<div class="sn-ops-case-title"><?php if ( $bulk_selectable ) : ?><label class="sn-ops-card-select"><input type="checkbox" name="operation_ids[]" value="<?php echo esc_attr( (string) $row->id ); ?>" form="<?php echo esc_attr( $bulk_form_id ); ?>" data-sn-ops-bulk-checkbox><span>انتخاب</span></label><?php endif; ?><div class="sn-ops-case-summary-copy"><small class="sn-ops-case-reference">#<?php echo esc_html( (string) $row->id ); ?> · <?php echo esc_html( (string) $row->subscription_name_snapshot ); ?></small><h3><span>کارت</span><?php echo esc_html( (string) $row->content_name_snapshot ); ?></h3><div class="sn-ops-customer-identity"><span><small>مشتری</small><strong><?php echo esc_html( (string) $row->customer_name ); ?></strong></span><span><small>شماره تماس</small><a dir="ltr" href="tel:<?php echo esc_attr( (string) $row->customer_phone ); ?>"><?php echo esc_html( (string) $row->customer_phone ); ?></a></span><?php $header_credit = max( 0, (float) ( (string) $row->activation_mode === 'upsell' ? $row->current_credit : $row->base_credit ) ); if ( $header_credit > 0 ) : ?><span class="sn-ops-customer-credit"><small>اعتبار</small><strong><?php echo esc_html( SN_Helpers::format_price( $header_credit ) ); ?></strong></span><?php endif; ?></div></div></div>
+1600: 						<div class="sn-ops-badges"><b><?php echo esc_html( $this->status_label( (string) $row->stage ) ); ?></b><?php if ( (string) $row->activation_mode !== '' ) : ?><em class="is-<?php echo esc_attr( (string) $row->activation_mode ); ?>"><?php echo esc_html( $this->mode_label( $row ) ); ?></em><?php endif; ?></div>
+1601: 					</div>
+1602: 					<div class="sn-ops-route-line">
+1603: 						<span><small>مدیر فروش مبدأ</small><strong><?php echo esc_html( (string) ( $row->source_sales_manager_name ?: 'نامشخص' ) ); ?></strong></span>
+1604: 						<span><small>مدیر فروش عملیات</small><strong><?php echo esc_html( (string) ( $row->operations_manager_name ?: 'تعیین نشده' ) ); ?></strong></span>
+1605: 						<span><small>سرپرست عملیات</small><strong><?php echo esc_html( (string) ( $row->supervisor_name ?: 'تخصیص نشده' ) ); ?></strong></span>
+1606: 						<span><small>کارشناس عملیات</small><strong><?php echo esc_html( (string) ( $row->expert_name ?: 'تخصیص نشده' ) ); ?></strong></span>
+1607: 					</div>
+1608: 					<div class="sn-ops-credit"><?php if ( (float) $row->base_credit > 0 ) : ?><span>اعتبار عادی <strong><?php echo esc_html( SN_Helpers::format_price( (float) $row->base_credit ) ); ?></strong></span><?php else : ?><span><strong>مسیر افزایشی</strong></span><?php endif; ?><?php if ( (float) $row->current_credit > 0 ) : ?><span>اعتبار جاری <strong><?php echo esc_html( SN_Helpers::format_price( (float) $row->current_credit ) ); ?></strong></span><?php endif; ?><span>ورود به چرخه <strong><?php echo esc_html( $this->jalali_datetime( (string) $row->activated_at ) ); ?></strong></span><?php if ( (int) $row->no_answer_count ) : ?><span>جواب نداده <strong><?php echo esc_html( number_format_i18n( (int) $row->no_answer_count ) ); ?> بار</strong></span><?php endif; ?></div>
+1609: 					<div class="sn-ops-route-caption">مبنای مسیر: <?php echo esc_html( $this->routing_label( (string) ( $row->routing_source ?? 'legacy' ) ) ); ?></div>
+1610: 					<?php if ( ! empty( $row->follow_up_at ) ) : ?><div class="sn-ops-followup-current"><strong>تاریخ تماس مجدد:</strong> <?php echo esc_html( $this->jalali_date( (string) $row->follow_up_at ) ); ?></div><?php endif; ?>
+1611: 					<?php $chat_is_mine = in_array( $type, [ 'expert', 'supervisor' ], true ) && (int) $row->sales_expert_user_id === $uid; if ( $chat_is_mine ) : ?>
+1612: 						<div class="sn-ops-chat-entry"><div><strong>گفت‌وگو با چرخه فروش</strong><small>طرف فروش: آخرین صادرکننده فاکتور اشتراک این پرونده</small></div><button type="button" class="sn-project-chat-btn sn-ops-chat-button" data-membership="<?php echo esc_attr( (string) $row->membership_id ); ?>" data-item="<?php echo esc_attr( (string) $row->membership_item_id ); ?>">چت با فروش</button></div>
+1613: 					<?php endif; ?>
+1614: 
+1615: 					<?php if ( $type === 'manager' ) : ?>
+1616: 						<?php if ( (string) $row->stage === 'sales_manager_queue' && $is_admin && (int) $row->operations_sales_manager_user_id < 1 ) : ?>
+1617: 							<div class="sn-ops-warning">برای این کارت مسیر مدیر فروش عملیات تنظیم نشده است.</div>
+1618: 							<form method="post" action="<?php echo $action_url; ?>" class="sn-ops-form"><input type="hidden" name="action" value="sn_operations_staff_action"><input type="hidden" name="operation_id" value="<?php echo esc_attr( (string) $row->id ); ?>"><input type="hidden" name="operation_action" value="route_manager"><?php echo $nonce; // phpcs:ignore ?><select name="operations_manager_user_id" required><option value="">انتخاب مدیر فروش عملیات</option><?php foreach ( $all_operations_managers as $manager ) : ?><option value="<?php echo esc_attr( (string) $manager->ID ); ?>"><?php echo esc_html( (string) $manager->display_name ); ?></option><?php endforeach; ?></select><button type="submit">ثبت مسیر کارت</button></form>
+1619: 						<?php elseif ( (string) $row->stage === 'sales_manager_queue' ) : $manager_id = (int) $row->operations_sales_manager_user_id ?: $uid; $supervisors = $this->direct_reports( $manager_id, 'operations_sales_supervisor' ); ?>
+1620: 							<form method="post" action="<?php echo $action_url; ?>" class="sn-ops-form"><input type="hidden" name="action" value="sn_operations_staff_action"><input type="hidden" name="operation_id" value="<?php echo esc_attr( (string) $row->id ); ?>"><input type="hidden" name="operation_action" value="assign_supervisor"><?php echo $nonce; // phpcs:ignore ?><select name="supervisor_user_id" required <?php disabled( ! $supervisors ); ?>><option value="">انتخاب سرپرست فروش عملیات</option><?php foreach ( $supervisors as $supervisor ) : ?><option value="<?php echo esc_attr( (string) $supervisor->ID ); ?>"><?php echo esc_html( (string) $supervisor->display_name ); ?></option><?php endforeach; ?></select><button type="submit" <?php disabled( ! $supervisors ); ?>>تخصیص به سرپرست</button><?php if ( ! $supervisors ) : ?><small>ابتدا در HR یک سرپرست عملیات زیرمجموعه این مدیر تعریف کنید.</small><?php endif; ?></form>
+1621: 						<?php endif; ?>
+1622: 						<?php echo $this->render_followup_editor( $row, $action_url, $nonce ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+1623: 					<?php elseif ( $type === 'supervisor' ) : ?>
+1624: 						<?php if ( (string) $row->stage === 'sales_supervisor' ) : $experts = $this->direct_reports( (int) $row->sales_supervisor_user_id, 'operations_sales_expert' ); ?>
+1625: 							<div class="sn-ops-assignment-options"><form method="post" action="<?php echo $action_url; ?>" class="sn-ops-form"><input type="hidden" name="action" value="sn_operations_staff_action"><input type="hidden" name="operation_id" value="<?php echo esc_attr( (string) $row->id ); ?>"><input type="hidden" name="operation_action" value="assign_expert"><?php echo $nonce; // phpcs:ignore ?><select name="expert_user_id" required <?php disabled( ! $experts ); ?>><option value="">انتخاب کارشناس فروش عملیات</option><?php foreach ( $experts as $expert ) : ?><option value="<?php echo esc_attr( (string) $expert->ID ); ?>"><?php echo esc_html( (string) $expert->display_name ); ?></option><?php endforeach; ?></select><button type="submit" <?php disabled( ! $experts ); ?>>تخصیص به کارشناس</button><?php if ( ! $experts ) : ?><small>کارشناس زیرمجموعه تعریف نشده؛ می‌توانید پرونده را خودتان بردارید.</small><?php endif; ?></form><form method="post" action="<?php echo $action_url; ?>" class="sn-ops-form is-inline sn-ops-self-assign"><input type="hidden" name="action" value="sn_operations_staff_action"><input type="hidden" name="operation_id" value="<?php echo esc_attr( (string) $row->id ); ?>"><input type="hidden" name="operation_action" value="assign_self"><?php echo $nonce; // phpcs:ignore ?><button type="submit">تخصیص پرونده به خودم</button></form></div>
+1626: 						<?php endif; ?>
+1627: 						<?php $supervisor_self_work = (int) $row->sales_supervisor_user_id === $uid && (int) $row->sales_expert_user_id === $uid; if ( ! $supervisor_self_work ) { echo $this->render_followup_editor( $row, $action_url, $nonce ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+1628: 						<?php if ( $supervisor_self_work ) { echo $this->render_case_work_actions( $row, $options, $action_url, $nonce ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+1629: 					<?php elseif ( $type === 'expert' ) : ?>
+1630: 						<?php echo $this->render_case_work_actions( $row, $options, $action_url, $nonce ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+1631: 					<?php elseif ( $type === 'executive' && class_exists( 'SN_Operations_Execution' ) ) : ?>
+1632: 						<?php echo SN_Operations_Execution::instance()->render_manager_case( $row, $uid, $bulk_form_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+1633: 					<?php endif; ?>
+1634: 				</article>
+1635: 				<?php endforeach; ?>
+1636: 				<div class="sn-ops-empty" data-sn-ops-no-results hidden>نتیجه‌ای با عبارت جستجو پیدا نشد.</div>
+1637: 			</div>
+1638: 		</div>
+1639: 		<?php return (string) ob_get_clean();
+1640: 	}

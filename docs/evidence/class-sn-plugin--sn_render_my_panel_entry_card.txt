@@ -1,0 +1,71 @@
+7398: 
+7399: 	private function sn_render_my_panel_entry_card(array $resolved, string $shortcode): string
+7400: 	{
+7401: 		$user = wp_get_current_user();
+7402: 		$panel_label = (string) ($resolved['panel_label'] ?? 'پنل من');
+7403: 		$panel_url = $this->sn_resolved_panel_portal_url($resolved);
+7404: 		$button_label = $panel_url !== '' ? 'ورود به ' . $panel_label : 'پنل اختصاصی در دسترس نیست';
+7405: 		$extra_links = [];
+7406: 		if (current_user_can('manage_options')) {
+7407: 			foreach (['customer' => 'پروفایل مشتری'] as $key => $label) {
+7408: 				if ($this->sn_portal_can_access_nav_item($key)) {
+7409: 					$url = $this->sn_portal_page_url($key);
+7410: 					if ($url !== '' && $url !== $panel_url) {
+7411: 						$extra_links[] = ['label' => $label, 'url' => $url];
+7412: 					}
+7413: 				}
+7414: 			}
+7415: 		}
+7416: 		ob_start();
+7417: 		?>
+7418: 		<div class="sn-panel sn-no-sidebar sn-portal sn-my-panel-entry" dir="rtl">
+7419: 			<div class="sn-portal-entry-card">
+7420: 				<div>
+7421: 					<h2>داشبورد من</h2>
+7422: 					<p class="sn-muted">سلام <?php echo esc_html($this->sn_user_label((int) $user->ID)); ?>، مسیر پنل شما شناسایی شد.</p>
+7423: 					<div class="sn-portal-entry-detected">
+7424: 						<span>پنل شناسایی‌شده</span>
+7425: 						<strong><?php echo esc_html($panel_label); ?></strong>
+7426: 					</div>
+7427: 				</div>
+7428: 				<div class="sn-portal-entry-actions">
+7429: 					<?php if ($panel_url !== '') : ?>
+7430: 						<a class="sn-btn sn-btn-primary" href="<?php echo esc_url($panel_url); ?>"><?php echo esc_html($button_label); ?></a>
+7431: 					<?php else : ?>
+7432: 						<div class="sn-notice sn-info">پنل اختصاصی این سمت هنوز ساخته نشده است.</div>
+7433: 					<?php endif; ?>
+7434: 					<?php if (get_option('sn_my_password_page_id')) : ?><a class="sn-btn sn-btn-secondary" href="<?php echo esc_url(get_permalink((int) get_option('sn_my_password_page_id'))); ?>">رمز من</a><?php endif; ?>
+7435: 					<?php if ($extra_links) : ?>
+7436: 						<div class="sn-portal-entry-links">
+7437: 							<?php foreach ($extra_links as $link) : ?>
+7438: 								<a href="<?php echo esc_url((string) $link['url']); ?>"><?php echo esc_html((string) $link['label']); ?></a>
+7439: 							<?php endforeach; ?>
+7440: 						</div>
+7441: 					<?php endif; ?>
+7442: 				</div>
+7443: 			</div>
+7444: 			<?php if ($panel_url === '') : ?>
+7445: 				<div class="sn-card"><p class="sn-muted">اگر مسیر پنل اشتباه است، سمت HR کاربر را در پنل منابع انسانی یا ابزارهای یکپارچه‌سازی بررسی کنید.</p></div>
+7446: 			<?php endif; ?>
+7447: 			<?php if (current_user_can('manage_options')) : ?>
+7448: 				<details class="sn-card sn-advanced">
+7449: 					<summary>جزئیات فنی مسیر پنل</summary>
+7450: 					<table class="sn-table">
+7451: 						<tbody>
+7452: 							<tr><th>کاربر</th><td><?php echo esc_html($this->sn_user_label(get_current_user_id())); ?></td></tr>
+7453: 							<tr><th>نقش‌های وردپرس</th><td><?php echo esc_html(implode(', ', (array) ($resolved['wp_roles'] ?? []))); ?></td></tr>
+7454: 							<tr><th>legacy_role</th><td><code><?php echo esc_html((string) ($resolved['legacy_role'] ?? '')); ?></code></td></tr>
+7455: 							<tr><th>سمت HR</th><td><code><?php echo esc_html((string) ($resolved['position_slug'] ?? '')); ?></code></td></tr>
+7456: 							<tr><th>سطح HR</th><td><code><?php echo esc_html((string) ($resolved['level_slug'] ?? '')); ?></code></td></tr>
+7457: 							<tr><th>panel_key</th><td><code><?php echo esc_html((string) ($resolved['panel_key'] ?? '')); ?></code></td></tr>
+7458: 							<tr><th>shortcode</th><td><code><?php echo esc_html($shortcode); ?></code></td></tr>
+7459: 							<tr><th>route_type</th><td><code><?php echo esc_html((string) ($resolved['route_type'] ?? '')); ?></code></td></tr>
+7460: 							<tr><th>panel_url</th><td><?php echo $panel_url !== '' ? esc_html($panel_url) : '—'; ?></td></tr>
+7461: 						</tbody>
+7462: 					</table>
+7463: 				</details>
+7464: 			<?php endif; ?>
+7465: 		</div>
+7466: 		<?php
+7467: 		return ob_get_clean();
+7468: 	}

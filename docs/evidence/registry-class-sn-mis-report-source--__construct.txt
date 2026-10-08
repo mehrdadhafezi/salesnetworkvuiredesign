@@ -1,0 +1,20 @@
+6:     public function __construct() {
+7:         global $wpdb; $this->db = $wpdb;
+8:         if (!is_user_logged_in()) { throw new RuntimeException('ورود به حساب لازم است.'); }
+9:         $svc = new SN_Scope_Service(); $uid = get_current_user_id();
+10:         $position = $svc->get_viewer_position_slug($uid);
+11:         if (!current_user_can('manage_options') && !in_array($position, array_merge(['mis'],array_keys(SN_MIS_Report_Model::ROLES)), true)) { throw new RuntimeException('مجوز مشاهده گزارش MIS ندارید.'); }
+12:         $p = $wpdb->prefix;
+13:         $profiles = $this->query("SELECT h.id,h.user_id,h.is_active,pos.slug,u.display_name FROM {$p}sn_hr_profiles h JOIN {$p}sn_hr_positions pos ON pos.id=h.position_id JOIN {$wpdb->users} u ON u.ID=h.user_id");
+14:         $profile_users = [];
+15:         foreach ($profiles as $h) { $profile_users[$h['id']] = (int)$h['user_id']; $this->people[(int)$h['user_id']] = ['id'=>(int)$h['user_id'],'name'=>$h['display_name'],'role'=>$h['slug'],'active'=>(int)$h['is_active'],'parent'=>0]; }
+16:         foreach ($this->query("SELECT child_profile_id,parent_profile_id FROM {$p}sn_hr_assignments WHERE is_current=1 AND relationship_type='reports_to' ORDER BY id") as $a) {
+17:             $child = $profile_users[$a['child_profile_id']] ?? 0;
+18:             if ($child) { $this->people[$child]['parent'] = $profile_users[$a['parent_profile_id']] ?? 0; }
+19:         }
+20:         if (!current_user_can('manage_options') && isset($this->people[$uid]) && !$this->people[$uid]['active']) { throw new RuntimeException('حساب سازمانی غیرفعال است.'); }
+21:         $this->allowed = current_user_can('manage_options') || $position === 'mis' ? null : $this->descendants($uid);
+22:         if ($this->allowed !== null && $position !== 'seller' && !isset($this->people[$uid])) { $this->allowed = []; }
+23:         $this->scope_hash = hash('sha256', wp_json_encode([$uid,$position,$this->allowed,$this->people,current_user_can('manage_options')]));
+24:     }
+25:     public function descendants(int $id): array {

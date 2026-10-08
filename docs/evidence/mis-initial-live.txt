@@ -1,0 +1,58 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل MIS" [level=1]
+  - heading "پنل MIS" [level=2]
+  - generic: کاربر
+  - strong: "MIS ماکسیمم #7"
+  - generic: "MIS | #7"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - button "👥 کار امروز"
+  - button "🧾 آپلود فایل"
+  - button "📊 تخصیص / برگشت"
+  - button "💼 تحویل به فروش"
+  - button "💳 گزارش شماره‌ها"
+  - button "⚙️ پرونده‌ها"
+  - button "• ابزار سریع"
+  - button "• برنامه پخش"
+  - button "• ساخت لید"
+  - button "• لاگ و عیب‌یابی"
+  - link "• گزارش‌های MIS":
+    - /url: /crm-mis/?sn_ui_active_tab=mis-report#mis-report
+  - generic "4.5 تخصیص سریع دیتا":
+    - generic: "4.5"
+    - strong: تخصیص سریع دیتا
+  - paragraph: برای مواقعی که می‌خواهید یک پرونده را مستقیم به یک گیرنده مجاز بدهید. این مسیر برای کار عملیاتی سریع است؛ اگر می‌خواهید مسیر کامل مدیر ← سرپرست ← فروشنده طی شود از تب «آماده‌سازی و تحویل» استفاده کنید.
+  - generic "نتیجه آخرین تخصیص سریع"
+  - paragraph: "تخصیص سریع MIS: کل 1، معتبر 1، واجد شرایط 1، آیتم ساخته‌شده 1."
+  - generic: "تعداد آیتم پخش ساخته‌شده: 1"
+  - text: پرونده
+  - combobox "پرونده":
+    - option "انتخاب پرونده" [selected]
+    - option "MIS-20260825-R7IX – پرونده تستی"
+  - text: گیرنده
+  - combobox "گیرنده":
+    - option "انتخاب گیرنده" [selected]
+    - 'option "معاون فروش ماکسیمم #2 / معاون فروش"'
+    - 'option "مدیر فروش ماکسیمم #3 / مدیر فروش"'
+    - 'option "سرپرست ارشد ماکسیمم #4 / سرپرست ارشد"'
+    - 'option "سرپرست ماکسیمم #5 / سرپرست"'
+    - 'option "فروشنده ماکسیمم #6 / فروشنده"'
+  - text: حداکثر تعداد
+  - spinbutton "حداکثر تعداد": "100"
+  - text: دلیل
+  - textbox "دلیل": تخصیص سریع توسط MIS
+  - button "پیش‌نمایش بدون ذخیره"
+  - button "ثبت تخصیص سریع"
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

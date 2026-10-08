@@ -1,0 +1,53 @@
+18743: 
+18744: 	public function handle_hr_bulk_inline_profile_update(): void
+18745: 	{
+18746: 		if (! $this->sn_can_manage_hr_panel()) { wp_die('دسترسی غیرمجاز'); }
+18747: 		check_admin_referer('sn_hr_bulk_inline_profile_update');
+18748: 		if (class_exists('SN_Migration_Service')) { (new SN_Migration_Service())->migrate(); }
+18749: 		$rows = is_array($_POST['rows'] ?? null) ? (array) $_POST['rows'] : [];
+18750: 		$selected_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($_POST['user_ids'] ?? [])))));
+18751: 		$visible_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($_POST['visible_user_ids'] ?? [])))));
+18752: 		$scope = sanitize_key(wp_unslash($_POST['save_scope'] ?? 'selected'));
+18753: 		$target_ids = $scope === 'visible' ? $visible_ids : $selected_ids;
+18754: 		$mode = sanitize_key(wp_unslash($_POST['run_mode'] ?? 'apply'));
+18755: 		$dry_run = false;
+18756: 		$include_compensation = ! empty($_POST['save_compensation_fields']);
+18757: 		$report = [
+18758: 			'action' => 'hr_bulk_inline_profile_update',
+18759: 			'mode' => $dry_run ? 'dry_run' : 'apply',
+18760: 			'scope' => $scope,
+18761: 			'include_compensation' => $include_compensation,
+18762: 			'selected_count' => count($target_ids),
+18763: 			'changed_count' => 0,
+18764: 			'errors' => [],
+18765: 			'items' => [],
+18766: 			'message' => '',
+18767: 			'updated_at' => current_time('mysql'),
+18768: 		];
+18769: 		if (! $target_ids) { $report['errors'][] = 'no_users_selected_or_visible'; }
+18770: 		if (empty($report['errors'])) {
+18771: 			foreach ($target_ids as $uid) {
+18772: 				$row = $rows[$uid] ?? $rows[(string) $uid] ?? null;
+18773: 				if (! is_array($row)) {
+18774: 					$report['errors'][] = '#' . $uid . ':row_payload_missing';
+18775: 					continue;
+18776: 				}
+18777: 				$payload = $this->sn_hr_workforce_payload_from_row_post($row, $include_compensation);
+18778: 				$item = $this->sn_hr_apply_workforce_update($uid, $payload, $dry_run, 'hr_bulk_inline_save');
+18779: 				$report['items'][] = [
+18780: 					'user_id' => $uid,
+18781: 					'errors' => $item['errors'] ?? [],
+18782: 					'messages' => $item['messages'] ?? [],
+18783: 					'changed' => ! empty($item['changed']),
+18784: 				];
+18785: 				if (! empty($item['changed'])) { $report['changed_count']++; }
+18786: 				foreach ((array) ($item['errors'] ?? []) as $error) { $report['errors'][] = '#' . $uid . ':' . $error; }
+18787: 			}
+18788: 		}
+18789: 		$report['message'] = empty($report['errors']) ? ($dry_run ? 'Dry-run ذخیره انجام شد؛ داده‌ای ذخیره نشد.' : 'ذخیره ردیف انجام شد.') : 'ذخیره کامل نشد.';
+18790: 		update_option('sn_hr_bulk_inline_update_report', $report, false);
+18791: 		if (wp_doing_ajax()) { wp_send_json(['success' => empty($report['errors']), 'message' => (string) $report['message'], 'report' => $report]); }
+18792: 		wp_safe_redirect($this->sn_hr_panel_return_url(['sn_msg' => empty($report['errors']) ? 'hr_bulk_inline_done' : 'hr_profile_action_error']) . '#hr-workforce');
+18793: 		exit;
+18794: 	}
+18795: 

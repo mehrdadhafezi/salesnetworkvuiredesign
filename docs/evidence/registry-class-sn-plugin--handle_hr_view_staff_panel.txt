@@ -1,0 +1,26 @@
+2286: 
+2287: 	public function handle_hr_view_staff_panel(): void
+2288: 	{
+2289: 		if (! $this->sn_can_manage_hr_panel() || $this->sn_staff_view_data()) { wp_die('دسترسی غیرمجاز'); }
+2290: 		$target_id = absint($_POST['user_id'] ?? 0);
+2291: 		check_admin_referer('sn_hr_view_staff_panel_' . $target_id);
+2292: 		$target = get_user_by('id', $target_id);
+2293: 		if (! $target || $target_id === get_current_user_id() || user_can($target, 'manage_options')
+2294: 			|| ! $this->sn_hr_is_internal_user_id($target_id) || ! class_exists('SN_HR_Service')) {
+2295: 			wp_die('پنل این نیرو در دسترس نیست.');
+2296: 		}
+2297: 		$resolved = (new SN_HR_Service())->resolve_panel_for_user($target_id);
+2298: 		$url = $this->sn_resolved_panel_portal_url($resolved);
+2299: 		if ($url === '' || (string) ($resolved['route_type'] ?? '') === 'placeholder') { wp_die('پنل این نیرو در دسترس نیست.'); }
+2300: 		$token = bin2hex(random_bytes(32));
+2301: 		set_transient('sn_staff_view_' . hash('sha256', $token), [
+2302: 			'actor' => get_current_user_id(), 'target' => $target_id,
+2303: 		], 30 * MINUTE_IN_SECONDS);
+2304: 		$this->sn_staff_view_cookie($token, time() + 30 * MINUTE_IN_SECONDS);
+2305: 		wp_clear_auth_cookie();
+2306: 		wp_set_current_user($target_id);
+2307: 		wp_set_auth_cookie($target_id, false, is_ssl());
+2308: 		wp_safe_redirect($url);
+2309: 		exit;
+2310: 	}
+2311: 

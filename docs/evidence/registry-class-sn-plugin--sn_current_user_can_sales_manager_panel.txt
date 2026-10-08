@@ -1,0 +1,12 @@
+13403: 	private function sn_current_user_can_sales_manager_panel(): bool
+13404: 	{
+13405: 		if (! is_user_logged_in()) { return false; }
+13406: 		$user = wp_get_current_user();
+13407: 		$user_id = (int) ($user->ID ?? 0);
+13408: 		if ($user_id < 1) { return false; }
+13409: 		if (current_user_can('manage_options') || current_user_can('sn_view_sales_reports')) { return true; }
+13410: 		$roles = (array) ($user->roles ?? []);
+13411: 		if (in_array('sn_sales_manager', $roles, true)) { return true; }
+13412: 		return $this->sn_fast_hr_position_for_user($user_id) === 'sales_manager';
+13413: 	}
+13414: 

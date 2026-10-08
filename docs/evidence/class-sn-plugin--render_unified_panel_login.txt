@@ -1,0 +1,35 @@
+7970: 
+7971: 	private function render_unified_panel_login(): string
+7972: 	{
+7973: 		$redirect = $this->sn_current_url();
+7974: 		$err = sanitize_text_field(wp_unslash($_GET['sn_err'] ?? ''));
+7975: 		$errors = [
+7976: 			'empty' => 'نام کاربری/موبایل یا رمز عبور خالی است.',
+7977: 			'notfound' => 'کاربری با این مشخصات یافت نشد.',
+7978: 			'wrongpass' => 'رمز عبور اشتباه است.',
+7979: 			'rate_limited' => 'تعداد تلاش‌ها زیاد است. لطفاً کمی بعد دوباره تلاش کنید.',
+7980: 			'duplicate_mobile' => 'این شماره موبایل برای چند کاربر ثبت شده است. با مدیر سیستم تماس بگیرید.',
+7981: 			'no_panel' => 'برای این کاربر پنل CRM مشخص نشده است. سمت/سطح HR را بررسی کنید.',
+7982: 		];
+7983: 		ob_start();
+7984: 		?>
+7985: 		<div class="sn-auth-wrap" dir="rtl">
+7986: 			<div class="sn-auth-logo">
+7987: 				<h2>ورود به پنل</h2>
+7988: 				<p>برای ورود به پنل، ابتدا وارد حساب کاربری شوید.</p>
+7989: 			</div>
+7990: 			<div class="sn-auth-card">
+7991: 				<?php if ($err) : ?><div class="sn-auth-error"><?php echo esc_html($errors[$err] ?? 'خطا رخ داد.'); ?></div><?php endif; ?>
+7992: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+7993: 					<input type="hidden" name="action" value="sn_my_panel_login">
+7994: 					<input type="hidden" name="redirect" value="<?php echo esc_attr($redirect); ?>">
+7995: 					<div class="sn-field"><label>شماره موبایل / نام کاربری / ایمیل</label><input type="text" name="phone" required autocomplete="username"><small class="sn-muted">برای ورود می‌توانید شماره موبایل ثبت‌شده خود را وارد کنید.</small></div>
+7996: 					<div class="sn-field"><label>رمز عبور</label><input type="password" name="password" required autocomplete="current-password"></div>
+7997: 					<button type="submit" class="sn-auth-submit">ورود به پنل</button>
+7998: 				</form>
+7999: 				<div class="sn-auth-footer">سامانه فروش — <?php echo esc_html(get_bloginfo('name')); ?></div>
+8000: 			</div>
+8001: 		</div>
+8002: 		<?php
+8003: 		return ob_get_clean();
+8004: 	}

@@ -1,0 +1,100 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل MIS" [level=1]
+  - heading "پنل MIS" [level=2]
+  - generic: کاربر
+  - strong: "MIS ماکسیمم #7"
+  - generic: "MIS | #7"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - button "👥 کار امروز"
+  - button "🧾 آپلود فایل"
+  - button "📊 تخصیص / برگشت"
+  - button "💼 تحویل به فروش"
+  - button "💳 گزارش شماره‌ها"
+  - button "⚙️ پرونده‌ها"
+  - button "• ابزار سریع"
+  - button "• برنامه پخش" [active]
+  - button "• ساخت لید"
+  - button "• لاگ و عیب‌یابی"
+  - link "• گزارش‌های MIS":
+    - /url: /crm-mis/?sn_ui_active_tab=mis-report#mis-report
+  - generic "5 قوانین پخش داده":
+    - generic: "5"
+    - strong: قوانین پخش داده
+  - paragraph: این بخش فقط قانون و برنامه قابل بازبینی می‌سازد. هیچ ردیفی در جدول فروش ایجاد یا به فروشنده ارسال نمی‌شود.
+  - paragraph: "مدل هدف پخش سلسله‌مراتبی است: مدیر فروش ← سرپرست ارشد ← سرپرست ← فروشنده. فرم فعلی فقط ابزار برنامه‌ریزی کنترل‌شده است و تکمیل همه لایه‌ها در فاز بعدی انجام می‌شود."
+  - text: نام قانون
+  - textbox "نام قانون"
+  - text: نوع قانون
+  - combobox "نوع قانون":
+    - option "تقسیم مساوی" [selected]
+    - option "انتخاب دستی"
+  - text: مدیر فروش
+  - combobox "مدیر فروش":
+    - option "عمومی" [selected]
+    - 'option "مدیر فروش ماکسیمم #3"'
+  - text: تنظیمات / یادداشت
+  - textbox "تنظیمات / یادداشت"
+  - button "ایجاد قانون پیش‌نویس"
+  - table:
+    - rowgroup:
+      - row "شناسه قانون نوع مدیر فروش وضعیت ایجاد":
+        - columnheader "شناسه"
+        - columnheader "قانون"
+        - columnheader "نوع"
+        - columnheader "مدیر فروش"
+        - columnheader "وضعیت"
+        - columnheader "ایجاد"
+    - rowgroup:
+      - row "هنوز قانونی ثبت نشده است.":
+        - cell "هنوز قانونی ثبت نشده است."
+  - generic "5 برنامه پخش":
+    - generic: "5"
+    - strong: برنامه پخش
+  - paragraph: پیش‌نمایش فقط نتیجه برنامه‌ریزی را نشان می‌دهد. ثبت با تأیید برنامه می‌سازد، ولی لید زنده ایجاد نمی‌کند.
+  - text: نمایش فروشنده‌های زیر مدیر
+  - combobox "نمایش فروشنده‌های زیر مدیر":
+    - 'option "مدیر فروش ماکسیمم #3" [selected]'
+  - button "بارگذاری فروشنده‌ها"
+  - text: پرونده
+  - combobox "پرونده":
+    - option "همه صف آماده" [selected]
+    - option "MIS-20260825-R7IX"
+  - text: مدیر فروش
+  - combobox "مدیر فروش":
+    - 'option "مدیر فروش ماکسیمم #3" [selected]'
+  - text: قانون
+  - combobox "قانون"
+  - strong: فروشنده‌ها
+  - generic: یک یا چند فروشنده زیرمجموعه مدیر انتخاب‌شده را انتخاب کنید. این انتخاب فقط برای برنامه است و لید زنده ایجاد نمی‌کند. در مدل کامل، انتخاب از مسیر سرپرست ارشد/سرپرست انجام خواهد شد.
+  - generic: برای این مدیر فروشنده‌ای در scope پیدا نشد.
+  - text: دلیل
+  - textbox "دلیل": prepare MIS distribution plan
+  - button "آماده‌سازی صف"
+  - table:
+    - rowgroup:
+      - row "کد برنامه مدیر فروش قانون وضعیت کل برنامه‌ریزی‌شده ایجاد آیتم‌ها":
+        - columnheader "کد برنامه"
+        - columnheader "مدیر فروش"
+        - columnheader "قانون"
+        - columnheader "وضعیت"
+        - columnheader "کل"
+        - columnheader "برنامه‌ریزی‌شده"
+        - columnheader "ایجاد"
+        - columnheader "آیتم‌ها"
+    - rowgroup:
+      - row "هنوز برنامه‌ای ثبت نشده است.":
+        - cell "هنوز برنامه‌ای ثبت نشده است."
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

@@ -1,0 +1,13 @@
+10478: 
+10479: 	private function sn_hr_change_request_rows_for_actor(int $actor_user_id, int $limit = 80): array
+10480: 	{
+10481: 		if (! $this->sn_hr_change_request_ensure_table()) { return []; }
+10482: 		global $wpdb;
+10483: 		$table = $wpdb->prefix . 'sn_hr_change_requests';
+10484: 		$limit = max(10, min(300, $limit));
+10485: 		if ($this->sn_hr_change_request_is_hr_reviewer($actor_user_id)) {
+10486: 			return $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} ORDER BY FIELD(status,'pending_hr','pending_review','failed','approved','rejected'), id DESC LIMIT %d", $limit)) ?: [];
+10487: 		}
+10488: 		return $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE requested_by_user_id=%d OR current_reviewer_user_id=%d ORDER BY FIELD(status,'pending_review','pending_hr','failed','approved','rejected'), id DESC LIMIT %d", $actor_user_id, $actor_user_id, $limit)) ?: [];
+10489: 	}
+10490: 

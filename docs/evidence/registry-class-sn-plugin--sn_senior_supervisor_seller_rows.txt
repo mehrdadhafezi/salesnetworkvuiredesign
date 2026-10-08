@@ -1,0 +1,56 @@
+12966: 
+12967: 	private function sn_senior_supervisor_seller_rows(array $seller_ids, array $filters): array
+12968: 	{
+12969: 		global $wpdb;
+12970: 		$seller_ids = array_values(array_unique(array_filter(array_map('intval', $seller_ids))));
+12971: 		if (! $seller_ids) { return []; }
+12972: 		$labels = $this->sn_senior_supervisor_user_map($seller_ids);
+12973: 		$active_map = $this->sn_senior_supervisor_active_map($seller_ids);
+12974: 		$lead_map = [];
+12975: 		[$lead_where, $lead_args] = $this->sn_senior_supervisor_lead_where($seller_ids, $filters, 'l');
+12976: 		$lead_sql = "SELECT l.seller_id, COUNT(*) total FROM {$wpdb->prefix}sn_leads l WHERE {$lead_where} GROUP BY l.seller_id";
+12977: 		foreach (($wpdb->get_results($lead_args ? $wpdb->prepare($lead_sql, ...$lead_args) : $lead_sql, ARRAY_A) ?: []) as $row) {
+12978: 			$lead_map[(int) $row['seller_id']] = (int) $row['total'];
+12979: 		}
+12980: 
+12981: 		$invoice_map = [];
+12982: 		[$invoice_where, $invoice_args] = $this->sn_senior_supervisor_invoice_where($seller_ids, $filters, 'i');
+12983: 		$invoice_sql = "SELECT i.seller_id,
+12984: 			COUNT(*) invoices,
+12985: 			SUM(CASE WHEN (i.status IN ('pending','draft','unpaid') OR COALESCE(i.status,'')='') THEN 1 ELSE 0 END) pre_invoices,
+12986: 			SUM(CASE WHEN (i.status IN ('paid','approved') OR i.invoice_status IN ('paid','approved') OR i.payment_status IN ('paid','approved')) THEN 1 ELSE 0 END) paid_invoices,
+12987: 			SUM(CASE WHEN (i.status IN ('rejected','returned','return') OR i.invoice_status IN ('rejected','returned','return') OR i.payment_status IN ('rejected','returned','return')) THEN 1 ELSE 0 END) rejected_invoices,
+12988: 			COALESCE(SUM(COALESCE(i.final_total,i.product_price,0)),0) total_amount,
+12989: 			MAX(i.created_at) latest_invoice_date
+12990: 			FROM {$wpdb->prefix}sn_invoices i WHERE {$invoice_where} GROUP BY i.seller_id";
+12991: 		foreach (($wpdb->get_results($invoice_args ? $wpdb->prepare($invoice_sql, ...$invoice_args) : $invoice_sql, ARRAY_A) ?: []) as $row) {
+12992: 			$invoice_map[(int) $row['seller_id']] = $row;
+12993: 		}
+12994: 
+12995: 		$payment_map = [];
+12996: 		$payment_where = $invoice_where . " AND p.status IN ('paid','approved','verified','success')";
+12997: 		$payment_sql = "SELECT i.seller_id, COALESCE(SUM(p.amount),0) paid_amount FROM {$wpdb->prefix}sn_payments p INNER JOIN {$wpdb->prefix}sn_invoices i ON i.id=p.invoice_id WHERE {$payment_where} GROUP BY i.seller_id";
+12998: 		foreach (($wpdb->get_results($invoice_args ? $wpdb->prepare($payment_sql, ...$invoice_args) : $payment_sql, ARRAY_A) ?: []) as $row) {
+12999: 			$payment_map[(int) $row['seller_id']] = (float) $row['paid_amount'];
+13000: 		}
+13001: 
+13002: 		$rows = [];
+13003: 		foreach ($seller_ids as $seller_id) {
+13004: 			$inv = $invoice_map[$seller_id] ?? [];
+13005: 			$rows[] = [
+13006: 				'seller_id' => $seller_id,
+13007: 				'label' => $labels[$seller_id] ?? ('#' . $seller_id),
+13008: 				'status' => ! empty($active_map[$seller_id]) ? 'فعال' : 'غیرفعال',
+13009: 				'leads' => (int) ($lead_map[$seller_id] ?? 0),
+13010: 				'invoices' => (int) ($inv['invoices'] ?? 0),
+13011: 				'pre_invoices' => (int) ($inv['pre_invoices'] ?? 0),
+13012: 				'paid_invoices' => (int) ($inv['paid_invoices'] ?? 0),
+13013: 				'rejected_invoices' => (int) ($inv['rejected_invoices'] ?? 0),
+13014: 				'total_amount' => (float) ($inv['total_amount'] ?? 0),
+13015: 				'paid_amount' => (float) ($payment_map[$seller_id] ?? 0),
+13016: 				'latest_invoice_date' => (string) ($inv['latest_invoice_date'] ?? ''),
+13017: 			];
+13018: 		}
+13019: 		return $rows;
+13020: 	}
+13021: 

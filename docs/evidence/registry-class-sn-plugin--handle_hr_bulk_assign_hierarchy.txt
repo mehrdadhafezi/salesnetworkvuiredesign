@@ -1,0 +1,73 @@
+11727: 
+11728: 	public function handle_hr_bulk_assign_hierarchy(): void
+11729: 	{
+11730: 		if (! $this->sn_can_manage_hr_panel()) { wp_die('دسترسی غیرمجاز'); }
+11731: 		check_admin_referer('sn_hr_bulk_assign_hierarchy');
+11732: 		$type = sanitize_key(wp_unslash($_POST['assignment_type'] ?? ''));
+11733: 		$configs = [
+11734: 			'sellers' => ['child' => 'seller', 'parents' => ['supervisor', 'senior_supervisor', 'sales_manager']],
+11735: 			'converters' => ['child' => 'converter', 'parents' => ['supervisor']],
+11736: 			'supervisors' => ['child' => 'supervisor', 'parents' => ['senior_supervisor']],
+11737: 			'senior_supervisors' => ['child' => 'senior_supervisor', 'parents' => ['sales_manager']],
+11738: 			'sales_managers' => ['child' => 'sales_manager', 'parents' => ['sales_deputy']],
+11739: 			'operations_sales_supervisors' => ['child' => 'operations_sales_supervisor', 'parents' => ['operations_sales_manager']],
+11740: 			'operations_sales_experts' => ['child' => 'operations_sales_expert', 'parents' => ['operations_sales_supervisor']],
+11741: 			'operations_execution_experts' => ['child' => 'operations_execution_expert', 'parents' => ['operations_executive_manager']],
+11742: 		];
+11743: 		$run_mode = sanitize_key(wp_unslash($_POST['run_mode'] ?? 'dry_run'));
+11744: 		$confirm = sanitize_text_field(wp_unslash($_POST['confirm_apply'] ?? ''));
+11745: 		$overwrite = ! empty($_POST['overwrite_existing']);
+11746: 		$reason = sanitize_textarea_field(wp_unslash($_POST['reason'] ?? ''));
+11747: 		$selected_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($_POST['selected_user_ids'] ?? [])))));
+11748: 		$target_user_id = absint($_POST['target_manager_user_id'] ?? 0);
+11749: 		$report = ['action' => 'hr_bulk_assign_hierarchy', 'mode' => $run_mode, 'type' => $type, 'requested' => count($selected_ids), 'eligible' => 0, 'assigned' => 0, 'skipped' => 0, 'errors' => [], 'rows' => [], 'updated_at' => current_time('mysql')];
+11750: 		if (! isset($configs[$type])) { $report['errors'][] = 'invalid_assignment_type'; }
+11751: 		if (! $target_user_id) { $report['errors'][] = 'target_manager_required'; }
+11752: 		if ($run_mode === 'apply' && $confirm !== 'APPLY') { $report['errors'][] = 'confirmation_required'; }
+11753: 		if (! class_exists('SN_HR_Service') || ! class_exists('SN_Hierarchy_Service')) { $report['errors'][] = 'hr_service_missing'; }
+11754: 		$hr = class_exists('SN_HR_Service') ? new SN_HR_Service() : null;
+11755: 		$hierarchy = class_exists('SN_Hierarchy_Service') ? new SN_Hierarchy_Service() : null;
+11756: 		$target_profile = ($hr && $target_user_id) ? $hr->get_profile_by_user_id($target_user_id) : null;
+11757: 		$target_position = $target_user_id ? $this->sn_hr_position_for_user($target_user_id) : '';
+11758: 		if (isset($configs[$type]) && (! $target_profile || ! in_array($target_position, $configs[$type]['parents'], true))) {
+11759: 			$report['errors'][] = 'target_manager_position_invalid';
+11760: 		}
+11761: 		foreach ($selected_ids as $child_user_id) {
+11762: 			$row = ['child_user_id' => $child_user_id, 'child_label' => $this->sn_user_label($child_user_id), 'status' => 'skipped', 'reason' => ''];
+11763: 			$child_profile = $hr ? $hr->get_profile_by_user_id($child_user_id) : null;
+11764: 			$child_position = $this->sn_hr_position_for_user($child_user_id);
+11765: 			if (! empty($report['errors'])) {
+11766: 				$row['reason'] = 'preflight_error';
+11767: 			} elseif (! $child_profile || ! $target_profile || ! $hierarchy) {
+11768: 				$row['reason'] = 'profile_missing';
+11769: 			} elseif ($child_position !== $configs[$type]['child']) {
+11770: 				$row['reason'] = 'child_position_invalid';
+11771: 			} else {
+11772: 				$current_parent = $hierarchy->get_current_parent_profile_id((int) $child_profile->id);
+11773: 				if ($current_parent && ! $overwrite && $current_parent !== (int) $target_profile->id) {
+11774: 					$row['reason'] = 'has_existing_manager';
+11775: 				} else {
+11776: 					$report['eligible']++;
+11777: 					$row['status'] = 'eligible';
+11778: 					$row['reason'] = 'ready';
+11779: 					if ($run_mode === 'apply') {
+11780: 						$result = $hierarchy->assign_parent((int) $child_profile->id, (int) $target_profile->id, get_current_user_id(), 'hr_bulk_assignment', $reason ?: 'manual hierarchy assignment');
+11781: 						if (! empty($result['success'])) {
+11782: 							$report['assigned']++;
+11783: 							$row['status'] = ! empty($result['skipped']) ? 'unchanged' : 'assigned';
+11784: 							$row['reason'] = (string) ($result['message'] ?? 'assigned');
+11785: 						} else {
+11786: 							$row['status'] = 'error';
+11787: 							$row['reason'] = (string) ($result['message'] ?? 'assign_failed');
+11788: 						}
+11789: 					}
+11790: 				}
+11791: 			}
+11792: 			if (in_array($row['status'], ['skipped', 'error'], true)) { $report['skipped']++; }
+11793: 			$report['rows'][] = $row;
+11794: 		}
+11795: 		update_option('sn_hr_bulk_assignment_report', $report, false);
+11796: 		wp_safe_redirect($this->sn_hr_panel_return_url(['sn_msg' => 'hr_bulk_assignment_done']));
+11797: 		exit;
+11798: 	}
+11799: 

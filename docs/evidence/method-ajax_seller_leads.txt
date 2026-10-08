@@ -1,0 +1,251 @@
+5226: 
+5227: 	public function ajax_seller_leads(): void
+5228: 	{
+5229: 		if (! is_user_logged_in() || ! check_ajax_referer('sn_public', 'nonce', false)) {
+5230: 			SN_Helpers::send_json(false, 'دسترسی غیرمجاز');
+5231: 			return;
+5232: 		}
+5233: 		$user = wp_get_current_user();
+5234: 		global $wpdb;
+5235: 		$crm_profile = current_user_can('manage_options') && ! empty($_POST['sn_profile']);
+5236: 		$crm_started = microtime(true);
+5237: 		$crm_queries_started = (int)$wpdb->num_queries;
+5238: 		$crm_query_log_start = count((array)$wpdb->queries);
+5239: 		$crm_marks = [];
+5240: 		$crm_last_mark = $crm_started;
+5241: 		$crm_mark = static function(string $name) use (&$crm_marks,&$crm_last_mark): void { $now=microtime(true);$crm_marks[$name]=round(($now-$crm_last_mark)*1000,1);$crm_last_mark=$now; };
+5242: 		$seller_id = (int) $user->ID;
+5243: 
+5244: 		$page = max(1, absint($_POST['page'] ?? 1));
+5245: 		$per_page = absint($_POST['per_page'] ?? 50);
+5246: 		if (! in_array($per_page, [20, 50, 100], true)) {
+5247: 			$per_page = 50;
+5248: 		}
+5249: 		$active_filter = sanitize_text_field(wp_unslash($_POST['filter'] ?? 'no-status'));
+5250: 		if ($active_filter === '') {
+5251: 			$active_filter = 'no-status';
+5252: 		}
+5253: 		// Standard seller-stage tabs use canonical slugs, never display labels.
+5254: 		// Accept old Persian-label requests for backward compatibility, but normalize
+5255: 		// them before filtering so legacy/MIS rows and flow-state rows behave alike.
+5256: 		$flow_filter = class_exists('SN_Seller_Flow') ? SN_Seller_Flow::instance() : null;
+5257: 		$canonical_stage_filter = $flow_filter ? $flow_filter->status_slug($active_filter) : '';
+5258: 		if ($canonical_stage_filter !== '') {
+5259: 			$active_filter = $canonical_stage_filter;
+5260: 		}
+5261: 		$search = trim(sanitize_text_field(wp_unslash($_POST['search'] ?? '')));
+5262: 		$search_norm = preg_replace('/\D+/', '', strtr($search, ['۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9','٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9']));
+5263: 
+5264: 		$scope_decision = null;
+5265: 		$scope_error = '';
+5266: 		if (class_exists('SN_Scope_Service')) {
+5267: 			try {
+5268: 				$scope_service = new SN_Scope_Service();
+5269: 				$scope_decision = $scope_service->seller_scope_decision('seller_leads', (int) $user->ID);
+5270: 				$legacy_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}sn_leads WHERE seller_id=%d", (int) $user->ID));
+5271: 				$scope_service->record_enforcement_decision('seller_leads', (int) $user->ID, $scope_decision, [
+5272: 					'legacy_count' => $legacy_count,
+5273: 					'scope_count' => $legacy_count,
+5274: 				]);
+5275: 			} catch (Throwable $e) {
+5276: 				$scope_error = $e->getMessage();
+5277: 				$scope_decision = ['enforced' => false, 'reason' => 'scope_exception_fallback'];
+5278: 			}
+5279: 		}
+5280: 		$lead_query_debug = $scope_error !== '' ? ['scope_exception' => $scope_error] : [];
+5281: 		$leads_table = $wpdb->prefix . 'sn_leads';
+5282: 		$lead_order_parts_alias = ["MAX(CASE WHEN i.status='recontact_requested' THEN i.recontact_requested_at ELSE NULL END)"];
+5283: 		$lead_order_parts_plain = [];
+5284: 		if ($this->sn_table_has_column($leads_table, 'assigned_at')) {
+5285: 			$lead_order_parts_alias[] = 'l.assigned_at';
+5286: 			$lead_order_parts_plain[] = 'assigned_at';
+5287: 		}
+5288: 		foreach (['created_at', 'imported_at', 'updated_at'] as $sn_lead_date_col) {
+5289: 			if ($this->sn_table_has_column($leads_table, $sn_lead_date_col)) {
+5290: 				$lead_order_parts_alias[] = 'l.' . $sn_lead_date_col;
+5291: 				$lead_order_parts_plain[] = $sn_lead_date_col;
+5292: 				break;
+5293: 			}
+5294: 		}
+5295: 		$lead_order_sql = 'COALESCE(' . implode(', ', $lead_order_parts_alias) . ') DESC, l.id DESC';
+5296: 		$lead_fallback_order_sql = $lead_order_parts_plain ? ('COALESCE(' . implode(', ', $lead_order_parts_plain) . ') DESC, id DESC') : 'id DESC';
+5297: 
+5298: 		// برای صفحه‌بندی Ajax دیگر لازم نیست کل لیست به DOM فرستاده شود. این سقف فقط window داده‌ای سمت سرور است
+5299: 		// تا ترکیب legacy و V4 بعد از sort/filter قابل صفحه‌بندی باشد، بدون اینکه جدول HTML سنگین شود.
+5300: 		$fetch_window = min(5000, max(600, ($page * $per_page) + 300));
+5301: 		try {
+5302: 			$leads = $wpdb->get_results($wpdb->prepare(
+5303: 				"SELECT l.*,
+5304: 					MAX(CASE WHEN i.status='recontact_requested' THEN 1 ELSE 0 END) AS has_recontact,
+5305: 					MAX(CASE WHEN i.status='recontact_requested' THEN i.recontact_requested_at ELSE NULL END) AS recontact_requested_at,
+5306: 					MAX(CASE WHEN i.status='recontact_requested' THEN i.recontact_note ELSE NULL END) AS recontact_note,
+5307: 					MAX(CASE WHEN i.status='recontact_requested' THEN i.invoice_code ELSE NULL END) AS recontact_invoice_code
+5308: 				FROM {$wpdb->prefix}sn_leads l
+5309: 				LEFT JOIN {$wpdb->prefix}sn_invoices i ON i.lead_id=l.id AND i.seller_id=l.seller_id
+5310: 				WHERE l.seller_id=%d
+5311: 				GROUP BY l.id
+5312: 				ORDER BY {$lead_order_sql}
+5313: 				LIMIT %d",
+5314: 				$seller_id,
+5315: 				$fetch_window
+5316: 			), ARRAY_A) ?: [];
+5317: 			if ($wpdb->last_error) { $lead_query_debug['legacy_join_warning'] = (string) $wpdb->last_error; }
+5318: 		} catch (Throwable $e) {
+5319: 			$lead_query_debug['legacy_join_exception'] = $e->getMessage();
+5320: 			$leads = [];
+5321: 		}
+5322: 		if (! $leads && ! empty($lead_query_debug)) {
+5323: 			$leads = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sn_leads WHERE seller_id=%d ORDER BY {$lead_fallback_order_sql} LIMIT %d", $seller_id, $fetch_window), ARRAY_A) ?: [];
+5324: 		}
+5325: 		foreach ($leads as &$lead) {
+5326: 			$lead['has_recontact'] = ! empty($lead['has_recontact']);
+5327: 			$lead['source_kind'] = 'legacy_lead';
+5328: 			$is_extra = ((string) ($lead['source_tag'] ?? '') === 'approved_extra_number_request') || ! empty($lead['extra_number_request_id']);
+5329: 			$lead['is_extra_number_request'] = $is_extra;
+5330: 			if ($is_extra) {
+5331: 				$lead['lead_badge_label'] = 'شماره درخواستی تایید‌شده';
+5332: 				$lead['lead_badge_class'] = 'sn-extra-approved-badge';
+5333: 			}
+5334: 		}
+5335: 		unset($lead);
+5336: 		if ($crm_profile) { $crm_mark('legacy_leads'); }
+5337: 
+5338: 		$v4_items = [];
+5339: 		try {
+5340: 			$v4_items = $this->sn_distribution_seller_delivered_items($seller_id, min(5000, max(600, ($page * $per_page) + 300)));
+5341: 		} catch (Throwable $e) {
+5342: 			$lead_query_debug['v4_items_exception'] = $e->getMessage();
+5343: 			$v4_items = [];
+5344: 		}
+5345: 		foreach ($v4_items as $item) {
+5346: 			if (! empty($item->live_lead_id)) {
+5347: 				continue;
+5348: 			}
+5349: 			$phone = (string) (($item->normalized_phone ?? '') ?: ($item->customer_phone ?? ''));
+5350: 			if ($phone === '') {
+5351: 				continue;
+5352: 			}
+5353: 			$probability = '';
+5354: 			if (! empty($item->seller_sale_probability_label)) {
+5355: 				$probability = (string) $item->seller_sale_probability_label;
+5356: 			} elseif (isset($item->seller_sale_probability) && (int) $item->seller_sale_probability > 0) {
+5357: 				$probability = (string) (int) $item->seller_sale_probability . '٪';
+5358: 			}
+5359: 			$leads[] = [
+5360: 				'id' => $this->sn_distribution_virtual_lead_id((int) $item->id),
+5361: 				'distribution_item_id' => (int) $item->id,
+5362: 				'source_kind' => 'v4_distribution_item',
+5363: 				'phone' => $phone,
+5364: 				'customer_name' => (string) ($item->customer_name ?? ''),
+5365: 				'province' => (string) ($item->province ?? ''),
+5366: 				'city' => (string) ($item->city ?? ''),
+5367: 				'sales_prediction' => $probability,
+5368: 				'note' => (string) ($item->seller_notes ?? ''),
+5369: 				'lead_status' => (string) ($item->seller_contact_status ?? ''),
+5370: 				'status' => (string) ($item->status ?? 'delivered_to_seller'),
+5371: 				'import_code' => (string) ($item->batch_code ?? ''),
+5372: 				'assigned_at' => (string) (($item->seller_updated_at ?? '') ?: (($item->updated_at ?? '') ?: ($item->created_at ?? current_time('mysql')))),
+5373: 				'has_recontact' => false,
+5374: 				'is_v4_distribution' => true,
+5375: 				'lead_badge_label' => 'داده MIS تحویل‌شده',
+5376: 				'lead_badge_class' => 'sn-mis-delivered-badge',
+5377: 			];
+5378: 		}
+5379: 		if ($crm_profile) { $crm_mark('v4_distribution'); }
+5380: 		if (class_exists('SN_Seller_Flow')) {
+5381: 			$leads = SN_Seller_Flow::instance()->enrich_and_filter_leads($leads, $seller_id);
+5382: 		}
+5383: 		if ($crm_profile) { $crm_mark('seller_flow'); }
+5384: 
+5385: 		usort($leads, static function ($a, $b) {
+5386: 			return strcmp((string) ($b['assigned_at'] ?? ''), (string) ($a['assigned_at'] ?? ''));
+5387: 		});
+5388: 
+5389: 		$total_all = count($leads);
+5390: 		$no_status_total = 0;
+5391: 		$recontact_total = 0;
+5392: 		$extra_total = 0;
+5393: 		// A lead is "without status" only while neither the canonical seller-flow
+5394: 		// status nor the legacy/display status has been set. Extra-number requests
+5395: 		// keep their own independent tab and must leave this bucket after an action.
+5396: 		$lead_has_no_status = static function (array $lead): bool {
+5397: 			return trim((string) ($lead['seller_flow_status'] ?? '')) === ''
+5398: 				&& trim((string) ($lead['lead_status'] ?? '')) === '';
+5399: 		};
+5400: 		foreach ($leads as $lead) {
+5401: 			if ($lead_has_no_status($lead)) { $no_status_total++; }
+5402: 			if (! empty($lead['has_recontact'])) { $recontact_total++; }
+5403: 			if (! empty($lead['is_extra_number_request'])) { $extra_total++; }
+5404: 		}
+5405: 
+5406: 		$filtered = array_values(array_filter($leads, static function ($lead) use ($active_filter, $search, $search_norm, $lead_has_no_status) {
+5407: 			$status = (string) ($lead['lead_status'] ?? '');
+5408: 			$flow_status = sanitize_key((string) ($lead['seller_flow_status'] ?? ''));
+5409: 			$matches_filter = true;
+5410: 			if ($active_filter === 'all') {
+5411: 				$matches_filter = true;
+5412: 			} elseif ($active_filter === 'no-status') {
+5413: 				$matches_filter = $lead_has_no_status($lead);
+5414: 			} elseif ($active_filter === 'recontact') {
+5415: 				$matches_filter = ! empty($lead['has_recontact']);
+5416: 			} elseif ($active_filter === 'extra-number') {
+5417: 				$matches_filter = ! empty($lead['is_extra_number_request']);
+5418: 			} elseif (in_array($active_filter, ['no_answer', 'callback', 'not_purchased', 'pre_invoice'], true)) {
+5419: 				$matches_filter = $flow_status === $active_filter;
+5420: 			} else {
+5421: 				// Compatibility fallback for non-stage custom filters.
+5422: 				$matches_filter = $status === $active_filter;
+5423: 			}
+5424: 			if (! $matches_filter) { return false; }
+5425: 			if ($search === '') { return true; }
+5426: 			$haystack = implode(' ', [
+5427: 				(string) ($lead['phone'] ?? ''),
+5428: 				(string) ($lead['customer_name'] ?? ''),
+5429: 				(string) ($lead['province'] ?? ''),
+5430: 				(string) ($lead['city'] ?? ''),
+5431: 				(string) ($lead['import_code'] ?? ''),
+5432: 				(string) ($lead['note'] ?? ''),
+5433: 				(string) ($lead['lead_status'] ?? ''),
+5434: 			]);
+5435: 			$text_match = function_exists('mb_stripos') ? (mb_stripos($haystack, $search, 0, 'UTF-8') !== false) : (stripos($haystack, $search) !== false);
+5436: 			if ($text_match) { return true; }
+5437: 			if ($search_norm !== '') {
+5438: 				$phone_norm = preg_replace('/\D+/', '', (string) ($lead['phone'] ?? ''));
+5439: 				return strpos($phone_norm, $search_norm) !== false;
+5440: 			}
+5441: 			return false;
+5442: 		}));
+5443: 
+5444: 		$total_filtered = count($filtered);
+5445: 		$total_pages = max(1, (int) ceil($total_filtered / $per_page));
+5446: 		if ($page > $total_pages) { $page = $total_pages; }
+5447: 		$offset = ($page - 1) * $per_page;
+5448: 		$page_leads = array_slice($filtered, $offset, $per_page);
+5449: 		if ($crm_profile) { $crm_mark('filter_sort_page'); }
+5450: 
+5451: 		SN_Helpers::send_json(true, '', [
+5452: 			'leads' => $page_leads,
+5453: 			'pagination' => [
+5454: 				'page' => $page,
+5455: 				'per_page' => $per_page,
+5456: 				'total' => $total_filtered,
+5457: 				'total_all' => $total_all,
+5458: 				'total_pages' => $total_pages,
+5459: 				'current_count' => count($page_leads),
+5460: 				'filter' => $active_filter,
+5461: 				'search' => $search,
+5462: 				'no_status_total' => $no_status_total,
+5463: 				'status_done_total' => max(0, $total_all - $no_status_total),
+5464: 				'recontact_total' => $recontact_total,
+5465: 				'extra_total' => $extra_total,
+5466: 			],
+5467: 			'v4_distribution_count' => count($v4_items),
+5468: 			'debug' => current_user_can('manage_options') ? $lead_query_debug : [],
+5469: 			'profile' => $crm_profile ? $this->sn_crm_profile_snapshot($crm_started,$crm_queries_started,$crm_marks,$crm_query_log_start) : null,
+5470: 		]);
+5471: 	}
+5472: 
+5473: 	// =========================================================
+5474: 	// AJAX - SUPERVISOR
+5475: 	// =========================================================
+5476: 

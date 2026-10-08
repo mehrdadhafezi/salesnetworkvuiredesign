@@ -1,0 +1,3 @@
+2869: 	public function render_expert_panel(): string {
+2870: 		return class_exists( 'SN_Operations_Flow' ) ? SN_Operations_Flow::instance()->render_sales_expert_panel() : '';
+2871: 	}

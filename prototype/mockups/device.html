@@ -1,0 +1,7 @@
+<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>Mobile frame</title>
+<style>html,body{margin:0;height:100%;background:#e9edf3}body{display:grid;place-items:center}
+.phone{width:390px;height:844px;border-radius:44px;overflow:hidden;background:#fff;box-shadow:0 0 0 10px #101828,0 30px 60px rgba(16,24,40,.35)}
+iframe{width:390px;height:844px;border:0;display:block}</style></head>
+<body><div class="phone"><iframe id="f" title="mobile preview"></iframe></div>
+<!-- Usage: device.html?src=view=leads%26queue=all  (encode & as %26 inside src) -->
+<script>document.getElementById('f').src='../index.html?'+decodeURIComponent(location.search.replace(/^\?src=/,''));</script></body></html>

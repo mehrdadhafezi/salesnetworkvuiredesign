@@ -1,0 +1,135 @@
+30812: 
+30813: 			public function render_financial_panel(): string
+30814: 			{
+30815: 				if (! is_user_logged_in()) { $auth_id=(int)get_option('sn_financial_auth_page_id',0); $url=$auth_id?get_permalink($auth_id):wp_login_url(); return '<script>window.location.href='.wp_json_encode($url).';</script><p class="sn-notice">در حال انتقال به صفحه ورود تایید مالی...</p>'; }
+30816: 				$can_finance_view = $this->sn_can_finance();
+30817: 				$can_wallet_view = $this->sn_can_view_wallet_commission();
+30818: 				if (! $can_finance_view && ! $can_wallet_view) { return $this->sn_finance_access_denied_notice(); }
+30819: 				$tabs = [];
+30820: 				if ($can_finance_view) {
+30821: 					$tabs['finance-overview'] = 'نمای کلی';
+30822: 					$tabs['finance-payments'] = 'بررسی پرداخت';
+30823: 				}
+30824: 				if ($can_wallet_view) {
+30825: 					$tabs['finance-wallet'] = 'کیف پول';
+30826: 					$tabs['finance-commission'] = 'پورسانت';
+30827: 				}
+30828: 				$default_tab = array_key_first($tabs) ?: 'finance-overview';
+30829: 				$posting_enabled = $this->sn_commission_posting_enabled();
+30830: 				$zibal_report_token_set = trim((string) get_option('sn_zibal_report_api_token', '')) !== '';
+30831: 				$gateway_export_columns = $this->sn_zibal_export_columns();
+30832: 				ob_start(); ?>
+30833: 				<div class="sn-panel sn-portal" dir="rtl" id="sn-financial-panel" data-finance-v2="1">
+30834: 					<div class="sn-panel-header sn-portal-header">
+30835: 						<div>
+30836: 							<h2 class="sn-portal-title">پنل مالی</h2>
+30837: 							<p class="sn-portal-subtitle">کارتابل بررسی پرداخت با جستجوی سراسری، مشاهده فیش، تایید/رد بدون رفرش، تایید گروهی و کنترل لغو مالی؛ در کنار کیف پول و پورسانت.</p>
+30838: 						</div>
+30839: 						<?php echo $this->sn_panel_user_actions_markup(); ?>
+30840: 					</div>
+30841: 					<?php $this->sn_render_panel_tabs($tabs, $default_tab); ?>
+30842: 					<?php if ($can_finance_view) : ?>
+30843: 					<section id="finance-overview" class="<?php echo esc_attr($this->sn_tab_panel_class('finance-overview', $default_tab)); ?>" data-sn-tab-panel="finance-overview">
+30844: 					<div class="sn-card sn-section sn-finance-flow-guide">
+30845: 						<h3 class="sn-section-title">راهنمای جریان مالی</h3>
+30846: 						<div class="sn-flow-steps">
+30847: 							<div><strong>1) بررسی پرداخت‌ها</strong><span>فیش‌ها و پرداخت‌های درگاهی را با جستجو، مرتب‌سازی، صفحه‌بندی و عملیات AJAX بررسی می‌کند.</span></div>
+30848: 							<div><strong>2) آمادگی کیف پول</strong><span>دفتر کل و هشدارهای آمادگی را می‌خواند. کیف پول را تغییر نمی‌دهد.</span></div>
+30849: 							<div><strong>3) تعریف قوانین پورسانت</strong><span>قانون محاسبه را ثبت/فعال می‌کند. کیف پول و فاکتور را تغییر نمی‌دهد.</span></div>
+30850: 							<div><strong>4) اجرای پیش‌نمایش</strong><span>محاسبه آزمایشی می‌سازد. هیچ مبلغی به کیف پول ارسال نمی‌شود.</span></div>
+30851: 							<div><strong>5) تایید پیش‌نمایش</strong><span>با نوشتن <code>APPROVE</code> فقط اجرا قفل/تایید می‌شود؛ کیف پول تغییر نمی‌کند.</span></div>
+30852: 							<div><strong>6) ارسال به کیف پول</strong><span>فقط با کلید فعال‌سازی روشن، اجرای تاییدشده و کلمه <code>APPLY</code>. اجرای دوباره تراکنش تکراری نمی‌سازد.</span></div>
+30853: 							<div><strong>7) آمادگی تسویه</strong><span>فقط خواندنی است؛ برداشت، بدهکار کردن کیف پول یا انتقال بانکی انجام نمی‌دهد.</span></div>
+30854: 						</div>
+30855: 					</div>
+30856: 					<div id="sn-financial-kpis" class="sn-kpi-grid sn-card-grid"></div>
+30857: 					<div class="sn-card sn-section" id="sn-financial-readiness">
+30858: 						<h3 class="sn-section-title">آمادگی فاز مالی</h3>
+30859: 						<div class="sn-table-wrap">
+30860: 							<table class="sn-table">
+30861: 								<thead><tr><th>بخش</th><th>وضعیت</th><th>یادداشت</th></tr></thead>
+30862: 								<tbody>
+30863: 									<tr><td>تایید/رد پرداخت</td><td><span class="sn-badge sn-status-approved">فعال</span></td><td>از endpointهای موجود استفاده می‌کند.</td></tr>
+30864: 									<tr><td>کیف پول</td><td><span class="sn-badge">سیستم قبلی</span></td><td>محاسبات کیف پول در این فاز تغییر نکرده است.</td></tr>
+30865: 									<tr><td>ارسال پورسانت</td><td><span class="sn-badge"><?php echo $posting_enabled ? 'کلید فعال‌سازی روشن' : 'کلید فعال‌سازی خاموش'; ?></span></td><td>ارسال خودکار نیست و فقط با اجرای تاییدشده + APPLY انجام می‌شود.</td></tr>
+30866: 									<tr><td>سفارش ووکامرس</td><td><span class="sn-badge">موجود/جزئی</span></td><td>رفتار ساخت سفارش تغییر نکرده است.</td></tr>
+30867: 								</tbody>
+30868: 							</table>
+30869: 						</div>
+30870: 					</div>
+30871: 					<?php echo $this->sn_render_regression_readiness_block(); ?>
+30872: 					</section>
+30873: 					<section id="finance-payments" class="<?php echo esc_attr($this->sn_tab_panel_class('finance-payments', $default_tab)); ?>" data-sn-tab-panel="finance-payments">
+30874: 					<div class="sn-card sn-section">
+30875: 						<h3 class="sn-section-title">صف بررسی پرداخت</h3>
+30876: 						<div class="sn-subtabs sn-financial-tabs">
+30877: 							<button class="sn-subtab active" data-tab="needs_review">در انتظار بررسی</button>
+30878: 							<button class="sn-subtab" data-tab="receipt_uploaded">فیش‌های آپلودشده</button>
+30879: 							<button class="sn-subtab" data-tab="online_paid">پرداخت درگاهی</button>
+30880: 							<button class="sn-subtab" data-tab="approved">تایید شده مالی</button>
+30881: 							<button class="sn-subtab" data-tab="rejected">رد شده مالی</button>
+30882: 						</div>
+30883: 						<div id="sn-financial-gateway-export" class="sn-fin-v2-gateway-export" hidden>
+30884: 							<form class="sn-fin-v2-gateway-export-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+30885: 								<input type="hidden" name="action" value="sn_financial_gateway_export">
+30886: 								<input type="hidden" name="sn_gateway_export_columns_submitted" value="1">
+30887: 								<?php wp_nonce_field('sn_financial_gateway_export'); ?>
+30888: 								<div class="sn-fin-v2-export-head">
+30889: 									<div>
+30890: 										<strong>ستون‌های خروجی</strong>
+30891: 										<span>به‌صورت پیش‌فرض همه ستون‌ها انتخاب شده‌اند. هر موردی را نمی‌خواهید، تیکش را بردارید.</span>
+30892: 									</div>
+30893: 									<div class="sn-fin-v2-export-select-actions">
+30894: 										<button type="button" class="sn-btn sn-btn-small" data-sn-export-select="all">انتخاب همه</button>
+30895: 										<button type="button" class="sn-btn sn-btn-small" data-sn-export-select="none">حذف انتخاب‌ها</button>
+30896: 									</div>
+30897: 								</div>
+30898: 								<div class="sn-fin-v2-export-columns">
+30899: 									<?php foreach ($gateway_export_columns as $column_key => $column) : ?>
+30900: 										<label class="sn-fin-v2-export-column">
+30901: 											<input type="checkbox" name="sn_gateway_export_columns[]" value="<?php echo esc_attr($column_key); ?>" checked>
+30902: 											<span><?php echo esc_html((string) ($column['label'] ?? $column_key)); ?></span>
+30903: 										</label>
+30904: 									<?php endforeach; ?>
+30905: 								</div>
+30906: 								<div class="sn-fin-v2-export-footer">
+30907: 									<button class="sn-btn sn-btn-primary" type="submit">دانلود CSV UTF-8</button>
+30908: 									<span class="sn-fin-v2-gateway-export-note"><?php echo esc_html($zibal_report_token_set ? 'اطلاعات زیبال از Report API دریافت و با فاکتورهای CRM بر اساس شماره سفارش ادغام می‌شود.' : 'API Token گزارشات زیبال هنوز تنظیم نشده است؛ خروجی از داده‌های داخلی ساخته می‌شود و فیلدهای اختصاصی زیبال ممکن است خالی باشند.'); ?></span>
+30909: 								</div>
+30910: 							</form>
+30911: 						</div>
+30912: 						<script>
+30913: 						(function(){
+30914: 							var box=document.getElementById('sn-financial-gateway-export');
+30915: 							if(!box||box.dataset.columnsReady==='1'){return;}
+30916: 							box.dataset.columnsReady='1';
+30917: 							box.addEventListener('click',function(event){
+30918: 								var button=event.target.closest('[data-sn-export-select]');
+30919: 								if(!button){return;}
+30920: 								var checked=button.getAttribute('data-sn-export-select')==='all';
+30921: 								box.querySelectorAll('input[name="sn_gateway_export_columns[]"]').forEach(function(input){input.checked=checked;});
+30922: 							});
+30923: 							var form=box.querySelector('form');
+30924: 							if(form){form.addEventListener('submit',function(event){
+30925: 								if(!form.querySelector('input[name="sn_gateway_export_columns[]"]:checked')){
+30926: 									event.preventDefault();
+30927: 									window.alert('حداقل یک ستون برای خروجی انتخاب کنید.');
+30928: 								}
+30929: 							});}
+30930: 						})();
+30931: 						</script>
+30932: 						<div id="sn-financial-list"><div class="sn-loading">در حال بارگذاری...</div></div>
+30933: 					</div>
+30934: 					</section>
+30935: 					<?php endif; ?>
+30936: 					<?php if ($can_wallet_view) : ?>
+30937: 					<section id="finance-wallet" class="<?php echo esc_attr($this->sn_tab_panel_class('finance-wallet', $default_tab)); ?>" data-sn-tab-panel="finance-wallet">
+30938: 					<?php echo $this->sn_render_wallet_readiness_section(); ?>
+30939: 					</section>
+30940: 					<section id="finance-commission" class="<?php echo esc_attr($this->sn_tab_panel_class('finance-commission', $default_tab)); ?>" data-sn-tab-panel="finance-commission">
+30941: 					<?php echo $this->sn_render_commission_dry_run_section(); ?>
+30942: 					</section>
+30943: 					<?php endif; ?>
+30944: 				</div>
+30945: 				<?php return ob_get_clean();
+30946: 			}

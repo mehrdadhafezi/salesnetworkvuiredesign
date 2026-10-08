@@ -1,0 +1,83 @@
+34745: 
+34746: 			public function render_reports_panel(): string
+34747: 			{
+34748: 				$url = $this->sn_portal_page_url( 'crm_dashboard' ) ?: home_url( '/crm-dashboard/' );
+34749: 				return '<div class="sn-portal" dir="rtl"><p>گزارش‌ها در داشبورد CRM نمایش داده می‌شوند.</p><a class="sn-btn sn-btn-primary" href="' . esc_url( $url ) . '">رفتن به داشبورد</a></div>';
+34750: 				if (! is_user_logged_in()) {
+34751: 					return $this->render_unified_panel_login();
+34752: 				}
+34753: 				if (! $this->sn_can_view_reports_panel()) {
+34754: 					return '<div id="sn-reports-panel" class="sn-portal sn-reports-panel" dir="rtl"><div class="sn-alert sn-alert-danger">دسترسی به گزارش‌ها مجاز نیست.</div></div>';
+34755: 				}
+34756: 				$filters = $this->sn_report_filters();
+34757: 				$summary = $this->sn_cross_module_report_summary($filters);
+34758: 				$filter_date_from_value = (string)($filters['date_from_raw'] ?? '');
+34759: 				$filter_date_to_value = (string)($filters['date_to_raw'] ?? '');
+34760: 				$export_types = [
+34761: 					'successful_payments' => 'پرداخت‌های موفق',
+34762: 					'leads' => 'لیدها',
+34763: 					'invoices' => 'فاکتورها',
+34764: 					'payments' => 'پرداخت‌ها',
+34765: 					'wallet' => 'کیف پول',
+34766: 					'commission' => 'پورسانت',
+34767: 					'hr_profiles' => 'منابع انسانی',
+34768: 					'after_sales' => 'خدمات پس از فروش',
+34769: 					'mis_summary' => 'MIS',
+34770: 				];
+34771: 				ob_start(); ?>
+34772: 				<div id="sn-reports-panel" class="sn-portal sn-reports-panel" dir="rtl">
+34773: 					<div class="sn-portal-header">
+34774: 						<div>
+34775: 							<h2 class="sn-portal-title">گزارش شبکه فروش</h2>
+34776: 							<p class="sn-portal-subtitle">گزارش‌های خواندنی میان فروش، مالی، HR، MIS و خدمات پس از فروش با رعایت محدوده دسترسی.</p>
+34777: 						</div>
+34778: 					</div>
+34779: 					<?php $this->sn_render_panel_tabs([
+34780: 						'reports-successful-payments' => 'گزارش',
+34781: 						'reports-overview' => 'نمای کلی',
+34782: 						'reports-export' => 'خروجی فایل',
+34783: 						'reports-tables' => 'جدول‌ها',
+34784: 					], 'reports-successful-payments'); ?>
+34785: 					<section id="reports-successful-payments" class="<?php echo esc_attr($this->sn_tab_panel_class('reports-successful-payments', 'reports-successful-payments')); ?>" data-sn-tab-panel="reports-successful-payments">
+34786: 					<?php $this->sn_render_successful_payments_report($filters); ?>
+34787: 					</section>
+34788: 					<section id="reports-overview" class="<?php echo esc_attr($this->sn_tab_panel_class('reports-overview', 'reports-successful-payments')); ?>" data-sn-tab-panel="reports-overview">
+34789: 					<form class="sn-filter-bar" method="get">
+34790: 						<input type="hidden" name="sn_ui_active_tab" value="reports-overview">
+34791: 						<label>از تاریخ<br><input type="text" class="sn-jalali-date" name="date_from" value="<?php echo esc_attr($filter_date_from_value); ?>" placeholder="1403/02/18"></label>
+34792: 						<label>تا تاریخ<br><input type="text" class="sn-jalali-date" name="date_to" value="<?php echo esc_attr($filter_date_to_value); ?>" placeholder="1403/02/18"></label>
+34793: 						<label>فروشنده<br><input type="number" name="seller_id" value="<?php echo esc_attr((string) $filters['seller_id']); ?>" min="0" placeholder="اختیاری"></label>
+34794: 						<label>وضعیت<br><input type="text" name="status" value="<?php echo esc_attr($filters['status']); ?>" placeholder="مثلاً paid"></label>
+34795: 						<button class="sn-btn">اعمال فیلتر</button>
+34796: 					</form>
+34797: 					<div class="sn-card-grid sn-card-grid-4">
+34798: 						<?php foreach ($summary['cards'] as $card) : ?>
+34799: 							<div class="sn-stat-card"><strong><?php echo esc_html((string) $card['value']); ?></strong><span><?php echo esc_html((string) $card['label']); ?></span><small><?php echo esc_html((string) ($card['note'] ?? '')); ?></small></div>
+34800: 						<?php endforeach; ?>
+34801: 					</div>
+34802: 					</section>
+34803: 					<section id="reports-export" class="<?php echo esc_attr($this->sn_tab_panel_class('reports-export', 'reports-successful-payments')); ?>" data-sn-tab-panel="reports-export">
+34804: 					<div class="sn-card sn-section">
+34805: 						<h3 class="sn-section-title">خروجی امن</h3>
+34806: 						<p class="sn-note">خروجی فایل جدولی با محدودیت ۵۰۰۰ ردیف ساخته می‌شود. توکن، لینک عمومی فاکتور، رمز، هش و داده حساس در خروجی قرار نمی‌گیرد.</p>
+34807: 						<div class="sn-export-actions">
+34808: 							<?php foreach ($export_types as $type => $label) : ?>
+34809: 								<a class="sn-btn sn-btn-secondary" href="<?php echo esc_url($this->sn_report_export_url($type, $filters)); ?>"><?php echo esc_html('خروجی ' . $label); ?></a>
+34810: 							<?php endforeach; ?>
+34811: 						</div>
+34812: 					</div>
+34813: 					</section>
+34814: 					<section id="reports-tables" class="<?php echo esc_attr($this->sn_tab_panel_class('reports-tables', 'reports-successful-payments')); ?>" data-sn-tab-panel="reports-tables">
+34815: 					<?php foreach ($summary['sections'] as $section) : ?>
+34816: 						<div class="sn-card sn-section">
+34817: 							<h3 class="sn-section-title"><?php echo esc_html($section['title']); ?></h3>
+34818: 							<div class="sn-table-wrap sn-hr-change-table"><table class="sn-table"><thead><tr><?php foreach ($section['headers'] as $header) : ?><th><?php echo esc_html($header); ?></th><?php endforeach; ?></tr></thead><tbody>
+34819: 								<?php if (empty($section['rows'])) : ?><tr><td colspan="<?php echo esc_attr((string) count($section['headers'])); ?>"><div class="sn-empty-state">داده‌ای برای نمایش وجود ندارد.</div></td></tr><?php endif; ?>
+34820: 								<?php foreach ($section['rows'] as $row) : ?><tr><?php foreach ($row as $cell) : ?><td><?php echo wp_kses_post((string) $cell); ?></td><?php endforeach; ?></tr><?php endforeach; ?>
+34821: 							</tbody></table></div>
+34822: 						</div>
+34823: 					<?php endforeach; ?>
+34824: 					</section>
+34825: 				</div>
+34826: 				<?php return ob_get_clean();
+34827: 			}

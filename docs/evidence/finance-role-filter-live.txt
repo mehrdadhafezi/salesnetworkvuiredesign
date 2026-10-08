@@ -1,0 +1,180 @@
+- navigation "نوار ابزار":
+  - menu:
+    - menuitem "درباره وردپرس":
+      - generic: درباره وردپرس
+    - menuitem "crm"
+    - menuitem "فروشگاه به زودی راه‌اندازی می‌شود"
+    - menuitem "ویرایش سایت"
+    - menuitem "2 به‌روزرسانی دردسترس":
+      - generic: "2"
+      - generic: 2 به‌روزرسانی دردسترس
+    - menuitem "0 دیدگاه در حالت رسیدگی":
+      - generic: "0"
+      - generic: 0 دیدگاه در حالت رسیدگی
+    - menuitem "تازه":
+      - generic: تازه
+    - menuitem "ویرایش برگه"
+  - menu:
+    - menuitem "سلام admin1"
+    - menuitem "جستجو":
+      - textbox "جستجو"
+      - generic: جستجو
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل منابع انسانی" [level=1]
+  - heading "پنل منابع انسانی" [level=2]
+  - generic: کاربر
+  - strong: "admin1 #1"
+  - generic: "بدون سمت | #1"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - tab "👥 مدیریت نیروها" [selected]
+  - tab "🧾 افزودن دستی نیرو"
+  - tab "📊 ورودی/خروجی کاربران"
+  - tab "💼 تغییرات گروهی"
+  - tab "💳 درخواست‌های جابجایی/قطع همکاری"
+  - tab "⚙️ تاریخچه حقوق و پورسانت"
+  - tab "• سمت‌ها و سطح‌ها"
+  - tab "• ابزارهای پیشرفته"
+  - tab "• نمای کلی"
+  - tab "• ساختار واحدی"
+  - tab "• سلسله‌مراتب"
+  - tab "• لاگ‌ها"
+  - tabpanel:
+    - generic "مدیریت نیروها":
+      - strong: مدیریت نیروها
+    - paragraph: مجوز صدور دستی پیش‌فاکتورِ سرپرست برای فروشنده‌هایی اعمال می‌شود که تنظیم خودشان روی حالت پیش‌فرض است. تنظیم «مجاز» یا «غیرمجاز» روی خود فروشنده اولویت دارد.
+    - strong: "6"
+    - generic: کل پروفایل‌های HR
+    - strong: "6"
+    - generic: نمایش داده‌شده در جدول
+    - strong: "0"
+    - generic: پنهان با فیلتر/محدودیت
+    - strong: "2"
+    - generic: بدون مدیر
+    - strong: "0"
+    - generic: بدون سطح
+    - strong: "6"
+    - generic: بدون تاریخچه حقوق/پورسانت
+    - text: جستجو
+    - searchbox "جستجو"
+    - text: سمت
+    - combobox "سمت":
+      - option "همه سمت‌ها"
+      - option "معاون فروش"
+      - option "مدیر فروش"
+      - option "سرپرست ارشد"
+      - option "سرپرست"
+      - option "تبدیل‌کننده"
+      - option "فروشنده"
+      - option "مالی" [selected]
+      - option "منابع انسانی"
+      - option "MIS"
+      - option "خدمات پس از فروش"
+      - option "کارشناس ارسال"
+      - option "مدیر فروش عملیات"
+      - option "سرپرست فروش عملیات"
+      - option "کارشناس فروش عملیات"
+      - option "مدیر اجرایی عملیات"
+      - option "کارشناس اجرایی عملیات"
+    - text: سطح
+    - combobox "سطح":
+      - option "همه سطح‌ها" [selected]
+      - option "آموزشی"
+      - option "قراردادی"
+      - option "ارشد"
+      - option "مدیریتی"
+    - text: وضعیت
+    - combobox "وضعیت":
+      - option "همه وضعیت‌ها" [selected]
+      - option "فعال"
+      - option "غیرفعال"
+      - option "تعلیق"
+      - option "استعفا"
+      - option "قطع همکاری"
+      - option "آزمایشی"
+    - text: نوع همکاری
+    - combobox "نوع همکاری":
+      - option "همه انواع" [selected]
+      - option "تمام‌وقت"
+      - option "پاره‌وقت"
+      - option "قراردادی"
+      - option "کارآموز"
+    - button "پاک کردن جستجو/فیلترها"
+    - checkbox "انتخاب همه قابل مشاهده"
+    - text: انتخاب همه قابل مشاهده
+    - strong: "0"
+    - text: نیرو انتخاب شده
+    - text: دامنه ذخیره
+    - combobox "دامنه ذخیره":
+      - option "فقط انتخاب‌شده‌ها" [selected]
+      - option "همه ردیف‌های قابل مشاهده"
+    - checkbox "حقوق/پورسانت هم ذخیره شود"
+    - text: حقوق/پورسانت هم ذخیره شود
+    - link "تغییرات گروهی":
+      - /url: "#hr-bulk"
+    - button "تنظیم رمز گروهی"
+    - button "ذخیره تغییرات انتخاب‌شده"
+    - table:
+      - rowgroup:
+        - row "انتخاب شناسه فیلتر شناسه نام فیلتر نام نام کاربری / موبایل فیلتر نام کاربری / موبایل سمت فیلتر سمت نیروی بالادستی فیلتر نیروی بالادستی سطح فیلتر سطح وضعیت همکاری فیلتر وضعیت همکاری نوع همکاری فیلتر نوع همکاری صدور دستی پیش‌فاکتور فیلتر صدور دستی پیش‌فاکتور درخواست شماره فیلتر درخواست شماره منبع صدور تیم فیلتر منبع صدور تیم عملیات":
+          - columnheader "انتخاب"
+          - columnheader "شناسه فیلتر شناسه":
+            - generic: شناسه
+            - button "فیلتر شناسه":
+              - generic: ▾
+          - columnheader "نام فیلتر نام":
+            - generic: نام
+            - button "فیلتر نام":
+              - generic: ▾
+          - columnheader "نام کاربری / موبایل فیلتر نام کاربری / موبایل":
+            - generic: نام کاربری / موبایل
+            - button "فیلتر نام کاربری / موبایل":
+              - generic: ▾
+          - columnheader "سمت فیلتر سمت":
+            - generic: سمت
+            - button "فیلتر سمت":
+              - generic: ▾
+          - columnheader "نیروی بالادستی فیلتر نیروی بالادستی":
+            - generic: نیروی بالادستی
+            - button "فیلتر نیروی بالادستی":
+              - generic: ▾
+          - columnheader "سطح فیلتر سطح":
+            - generic: سطح
+            - button "فیلتر سطح":
+              - generic: ▾
+          - columnheader "وضعیت همکاری فیلتر وضعیت همکاری":
+            - generic: وضعیت همکاری
+            - button "فیلتر وضعیت همکاری":
+              - generic: ▾
+          - columnheader "نوع همکاری فیلتر نوع همکاری":
+            - generic: نوع همکاری
+            - button "فیلتر نوع همکاری":
+              - generic: ▾
+          - columnheader "صدور دستی پیش‌فاکتور فیلتر صدور دستی پیش‌فاکتور":
+            - generic: صدور دستی پیش‌فاکتور
+            - button "فیلتر صدور دستی پیش‌فاکتور":
+              - generic: ▾
+          - columnheader "درخواست شماره فیلتر درخواست شماره":
+            - generic: درخواست شماره
+            - button "فیلتر درخواست شماره":
+              - generic: ▾
+          - columnheader "منبع صدور تیم فیلتر منبع صدور تیم":
+            - generic: منبع صدور تیم
+            - button "فیلتر منبع صدور تیم":
+              - generic: ▾
+          - columnheader "عملیات"
+      - rowgroup
+    - generic "تنظیم رمز نیروهای انتخاب‌شده":
+      - strong: تنظیم رمز نیروهای انتخاب‌شده
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

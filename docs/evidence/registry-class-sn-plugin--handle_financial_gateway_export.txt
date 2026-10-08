@@ -1,0 +1,116 @@
+31009: 			public function handle_financial_gateway_export(): void
+31010: 			{
+31011: 				if (! is_user_logged_in() || ! $this->sn_can_view_finance()) {
+31012: 					wp_die('دسترسی به خروجی تراکنش‌های درگاهی مجاز نیست.', 'دسترسی غیرمجاز', ['response' => 403]);
+31013: 				}
+31014: 				check_admin_referer('sn_financial_gateway_export');
+31015: 
+31016: 				$columns = $this->sn_zibal_export_columns();
+31017: 				$selected_keys = $this->sn_zibal_export_selected_column_keys();
+31018: 				if (! $selected_keys) {
+31019: 					wp_die('حداقل یک ستون برای خروجی انتخاب کنید.', 'ستون خروجی انتخاب نشده', ['response' => 400]);
+31020: 				}
+31021: 				$all_keys = array_keys($columns);
+31022: 				$index_by_key = array_flip($all_keys);
+31023: 
+31024: 				$request_id = substr(str_replace('-', '', wp_generate_uuid4()), 0, 12);
+31025: 				$started_at = microtime(true);
+31026: 				$out = null;
+31027: 				$this->sn_zibal_export_log($request_id, 'start', ['columns' => count($selected_keys)]);
+31028: 				try {
+31029: 					// Clear every buffer BEFORE writing the CSV so EF BB BF is always the first three bytes.
+31030: 					while (ob_get_level() > 0) { @ob_end_clean(); }
+31031: 					$filename = 'sales-network-gateway-finance-' . SN_Helpers::tehran_format('Y-m-d-His') . '.csv';
+31032: 					header('Content-Type: text/csv; charset=UTF-8');
+31033: 					header('Content-Disposition: attachment; filename=' . $filename);
+31034: 					header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+31035: 					header('Pragma: no-cache');
+31036: 					header('Expires: 0');
+31037: 					header('X-Content-Type-Options: nosniff');
+31038: 					header('X-SN-Export-Request-ID: ' . $request_id);
+31039: 					$out = fopen('php://output', 'wb');
+31040: 					if ($out === false) { throw new RuntimeException('zibal_export_output_unavailable'); }
+31041: 					fwrite($out, "\xEF\xBB\xBF");
+31042: 					$headers = [];
+31043: 					foreach ($selected_keys as $key) { $headers[] = (string) ($columns[$key]['label'] ?? $key); }
+31044: 					fputcsv($out, $headers, ',', '"', '\\');
+31045: 					fflush($out);
+31046: 					if (function_exists('flush')) { flush(); }
+31047: 					$stage_started_at = microtime(true);
+31048: 					$report = $this->sn_zibal_report_fetch_transactions();
+31049: 					$this->sn_zibal_export_log($request_id, 'remote_report', [
+31050: 						'ok' => ! empty($report['ok']) ? 1 : 0,
+31051: 						'rows' => count((array) ($report['transactions'] ?? [])),
+31052: 						'elapsed_ms' => (int) round((microtime(true) - $stage_started_at) * 1000),
+31053: 					]);
+31054: 					$remote_fallback = ! empty($report['token_configured']) && empty($report['ok']);
+31055: 					if ($remote_fallback) {
+31056: 						// A provider outage must not turn the finance download into a 502 page.
+31057: 						// Continue with successful local gateway rows and keep the reason only in the secure server log.
+31058: 						$this->sn_zibal_export_log($request_id, 'remote_report_fallback', [
+31059: 							'message' => sanitize_text_field((string) ($report['message'] ?? 'zibal_report_unavailable')),
+31060: 						]);
+31061: 					}
+31062: 
+31063: 					$stage_started_at = microtime(true);
+31064: 					$local_transactions = $this->sn_zibal_local_successful_transactions();
+31065: 					$transactions = $this->sn_zibal_merge_export_transactions(
+31066: 						(array) ($report['transactions'] ?? []),
+31067: 						$local_transactions
+31068: 					);
+31069: 					$this->sn_zibal_export_log($request_id, 'merge', [
+31070: 						'local_rows' => count($local_transactions),
+31071: 						'merged_rows' => count($transactions),
+31072: 						'elapsed_ms' => (int) round((microtime(true) - $stage_started_at) * 1000),
+31073: 					]);
+31074: 
+31075: 					$stage_started_at = microtime(true);
+31076: 					$rows = $this->sn_zibal_build_finance_export_rows($transactions, $request_id);
+31077: 					$this->sn_zibal_export_log($request_id, 'build_rows', [
+31078: 						'rows' => count($rows),
+31079: 						'elapsed_ms' => (int) round((microtime(true) - $stage_started_at) * 1000),
+31080: 					]);
+31081: 
+31082: 					foreach ($rows as $row) {
+31083: 						$csv_row = [];
+31084: 						foreach ($selected_keys as $key) {
+31085: 							$index = (int) ($index_by_key[$key] ?? -1);
+31086: 							$value = ($index >= 0 && array_key_exists($index, $row)) ? $row[$index] : '';
+31087: 							$value = $this->sn_zibal_export_safe_csv_cell($value);
+31088: 							if (! empty($columns[$key]['excel_text']) && $value !== '' && $value !== null) {
+31089: 								$text_value = trim((string) $value);
+31090: 								// Only identifier-like data can be converted to an Excel text formula.
+31091: 								// This prevents scientific notation / loss of leading zero without enabling arbitrary CSV formulas.
+31092: 								if ($text_value !== '' && preg_match('/^[0-9*.+:\/ -]+$/', $text_value)) {
+31093: 									$value = '="' . str_replace('"', '""', $text_value) . '"';
+31094: 								}
+31095: 							}
+31096: 							$csv_row[] = $value;
+31097: 						}
+31098: 						fputcsv($out, $csv_row, ',', '"', '\\');
+31099: 					}
+31100: 					fclose($out);
+31101: 					$this->sn_zibal_export_log($request_id, 'complete', [
+31102: 						'rows' => count($rows),
+31103: 						'columns' => count($selected_keys),
+31104: 						'elapsed_ms' => (int) round((microtime(true) - $started_at) * 1000),
+31105: 					]);
+31106: 					exit;
+31107: 				} catch (Throwable $error) {
+31108: 					$this->sn_zibal_export_log($request_id, 'exception', [
+31109: 						'type' => get_class($error),
+31110: 						'message' => $error->getMessage(),
+31111: 						'line' => $error->getLine(),
+31112: 						'elapsed_ms' => (int) round((microtime(true) - $started_at) * 1000),
+31113: 					]);
+31114: 					if (is_resource($out)) {
+31115: 						fputcsv($out, ['خطا در تکمیل خروجی؛ کد پیگیری ' . $request_id], ',', '"', '\\');
+31116: 						fclose($out);
+31117: 					}
+31118: 					if (! headers_sent()) {
+31119: 						wp_die('خروجی ساخته نشد. کد پیگیری: ' . esc_html($request_id), 'خطا در ساخت خروجی', ['response' => 500]);
+31120: 					}
+31121: 					exit;
+31122: 				}
+31123: 			}
+31124: 

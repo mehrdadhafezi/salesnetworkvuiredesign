@@ -1,0 +1,40 @@
+184: 
+185: 	public function render_admin_page(): void {
+186: 		if ( ! current_user_can( 'sn_view_wallet_commission' ) && ! current_user_can( 'manage_options' ) ) { wp_die( 'دسترسی غیرمجاز' ); }
+187: 		$this->maybe_upgrade();
+188: 		$rates = $this->rates();
+189: 		$purposes = self::purposes();
+190: 		$roles = self::roles();
+191: 		$saved = isset( $_GET['sn_commission_saved'] );
+192: 		$backfill = get_option( 'sn_purpose_commission_backfill', [] );
+193: 		?>
+194: 		<div class="wrap sn-purpose-commission-admin" dir="rtl">
+195: 			<h1>پورسانت بر اساس قصد پرداخت</h1>
+196: 			<?php if ( $saved ) : ?><div class="notice notice-success is-dismissible"><p>جدول پورسانت ذخیره شد.</p></div><?php endif; ?>
+197: 			<?php if ( is_array( $backfill ) && $backfill ) : ?><div class="notice notice-info"><p>بازبینی سوابق پورسانت: <?php echo esc_html( (string) ( $backfill['status'] ?? '' ) ); ?> — فاکتور بررسی‌شده: <?php echo esc_html( number_format_i18n( (int) ( $backfill['scanned'] ?? 0 ) ) ); ?>، تراکنش جدید: <?php echo esc_html( number_format_i18n( (int) ( $backfill['created'] ?? 0 ) ) ); ?>، تراکنش موجود: <?php echo esc_html( number_format_i18n( (int) ( $backfill['existing'] ?? 0 ) ) ); ?></p></div><?php endif; ?>
+198: 			<div class="notice notice-info"><p><strong>مبنای محاسبه:</strong> مبلغ هر مرحله پرداخت تأییدشده × درصد نقش. مقدار ۰ یعنی آن نقش برای آن قصد پرداخت پورسانت ندارد. درصد قابل تعریف از ۰٫۰۱ تا ۱۰۰ است.</p><p><strong>کیف پول:</strong> سهم نقش‌های فروش از پرداخت‌های چرخه فروش → «فروش». هر سهم مربوط به چرخه بیاوین و همچنین سهم نقش‌های عملیاتی → «بیاوین».</p></div>
+199: 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+200: 				<input type="hidden" name="action" value="sn_save_purpose_commission_matrix">
+201: 				<?php wp_nonce_field( 'sn_save_purpose_commission_matrix' ); ?>
+202: 				<div style="overflow:auto;background:#fff;border:1px solid #dcdcde;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+203: 				<table class="widefat striped" style="min-width:1900px;border:0">
+204: 					<thead><tr><th style="position:sticky;right:0;z-index:3;background:#f6f7f7;min-width:250px">قصد پرداخت</th><?php foreach ( $roles as $role ) : ?><th style="min-width:145px;text-align:center"><?php echo esc_html( $role['label'] ); ?></th><?php endforeach; ?></tr></thead>
+205: 					<tbody>
+206: 					<?php foreach ( $purposes as $purpose_key => $purpose ) : ?>
+207: 					<tr>
+208: 						<th style="position:sticky;right:0;z-index:2;background:#fff"><strong><?php echo esc_html( $purpose['label'] ); ?></strong><br><small><?php echo esc_html( $purpose['description'] ); ?></small><br><span style="display:inline-block;margin-top:5px;padding:2px 7px;border-radius:999px;background:<?php echo $purpose['cycle'] === 'biavin' ? '#e7f3ff' : '#edf7ed'; ?>"><?php echo $purpose['cycle'] === 'biavin' ? 'چرخه بیاوین' : 'چرخه فروش'; ?></span></th>
+209: 						<?php foreach ( $roles as $role_key => $role ) : $value = (float) ( $rates[ $purpose_key ][ $role_key ] ?? 0 ); ?>
+210: 						<td style="text-align:center"><div style="display:flex;align-items:center;gap:5px;justify-content:center"><input type="number" name="rates[<?php echo esc_attr( $purpose_key ); ?>][<?php echo esc_attr( $role_key ); ?>]" min="0" max="100" step="0.01" value="<?php echo esc_attr( $value > 0 ? number_format( $value, 2, '.', '' ) : '0' ); ?>" style="width:90px;text-align:center"><span>%</span></div></td>
+211: 						<?php endforeach; ?>
+212: 					</tr>
+213: 					<?php endforeach; ?>
+214: 					</tbody>
+215: 				</table></div>
+216: 				<p class="submit"><button type="submit" class="button button-primary button-large">ذخیره جدول پورسانت</button></p>
+217: 			</form>
+218: 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="sn_backfill_purpose_commissions"><?php wp_nonce_field( 'sn_backfill_purpose_commissions' ); ?><button class="button" type="submit">بازبینی دوبارهٔ فاکتورهای قدیمی</button></form>
+219: 			<div class="card" style="max-width:none"><h2>قاعده ثبت تراکنش</h2><p>هر تراکنش با فاکتور، شماره مرحله پرداخت، قصد پرداخت، نقش، درصد، مبلغ مبنا و کاربر گیرنده Snapshot می‌شود. به همین دلیل Refresh، Callback تکراری یا تأیید دوباره، پورسانت تکراری ایجاد نمی‌کند.</p></div>
+220: 		</div>
+221: 		<?php
+222: 	}
+223: 

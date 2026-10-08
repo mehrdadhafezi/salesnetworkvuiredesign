@@ -1,0 +1,695 @@
+11966: 
+11967: 	public function render_mis_panel(): string
+11968: 	{
+11969: 		if (! is_user_logged_in()) { return $this->render_unified_panel_login(); }
+11970: 		if (! $this->sn_can_access_mis_panel()) {
+11971: 			return '<div class="sn-panel" dir="rtl"><div class="sn-notice sn-error">دسترسی به پنل MIS مجاز نیست.</div></div>';
+11972: 		}
+11973: 		global $wpdb;
+11974: 		$selected_batch_id = absint($_GET['sn_mis_batch_id'] ?? 0);
+11975: 		$mis_active_tab = $this->sn_requested_ui_active_tab();
+11976: 		if ($mis_active_tab === '') { $mis_active_tab = 'mis-overview'; }
+11977: 		$mis_schema_status = [];
+11978: 		$mis_schema_ready = $this->sn_mis_core_tables_ready_fast();
+11979: 		$mis_schema_diagnostics_needed = ! $mis_schema_ready || in_array($mis_active_tab, ['mis-import','mis-logs'], true);
+11980: 		if (class_exists('SN_Migration_Service') && $mis_schema_diagnostics_needed) {
+11981: 			$service = new SN_Migration_Service();
+11982: 			if (! $service->mis_tables_complete()) {
+11983: 				$service->repair_mis_schema();
+11984: 			}
+11985: 			$mis_schema_status = $service->mis_schema_status();
+11986: 			$mis_schema_ready = $service->mis_tables_complete();
+11987: 		}
+11988: 		$mis_need_preview = $mis_active_tab === 'mis-preview';
+11989: 		$mis_need_logs = $mis_active_tab === 'mis-logs';
+11990: 		$mis_need_distribution = in_array($mis_active_tab, ['mis-distribution','mis-live'], true);
+11991: 		$mis_need_pool_rows = $mis_active_tab === 'mis-pool';
+11992: 		$summary = $this->sn_mis_summary();
+11993: 		$mis_ops = $mis_schema_ready ? $this->sn_mis_operator_pipeline_counts() : [];
+11994: 		$batches = $mis_schema_ready ? $this->sn_mis_batches(20) : [];
+11995: 		$batch_ux_stats = $mis_schema_ready ? $this->sn_mis_batch_operational_stats(20) : [];
+11996: 		$preview = ($mis_need_preview && $mis_schema_ready && $selected_batch_id) ? $this->sn_mis_batch_preview($selected_batch_id, 100) : [];
+11997: 		$conversion = ($mis_need_preview && $mis_schema_ready && $selected_batch_id) ? $this->sn_mis_conversion_summary($selected_batch_id) : ['imported_rows' => 0, 'matching_leads' => 0, 'matching_invoices' => 0, 'matching_paid_invoices' => 0, 'conversion_percentage' => 0];
+11998: 		$mis_case_report_filters = [
+11999: 			'manager_id' => absint($_GET['sn_mis_report_manager_id'] ?? 0),
+12000: 			'senior_id' => absint($_GET['sn_mis_report_senior_id'] ?? 0),
+12001: 			'supervisor_id' => absint($_GET['sn_mis_report_supervisor_id'] ?? 0),
+12002: 			'seller_id' => absint($_GET['sn_mis_report_seller_id'] ?? 0),
+12003: 			'status' => sanitize_key(wp_unslash($_GET['sn_mis_report_status'] ?? '')),
+12004: 		];
+12005: 		$mis_case_report_all_rows = ($mis_need_preview && $mis_schema_ready && $selected_batch_id) ? $this->sn_mis_case_report_rows($selected_batch_id, 1200) : [];
+12006: 		$mis_case_report_rows = $this->sn_mis_case_report_apply_filters($mis_case_report_all_rows, $mis_case_report_filters);
+12007: 		$mis_case_report_options = $this->sn_mis_case_report_filter_options($mis_case_report_all_rows);
+12008: 		$mis_case_report_summary = $this->sn_mis_case_report_summary($mis_case_report_rows);
+12009: 		$logs = ($mis_need_logs && $mis_schema_ready) ? $this->sn_mis_logs(100) : [];
+12010: 		$report = get_option('sn_mis_last_report', []);
+12011: 		$return_assign_report = get_option('sn_mis_return_assignments_report', []);
+12012: 		if (! is_array($return_assign_report)) { $return_assign_report = []; }
+12013: 		$delete_batch_report = get_option('sn_mis_delete_batch_report', []);
+12014: 		if (! is_array($delete_batch_report)) { $delete_batch_report = []; }
+12015: 		$repair_report = get_option('sn_mis_schema_repair_report', []);
+12016: 		$pool_report = get_option('sn_mis_lead_pool_report', []);
+12017: 		$managers = $this->sn_mis_sales_managers();
+12018: 		$pool_summary = $mis_schema_ready ? $this->sn_mis_lead_pool_summary() : [];
+12019: 		$pool_filters = [
+12020: 			'batch_id' => absint($_GET['sn_pool_batch_id'] ?? 0),
+12021: 			'manager_id' => absint($_GET['sn_pool_manager_id'] ?? 0),
+12022: 			'status' => sanitize_key(wp_unslash($_GET['sn_pool_status'] ?? '')),
+12023: 		];
+12024: 		$pool_rows = ($mis_need_pool_rows && $mis_schema_ready) ? $this->sn_mis_lead_pool_rows($pool_filters, 100) : [];
+12025: 		$distribution_report = get_option('sn_mis_distribution_plan_report', []);
+12026: 		$distribution_rules = ($mis_need_distribution && $mis_schema_ready) ? $this->sn_mis_distribution_rules(50) : [];
+12027: 		$distribution_plans = ($mis_need_distribution && $mis_schema_ready) ? $this->sn_mis_distribution_plans(20) : [];
+12028: 		$selected_plan_id = absint($_GET['sn_mis_plan_id'] ?? 0);
+12029: 		$selected_plan_items = ($mis_need_distribution && $mis_schema_ready && $selected_plan_id) ? $this->sn_mis_distribution_plan_items($selected_plan_id, 100) : [];
+12030: 		$lead_creation_report = get_option('sn_mis_lead_creation_report', []);
+12031: 		$plan_manager_id = absint($_GET['sn_plan_manager_id'] ?? ($managers[0]->user_id ?? 0));
+12032: 		$plan_sellers = ($mis_need_distribution && $plan_manager_id) ? $this->sn_mis_sellers_under_manager($plan_manager_id) : [];
+12033: 		$plan_selected_seller_ids = array_values(array_filter(array_map('intval', (array) ($distribution_report['selected_seller_ids'] ?? []))));
+12034: 		$launch_checks = ($mis_active_tab === 'mis-overview') ? $this->sn_mis_launch_self_check() : [];
+12035: 		$is_global_admin = current_user_can('manage_options');
+12036: 		$is_mis_operator = $this->sn_fast_hr_position_for_user(get_current_user_id()) === 'mis';
+12037: 		$can_use_mis_advanced_tools = $is_global_admin || $is_mis_operator;
+12038: 		ob_start();
+12039: 		?>
+12040: 		<div id="sn-mis-panel" class="sn-panel sn-portal sn-mis-panel" dir="rtl">
+12041: 			<div class="sn-panel-header"><h2>پنل MIS</h2><?php echo $this->sn_panel_user_actions_markup(); ?></div>
+12042: 			<?php
+12043: 			$mis_tabs = [
+12044: 				'mis-overview' => 'کار امروز',
+12045: 				'mis-import' => 'آپلود فایل',
+12046: 				'mis-batches-list' => 'تخصیص / برگشت',
+12047: 				'mis-pool' => 'تحویل به فروش',
+12048: 				'mis-preview' => 'گزارش شماره‌ها',
+12049: 				'mis-batches' => 'پرونده‌ها',
+12050: 			];
+12051: 			if ($can_use_mis_advanced_tools) {
+12052: 				$mis_tabs['mis-quick'] = 'ابزار سریع';
+12053: 				$mis_tabs['mis-distribution'] = 'برنامه پخش';
+12054: 				$mis_tabs['mis-live'] = 'ساخت لید';
+12055: 				$mis_tabs['mis-logs'] = 'لاگ و عیب‌یابی';
+12056: 			}
+12057: 			$mis_tabs['mis-report'] = 'گزارش‌های MIS';
+12058: 			$mis_report_url = add_query_arg('sn_ui_active_tab', 'mis-report', remove_query_arg('sn_ui_active_tab')) . '#mis-report';
+12059: 			$this->sn_render_panel_tabs($mis_tabs, 'mis-overview', ['mis-report' => $mis_report_url]);
+12060: 			?>
+12061: 			<section id="mis-overview" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-overview', 'mis-overview')); ?>" data-sn-tab-panel="mis-overview">
+12062: 			<?php
+12063: 			$mis_ops = is_array($mis_ops) ? $mis_ops : [];
+12064: 			$op = static function (string $key) use ($mis_ops): int { return (int) ($mis_ops[$key] ?? 0); };
+12065: 			$mis_clean_query_keys = ['sn_ui_active_tab','sn_mis_batch_id','sn_pool_batch_id','sn_pool_manager_id','sn_pool_status','sn_mis_report_manager_id','sn_mis_report_senior_id','sn_mis_report_supervisor_id','sn_mis_report_seller_id','sn_mis_report_status'];
+12066: 			$mis_tab_url = static function (string $tab, array $args = []) use ($mis_clean_query_keys): string {
+12067: 				return add_query_arg(array_merge(['sn_ui_active_tab' => $tab], $args), remove_query_arg($mis_clean_query_keys)) . '#' . $tab;
+12068: 			};
+12069: 			$mis_batch_state = static function (array $stats, object $batch): array {
+12070: 				$total = (int) ($stats['total_rows'] ?? $batch->total_rows ?? 0);
+12071: 				$valid = (int) ($stats['valid_rows'] ?? $batch->valid_rows ?? 0);
+12072: 				$invalid = (int) ($stats['invalid_rows'] ?? $batch->invalid_rows ?? 0);
+12073: 				$duplicates = (int) ($stats['duplicate_rows'] ?? $batch->duplicate_rows ?? 0);
+12074: 				$unassigned = (int) ($stats['unassigned_valid'] ?? 0);
+12075: 				$assigned = (int) ($stats['assigned_to_manager'] ?? 0);
+12076: 				$eligible_pool = (int) ($stats['eligible_to_pool'] ?? 0);
+12077: 				$pool_ready = (int) ($stats['pool_ready'] ?? 0);
+12078: 				$distributed = (int) ($stats['distribution_total'] ?? 0);
+12079: 				$returnable = (int) ($stats['returnable_with_distribution'] ?? 0);
+12080: 				if ($total < 1) { return ['label' => 'منتظر آپلود فایل', 'class' => 'sn-status-warning', 'tab' => 'mis-import', 'button' => 'آپلود فایل']; }
+12081: 				if ($valid < 1 && ($invalid > 0 || $duplicates > 0)) { return ['label' => 'فایل قابل استفاده نیست', 'class' => 'sn-status-rejected', 'tab' => 'mis-import', 'button' => 'اصلاح و آپلود مجدد']; }
+12082: 				if ($invalid > 0) { return ['label' => 'فایل نیازمند بررسی', 'class' => 'sn-status-warning', 'tab' => 'mis-preview', 'button' => 'دیدن خطاها']; }
+12083: 				if ($unassigned > 0) { return ['label' => 'آماده تخصیص به مدیر فروش', 'class' => 'sn-status-approved', 'tab' => 'mis-batches-list', 'button' => 'تخصیص بده']; }
+12084: 				if ($eligible_pool > 0) { return ['label' => 'تخصیص انجام شده؛ آماده تحویل', 'class' => 'sn-status-approved', 'tab' => 'mis-pool', 'button' => 'تحویل به فروش']; }
+12085: 				if ($pool_ready > 0) { return ['label' => 'در صف آماده فروش', 'class' => 'sn-status', 'tab' => 'mis-pool', 'button' => 'مشاهده صف']; }
+12086: 				if ($distributed > 0) { return ['label' => $returnable > 0 ? 'دست فروش؛ بخشی قابل برگشت' : 'دست فروش / در حال پیگیری', 'class' => $returnable > 0 ? 'sn-status-warning' : 'sn-status', 'tab' => $returnable > 0 ? 'mis-batches-list' : 'mis-preview', 'button' => $returnable > 0 ? 'برگشت یا گزارش' : 'گزارش بگیر']; }
+12087: 				if ($assigned > 0) { return ['label' => 'تخصیص‌داده‌شده؛ اقدام بعدی تحویل', 'class' => 'sn-status-approved', 'tab' => 'mis-pool', 'button' => 'آماده‌سازی تحویل']; }
+12088: 				return ['label' => 'بدون اقدام فوری', 'class' => 'sn-status', 'tab' => 'mis-preview', 'button' => 'گزارش'];
+12089: 			};
+12090: 			$focus_batch = null;
+12091: 			$focus_state = null;
+12092: 			$state_priority = ['آماده تخصیص به مدیر فروش' => 10, 'تخصیص انجام شده؛ آماده تحویل' => 9, 'فایل نیازمند بررسی' => 8, 'منتظر آپلود فایل' => 7, 'فایل قابل استفاده نیست' => 6, 'دست فروش؛ بخشی قابل برگشت' => 5, 'در صف آماده فروش' => 4, 'دست فروش / در حال پیگیری' => 3, 'تخصیص‌داده‌شده؛ اقدام بعدی تحویل' => 2, 'بدون اقدام فوری' => 1];
+12093: 			$focus_score = -1;
+12094: 			foreach ($batches as $candidate_batch) {
+12095: 				$candidate_state = $mis_batch_state((array) ($batch_ux_stats[(int) $candidate_batch->id] ?? []), $candidate_batch);
+12096: 				$candidate_score = (int) ($state_priority[$candidate_state['label']] ?? 0);
+12097: 				if ($candidate_score > $focus_score) {
+12098: 					$focus_batch = $candidate_batch;
+12099: 					$focus_state = $candidate_state;
+12100: 					$focus_score = $candidate_score;
+12101: 				}
+12102: 			}
+12103: 			$import_quality = $op('total_rows') < 1 ? 'هنوز فایلی وارد نشده' : ($op('valid_rows') > 0 && $op('invalid_rows') === 0 && $op('duplicate_rows') === 0 ? 'فایل سالم و قابل استفاده' : 'فایل نیازمند بررسی');
+12104: 			$today_sentence = 'هنوز پرونده‌ای برای کار MIS ساخته نشده است.';
+12105: 			$primary_action_title = 'شروع کار';
+12106: 			$primary_action_body = 'اول یک پرونده بسازید، بعد فایل شماره‌ها را داخل همان پرونده آپلود کنید.';
+12107: 			$primary_action_button = 'ساخت پرونده';
+12108: 			$primary_action_url = $mis_tab_url('mis-batches');
+12109: 			if ($focus_batch && is_array($focus_state)) {
+12110: 				$focus_stats = (array) ($batch_ux_stats[(int) $focus_batch->id] ?? []);
+12111: 				$today_sentence = 'پرونده «' . (string) $focus_batch->title . '» الان در وضعیت «' . (string) $focus_state['label'] . '» است.';
+12112: 				$primary_action_title = (string) $focus_state['label'];
+12113: 				$primary_action_body = 'روی همین پرونده کار کنید؛ لازم نیست بین گزارش‌های فنی دنبال مرحله بعد بگردید.';
+12114: 				$primary_action_button = (string) $focus_state['button'];
+12115: 				$primary_action_url = $mis_tab_url((string) $focus_state['tab'], ['sn_mis_batch_id' => (int) $focus_batch->id, 'sn_pool_batch_id' => (int) $focus_batch->id]);
+12116: 				if ((int) ($focus_stats['unassigned_valid'] ?? 0) > 0) {
+12117: 					$primary_action_body = number_format_i18n((int) $focus_stats['unassigned_valid']) . ' شماره سالم بدون مدیر فروش دارد. مرحله درست: تخصیص به مدیر فروش.';
+12118: 				} elseif ((int) ($focus_stats['eligible_to_pool'] ?? 0) > 0) {
+12119: 					$primary_action_body = number_format_i18n((int) $focus_stats['eligible_to_pool']) . ' شماره به مدیر فروش وصل شده و آماده تحویل به فروش است.';
+12120: 				} elseif ((int) ($focus_stats['returnable_with_distribution'] ?? 0) > 0) {
+12121: 					$primary_action_body = number_format_i18n((int) $focus_stats['returnable_with_distribution']) . ' شماره هنوز لید/فاکتور نشده و قابل برگشت به MIS است.';
+12122: 				}
+12123: 			}
+12124: 			?>
+12125: 			<div class="sn-card sn-mis-workbench">
+12126: 				<div class="sn-mis-workbench-hero">
+12127: 					<div>
+12128: 						<span class="sn-badge sn-status-approved">میز کار MIS</span>
+12129: 						<h3>الان باید چه کار کنم؟</h3>
+12130: 						<p><?php echo esc_html($today_sentence); ?></p>
+12131: 					</div>
+12132: 					<div class="sn-mis-primary-action-card">
+12133: 						<strong><?php echo esc_html($primary_action_title); ?></strong>
+12134: 						<span><?php echo esc_html($primary_action_body); ?></span>
+12135: 						<a class="sn-btn sn-btn-primary" href="<?php echo esc_url($primary_action_url); ?>"><?php echo esc_html($primary_action_button); ?></a>
+12136: 					</div>
+12137: 				</div>
+12138: 				<div class="sn-mis-plain-funnel" aria-label="مسیر ساده دیتا">
+12139: 					<div><strong><?php echo esc_html($this->sn_mis_format_count($op('valid_rows'))); ?></strong><span>شماره سالم</span><small>از فایل‌های آپلودشده</small></div>
+12140: 					<div><strong><?php echo esc_html($this->sn_mis_format_count($op('unassigned_valid'))); ?></strong><span>منتظر تخصیص</span><small>باید مدیر فروش بگیرد</small></div>
+12141: 					<div><strong><?php echo esc_html($this->sn_mis_format_count($op('assigned_to_manager'))); ?></strong><span>دست مدیر فروش</span><small>مالک اولیه مشخص شده</small></div>
+12142: 					<div><strong><?php echo esc_html($this->sn_mis_format_count($op('eligible_to_pool') + $op('pool_ready'))); ?></strong><span>آماده تحویل</span><small>قابل ورود به فروش</small></div>
+12143: 					<div><strong><?php echo esc_html($this->sn_mis_format_count($op('distribution_total'))); ?></strong><span>دست تیم فروش</span><small>در زنجیره فروش</small></div>
+12144: 					<div><strong><?php echo esc_html($this->sn_mis_format_count($op('returnable_with_distribution'))); ?></strong><span>قابل برگشت</span><small>هنوز قفل فروش/فاکتور نشده</small></div>
+12145: 				</div>
+12146: 			</div>
+12147: 
+12148: 			<div class="sn-card sn-mis-simple-board">
+12149: 				<div class="sn-section-title-row"><h3>پرونده‌ها با زبان عملیاتی</h3><span class="sn-muted">برای هر پرونده فقط یک وضعیت و یک دکمه اصلی نمایش داده می‌شود.</span></div>
+12150: 				<div class="sn-table-wrap"><table class="sn-table sn-mis-operator-table">
+12151: 					<thead><tr><th>پرونده</th><th>وضعیت الان</th><th>شماره سالم</th><th>منتظر تخصیص</th><th>دست مدیر</th><th>آماده تحویل</th><th>دست فروش</th><th>قابل برگشت</th><th>کار بعدی</th></tr></thead>
+12152: 					<tbody>
+12153: 					<?php if (! $batches) : ?><tr><td colspan="9"><div class="sn-empty-state">هیچ پرونده‌ای وجود ندارد. کار را از دکمه «ساخت پرونده» شروع کنید.</div></td></tr><?php endif; ?>
+12154: 					<?php foreach (array_slice($batches, 0, 12) as $b) : $b_stats = (array) ($batch_ux_stats[(int) $b->id] ?? []); $b_state = $mis_batch_state($b_stats, $b); $b_action_url = $mis_tab_url((string) $b_state['tab'], ['sn_mis_batch_id' => (int) $b->id, 'sn_pool_batch_id' => (int) $b->id]); ?>
+12155: 						<tr>
+12156: 							<td><code><?php echo esc_html((string) $b->batch_code); ?></code><br><strong><?php echo esc_html((string) $b->title); ?></strong></td>
+12157: 							<td><span class="sn-badge <?php echo esc_attr((string) $b_state['class']); ?>"><?php echo esc_html((string) $b_state['label']); ?></span></td>
+12158: 							<td><?php echo esc_html($this->sn_mis_format_count($b_stats['valid_rows'] ?? $b->valid_rows)); ?></td>
+12159: 							<td><?php echo esc_html($this->sn_mis_format_count($b_stats['unassigned_valid'] ?? 0)); ?></td>
+12160: 							<td><?php echo esc_html($this->sn_mis_format_count($b_stats['assigned_to_manager'] ?? 0)); ?></td>
+12161: 							<td><?php echo esc_html($this->sn_mis_format_count(((int) ($b_stats['eligible_to_pool'] ?? 0)) + ((int) ($b_stats['pool_ready'] ?? 0)))); ?></td>
+12162: 							<td><?php echo esc_html($this->sn_mis_format_count($b_stats['distribution_total'] ?? 0)); ?></td>
+12163: 							<td><?php echo esc_html($this->sn_mis_format_count($b_stats['returnable_with_distribution'] ?? 0)); ?></td>
+12164: 							<td><a class="sn-btn sn-btn-secondary" href="<?php echo esc_url($b_action_url); ?>"><?php echo esc_html((string) $b_state['button']); ?></a></td>
+12165: 						</tr>
+12166: 					<?php endforeach; ?>
+12167: 					</tbody>
+12168: 				</table></div>
+12169: 				<?php if (count($batches) > 12) : ?><p class="sn-note">برای جلوگیری از شلوغی، فقط ۱۲ پرونده اول نمایش داده شد. لیست کامل در تب «پرونده‌ها» است.</p><?php endif; ?>
+12170: 			</div>
+12171: 
+12172: 			<div class="sn-card sn-mis-operator-help">
+12173: 				<h3>ترجمه وضعیت‌ها</h3>
+12174: 				<div class="sn-mis-guide-grid">
+12175: 					<div><strong>منتظر تخصیص</strong><span>شماره سالم است، ولی هنوز به هیچ مدیر فروشی وصل نشده. کار درست: تخصیص به مدیر فروش.</span></div>
+12176: 					<div><strong>دست مدیر فروش</strong><span>مالک مدیر فروش مشخص شده، اما هنوز به فروشنده/زنجیره فروش تحویل نشده.</span></div>
+12177: 					<div><strong>آماده تحویل</strong><span>شماره آماده ورود به فروش است. کار درست: آماده‌سازی/تحویل به فروش.</span></div>
+12178: 					<div><strong>قابل برگشت</strong><span>شماره هنوز لید یا فاکتور نشده؛ برگشت یعنی مالک فعلی حذف می‌شود و دوباره به «منتظر تخصیص» برمی‌گردد.</span></div>
+12179: 				</div>
+12180: 			</div>
+12181: 
+12182: 			<details class="sn-card sn-mis-secondary-details"><summary><strong>جزئیات بیشتر / آخرین آپلود</strong></summary>
+12183: 			<div class="sn-mis-top-summary">
+12184: 				<div class="sn-dashboard-grid sn-mis-dashboard-grid"><?php foreach ($summary as $label => $value) : ?><div class="sn-card sn-mis-stat-card"><strong><?php echo esc_html((string) $value); ?></strong><span><?php echo esc_html((string) $label); ?></span></div><?php endforeach; ?></div>
+12185: 				<div class="sn-card sn-mis-last-import-card">
+12186: 					<h3>آخرین ورود فایل</h3>
+12187: 					<?php if ($report && is_array($report)) : ?>
+12188: 						<p class="sn-readable-summary"><?php echo esc_html($this->sn_mis_report_summary($report)); ?></p>
+12189: 						<div class="sn-mis-result-badges">
+12190: 							<span class="sn-badge">کل: <?php echo esc_html((string) (int) ($report['rows_seen'] ?? $report['total_rows'] ?? 0)); ?></span>
+12191: 							<span class="sn-badge sn-status-approved">معتبر: <?php echo esc_html((string) (int) ($report['valid'] ?? $report['valid_rows'] ?? 0)); ?></span>
+12192: 							<span class="sn-badge sn-status-warning">تکراری: <?php echo esc_html((string) (int) ($report['duplicate'] ?? 0)); ?></span>
+12193: 							<span class="sn-badge sn-status-rejected">نامعتبر: <?php echo esc_html((string) (int) ($report['invalid'] ?? $report['invalid_rows'] ?? 0)); ?></span>
+12194: 						</div>
+12195: 						<?php if (! empty($report['operator_message'])) : ?><div class="sn-alert"><?php echo esc_html((string) $report['operator_message']); ?></div><?php endif; ?>
+12196: 					<?php else : ?>
+12197: 						<p class="sn-note">هنوز گزارشی از ورود فایل ثبت نشده است.</p>
+12198: 					<?php endif; ?>
+12199: 				</div>
+12200: 			</div>
+12201: 
+12202: 			<div class="sn-card sn-mis-operator-guide sn-mis-guide-compact">
+12203: 				<h3>راهنمای کوتاه مسیر MIS</h3>
+12204: 				<div class="sn-mis-guide-grid">
+12205: 					<div><strong>۱. پرونده</strong><span>برای هر فایل یک پرونده بسازید؛ تخصیص‌ها در حال حاضر بر اساس پرونده انجام می‌شوند.</span></div>
+12206: 					<div><strong>۲. ورود فایل</strong><span>فایل Excel/CSV وارد می‌شود و نتیجه معتبر، تکراری و نامعتبر واضح نمایش داده می‌شود.</span></div>
+12207: 					<div><strong>۳. اختصاص مدیر</strong><span>ردیف‌های معتبر به مدیر فروش وصل می‌شوند تا مالک اولیه دیتا مشخص باشد.</span></div>
+12208: 					<div><strong>۴. آماده‌سازی و تحویل</strong><span>داده آماده وارد صف توزیع می‌شود و بعد به زنجیره فروش تحویل داده می‌شود.</span></div>
+12209: 				</div>
+12210: 			</div>
+12211: 
+12212: 			</details>
+12213: 
+12214: 			<?php if ($can_use_mis_advanced_tools) : ?>
+12215: 			<div class="sn-card sn-section sn-mis-launch-check">
+12216: 				<h3 class="sn-section-title">تست و عیب‌یابی مدیرکل</h3>
+12217: 				<div class="sn-table-wrap sn-hr-change-table"><table class="sn-table"><thead><tr><th>مرحله</th><th>وضعیت</th><th>عدد/خلاصه</th><th>اقدام بعدی</th></tr></thead><tbody>
+12218: 				<?php foreach ($launch_checks as $check) : ?><tr><td><?php echo esc_html((string) $check['label']); ?></td><td><span class="sn-badge <?php echo ! empty($check['ok']) ? 'sn-status-approved' : 'sn-status'; ?>"><?php echo ! empty($check['ok']) ? 'PASS' : 'نیازمند اقدام'; ?></span></td><td><?php echo esc_html((string) $check['count']); ?></td><td><?php echo esc_html((string) $check['next']); ?></td></tr><?php endforeach; ?>
+12219: 				</tbody></table></div>
+12220: 			</div>
+12221: 			<details class="sn-card"><summary><strong>وضعیت جدول‌های MIS</strong></summary>
+12222: 				<table class="sn-table"><thead><tr><th>جدول</th><th>وجود دارد؟</th><th>تعداد ردیف</th><th>وضعیت آخرین بازسازی</th><th>آخرین خطا</th></tr></thead><tbody>
+12223: 				<?php foreach ($mis_schema_status as $table => $info) : $last_error = $this->sn_mis_last_table_error($table, is_array($repair_report) ? $repair_report : []); ?><tr><td><code><?php echo esc_html($table); ?></code></td><td><?php echo ! empty($info['exists']) ? 'بله' : 'خیر'; ?></td><td><?php echo esc_html((string) (int) ($info['rows'] ?? 0)); ?></td><td><?php echo empty($last_error) ? 'سالم' : 'خطا'; ?></td><td><?php echo esc_html($last_error ?: '—'); ?></td></tr><?php endforeach; ?>
+12224: 				</tbody></table>
+12225: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:10px">
+12226: 					<input type="hidden" name="action" value="sn_repair_mis_schema"><?php wp_nonce_field('sn_repair_mis_schema'); ?>
+12227: 					<button class="sn-btn">بازسازی جدول‌های MIS</button>
+12228: 				</form>
+12229: 				<?php if (! $mis_schema_ready || empty($mis_schema_status['sn_mis_data_rows']['exists'])) : ?><div class="sn-notice sn-error">جدول ردیف‌های MIS ساخته نشده است. بازسازی جدول‌های MIS را اجرا کنید.</div><?php endif; ?>
+12230: 			</details>
+12231: 			<?php endif; ?>
+12232: 			</section>
+12233: 
+12234: 			<section id="mis-batches" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-batches', 'mis-overview')); ?>" data-sn-tab-panel="mis-batches">
+12235: 			<details open class="sn-card sn-flow-card"><summary><span class="sn-step-index">1</span><strong>ساخت پرونده ورود اطلاعات</strong></summary>
+12236: 				<p class="sn-note">پرونده یعنی ظرف کاری یک فایل. تخصیص اصلی MIS فعلاً بر اساس همین پرونده انجام می‌شود؛ فیلدهای منبع، کمپین و دسته برای گزارش‌گیری و ردیابی هستند.</p>
+12237: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-compact-form-grid sn-mis-batch-form">
+12238: 					<input type="hidden" name="action" value="sn_mis_create_batch"><?php wp_nonce_field('sn_mis_create_batch'); ?>
+12239: 					<label>عنوان پرونده<input name="title" required><small>نام قابل فهم برای کاربر؛ مثلاً «کمپین ماکسیمم خرداد».</small></label>
+12240: 					<label>نوع منبع<input name="source_type" placeholder="مثلاً اینستاگرام، سایت، خرید دیتا"><small>برای گزارش و فیلتر منبع دیتا؛ تخصیص مستقیم بر اساس آن انجام نمی‌شود.</small></label>
+12241: 					<label>عنوان منبع<input name="source_label" placeholder="مثلاً پیج/فایل/تأمین‌کننده"><small>جزئیات منبع برای پیگیری بعدی.</small></label>
+12242: 					<label>کد کمپین<input name="campaign_code" placeholder="مثلاً MAX-03"><small>برای گزارش‌گیری کمپین و مقایسه خروجی‌ها.</small></label>
+12243: 					<label>دسته اطلاعات<input name="data_category" placeholder="مثلاً زیبایی، بیمه، کالابک"><small>برای دسته‌بندی و گزارش؛ اجباری نیست.</small></label>
+12244: 					<label class="sn-full">یادداشت<textarea name="notes" rows="2" class="large-text" placeholder="توضیح کوتاه برای تیم MIS"></textarea></label>
+12245: 					<div class="sn-actions sn-full"><button class="sn-btn">ایجاد پرونده</button></div>
+12246: 				</form>
+12247: 			</details>
+12248: 			<?php if (! empty($delete_batch_report)) : ?>
+12249: 				<div class="sn-card sn-mis-delete-report">
+12250: 					<h3>گزارش آخرین حذف پرونده / فایل MIS</h3>
+12251: 					<div class="sn-notice <?php echo ! empty($delete_batch_report['success']) ? 'sn-success' : 'sn-warning'; ?>">
+12252: 						<?php echo esc_html((string) ($delete_batch_report['message'] ?? 'گزارش حذف آماده است.')); ?>
+12253: 					</div>
+12254: 					<details><summary>جزئیات فنی حذف</summary><pre><?php echo esc_html(wp_json_encode($delete_batch_report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre></details>
+12255: 				</div>
+12256: 			<?php endif; ?>
+12257: 			<details class="sn-card sn-danger-tools"><summary><strong>پاکسازی اضطراری ردپای MIS</strong></summary>
+12258: 				<div class="sn-alert">برای وقتی است که پرونده/فایل حذف شده اما شماره‌ها هنوز در آپلود جدید تکراری تشخیص داده می‌شوند. این ابزار فقط ردپاهای تکراری، orphan، draft/reset و آیتم‌های غیرقفل‌شده را پاک می‌کند؛ لید و فاکتور را حذف نمی‌کند.</div>
+12259: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-inline-danger-form">
+12260: 					<input type="hidden" name="action" value="sn_mis_cleanup_deleted_traces"><?php wp_nonce_field('sn_mis_cleanup_deleted_traces'); ?>
+12261: 					<label>کلمه تأیید<br><input name="confirm" placeholder="CLEAN_MIS"></label>
+12262: 					<button class="sn-btn sn-btn-danger" type="submit">پاکسازی ردپاهای حذف‌شده و تکراری</button>
+12263: 				</form>
+12264: 			</details>
+12265: 			<details open class="sn-card sn-mis-batches-readable"><summary><strong>پرونده‌های ساخته‌شده</strong></summary>
+12266: 				<p class="sn-note">هر پرونده باید وضعیتش را واضح نشان بدهد: فایل دارد یا نه، چند شماره سالم دارد، چندتا هنوز قابل تخصیص است، چندتا تحویل شده و اگر برگشت بخورد کجا برمی‌گردد.</p>
+12267: 				<table class="sn-table"><thead><tr><th>پرونده</th><th>کیفیت فایل</th><th>قابل تخصیص</th><th>تخصیص‌داده‌شده</th><th>صف آماده</th><th>داخل زنجیره</th><th>قابل برگشت</th><th>مدیر فروش</th><th>عملیات</th></tr></thead><tbody>
+12268: 				<?php if (! $batches) : ?><tr><td colspan="9">هنوز پرونده‌ای ساخته نشده است. از فرم بالا یک پرونده بسازید، بعد فایل را در تب «آپلود و کنترل فایل» وارد کنید.</td></tr><?php endif; ?>
+12269: 				<?php foreach ($batches as $b) : $b_stats = $batch_ux_stats[(int) $b->id] ?? []; ?>
+12270: 				<tr>
+12271: 					<td><code><?php echo esc_html($b->batch_code); ?></code><br><strong><?php echo esc_html($b->title); ?></strong><br><small><?php echo esc_html(trim((string) $b->source_type . ' / ' . (string) $b->campaign_code . ' / ' . (string) $b->data_category, ' /')); ?></small></td>
+12272: 					<td><span class="sn-status"><?php echo esc_html($this->sn_mis_ux_health_label($b_stats)); ?></span><br><small>کل: <?php echo esc_html($this->sn_mis_format_count($b_stats['total_rows'] ?? $b->total_rows)); ?> / معتبر: <?php echo esc_html($this->sn_mis_format_count($b_stats['valid_rows'] ?? $b->valid_rows)); ?> / تکراری: <?php echo esc_html($this->sn_mis_format_count($b_stats['duplicate_rows'] ?? $b->duplicate_rows)); ?> / نامعتبر: <?php echo esc_html($this->sn_mis_format_count($b_stats['invalid_rows'] ?? $b->invalid_rows)); ?></small></td>
+12273: 					<td><strong><?php echo esc_html($this->sn_mis_format_count($b_stats['unassigned_valid'] ?? 0)); ?></strong><br><small>بدون مدیر فروش</small></td>
+12274: 					<td><strong><?php echo esc_html($this->sn_mis_format_count($b_stats['assigned_to_manager'] ?? 0)); ?></strong><br><small>مالک مدیر دارد</small></td>
+12275: 					<td><strong><?php echo esc_html($this->sn_mis_format_count($b_stats['pool_ready'] ?? 0)); ?></strong><br><small>آماده تحویل</small></td>
+12276: 					<td><strong><?php echo esc_html($this->sn_mis_format_count($b_stats['distribution_total'] ?? 0)); ?></strong><br><small>فروشنده/سرپرست</small></td>
+12277: 					<td><strong><?php echo esc_html($this->sn_mis_format_count($b_stats['returnable_with_distribution'] ?? 0)); ?></strong><br><small>برگشت به «بدون مدیر»</small></td>
+12278: 					<td><?php echo $b->assigned_manager_user_id ? esc_html($this->sn_user_label((int) $b->assigned_manager_user_id)) : '<span class="sn-muted">ندارد</span>'; ?></td>
+12279: 					<td class="sn-actions sn-mis-batch-actions">
+12280: 						<a class="sn-btn sn-btn-secondary" href="<?php echo esc_url(add_query_arg(['sn_mis_batch_id' => (int) $b->id, 'sn_ui_active_tab' => 'mis-preview'], remove_query_arg(['sn_ui_active_tab'])) . '#mis-preview'); ?>">گزارش</a>
+12281: 						<a class="sn-btn sn-btn-secondary" href="<?php echo esc_url(add_query_arg(['sn_mis_batch_id' => (int) $b->id, 'sn_ui_active_tab' => 'mis-batches-list'], remove_query_arg(['sn_ui_active_tab'])) . '#mis-batches-list'); ?>">تخصیص/برگشت</a>
+12282: 						<details class="sn-danger-tools"><summary class="sn-btn sn-btn-secondary">حذف / ریست</summary>
+12283: 							<div class="sn-alert">اول از دیتابیس بکاپ بگیر. حذف فقط وقتی مجاز است که ردیف‌ها لید/فاکتور قفل‌شده نداشته باشند.</div>
+12284: 							<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-inline-danger-form">
+12285: 								<input type="hidden" name="action" value="sn_mis_delete_batch_data"><?php wp_nonce_field('sn_mis_delete_batch_data'); ?>
+12286: 								<input type="hidden" name="batch_id" value="<?php echo esc_attr((string) (int) $b->id); ?>">
+12287: 								<input type="hidden" name="delete_mode" value="file_only">
+12288: 								<label>حذف فایل آپلودشده و ردیف‌های امن<br><input name="confirm" placeholder="DELETE_FILE"></label>
+12289: 								<button class="sn-btn sn-btn-danger" type="submit">حذف فایل این پرونده</button>
+12290: 							</form>
+12291: 							<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-inline-danger-form">
+12292: 								<input type="hidden" name="action" value="sn_mis_delete_batch_data"><?php wp_nonce_field('sn_mis_delete_batch_data'); ?>
+12293: 								<input type="hidden" name="batch_id" value="<?php echo esc_attr((string) (int) $b->id); ?>">
+12294: 								<input type="hidden" name="delete_mode" value="full_batch">
+12295: 								<label>حذف کامل پرونده<br><input name="confirm" placeholder="DELETE_BATCH"></label>
+12296: 								<button class="sn-btn sn-btn-danger" type="submit">حذف کامل پرونده</button>
+12297: 							</form>
+12298: 						</details>
+12299: 					</td>
+12300: 				</tr>
+12301: 				<?php endforeach; ?>
+12302: 				</tbody></table>
+12303: 			</details>
+12304: 			</section>
+12305: 
+12306: 			<section id="mis-import" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-import', 'mis-overview')); ?>" data-sn-tab-panel="mis-import">
+12307: 			<details open class="sn-card sn-flow-card"><summary><span class="sn-step-index">2</span><strong>ورود فایل اطلاعات</strong></summary>
+12308: 				<?php if (! $mis_schema_ready || empty($mis_schema_status['sn_mis_data_rows']['exists'])) : ?>
+12309: 					<div class="sn-notice sn-error">جدول ردیف‌های MIS ساخته نشده است یا گزارش سلامت جدول قدیمی است. از همینجا بازسازی امن جدول‌های MIS را اجرا کنید.</div>
+12310: 					<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-actions" style="margin:10px 0 14px">
+12311: 						<input type="hidden" name="action" value="sn_repair_mis_schema"><?php wp_nonce_field('sn_repair_mis_schema'); ?>
+12312: 						<button class="sn-btn sn-btn-primary" type="submit">بازسازی امن جدول‌های MIS</button>
+12313: 					</form>
+12314: 					<?php if (! empty($repair_report['last_error_message'])) : ?><div class="sn-alert"><strong>آخرین خطای بازسازی:</strong> <?php echo esc_html((string) $repair_report['last_error_message']); ?></div><?php endif; ?>
+12315: 				<?php else : ?>
+12316: 				<div class="sn-mis-sample-download"><a class="sn-btn sn-btn-secondary" href="<?php echo esc_url(SN_PLUGIN_URL . 'docs/samples/sn-mis-data-import-sample.xlsx'); ?>" download>دانلود نمونه Excel اطلاعات MIS</a><span>ستون‌های اصلی: شماره اول، شماره دوم، نام مشتری، استان، شهر، آدرس، توضیحات.</span></div>
+12317: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" class="sn-compact-form-grid">
+12318: 					<input type="hidden" name="action" value="sn_mis_import_csv"><?php wp_nonce_field('sn_mis_import_csv'); ?>
+12319: 					<label>پرونده هدف<select name="batch_id"><?php foreach ($batches as $b) : ?><option value="<?php echo esc_attr((string) (int) $b->id); ?>" <?php selected($selected_batch_id ?: (int) ($focus_batch->id ?? 0), (int) $b->id); ?>><?php echo esc_html($b->batch_code . ' - ' . $b->title); ?></option><?php endforeach; ?></select></label>
+12320: 					<label>فایل Excel/CSV اطلاعات<input type="file" name="mis_csv" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></label>
+12321: 					<div class="sn-actions"><button class="sn-btn">ثبت فایل</button></div>
+12322: 				</form>
+12323: 				<?php endif; ?>
+12324: 			</details>
+12325: 			<?php if ($report && is_array($report)) : ?><div class="sn-card sn-mis-import-result">
+12326: 				<h3>نتیجه آخرین ورود فایل</h3>
+12327: 				<?php $last_import_ok = (int) ($report['valid'] ?? $report['valid_rows'] ?? 0) > 0 && (int) ($report['invalid'] ?? $report['invalid_rows'] ?? 0) === 0; ?>
+12328: 				<div class="sn-notice <?php echo $last_import_ok ? 'sn-success' : 'sn-warning'; ?>"><strong><?php echo $last_import_ok ? 'آپلود قابل استفاده است' : 'آپلود نیاز به بررسی دارد'; ?></strong> — اینجا مشخص می‌شود فایل درست وارد شده یا باید ردیف‌های تکراری/نامعتبر را اصلاح کنید.</div>
+12329: 				<p class="sn-readable-summary"><?php echo esc_html($this->sn_mis_report_summary($report)); ?></p>
+12330: 				<div class="sn-mis-result-badges"><span class="sn-badge">کل: <?php echo esc_html((string) (int) ($report['rows_seen'] ?? 0)); ?></span><span class="sn-badge sn-status-approved">معتبر: <?php echo esc_html((string) (int) ($report['valid'] ?? 0)); ?></span><span class="sn-badge sn-status-warning">تکراری: <?php echo esc_html((string) (int) ($report['duplicate'] ?? 0)); ?></span><span class="sn-badge sn-status-rejected">نامعتبر: <?php echo esc_html((string) (int) ($report['invalid'] ?? 0)); ?></span></div>
+12331: 				<?php if (! empty($report['operator_message'])) : ?><div class="sn-alert"><?php echo esc_html((string) $report['operator_message']); ?></div><?php endif; ?>
+12332: 				<?php if (! empty($report['invalid_reasons']) && is_array($report['invalid_reasons'])) : ?><div class="sn-alert"><strong>علت خطاها:</strong> <?php foreach ($report['invalid_reasons'] as $reason => $count) : ?><span class="sn-badge"><?php echo esc_html($this->sn_mis_invalid_reason_label((string) $reason) . ': ' . (int) $count); ?></span> <?php endforeach; ?></div><?php endif; ?>
+12333: 				<?php if (! empty($report['invalid_samples']) && is_array($report['invalid_samples'])) : ?><details open><summary>نمونه ردیف‌های دارای خطا</summary><table class="sn-table"><thead><tr><th>ردیف</th><th>ستون</th><th>مقدار</th><th>علت قابل فهم</th></tr></thead><tbody><?php foreach (array_slice($report['invalid_samples'], 0, 20) as $sample) : ?><tr><td><?php echo esc_html((string) ($sample['row_number'] ?? '')); ?></td><td><?php echo esc_html((string) ($sample['source_column'] ?? '')); ?></td><td><?php echo esc_html($this->sn_mask_phone((string) ($sample['raw_value'] ?? ''))); ?></td><td><?php echo esc_html($this->sn_mis_invalid_reason_label((string) ($sample['reason'] ?? ''))); ?></td></tr><?php endforeach; ?></tbody></table></details><?php endif; ?>
+12334: 				<?php if (! empty($report['duplicate_samples']) && is_array($report['duplicate_samples'])) : ?><details open><summary>شماره‌های تکراری کجا هستند؟</summary><table class="sn-table"><thead><tr><th>ردیف</th><th>شماره</th><th>کجاست؟</th></tr></thead><tbody><?php foreach (array_slice($report['duplicate_samples'], 0, 20) as $sample) : ?><tr><td><?php echo esc_html((string) ($sample['row_number'] ?? '')); ?></td><td><?php echo esc_html($this->sn_mask_phone((string) ($sample['normalized_value'] ?? $sample['raw_value'] ?? ''))); ?></td><td><?php echo esc_html((string) ($sample['trace_label'] ?? $this->sn_mis_trace_label((array) ($sample['trace'] ?? [])))); ?></td></tr><?php endforeach; ?></tbody></table></details><?php endif; ?>
+12335: 				<?php if ($is_global_admin) : ?><details class="sn-technical-report"><summary>جزئیات فنی برای مدیرکل</summary><pre><?php echo esc_html($this->sn_mis_safe_json($report)); ?></pre></details><?php endif; ?>
+12336: 			</div><?php endif; ?>
+12337: 			</section>
+12338: 
+12339: 			<section id="mis-batches-list" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-batches-list', 'mis-overview')); ?>" data-sn-tab-panel="mis-batches-list">
+12340: 			<details open class="sn-card sn-flow-card"><summary><span class="sn-step-index">3</span><strong>پرونده‌های اطلاعات و اختصاص به مدیر فروش</strong></summary>
+12341: 				<p class="sn-note">اینجا مالک اولیه پرونده را مشخص می‌کنید. تخصیص فقط روی ردیف‌های معتبرِ بدون مدیر انجام می‌شود و نتیجه آن باید در ستون «تخصیص‌داده‌شده» دیده شود.</p>
+12342: 				<?php
+12343: 				$mis_focus_batch_id = $selected_batch_id ?: (int) ($focus_batch->id ?? 0);
+12344: 				$mis_focus_batch_obj = null;
+12345: 				foreach ($batches as $b_focus_candidate) { if ((int) $b_focus_candidate->id === (int) $mis_focus_batch_id) { $mis_focus_batch_obj = $b_focus_candidate; break; } }
+12346: 				$mis_focus_batch_stats = $mis_focus_batch_id ? (array) ($batch_ux_stats[(int) $mis_focus_batch_id] ?? []) : [];
+12347: 				if ($mis_focus_batch_obj && $mis_focus_batch_stats) : ?>
+12348: 				<div class="sn-alert sn-mis-focus-batch-card">
+12349: 					<strong>پرونده فعال برای اقدام امروز:</strong>
+12350: 					<code><?php echo esc_html((string) $mis_focus_batch_obj->batch_code); ?></code> — <?php echo esc_html((string) $mis_focus_batch_obj->title); ?>
+12351: 					<br><span class="sn-muted">قابل تخصیص به مدیر فروش: <?php echo esc_html(number_format_i18n((int) ($mis_focus_batch_stats['unassigned_valid'] ?? 0))); ?> / دست مدیر فروش: <?php echo esc_html(number_format_i18n((int) ($mis_focus_batch_stats['assigned_to_manager'] ?? 0))); ?> / تحویل‌شده به زنجیره: <?php echo esc_html(number_format_i18n((int) ($mis_focus_batch_stats['distribution_total'] ?? 0))); ?></span>
+12352: 				</div>
+12353: 				<?php endif; ?>
+12354: 				<div class="sn-mis-flow-explain sn-alert"><strong>تعریف ساده:</strong> «قابل تخصیص» یعنی شماره معتبر است و هنوز مدیر فروش ندارد. «برگشت» یعنی همین مالک مدیر فروش حذف می‌شود و شماره دوباره به همین وضعیت قابل تخصیص برمی‌گردد.</div>
+12355: 				<div class="sn-card sn-mis-action-card">
+12356: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-mis-primary-form sn-compact-form-grid">
+12357: 					<input type="hidden" name="action" value="sn_mis_assign_batch"><?php wp_nonce_field('sn_mis_assign_batch'); ?>
+12358: 					<div class="sn-section-title-row sn-full"><h3>تخصیص شماره‌های سالم به مدیر فروش</h3><span class="sn-muted">فقط ردیف‌های سالم و بدون مدیر فروش تخصیص می‌گیرند.</span></div>
+12359: 					<label>پرونده<br><select name="batch_id"><?php foreach ($batches as $b) : ?><option value="<?php echo esc_attr((string) (int) $b->id); ?>" <?php selected($selected_batch_id ?: (int) ($focus_batch->id ?? 0), (int) $b->id); ?>><?php echo esc_html($b->batch_code); ?></option><?php endforeach; ?></select></label>
+12360: 					<label>مدیر فروش<br><select name="manager_user_id"><?php foreach ($managers as $m) : ?><option value="<?php echo esc_attr((string) (int) $m->user_id); ?>"><?php echo esc_html($this->sn_user_label((int) $m->user_id)); ?></option><?php endforeach; ?></select></label>
+12361: 					<label>دلیل<br><input name="reason"></label><div class="sn-actions"><button class="sn-btn sn-btn-primary">تخصیص به مدیر فروش</button></div>
+12362: 				</form>
+12363: 				</div>
+12364: 				<table class="sn-table"><thead><tr><th>کد پرونده</th><th>عنوان</th><th>منبع</th><th>کمپین</th><th>دسته</th><th>وضعیت</th><th>ردیف‌ها</th><th>معتبر/تکراری/نامعتبر</th><th>قابل تخصیص</th><th>دست مدیر</th><th>تحویل فروش</th><th>مدیر فروش</th><th>ایجاد</th><th>عملیات</th></tr></thead><tbody>
+12365: 				<?php foreach ($batches as $b) : $b_stats = (array) ($batch_ux_stats[(int) $b->id] ?? []); ?><tr class="<?php echo ((int) $b->id === (int) ($mis_focus_batch_id ?? 0)) ? 'sn-row-highlight' : ''; ?>">
+12366: 					<td><code><?php echo esc_html($b->batch_code); ?></code></td><td><?php echo esc_html($b->title); ?></td><td><?php echo esc_html($b->source_type); ?></td><td><?php echo esc_html($b->campaign_code); ?></td><td><?php echo esc_html($b->data_category); ?></td><td><span class="sn-status"><?php echo esc_html($this->sn_portal_status_label((string) $b->import_status)); ?></span></td>
+12367: 					<td><?php echo esc_html((string) (int) $b->total_rows); ?></td><td><?php echo esc_html((int) $b->valid_rows . '/' . (int) $b->duplicate_rows . '/' . (int) $b->invalid_rows); ?></td><td><strong><?php echo esc_html(number_format_i18n((int) ($b_stats['unassigned_valid'] ?? 0))); ?></strong></td><td><?php echo esc_html(number_format_i18n((int) ($b_stats['assigned_to_manager'] ?? 0))); ?></td><td><?php echo esc_html(number_format_i18n((int) ($b_stats['distribution_total'] ?? 0))); ?></td><td><?php echo $b->assigned_manager_user_id ? esc_html($this->sn_user_label((int) $b->assigned_manager_user_id)) : '—'; ?></td><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $b->created_at)); ?></td>
+12368: 					<td>
+12369: 						<a href="<?php echo esc_url(add_query_arg('sn_mis_batch_id', (int) $b->id)); ?>">پیش‌نمایش</a>
+12370: 						<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;margin-inline-start:6px">
+12371: 							<input type="hidden" name="action" value="sn_mis_archive_batch"><?php wp_nonce_field('sn_mis_archive_batch'); ?>
+12372: 							<input type="hidden" name="batch_id" value="<?php echo esc_attr((string) (int) $b->id); ?>">
+12373: 							<input type="hidden" name="reason" value="archive from MIS panel">
+12374: 							<button class="sn-btn" type="submit">آرشیو</button>
+12375: 						</form>
+12376: 					</td>
+12377: 				</tr><?php endforeach; ?></tbody></table>
+12378: 
+12379: 				<?php if ($return_assign_report) :
+12380: 					$return_assign_errors = array_values(array_filter((array) ($return_assign_report['errors'] ?? [])));
+12381: 				?>
+12382: 					<div class="sn-notice <?php echo $return_assign_errors ? 'sn-warning' : 'sn-success'; ?>" style="margin-top:12px">
+12383: 						<strong>آخرین گزارش برگشت MIS:</strong>
+12384: 						<?php echo esc_html(number_format_i18n((int) ($return_assign_report['returned_rows'] ?? 0))); ?> ردیف به وضعیت بدون مدیر برگشت.
+12385: 						<?php if (! empty($return_assign_report['returned_distribution_items'])) : ?> <?php echo esc_html(number_format_i18n((int) $return_assign_report['returned_distribution_items'])); ?> آیتم پخش هم آزاد شد.<?php endif; ?>
+12386: 						<?php if ($return_assign_errors) : ?><br><span class="sn-muted">خطاها: <?php echo esc_html(implode('، ', $return_assign_errors)); ?></span><?php endif; ?>
+12387: 					</div>
+12388: 				<?php endif; ?>
+12389: 				<div class="sn-card sn-mis-return-card" style="margin-top:12px">
+12390: 					<h3>برگشت دیتای تخصیص‌داده‌شده</h3>
+12391: 					<p class="sn-note">برگشت یعنی شماره از مالک فعلی جدا می‌شود و به همان پرونده MIS برمی‌گردد؛ در نتیجه دوباره در عدد «قابل تخصیص به مدیر فروش» دیده می‌شود. اگر گزینه برگشت از صف/زنجیره را فعال نکنید، فقط ردیف‌هایی برمی‌گردند که هنوز وارد صف آماده یا زنجیره فروش نشده‌اند.</p>
+12392: 					<div class="sn-alert"><strong>مسیر برگشت:</strong> مدیر فروش / صف آماده / زنجیره پخش ← پرونده MIS ← وضعیت «بدون مدیر فروش». ردیف‌های تبدیل‌شده به لید یا فاکتور قفل می‌مانند.</div>
+12393: 					<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-compact-form-grid">
+12394: 						<input type="hidden" name="action" value="sn_mis_return_assignments"><?php wp_nonce_field('sn_mis_return_assignments'); ?>
+12395: 						<label>پرونده<br><select name="batch_id"><?php foreach ($batches as $b) : ?><option value="<?php echo esc_attr((string) (int) $b->id); ?>" <?php selected($selected_batch_id, (int) $b->id); ?>><?php echo esc_html($b->batch_code . ' - ' . $b->title); ?></option><?php endforeach; ?></select></label>
+12396: 						<label>مدیر فروش<br><select name="manager_user_id"><option value="0">همه مدیرهای این پرونده</option><?php foreach ($managers as $m) : ?><option value="<?php echo esc_attr((string) (int) $m->user_id); ?>"><?php echo esc_html($this->sn_user_label((int) $m->user_id)); ?></option><?php endforeach; ?></select></label>
+12397: 						<label>حداکثر تعداد<br><input type="number" name="limit" min="1" max="2000" value="500"></label>
+12398: 						<label>دلیل<br><input name="reason" value="برگشت تخصیص اشتباه MIS"></label>
+12399: 						<label class="sn-check"><input type="checkbox" name="include_distribution" value="1"> برگشت از صف آماده و زنجیره پخش هم انجام شود</label>
+12400: 						<label>کلمه تأیید برای ثبت<br><input name="confirm" placeholder="RETURN"></label>
+12401: 						<div class="sn-actions"><button class="sn-btn sn-btn-secondary" name="run_mode" value="dry_run">پیش‌نمایش برگشت</button><button class="sn-btn" name="run_mode" value="apply" onclick="return confirm('برگشت تخصیص MIS ثبت می‌شود. ادامه می‌دهید؟')">ثبت برگشت</button></div>
+12402: 					</form>
+12403: 				</div>
+12404: 
+12405: 			</details>
+12406: 			</section>
+12407: 
+12408: 			<section id="mis-pool" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-pool', 'mis-overview')); ?>" data-sn-tab-panel="mis-pool">
+12409: 			<details open class="sn-card sn-flow-card"><summary><span class="sn-step-index">4</span><strong>آماده‌سازی صف توزیع</strong></summary>
+12410: 				<p class="sn-note">بعد از اختصاص مدیر، ردیف‌های معتبر را آماده کنید و سپس به زنجیره فروش تحویل دهید. «صف آماده» یعنی دیتا آماده توزیع است؛ «تحویل به زنجیره» یعنی وارد مسیر پخش بین مدیر/سرپرست/فروشنده می‌شود.</p>
+12411: 				<?php if ($is_global_admin && $pool_report) : ?><details class="sn-technical-report"><summary>گزارش فنی صف توزیع</summary><pre><?php echo esc_html(wp_json_encode($pool_report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre></details><?php endif; ?>
+12412: 				<div class="sn-dashboard-grid"><?php foreach ($pool_summary as $label => $value) : ?><div class="sn-card"><strong><?php echo esc_html((string) $value); ?></strong><br><span><?php echo esc_html((string) $label); ?></span></div><?php endforeach; ?></div>
+12413: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-top:12px">
+12414: 					<input type="hidden" name="action" value="sn_mis_prepare_lead_pool"><?php wp_nonce_field('sn_mis_prepare_lead_pool'); ?>
+12415: 					<label>پرونده<br><select name="batch_id"><?php foreach ($batches as $b) : ?><option value="<?php echo esc_attr((string) (int) $b->id); ?>" <?php selected($selected_batch_id, (int) $b->id); ?>><?php echo esc_html($b->batch_code . ' - ' . $b->title); ?></option><?php endforeach; ?></select></label>
+12416: 					<label>مدیر فروش اختیاری<br><select name="manager_user_id"><option value="0">از روی پرونده / ردیف‌ها</option><?php foreach ($managers as $m) : ?><option value="<?php echo esc_attr((string) (int) $m->user_id); ?>"><?php echo esc_html($this->sn_user_label((int) $m->user_id)); ?></option><?php endforeach; ?></select></label>
+12417: 					<label>دلیل<br><input name="reason" value="prepare MIS lead pool"></label>
+12418: 					<input type="hidden" name="confirm" value="APPLY">
+12419: 					<button class="sn-btn" name="run_mode" value="apply">آماده‌سازی صف</button>
+12420: 				</form>
+12421: 				<form method="get" style="margin-top:12px">
+12422: 					<label>فیلتر پرونده<br><select name="sn_pool_batch_id"><option value="0">همه</option><?php foreach ($batches as $b) : ?><option value="<?php echo esc_attr((string) (int) $b->id); ?>" <?php selected($pool_filters['batch_id'], (int) $b->id); ?>><?php echo esc_html($b->batch_code); ?></option><?php endforeach; ?></select></label>
+12423: 					<label>فیلتر مدیر<br><select name="sn_pool_manager_id"><option value="0">همه</option><?php foreach ($managers as $m) : ?><option value="<?php echo esc_attr((string) (int) $m->user_id); ?>" <?php selected($pool_filters['manager_id'], (int) $m->user_id); ?>><?php echo esc_html($this->sn_user_label((int) $m->user_id)); ?></option><?php endforeach; ?></select></label>
+12424: 					<label>وضعیت<br><input name="sn_pool_status" value="<?php echo esc_attr($pool_filters['status']); ?>" placeholder="آماده"></label>
+12425: 					<button class="sn-btn">فیلتر صف توزیع</button>
+12426: 				</form>
+12427: 				<table class="sn-table" style="margin-top:12px"><thead><tr><th>شناسه صف</th><th>پرونده</th><th>ردیف منبع</th><th>نام</th><th>شماره</th><th>مدیر فروش</th><th>فروشنده</th><th>وضعیت</th><th>ایجاد</th></tr></thead><tbody>
+12428: 				<?php if (! $pool_rows) : ?><tr><td colspan="9">هنوز ردیفی در صف آماده توزیع وجود ندارد یا فیلتر نتیجه‌ای ندارد.</td></tr><?php endif; ?>
+12429: 				<?php foreach ($pool_rows as $row) : ?><tr><td><?php echo esc_html((string) (int) $row->id); ?></td><td><code><?php echo esc_html((string) ($row->batch_code ?? '')); ?></code></td><td><?php echo esc_html((string) (int) $row->source_row_id); ?></td><td><?php echo esc_html((string) ($row->customer_name ?? '')); ?></td><td><?php echo esc_html($this->sn_mask_phone((string) ($row->normalized_phone ?: $row->customer_phone))); ?></td><td><?php echo esc_html($this->sn_user_label((int) $row->assigned_manager_user_id)); ?></td><td><?php echo ! empty($row->assigned_seller_user_id) ? esc_html($this->sn_user_label((int) $row->assigned_seller_user_id)) : '—'; ?></td><td><span class="sn-status"><?php echo esc_html($this->sn_portal_status_label((string) $row->pool_status)); ?></span></td><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $row->created_at)); ?></td></tr><?php endforeach; ?>
+12430: 				</tbody></table>
+12431: 			</details>
+12432: 			<div class="sn-mis-delivery-inline">
+12433: 				<?php $this->sn_distribution_render_delivery_section($batches, $managers); ?>
+12434: 			</div>
+12435: 			</section>
+12436: 
+12437: 			<section id="mis-quick" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-quick', 'mis-overview')); ?>" data-sn-tab-panel="mis-quick">
+12438: 			<details open class="sn-card sn-flow-card"><summary><span class="sn-step-index">4.5</span><strong>تخصیص سریع دیتا</strong></summary>
+12439: 				<p class="sn-note">برای مواقعی که می‌خواهید یک پرونده را مستقیم به یک گیرنده مجاز بدهید. این مسیر برای کار عملیاتی سریع است؛ اگر می‌خواهید مسیر کامل مدیر ← سرپرست ← فروشنده طی شود از تب «آماده‌سازی و تحویل» استفاده کنید.</p>
+12440: 				<?php
+12441: 				$quick_report = get_option('sn_mis_quick_assign_report', []);
+12442: 				if (! is_array($quick_report)) { $quick_report = []; }
+12443: 				$quick_last = get_option('sn_mis_last_report', []);
+12444: 				if (! $quick_report && is_array($quick_last) && in_array((string) ($quick_last['action'] ?? ''), ['mis_quick_assign_dry_run','mis_quick_assign_apply'], true)) {
+12445: 					$quick_report = $quick_last;
+12446: 				}
+12447: 				if (isset($_GET['sn_mis_quick_report']) && ! $quick_report) : ?>
+12448: 					<div class="sn-alert sn-alert-warning">درخواست برگشت از تخصیص سریع دریافت شد، اما گزارشی در option ذخیره نشده است. یعنی handler احتمالاً قبل از ساخت report متوقف شده یا نسخه نصب‌شده با نسخه جدید جایگزین نشده است.</div>
+12449: 				<?php endif; ?>
+12450: 				<?php if ($quick_report) : ?><details open class="sn-card"><summary>نتیجه آخرین تخصیص سریع</summary><p class="sn-readable-summary"><?php echo esc_html($this->sn_mis_report_summary(is_array($quick_report) ? $quick_report : [])); ?></p><?php if (! empty($quick_report['operator_message'])) : ?><div class="sn-alert"><?php echo esc_html((string) $quick_report['operator_message']); ?></div><?php endif; ?><?php if (! empty($quick_report['errors']) && is_array($quick_report['errors'])) : ?><p><strong>خطاها:</strong> <?php foreach ($quick_report['errors'] as $err) : ?><span class="sn-badge sn-status-danger"><?php echo esc_html((string) $err); ?></span> <?php endforeach; ?></p><?php endif; ?><?php if (! empty($quick_report['created_distribution_items'])) : ?><div class="sn-alert sn-alert-success">تعداد آیتم پخش ساخته‌شده: <?php echo esc_html((string) (int) $quick_report['created_distribution_items']); ?></div><?php endif; ?><?php if (! empty($quick_report['invalid_reasons']) && is_array($quick_report['invalid_reasons'])) : ?><p><strong>علت‌های نامعتبر:</strong> <?php foreach ($quick_report['invalid_reasons'] as $reason => $count) : ?><span class="sn-badge"><?php echo esc_html($this->sn_mis_invalid_reason_label((string) $reason) . ': ' . (int) $count); ?></span> <?php endforeach; ?></p><?php endif; ?><?php if (! empty($quick_report['assignment_traces']) && is_array($quick_report['assignment_traces'])) : ?><details open><summary>ردیابی شماره‌های قبلاً تخصیص‌داده‌شده</summary><table class="sn-table"><thead><tr><th>آیتم</th><th>ردیف</th><th>شماره</th><th>مالک فعلی</th><th>فروشنده نهایی</th><th>وضعیت</th><th>آخرین بروزرسانی</th></tr></thead><tbody><?php foreach (array_slice($quick_report['assignment_traces'], 0, 30) as $trace) : ?><tr><td>#<?php echo esc_html((string) (int) ($trace['item_id'] ?? 0)); ?></td><td><?php echo esc_html((string) (int) ($trace['row_number'] ?? 0)); ?></td><td><?php echo esc_html((string) ($trace['phone'] ?? '')); ?></td><td><?php echo esc_html((string) ($trace['current_owner_label'] ?? '—')); ?></td><td><?php echo esc_html((string) ($trace['final_seller_label'] ?? '—')); ?></td><td><?php echo esc_html($this->sn_portal_status_label((string) ($trace['distribution_status'] ?? ''))); ?></td><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) ($trace['updated_at'] ?? ''))); ?></td></tr><?php endforeach; ?></tbody></table></details><?php endif; ?><?php if ($is_global_admin) : ?><details><summary>جزئیات فنی</summary><pre><?php echo esc_html($this->sn_mis_safe_json($quick_report)); ?></pre></details><?php endif; ?></details><?php endif; ?>
+12451: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-compact-form-grid" id="sn-mis-quick-assign-form">
+12452: 					<input type="hidden" name="action" value="sn_mis_quick_assign_data"><?php wp_nonce_field('sn_mis_quick_assign_data'); ?>
+12453: 					<input type="hidden" name="redirect_to" value="<?php echo esc_url(remove_query_arg(['sn_mis_quick_report','sn_mis_tab','sn_mis_batch_id'])); ?>">
+12454: 					<label>پرونده<select name="batch_id"><option value="0">انتخاب پرونده</option><?php foreach ($batches as $b) : ?><option value="<?php echo esc_attr((string) (int) $b->id); ?>" <?php selected($selected_batch_id, (int) $b->id); ?>><?php echo esc_html($b->batch_code . ' - ' . $b->title); ?></option><?php endforeach; ?></select></label>
+12455: 					<label>گیرنده<select name="target_user_id"><option value="0">انتخاب گیرنده</option>
+12456: 						<?php foreach (['sales_deputy','sales_manager','senior_supervisor','supervisor','seller'] as $pos) : foreach ($this->sn_hr_all_users_by_position($pos) as $row) : ?>
+12457: 							<option value="<?php echo esc_attr((string) (int) $row['user_id']); ?>"><?php echo esc_html($this->sn_user_label((int) $row['user_id']) . ' / ' . $this->sn_distribution_position_label($pos)); ?></option>
+12458: 						<?php endforeach; endforeach; ?>
+12459: 					</select></label>
+12460: 					<label>حداکثر تعداد<input type="number" name="limit" min="1" max="500" value="100"></label>
+12461: 					<label>دلیل<input name="reason" value="تخصیص سریع توسط MIS"></label>
+12462: 					<input type="hidden" name="confirm" value="APPLY">
+12463: 					<div class="sn-actions"><button type="submit" class="sn-btn sn-btn-secondary" name="run_mode" value="dry_run">پیش‌نمایش بدون ذخیره</button><button type="submit" class="sn-btn" name="run_mode" value="apply">ثبت تخصیص سریع</button></div>
+12464: 				</form>
+12465: 			</details>
+12466: 			</section>
+12467: 
+12468: 			
+12469: 			<?php if ($can_use_mis_advanced_tools) : ?>
+12470: 			<section id="mis-distribution" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-distribution', 'mis-overview')); ?>" data-sn-tab-panel="mis-distribution">
+12471: 			<details open class="sn-card sn-flow-card"><summary><span class="sn-step-index">5</span><strong>قوانین پخش داده</strong></summary>
+12472: 				<p class="sn-note">این بخش فقط قانون و برنامه قابل بازبینی می‌سازد. هیچ ردیفی در جدول فروش ایجاد یا به فروشنده ارسال نمی‌شود.</p>
+12473: 				<p class="sn-alert">مدل هدف پخش سلسله‌مراتبی است: مدیر فروش ← سرپرست ارشد ← سرپرست ← فروشنده. فرم فعلی فقط ابزار برنامه‌ریزی کنترل‌شده است و تکمیل همه لایه‌ها در فاز بعدی انجام می‌شود.</p>
+12474: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+12475: 					<input type="hidden" name="action" value="sn_mis_create_distribution_rule"><?php wp_nonce_field('sn_mis_create_distribution_rule'); ?>
+12476: 					<label>نام قانون<br><input name="rule_name" required></label>
+12477: 					<label>نوع قانون<br><select name="rule_type"><option value="equal_split">تقسیم مساوی</option><option value="manual_selection">انتخاب دستی</option></select></label>
+12478: 					<label>مدیر فروش<br><select name="manager_user_id"><option value="0">عمومی</option><?php foreach ($managers as $m) : ?><option value="<?php echo esc_attr((string) (int) $m->user_id); ?>"><?php echo esc_html($this->sn_user_label((int) $m->user_id)); ?></option><?php endforeach; ?></select></label>
+12479: 					<label>تنظیمات / یادداشت<br><textarea name="notes" rows="2" class="large-text"></textarea></label>
+12480: 					<button class="sn-btn">ایجاد قانون پیش‌نویس</button>
+12481: 				</form>
+12482: 				<table class="sn-table" style="margin-top:12px"><thead><tr><th>شناسه</th><th>قانون</th><th>نوع</th><th>مدیر فروش</th><th>وضعیت</th><th>ایجاد</th></tr></thead><tbody>
+12483: 				<?php if (! $distribution_rules) : ?><tr><td colspan="6">هنوز قانونی ثبت نشده است.</td></tr><?php endif; ?>
+12484: 				<?php foreach ($distribution_rules as $rule) : ?><tr><td><?php echo esc_html((string) (int) $rule->id); ?></td><td><?php echo esc_html((string) $rule->rule_name); ?></td><td><span class="sn-status"><?php echo esc_html($this->sn_portal_status_label((string) $rule->rule_type)); ?></span></td><td><?php echo ! empty($rule->manager_user_id) ? esc_html($this->sn_user_label((int) $rule->manager_user_id)) : '—'; ?></td><td><span class="sn-status"><?php echo esc_html($this->sn_portal_status_label((string) $rule->status)); ?></span></td><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $rule->created_at)); ?></td></tr><?php endforeach; ?>
+12485: 				</tbody></table>
+12486: 			</details>
+12487: 
+12488: 			<details open class="sn-card sn-flow-card"><summary><span class="sn-step-index">5</span><strong>برنامه پخش</strong></summary>
+12489: 				<p class="sn-alert">پیش‌نمایش فقط نتیجه برنامه‌ریزی را نشان می‌دهد. ثبت با تأیید برنامه می‌سازد، ولی لید زنده ایجاد نمی‌کند.</p>
+12490: 				<?php if ($distribution_report) : ?><details class="sn-technical-report"><summary>گزارش فنی برنامه توزیع</summary><pre><?php echo esc_html(wp_json_encode($distribution_report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre></details><?php endif; ?>
+12491: 				<form method="get" style="margin-bottom:10px">
+12492: 					<label>نمایش فروشنده‌های زیر مدیر<br><select name="sn_plan_manager_id"><?php foreach ($managers as $m) : ?><option value="<?php echo esc_attr((string) (int) $m->user_id); ?>" <?php selected($plan_manager_id, (int) $m->user_id); ?>><?php echo esc_html($this->sn_user_label((int) $m->user_id)); ?></option><?php endforeach; ?></select></label>
+12493: 					<button class="sn-btn">بارگذاری فروشنده‌ها</button>
+12494: 				</form>
+12495: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+12496: 					<input type="hidden" name="action" value="sn_mis_create_distribution_plan"><?php wp_nonce_field('sn_mis_create_distribution_plan'); ?>
+12497: 					<label>پرونده<br><select name="batch_id"><option value="0">همه صف آماده</option><?php foreach ($batches as $b) : ?><option value="<?php echo esc_attr((string) (int) $b->id); ?>" <?php selected($selected_batch_id, (int) $b->id); ?>><?php echo esc_html($b->batch_code); ?></option><?php endforeach; ?></select></label>
+12498: 					<label>مدیر فروش<br><select name="manager_user_id"><?php foreach ($managers as $m) : ?><option value="<?php echo esc_attr((string) (int) $m->user_id); ?>" <?php selected($plan_manager_id, (int) $m->user_id); ?>><?php echo esc_html($this->sn_user_label((int) $m->user_id)); ?></option><?php endforeach; ?></select></label>
+12499: 					<label>قانون<br><select name="rule_id"><?php foreach ($distribution_rules as $rule) : ?><option value="<?php echo esc_attr((string) (int) $rule->id); ?>"><?php echo esc_html($rule->rule_name . ' / ' . $rule->rule_type); ?></option><?php endforeach; ?></select></label>
+12500: 					<div style="margin:10px 0">
+12501: 						<strong>فروشنده‌ها</strong>
+12502: 						<div class="sn-note">یک یا چند فروشنده زیرمجموعه مدیر انتخاب‌شده را انتخاب کنید. این انتخاب فقط برای برنامه است و لید زنده ایجاد نمی‌کند. در مدل کامل، انتخاب از مسیر سرپرست ارشد/سرپرست انجام خواهد شد.</div>
+12503: 						<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px;max-height:260px;overflow:auto;border:1px solid #ddd;padding:10px;border-radius:6px;background:#fff">
+12504: 							<?php if (! $plan_sellers) : ?><div>برای این مدیر فروشنده‌ای در scope پیدا نشد.</div><?php endif; ?>
+12505: 							<?php foreach ($plan_sellers as $seller_id) : ?>
+12506: 								<label style="display:flex;gap:8px;align-items:center;margin:0;padding:4px 0">
+12507: 									<input type="checkbox" name="seller_ids[]" value="<?php echo esc_attr((string) (int) $seller_id); ?>" <?php checked(in_array((int) $seller_id, $plan_selected_seller_ids, true)); ?>>
+12508: 									<span><?php echo esc_html($this->sn_user_label((int) $seller_id)); ?> <code>#<?php echo esc_html((string) (int) $seller_id); ?></code></span>
+12509: 								</label>
+12510: 							<?php endforeach; ?>
+12511: 						</div>
+12512: 					</div>
+12513: 					<label>دلیل<br><input name="reason" value="prepare MIS distribution plan"></label>
+12514: 					<input type="hidden" name="confirm" value="APPLY">
+12515: 					<button class="sn-btn" name="run_mode" value="apply">آماده‌سازی صف</button>
+12516: 				</form>
+12517: 				<table class="sn-table" style="margin-top:12px"><thead><tr><th>کد برنامه</th><th>مدیر فروش</th><th>قانون</th><th>وضعیت</th><th>کل</th><th>برنامه‌ریزی‌شده</th><th>ایجاد</th><th>آیتم‌ها</th></tr></thead><tbody>
+12518: 				<?php if (! $distribution_plans) : ?><tr><td colspan="8">هنوز برنامه‌ای ثبت نشده است.</td></tr><?php endif; ?>
+12519: 				<?php foreach ($distribution_plans as $plan) : ?><tr><td><code><?php echo esc_html((string) $plan->plan_code); ?></code></td><td><?php echo esc_html($this->sn_user_label((int) $plan->manager_user_id)); ?></td><td><?php echo esc_html((string) ($plan->rule_name ?? '—')); ?></td><td><span class="sn-status"><?php echo esc_html($this->sn_portal_status_label((string) $plan->plan_status)); ?></span></td><td><?php echo esc_html((string) (int) $plan->total_pool_rows); ?></td><td><?php echo esc_html((string) (int) $plan->planned_rows); ?></td><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $plan->created_at)); ?></td><td><a href="<?php echo esc_url(add_query_arg('sn_mis_plan_id', (int) $plan->id)); ?>">مشاهده</a></td></tr><?php endforeach; ?>
+12520: 				</tbody></table>
+12521: 				<?php if ($selected_plan_id) : ?><h4>آیتم‌های برنامه انتخاب‌شده</h4><table class="sn-table"><thead><tr><th>صف</th><th>شماره</th><th>مدیر فروش</th><th>فروشنده برنامه‌ریزی‌شده</th><th>وضعیت</th><th>دلیل رد/عبور</th></tr></thead><tbody>
+12522: 				<?php if (! $selected_plan_items) : ?><tr><td colspan="6">آیتمی برای این برنامه وجود ندارد.</td></tr><?php endif; ?>
+12523: 				<?php foreach ($selected_plan_items as $item) : ?><tr><td><?php echo esc_html((string) (int) $item->pool_id); ?></td><td><?php echo esc_html($this->sn_mask_phone((string) ($item->normalized_phone ?: $item->customer_phone))); ?></td><td><?php echo esc_html($this->sn_user_label((int) $item->manager_user_id)); ?></td><td><?php echo ! empty($item->planned_seller_user_id) ? esc_html($this->sn_user_label((int) $item->planned_seller_user_id)) : '—'; ?></td><td><span class="sn-status"><?php echo esc_html($this->sn_portal_status_label((string) $item->item_status)); ?></span></td><td><?php echo esc_html((string) $item->skip_reason); ?></td></tr><?php endforeach; ?>
+12524: 				</tbody></table><?php endif; ?>
+12525: 			</details>
+12526: 			</section>
+12527: 			<?php endif; ?>
+12528: 
+12529: 			<?php if ($can_use_mis_advanced_tools) : ?>
+12530: 			<section id="mis-live" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-live', 'mis-overview')); ?>" data-sn-tab-panel="mis-live">
+12531: 			<details open class="sn-card sn-flow-card"><summary><span class="sn-step-index">6-7</span><strong>تأیید برنامه و ساخت کنترل‌شده لید</strong></summary>
+12532: 				<p class="sn-note">این بخش مسیر کنترل‌شده و ویژه ساخت لید از MIS است و جریان استاندارد اپراتوری MIS محسوب نمی‌شود. فقط برنامه تأییدشده پردازش می‌شود، پیامک ارسال نمی‌شود و لیدهای موجود آپدیت یا حذف نمی‌شوند.</p>
+12533: 				<p class="sn-alert">برای تأیید برنامه باید APPROVE نوشته شود. برای ساخت کنترل‌شده لید باید APPLY نوشته شود.</p>
+12534: 				<?php if ($lead_creation_report) : ?><details class="sn-technical-report"><summary>گزارش فنی ساخت کنترل‌شده لید</summary><pre><?php echo esc_html(wp_json_encode($lead_creation_report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre></details><?php endif; ?>
+12535: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin-bottom:10px">
+12536: 					<input type="hidden" name="action" value="sn_mis_approve_distribution_plan"><?php wp_nonce_field('sn_mis_approve_distribution_plan'); ?>
+12537: 					<label>برنامه توزیع<br><select name="plan_id"><?php foreach ($distribution_plans as $plan) : ?><option value="<?php echo esc_attr((string) (int) $plan->id); ?>" <?php selected($selected_plan_id, (int) $plan->id); ?>><?php echo esc_html($plan->plan_code . ' / ' . $plan->plan_status); ?></option><?php endforeach; ?></select></label>
+12538: 					<label>دلیل<br><input name="reason" value="approve MIS distribution plan"></label>
+12539: 					<label>تأیید<br><input name="confirm" placeholder="APPROVE"></label>
+12540: 					<button class="sn-btn">تأیید برنامه توزیع</button>
+12541: 				</form>
+12542: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+12543: 					<input type="hidden" name="action" value="sn_mis_create_live_leads_from_plan"><?php wp_nonce_field('sn_mis_create_live_leads_from_plan'); ?>
+12544: 					<label>برنامه تأییدشده<br><select name="plan_id"><?php foreach ($distribution_plans as $plan) : ?><option value="<?php echo esc_attr((string) (int) $plan->id); ?>" <?php selected($selected_plan_id, (int) $plan->id); ?>><?php echo esc_html($plan->plan_code . ' / ' . $plan->plan_status); ?></option><?php endforeach; ?></select></label>
+12545: 					<label>دلیل<br><input name="reason" value="ساخت کنترل‌شده لید از برنامه تأییدشده MIS"></label>
+12546: 					<label>کلمه تأیید ثبت<input name="confirm" placeholder="APPLY"></label>
+12547: 					<button class="sn-btn" name="run_mode" value="dry_run">پیش‌نمایش بدون ذخیره</button>
+12548: 					<button class="sn-btn" name="run_mode" value="apply">ثبت با تأیید</button>
+12549: 				</form>
+12550: 				<?php if ($selected_plan_id) : ?><h4>وضعیت ساخت لید برای برنامه انتخاب‌شده</h4><table class="sn-table"><thead><tr><th>آیتم</th><th>صف</th><th>فروشنده</th><th>شماره</th><th>لید ساخته‌شده</th><th>وضعیت ساخت لید</th><th>خطا</th></tr></thead><tbody>
+12551: 				<?php foreach ($selected_plan_items as $item) : ?><tr><td><?php echo esc_html((string) (int) $item->id); ?></td><td><?php echo esc_html((string) (int) $item->pool_id); ?></td><td><?php echo ! empty($item->planned_seller_user_id) ? esc_html($this->sn_user_label((int) $item->planned_seller_user_id)) : '—'; ?></td><td><?php echo esc_html($this->sn_mask_phone((string) ($item->normalized_phone ?: $item->customer_phone))); ?></td><td><?php echo ! empty($item->created_lead_id) ? '<span class="sn-internal-context-link">لید ساخته‌شده #' . esc_html((string) (int) $item->created_lead_id) . '</span>' : '—'; ?></td><td><span class="sn-status"><?php echo esc_html($this->sn_portal_status_label((string) ($item->lead_creation_status ?? 'pending'))); ?></span></td><td><?php echo esc_html((string) ($item->lead_creation_error ?? '')); ?></td></tr><?php endforeach; ?>
+12552: 				</tbody></table><?php endif; ?>
+12553: 			</details>
+12554: 			</section>
+12555: 			<?php endif; ?>
+12556: 
+12557: 			<section id="mis-preview" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-preview', 'mis-overview')); ?>" data-sn-tab-panel="mis-preview">
+12558: 			<?php if (! $selected_batch_id) : ?>
+12559: 				<div class="sn-card sn-empty-state">برای مشاهده گزارش کامل، از تب «پرونده‌ها» یا «اختصاص مدیر» یک پرونده را انتخاب کنید.</div>
+12560: 			<?php else : ?>
+12561: 				<div class="sn-card sn-mis-case-report-card">
+12562: 					<div class="sn-section-title-row">
+12563: 						<h3>گزارش کامل پرونده انتخاب‌شده</h3>
+12564: 						<span class="sn-badge">نمایش شماره کامل فقط برای MIS</span>
+12565: 					</div>
+12566: 					<form method="get" action="" class="sn-mis-report-filters sn-compact-form-grid">
+12567: 						<input type="hidden" name="sn_mis_batch_id" value="<?php echo esc_attr((string) $selected_batch_id); ?>">
+12568: 						<input type="hidden" name="sn_ui_active_tab" value="mis-preview">
+12569: 						<label>مدیر فروش<br><select name="sn_mis_report_manager_id"><option value="0">همه</option><?php foreach (($mis_case_report_options['managers'] ?? []) as $uid => $label) : ?><option value="<?php echo esc_attr((string) $uid); ?>" <?php selected((int) ($mis_case_report_filters['manager_id'] ?? 0), (int) $uid); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+12570: 						<label>سرپرست ارشد<br><select name="sn_mis_report_senior_id"><option value="0">همه</option><?php foreach (($mis_case_report_options['seniors'] ?? []) as $uid => $label) : ?><option value="<?php echo esc_attr((string) $uid); ?>" <?php selected((int) ($mis_case_report_filters['senior_id'] ?? 0), (int) $uid); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+12571: 						<label>سرپرست<br><select name="sn_mis_report_supervisor_id"><option value="0">همه</option><?php foreach (($mis_case_report_options['supervisors'] ?? []) as $uid => $label) : ?><option value="<?php echo esc_attr((string) $uid); ?>" <?php selected((int) ($mis_case_report_filters['supervisor_id'] ?? 0), (int) $uid); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+12572: 						<label>فروشنده<br><select name="sn_mis_report_seller_id"><option value="0">همه</option><?php foreach (($mis_case_report_options['sellers'] ?? []) as $uid => $label) : ?><option value="<?php echo esc_attr((string) $uid); ?>" <?php selected((int) ($mis_case_report_filters['seller_id'] ?? 0), (int) $uid); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+12573: 						<label>وضعیت شماره<br><select name="sn_mis_report_status"><option value="">همه</option><?php foreach (($mis_case_report_options['statuses'] ?? []) as $status => $label) : ?><option value="<?php echo esc_attr((string) $status); ?>" <?php selected((string) ($mis_case_report_filters['status'] ?? ''), (string) $status); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+12574: 						<div class="sn-actions"><button class="sn-btn sn-btn-primary" type="submit">اعمال فیلتر</button><a class="sn-btn sn-btn-secondary" href="<?php echo esc_url(add_query_arg(['sn_mis_batch_id' => $selected_batch_id, 'sn_ui_active_tab' => 'mis-preview'], remove_query_arg(['sn_mis_report_manager_id','sn_mis_report_senior_id','sn_mis_report_supervisor_id','sn_mis_report_seller_id','sn_mis_report_status']))); ?>#mis-preview">پاک کردن</a></div>
+12575: 					</form>
+12576: 
+12577: 					<div class="sn-dashboard-grid sn-mis-case-summary-grid">
+12578: 						<div class="sn-card sn-mis-stat-card"><strong><?php echo esc_html(number_format_i18n((int) ($mis_case_report_summary['total'] ?? 0))); ?></strong><span>کل شماره‌های فیلترشده</span></div>
+12579: 						<div class="sn-card sn-mis-stat-card"><strong><?php echo esc_html(number_format_i18n((int) ($mis_case_report_summary['valid'] ?? 0))); ?></strong><span>معتبر</span></div>
+12580: 						<div class="sn-card sn-mis-stat-card"><strong><?php echo esc_html(number_format_i18n((int) ($mis_case_report_summary['duplicates'] ?? 0))); ?></strong><span>تکراری</span></div>
+12581: 						<div class="sn-card sn-mis-stat-card"><strong><?php echo esc_html(number_format_i18n((int) ($mis_case_report_summary['invalid'] ?? 0))); ?></strong><span>نامعتبر</span></div>
+12582: 						<div class="sn-card sn-mis-stat-card"><strong><?php echo esc_html(number_format_i18n((int) ($mis_case_report_summary['distributed'] ?? 0))); ?></strong><span>وارد زنجیره پخش</span></div>
+12583: 						<div class="sn-card sn-mis-stat-card"><strong><?php echo esc_html(number_format_i18n((int) ($mis_case_report_summary['delivered_to_seller'] ?? 0))); ?></strong><span>تحویل فروشنده</span></div>
+12584: 					</div>
+12585: 
+12586: 					<div class="sn-mis-breakdown-grid">
+12587: 						<?php $this->sn_mis_case_report_breakdown_table('مدیر فروش', $mis_case_report_summary['by_manager'] ?? []); ?>
+12588: 						<?php $this->sn_mis_case_report_breakdown_table('سرپرست ارشد', $mis_case_report_summary['by_senior'] ?? []); ?>
+12589: 						<?php $this->sn_mis_case_report_breakdown_table('سرپرست', $mis_case_report_summary['by_supervisor'] ?? []); ?>
+12590: 						<?php $this->sn_mis_case_report_breakdown_table('فروشنده', $mis_case_report_summary['by_seller'] ?? []); ?>
+12591: 						<?php $this->sn_mis_case_report_breakdown_table('وضعیت شماره', $mis_case_report_summary['by_status'] ?? []); ?>
+12592: 					</div>
+12593: 
+12594: 					<div class="sn-table-wrap sn-mis-case-report-table-wrap">
+12595: 						<table class="sn-table sn-mis-case-report-table">
+12596: 							<thead><tr><th>ردیف</th><th>نام</th><th>شماره کامل</th><th>شهر</th><th>استان</th><th>وضعیت اعتبار</th><th>وضعیت پخش</th><th>وضعیت فروشنده</th><th>مدیر فروش</th><th>سرپرست ارشد</th><th>سرپرست</th><th>فروشنده نهایی</th><th>مالک فعلی</th><th>دلیل تکراری/خطا</th></tr></thead>
+12597: 							<tbody>
+12598: 							<?php if (! $mis_case_report_rows) : ?><tr><td colspan="14"><div class="sn-empty-state">شماره‌ای با این فیلترها پیدا نشد.</div></td></tr><?php endif; ?>
+12599: 							<?php foreach (array_slice($mis_case_report_rows, 0, 1000) as $r) : ?>
+12600: 								<tr>
+12601: 									<td><?php echo esc_html((string) (int) ($r['row_number'] ?? 0)); ?></td>
+12602: 									<td><?php echo esc_html((string) ($r['customer_name'] ?? '')); ?></td>
+12603: 									<td dir="ltr"><strong><?php echo esc_html((string) ($r['phone'] ?? '')); ?></strong></td>
+12604: 									<td><?php echo esc_html((string) ($r['city'] ?? '')); ?></td>
+12605: 									<td><?php echo esc_html((string) ($r['province'] ?? '')); ?></td>
+12606: 									<td><span class="sn-status"><?php echo esc_html($this->sn_mis_row_status_label((string) ($r['row_status'] ?? ''))); ?></span></td>
+12607: 									<td><span class="sn-status"><?php echo esc_html($this->sn_distribution_status_label((string) ($r['distribution_status'] ?? ''))); ?></span></td>
+12608: 									<td><?php echo esc_html((string) ($r['seller_contact_status_label'] ?? '—')); ?></td>
+12609: 									<td><?php echo esc_html((string) ($r['manager_label'] ?? '—')); ?></td>
+12610: 									<td><?php echo esc_html((string) ($r['senior_label'] ?? '—')); ?></td>
+12611: 									<td><?php echo esc_html((string) ($r['supervisor_label'] ?? '—')); ?></td>
+12612: 									<td><?php echo esc_html((string) ($r['seller_label'] ?? '—')); ?></td>
+12613: 									<td><?php echo esc_html((string) ($r['current_owner_label'] ?? '—')); ?></td>
+12614: 									<td><?php echo esc_html((string) (($r['duplicate_reason'] ?? '') ?: ($r['trace_label'] ?? '—'))); ?></td>
+12615: 								</tr>
+12616: 							<?php endforeach; ?>
+12617: 							</tbody>
+12618: 						</table>
+12619: 					</div>
+12620: 					<?php if (count($mis_case_report_rows) > 1000) : ?><p class="sn-note">برای جلوگیری از کندی، فقط ۱۰۰۰ ردیف اول نمایش داده شد. فیلترها را دقیق‌تر کنید.</p><?php endif; ?>
+12621: 				</div>
+12622: 			<?php endif; ?>
+12623: 
+12624: 			<details class="sn-card"><summary><strong>گزارش دیتا</strong></summary>
+12625: 				<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+12626: 					<?php $this->sn_mis_render_report_table('campaign_code'); $this->sn_mis_render_report_table('data_category'); $this->sn_mis_render_report_table('source_type'); $this->sn_mis_render_report_table('assigned_manager_user_id'); ?>
+12627: 				</div>
+12628: 				<?php if ($selected_batch_id) : ?>
+12629: 					<h4>پیش‌نمایش تبدیل پرونده انتخاب‌شده</h4>
+12630: 					<table class="sn-table"><tbody>
+12631: 						<tr><th>ردیف‌های واردشده</th><td><?php echo esc_html((string) $conversion['imported_rows']); ?></td></tr>
+12632: 						<tr><th>لیدهای مشابه</th><td><?php echo esc_html((string) $conversion['matching_leads']); ?></td></tr>
+12633: 						<tr><th>فاکتورهای مشابه</th><td><?php echo esc_html((string) $conversion['matching_invoices']); ?></td></tr>
+12634: 						<tr><th>فاکتورهای پرداخت/تأیید شده مشابه</th><td><?php echo esc_html((string) $conversion['matching_paid_invoices']); ?></td></tr>
+12635: 						<tr><th>درصد تبدیل</th><td><?php echo esc_html($conversion['conversion_percentage'] . '%'); ?></td></tr>
+12636: 					</tbody></table>
+12637: 					<p class="sn-note">این گزارش فقط خواندنی است و هیچ تغییری در لید یا فاکتور ایجاد نمی‌کند.</p>
+12638: 				<?php endif; ?>
+12639: 			</details>
+12640: 			</section>
+12641: 
+12642: 			<?php if ($mis_active_tab === 'mis-report') : ?>
+12643: 			<section id="mis-report" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-report', 'mis-overview')); ?>" data-sn-tab-panel="mis-report">
+12644: 				<?php echo SN_MIS_Report::render(true); ?>
+12645: 			</section>
+12646: 			<?php endif; ?>
+12647: 
+12648: 			<?php if ($can_use_mis_advanced_tools) : ?>
+12649: 			<section id="mis-logs" class="<?php echo esc_attr($this->sn_tab_panel_class('mis-logs', 'mis-overview')); ?>" data-sn-tab-panel="mis-logs">
+12650: 			<details class="sn-card"><summary><strong>لاگ MIS</strong></summary>
+12651: 				<table class="sn-table"><thead><tr><th>زمان</th><th>کاربر</th><th>عملیات</th><th>بچ</th><th>خلاصه</th><th>دلیل</th><th>جزئیات</th></tr></thead><tbody>
+12652: 				<?php foreach ($logs as $log) : ?><tr><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $log->created_at)); ?></td><td><?php echo $log->actor_user_id ? esc_html($this->sn_user_label((int) $log->actor_user_id)) : '—'; ?></td><td><span class="sn-status"><?php echo esc_html($this->sn_mis_action_label((string) $log->action)); ?></span></td><td><?php echo esc_html((string) $log->batch_id); ?></td><td><?php echo esc_html($this->sn_mis_log_summary($log)); ?></td><td><?php echo esc_html($log->reason); ?></td><td><details><summary>جزئیات فنی</summary><pre><?php echo esc_html($this->sn_mis_safe_json(['old' => $log->old_value, 'new' => $log->new_value])); ?></pre></details></td></tr><?php endforeach; ?>
+12653: 				</tbody></table>
+12654: 			</details>
+12655: 			</section>
+12656: 			<?php endif; ?>
+12657: 		</div>
+12658: 		<?php
+12659: 		return ob_get_clean();
+12660: 	}

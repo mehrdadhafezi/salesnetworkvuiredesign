@@ -1,0 +1,87 @@
+20757: 
+20758: 	public function handle_distribution_return_items(): void
+20759: 	{
+20760: 		if (! is_user_logged_in()) { wp_die('دسترسی غیرمجاز'); }
+20761: 		$nonce_value = sanitize_text_field(wp_unslash($_POST['_wpnonce'] ?? ($_POST['nonce'] ?? '')));
+20762: 		$form_nonce_status = $nonce_value !== '' && (bool) wp_verify_nonce($nonce_value, 'sn_distribution_return_items');
+20763: 		if (! $form_nonce_status) {
+20764: 			if (wp_doing_ajax()) { SN_Helpers::send_json(false, 'درخواست نامعتبر است. صفحه را رفرش کنید و دوباره تلاش کنید.', ['errors' => ['nonce_invalid']]); return; }
+20765: 			check_admin_referer('sn_distribution_return_items');
+20766: 		}
+20767: 		$this->sn_distribution_ensure_schema();
+20768: 		global $wpdb;
+20769: 		$actor_id = get_current_user_id();
+20770: 		$actor_position = sanitize_key((string) $this->sn_hr_position_for_user($actor_id));
+20771: 		if (! current_user_can('manage_options') && ! in_array($actor_position, ['sales_deputy','sales_manager','senior_supervisor','supervisor'], true)) {
+20772: 			if (wp_doing_ajax()) { SN_Helpers::send_json(false, 'این عملیات فقط برای مدیران/سرپرستان مجاز است.'); return; }
+20773: 			wp_die('دسترسی غیرمجاز');
+20774: 		}
+20775: 		if ($actor_position === '') { $actor_position = 'sales_manager'; }
+20776: 		$case_filter = $this->sn_distribution_transfer_filter_from_request();
+20777: 		$return_count = max(0, min(500, absint($_POST['return_count'] ?? 0)));
+20778: 		$selected_ids = array_values(array_filter(array_unique(array_map('absint', (array) ($_POST['distribution_item_ids'] ?? [])))));
+20779: 		$note = sanitize_textarea_field(wp_unslash($_POST['note'] ?? 'برگشت تخصیص به پنل مالک'));
+20780: 		$confirm = sanitize_text_field(wp_unslash($_POST['confirm'] ?? ''));
+20781: 		$report = [
+20782: 			'action' => 'distribution_return_items',
+20783: 			'actor_user_id' => $actor_id,
+20784: 			'actor_position' => $actor_position,
+20785: 			'requested_items' => 0,
+20786: 			'returned' => 0,
+20787: 			'skipped' => 0,
+20788: 			'errors' => [],
+20789: 			'case_filter' => $case_filter,
+20790: 			'updated_at' => current_time('mysql'),
+20791: 		];
+20792: 		if ($confirm !== 'RETURN') { $report['errors'][] = 'confirmation_required'; }
+20793: 		$candidates = $this->sn_distribution_returnable_items_for_actor($actor_id, 2500, $case_filter);
+20794: 		$candidate_map = [];
+20795: 		foreach ($candidates as $candidate) { $candidate_map[(int) $candidate->id] = $candidate; }
+20796: 		if ($selected_ids) {
+20797: 			$item_ids = array_values(array_intersect($selected_ids, array_keys($candidate_map)));
+20798: 		} else {
+20799: 			$item_ids = array_slice(array_keys($candidate_map), 0, $return_count > 0 ? $return_count : 0);
+20800: 		}
+20801: 		$report['requested_items'] = count($item_ids);
+20802: 		if (! $item_ids) { $report['errors'][] = 'no_returnable_items_selected'; }
+20803: 		$chain = $this->sn_distribution_active_chain();
+20804: 		$step_map = $this->sn_distribution_step_order_map((array) ($chain['steps'] ?? []));
+20805: 		$actor_step = (int) ($step_map[$actor_position] ?? 0);
+20806: 		if (empty($report['errors'])) {
+20807: 			foreach ($item_ids as $item_id) {
+20808: 				$item = $candidate_map[(int) $item_id] ?? null;
+20809: 				if (! $item) { $report['skipped']++; continue; }
+20810: 				$from_user_id = (int) ($item->current_owner_user_id ?? 0);
+20811: 				$from_position = (string) ($item->current_owner_position ?? '');
+20812: 				$data = array_merge($this->sn_distribution_seller_state_reset_data(), [
+20813: 					'current_owner_user_id' => $actor_id,
+20814: 					'current_owner_position' => $actor_position,
+20815: 					'current_step_order' => $actor_step,
+20816: 					'final_seller_user_id' => null,
+20817: 					'status' => $actor_position === 'sales_manager' ? 'returned_to_manager' : 'returned_to_owner',
+20818: 					'updated_at' => current_time('mysql'),
+20819: 				]);
+20820: 				$ok = $wpdb->update($wpdb->prefix . 'sn_distribution_items', $this->sn_filter_existing_columns($wpdb->prefix . 'sn_distribution_items', $data), ['id' => (int) $item_id]) !== false;
+20821: 				if ($ok) {
+20822: 					$report['returned']++;
+20823: 					$this->sn_distribution_log((int) $item_id, (string) $data['status'], $actor_id, $from_user_id, $actor_id, $from_position, $actor_position, $actor_step, $note, [
+20824: 						'reason' => 'manual_return_to_owner_panel',
+20825: 						'previous_status' => (string) ($item->status ?? ''),
+20826: 						'previous_final_seller_user_id' => (int) ($item->final_seller_user_id ?? 0),
+20827: 					]);
+20828: 				} else {
+20829: 					$report['errors'][] = 'update_failed_' . (int) $item_id;
+20830: 				}
+20831: 			}
+20832: 		}
+20833: 		update_option('sn_distribution_return_report', $report, false);
+20834: 		if (wp_doing_ajax()) {
+20835: 			$success = empty($report['errors']) && (int) $report['returned'] > 0;
+20836: 			$message = $success ? number_format_i18n((int) $report['returned']) . ' شماره به پنل شما برگشت.' : 'برگشت انجام نشد. تعداد/پرونده را بررسی کنید.';
+20837: 			SN_Helpers::send_json($success, $message, ['report' => $report]);
+20838: 			return;
+20839: 		}
+20840: 		wp_safe_redirect(add_query_arg('sn_ui_active_tab', 'manager-distribution', wp_get_referer() ?: home_url('/')) . '#manager-distribution');
+20841: 		exit;
+20842: 	}
+20843: 

@@ -1,0 +1,18 @@
+/* Supervisor-specific layout (Sales-management family). Everything visual comes from the shared system. */
+.team-grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:var(--gap);align-items:start}
+.team-main{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap);min-width:0}
+.cap-panel .tbl-wrap{overflow-x:auto}
+@media (max-width:1500px){.cap-panel .col-opt{display:none}}
+.attn-panel{position:sticky;top:8px}
+.cap-panel tr.inactive td:not(.col-actions){color:var(--muted)}
+.ind-note{margin:0;padding:12px 16px;color:var(--muted);font-size:var(--fs-sm);line-height:1.8}
+.hr-list{display:grid;gap:8px}
+.hr-card{display:grid;gap:12px;width:100%;padding:12px;border:1px solid var(--border);border-radius:var(--r);background:var(--raised);color:var(--text);text-align:right;transition:border-color var(--dur)}
+.hr-card:hover{border-color:var(--primary-line)}
+.hr-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.hr-top b{font-weight:600}
+
+@media (max-width:1100px){
+  .team-grid{grid-template-columns:minmax(0,1fr)}
+  .attn-panel{position:static}
+}

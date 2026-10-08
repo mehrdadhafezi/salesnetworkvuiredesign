@@ -1,0 +1,20 @@
+{
+  "feature_rows": 147,
+  "roles": {
+    "Seller": 18,
+    "Supervisor": 16,
+    "Senior Supervisor": 13,
+    "Sales Manager": 13,
+    "Sales Deputy": 12,
+    "MIS": 18,
+    "HR": 23,
+    "Finance": 34
+  },
+  "classification_errors": [],
+  "broken_local_links": [],
+  "zip_snapshot_differences": [],
+  "preexisting_workspace_code_differences": [],
+  "archive_sha256_unchanged": true,
+  "guard_registry_functions": 65,
+  "product_handlers_executed_by_this_script": false
+}

@@ -1,0 +1,36 @@
+33352: 
+33353: 			public function handle_commission_review_run(): void
+33354: 			{
+33355: 				if (! $this->sn_can_view_finance()) {
+33356: 					wp_die('دسترسی غیرمجاز');
+33357: 				}
+33358: 				check_admin_referer('sn_commission_review_run');
+33359: 				$this->sn_ensure_commission_tables();
+33360: 				global $wpdb;
+33361: 				$run_id = absint($_POST['run_id'] ?? 0);
+33362: 				$review_action = sanitize_key(wp_unslash($_POST['review_action'] ?? ''));
+33363: 				$confirm = strtoupper(sanitize_text_field(wp_unslash($_POST['confirm_word'] ?? '')));
+33364: 				$note = sanitize_textarea_field(wp_unslash($_POST['approval_note'] ?? ''));
+33365: 				$run = $this->sn_commission_run($run_id);
+33366: 				$report = ['status' => 'error', 'run_id' => $run_id, 'message' => 'پیش‌نمایش یافت نشد.'];
+33367: 				if ($run) {
+33368: 					$current = (string) ($run['approval_status'] ?? 'generated');
+33369: 					if ($review_action === 'approve' && $confirm === 'APPROVE' && ! in_array($current, ['approved'], true)) {
+33370: 						$data = ['approval_status' => 'approved', 'approved_by' => get_current_user_id() ?: null, 'approved_at' => current_time('mysql'), 'approval_note' => $note, 'locked_at' => current_time('mysql')];
+33371: 						$wpdb->update($wpdb->prefix . 'sn_commission_dry_runs', $this->sn_filter_existing_columns($wpdb->prefix . 'sn_commission_dry_runs', $data), ['id' => $run_id]);
+33372: 						$this->sn_commission_log($run_id, null, 'commission_run_approved', 'approved', ['approval_status' => $current], $data, $note);
+33373: 						$report = ['status' => 'ok', 'run_id' => $run_id, 'message' => 'پیش‌نمایش تایید و قفل شد. کیف پول تغییری نکرد.'];
+33374: 					} elseif ($review_action === 'reject' && $confirm === 'REJECT' && $current !== 'approved') {
+33375: 						$data = ['approval_status' => 'rejected', 'rejected_by' => get_current_user_id() ?: null, 'rejected_at' => current_time('mysql'), 'approval_note' => $note, 'locked_at' => current_time('mysql')];
+33376: 						$wpdb->update($wpdb->prefix . 'sn_commission_dry_runs', $this->sn_filter_existing_columns($wpdb->prefix . 'sn_commission_dry_runs', $data), ['id' => $run_id]);
+33377: 						$this->sn_commission_log($run_id, null, 'commission_run_rejected', 'rejected', ['approval_status' => $current], $data, $note);
+33378: 						$report = ['status' => 'ok', 'run_id' => $run_id, 'message' => 'پیش‌نمایش رد شد و قابل ارسال به کیف پول نیست.'];
+33379: 					} else {
+33380: 						$report = ['status' => 'error', 'run_id' => $run_id, 'message' => 'کلمه تایید یا وضعیت پیش‌نمایش معتبر نیست.'];
+33381: 					}
+33382: 				}
+33383: 				update_option('sn_commission_review_report', $report, false);
+33384: 				wp_safe_redirect(add_query_arg('sn_commission_run_id', (string) $run_id, wp_get_referer() ?: home_url('/')) . '#sn-commission-preview');
+33385: 				exit;
+33386: 			}
+33387: 

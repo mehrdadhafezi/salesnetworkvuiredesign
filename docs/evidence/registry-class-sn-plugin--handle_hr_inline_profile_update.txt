@@ -1,0 +1,13 @@
+18668: 
+18669: 	public function handle_hr_inline_profile_update(): void
+18670: 	{
+18671: 		if (! $this->sn_can_manage_hr_panel()) { wp_die('دسترسی غیرمجاز'); }
+18672: 		check_admin_referer('sn_hr_inline_profile_update');
+18673: 		if (class_exists('SN_Migration_Service')) { (new SN_Migration_Service())->migrate(); }
+18674: 		$user_id = absint($_POST['user_id'] ?? 0);
+18675: 		$report = $this->sn_hr_apply_workforce_update($user_id, $this->sn_hr_workforce_payload_from_post(), false, 'hr_inline_profile_update');
+18676: 		update_option('sn_hr_inline_update_report', $report, false);
+18677: 		wp_safe_redirect($this->sn_hr_panel_return_url(['sn_msg' => empty($report['errors']) ? 'hr_profile_action_done' : 'hr_profile_action_error']) . '#hr-workforce');
+18678: 		exit;
+18679: 	}
+18680: 

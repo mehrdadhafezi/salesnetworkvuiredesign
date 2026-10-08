@@ -1,0 +1,23 @@
+22030: 
+22031: 
+22032: 
+22033: 	private function sn_distribution_item_has_invoice_lock(int $item_id): bool
+22034: 	{
+22035: 		global $wpdb;
+22036: 		$item_id = absint($item_id);
+22037: 		if ($item_id < 1 || ! $this->sn_table_exists_quiet($wpdb->prefix . 'sn_invoices')) {
+22038: 			return false;
+22039: 		}
+22040: 		$invoice_table = $wpdb->prefix . 'sn_invoices';
+22041: 		$cols = $this->sn_table_columns($invoice_table);
+22042: 		if (! in_array('lead_id', $cols, true)) {
+22043: 			return false;
+22044: 		}
+22045: 		$virtual_lead_id = $this->sn_distribution_virtual_lead_id($item_id);
+22046: 		$count = (int) $wpdb->get_var($wpdb->prepare(
+22047: 			"SELECT COUNT(*) FROM {$invoice_table} WHERE lead_id=%d AND COALESCE(status,'') NOT IN ('cancelled','rejected','deleted')",
+22048: 			$virtual_lead_id
+22049: 		));
+22050: 		return $count > 0;
+22051: 	}
+22052: 

@@ -1,0 +1,6 @@
+29234: 
+29235: 			private function sn_can_view_wallet_commission(): bool
+29236: 			{
+29237: 				return current_user_can('manage_options') || current_user_can('sn_view_wallet_commission');
+29238: 			}
+29239: 

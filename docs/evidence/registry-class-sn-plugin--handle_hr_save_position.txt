@@ -1,0 +1,53 @@
+16494: 
+16495: 	public function handle_hr_save_position(): void
+16496: 	{
+16497: 		if (! $this->sn_can_manage_hr_panel()) { wp_die('دسترسی غیرمجاز'); }
+16498: 		check_admin_referer('sn_hr_save_position');
+16499: 		global $wpdb;
+16500: 		$id = absint($_POST['position_id'] ?? 0);
+16501: 		$slug = sanitize_key(wp_unslash($_POST['slug'] ?? ''));
+16502: 		$label = sanitize_text_field(wp_unslash($_POST['label'] ?? ''));
+16503: 		$description = sanitize_textarea_field(wp_unslash($_POST['description'] ?? ''));
+16504: 		$is_active = ! empty($_POST['is_active']) ? 1 : 0;
+16505: 		$status_action = sanitize_key(wp_unslash($_POST['position_status_action'] ?? 'save'));
+16506: 		$table = $wpdb->prefix . 'sn_hr_positions';
+16507: 		if ($id && $status_action === 'delete') {
+16508: 			$deleted = $this->sn_hr_delete_lookup_row('position', $id);
+16509: 			$this->sn_hr_lookup_ajax_response($deleted ? 'hr_position_deleted' : 'hr_position_delete_failed', ['type' => 'position', 'id' => $id, 'deleted' => (bool) $deleted]);
+16510: 		}
+16511: 		$result = false;
+16512: 		if ($id) {
+16513: 			$result = $wpdb->update($table, $this->sn_filter_existing_columns($table, [
+16514: 				'label' => $label,
+16515: 				'description' => $description,
+16516: 				'is_active' => $is_active,
+16517: 				'updated_at' => current_time('mysql'),
+16518: 			]), ['id' => $id]);
+16519: 		} elseif ($slug !== '' && $label !== '') {
+16520: 			$existing = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE slug=%s", $slug));
+16521: 			if ($existing) {
+16522: 				$result = $wpdb->update($table, $this->sn_filter_existing_columns($table, [
+16523: 					'label' => $label,
+16524: 					'description' => $description,
+16525: 					'is_active' => $is_active,
+16526: 					'updated_at' => current_time('mysql'),
+16527: 				]), ['id' => $existing]);
+16528: 				$id = $existing;
+16529: 			} else {
+16530: 				$result = $wpdb->insert($table, $this->sn_filter_existing_columns($table, [
+16531: 					'slug' => $slug,
+16532: 					'label' => $label,
+16533: 					'description' => $description,
+16534: 					'is_active' => $is_active,
+16535: 					'is_system' => 0,
+16536: 					'created_at' => current_time('mysql'),
+16537: 					'updated_at' => current_time('mysql'),
+16538: 				]));
+16539: 				$id = $result !== false ? (int) $wpdb->insert_id : 0;
+16540: 			}
+16541: 		}
+16542: 		$row = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $id), ARRAY_A) : null;
+16543: 		$message = ($result !== false && $id > 0) ? 'hr_position_saved' : 'hr_position_update_failed';
+16544: 		$this->sn_hr_lookup_ajax_response($message, ['type' => 'position', 'id' => $id, 'row' => $row ?: [], 'db_error' => (string) $wpdb->last_error]);
+16545: 	}
+16546: 
