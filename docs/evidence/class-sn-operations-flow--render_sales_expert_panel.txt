@@ -1,0 +1,1 @@
+1644: 	public function render_sales_expert_panel(): string { return $this->render_panel('expert'); }

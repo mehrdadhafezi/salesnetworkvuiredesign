@@ -1,0 +1,5 @@
+25: 
+26: 	public static function is_matrix_engine_enabled(): bool {
+27: 		return class_exists( __CLASS__ ) && (string) get_option( 'sn_purpose_commission_engine_enabled', '1' ) === '1';
+28: 	}
+29: 

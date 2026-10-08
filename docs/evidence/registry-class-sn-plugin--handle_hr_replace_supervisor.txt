@@ -1,0 +1,102 @@
+18874: 
+18875: 	public function handle_hr_replace_supervisor(): void
+18876: 	{
+18877: 		if (! $this->sn_can_manage_hr_panel()) { wp_die('دسترسی غیرمجاز'); }
+18878: 		check_admin_referer('sn_hr_replace_supervisor');
+18879: 		if (class_exists('SN_Migration_Service')) { (new SN_Migration_Service())->migrate(); }
+18880: 		global $wpdb;
+18881: 		$old_user_id = absint($_POST['old_supervisor_user_id'] ?? 0);
+18882: 		$new_user_id = absint($_POST['new_supervisor_user_id'] ?? 0);
+18883: 		$mode = sanitize_key(wp_unslash($_POST['mode'] ?? 'dry_run'));
+18884: 		$apply = $mode === 'apply';
+18885: 		$confirm = sanitize_text_field(wp_unslash($_POST['confirm_apply'] ?? ''));
+18886: 		$reason = sanitize_textarea_field(wp_unslash($_POST['reason'] ?? ''));
+18887: 		$scope = sanitize_key(wp_unslash($_POST['replacement_scope'] ?? 'direct_children'));
+18888: 		$deactivate_old = ! empty($_POST['deactivate_old_supervisor']);
+18889: 		$actor_id = get_current_user_id();
+18890: 		$hr = new SN_HR_Service();
+18891: 		$hierarchy = new SN_Hierarchy_Service();
+18892: 		$old_profile = $old_user_id ? $hr->get_profile_by_user_id($old_user_id) : null;
+18893: 		$new_profile = $new_user_id ? $hr->get_profile_by_user_id($new_user_id) : null;
+18894: 		$report = [
+18895: 			'action' => 'hr_replace_supervisor',
+18896: 			'mode' => $apply ? 'apply' : 'dry_run',
+18897: 			'old_supervisor_user_id' => $old_user_id,
+18898: 			'old_supervisor_label' => $old_user_id ? $this->sn_user_label($old_user_id) : '',
+18899: 			'new_supervisor_user_id' => $new_user_id,
+18900: 			'new_supervisor_label' => $new_user_id ? $this->sn_user_label($new_user_id) : '',
+18901: 			'scope' => $scope,
+18902: 			'reason' => $reason,
+18903: 			'candidates' => 0,
+18904: 			'changed' => 0,
+18905: 			'skipped' => 0,
+18906: 			'errors' => [],
+18907: 			'rows' => [],
+18908: 			'deactivated_old_supervisor' => false,
+18909: 			'updated_at' => current_time('mysql'),
+18910: 		];
+18911: 		if (! $old_profile || ! $new_profile) { $report['errors'][] = 'old_or_new_profile_missing'; }
+18912: 		if ($old_user_id && $old_user_id === $new_user_id) { $report['errors'][] = 'same_supervisor_not_allowed'; }
+18913: 		if ($apply && $confirm !== 'APPLY') { $report['errors'][] = 'confirm_apply_required'; }
+18914: 		if (empty($report['errors'])) {
+18915: 			$child_rows = $wpdb->get_results($wpdb->prepare("SELECT child.*, COALESCE(NULLIF(child.hr_display_name,''), u.display_name) AS display_name, u.user_login, pos.slug AS position_slug, pos.label AS position_label
+18916: 				FROM {$wpdb->prefix}sn_hr_assignments a
+18917: 				INNER JOIN {$wpdb->prefix}sn_hr_profiles child ON child.id=a.child_profile_id
+18918: 				INNER JOIN {$wpdb->users} u ON u.ID=child.user_id
+18919: 				LEFT JOIN {$wpdb->prefix}sn_hr_positions pos ON pos.id=child.position_id
+18920: 				WHERE a.parent_profile_id=%d AND a.is_current=1 AND a.relationship_type='reports_to'
+18921: 				ORDER BY FIELD(pos.slug,'senior_supervisor','supervisor','seller'), u.display_name ASC", (int) $old_profile->id)) ?: [];
+18922: 			if ($scope === 'sellers_only') {
+18923: 				$child_rows = array_values(array_filter($child_rows, static fn($row) => (string) ($row->position_slug ?? '') === 'seller'));
+18924: 			}
+18925: 			$report['candidates'] = count($child_rows);
+18926: 			foreach ($child_rows as $child) {
+18927: 				$row = [
+18928: 					'user_id' => (int) $child->user_id,
+18929: 					'label' => $this->sn_user_label((int) $child->user_id),
+18930: 					'position' => (string) ($child->position_slug ?? ''),
+18931: 					'old_parent_profile_id' => (int) $old_profile->id,
+18932: 					'new_parent_profile_id' => (int) $new_profile->id,
+18933: 					'would_change' => true,
+18934: 					'changed' => false,
+18935: 				];
+18936: 				if ($apply) {
+18937: 					$result = $hierarchy->assign_parent((int) $child->id, (int) $new_profile->id, $actor_id, 'hr_supervisor_replacement', $reason ?: 'جابه‌جایی سرپرست');
+18938: 					$row['assignment_result'] = $result;
+18939: 					if (! empty($result['success']) && empty($result['skipped'])) {
+18940: 						$row['changed'] = true;
+18941: 						$report['changed']++;
+18942: 						$this->sn_hr_panel_log_profile((int) $child->id, (int) $child->user_id, 'hr_supervisor_replacement_child_reassigned', [
+18943: 							'old_supervisor_user_id' => $old_user_id,
+18944: 							'old_supervisor_label' => $this->sn_user_label($old_user_id),
+18945: 						], [
+18946: 							'new_supervisor_user_id' => $new_user_id,
+18947: 							'new_supervisor_label' => $this->sn_user_label($new_user_id),
+18948: 						], ['reason' => $reason, 'source' => 'hr_supervisor_replacement']);
+18949: 					} elseif (! empty($result['skipped'])) {
+18950: 						$report['skipped']++;
+18951: 					} else {
+18952: 						$report['errors'][] = 'child_' . (int) $child->user_id . ':' . (string) ($result['message'] ?? 'assignment_failed');
+18953: 					}
+18954: 				}
+18955: 				$report['rows'][] = $row;
+18956: 			}
+18957: 			if ($apply && $deactivate_old && $old_profile) {
+18958: 				$old_state = ['is_active' => (int) $old_profile->is_active, 'employment_status' => (string) ($old_profile->employment_status ?? '')];
+18959: 				$wpdb->update($wpdb->prefix . 'sn_hr_profiles', $this->sn_filter_existing_columns($wpdb->prefix . 'sn_hr_profiles', [
+18960: 					'is_active' => 0,
+18961: 					'employment_status' => 'inactive',
+18962: 					'updated_at' => current_time('mysql'),
+18963: 				]), ['id' => (int) $old_profile->id]);
+18964: 				$report['deactivated_old_supervisor'] = true;
+18965: 				$this->sn_hr_panel_log_profile((int) $old_profile->id, $old_user_id, 'hr_supervisor_replacement_old_supervisor_deactivated', $old_state, ['is_active' => 0, 'employment_status' => 'inactive'], ['reason' => $reason, 'new_supervisor_user_id' => $new_user_id]);
+18966: 			}
+18967: 			if ($apply) {
+18968: 				$this->sn_hr_panel_log_profile((int) ($new_profile->id ?? 0), $new_user_id, 'hr_supervisor_replacement_applied', ['old_supervisor_user_id' => $old_user_id, 'old_supervisor_label' => $this->sn_user_label($old_user_id)], ['new_supervisor_user_id' => $new_user_id, 'moved_count' => (int) $report['changed']], ['reason' => $reason]);
+18969: 			}
+18970: 		}
+18971: 		update_option('sn_hr_replace_supervisor_report', $report, false);
+18972: 		wp_safe_redirect($this->sn_hr_panel_return_url(['sn_msg' => empty($report['errors']) ? 'hr_replace_supervisor_done' : 'hr_replace_supervisor_error']) . '#hr-bulk');
+18973: 		exit;
+18974: 	}
+18975: 

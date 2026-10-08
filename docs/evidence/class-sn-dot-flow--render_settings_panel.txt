@@ -1,0 +1,175 @@
+1364: 
+1365: 	public function render_settings_panel(): void {
+1366: 		$config = $this->config();
+1367: 		$products = class_exists( 'SN_Helpers' ) ? SN_Helpers::get_sn_products() : [];
+1368: 		$report_counts = $this->dot_report_counts();
+1369: 		$credits = (array) $config['nominal_credits'];
+1370: 		$options = (array) $config['options'];
+1371: 		$product_options_html = '<option value="0" data-price="0">— انتخاب محصول اشتراک —</option>';
+1372: 		foreach ( $products as $dot_product ) {
+1373: 			$product_options_html .= '<option value="' . (int) $dot_product['id'] . '" data-price="' . esc_attr( (string) (float) $dot_product['price'] ) . '">' . esc_html( (string) $dot_product['name'] . ' (#' . (int) $dot_product['id'] . ')' ) . '</option>';
+1374: 		}
+1375: 		$sms_examples = [
+1376: 			'access' => "%customer_name% عزیز، اعتبارسنجی شما تأیید شد.\nرمز اختصاصی: %access_code%\nاین دسترسی اختصاصی برای شماست.\n%access_link%",
+1377: 			'gift_access' => "%customer_name% عزیز، هزینه اعتبارسنجی شما از طرف شرکت به‌صورت هدیه پرداخت شده است.\nبرای مشاهده نتیجه و انتخاب گزینه وارد شوید:\n%access_link%\nرمز اختصاصی: %access_code%",
+1378: 			'payment' => "%customer_name% عزیز، لینک %payment_type% برای «%option_title%» به مبلغ %amount% تومان:\n%invoice_url%",
+1379: 			'reject' => "%seller_name% عزیز، پرداخت اعتبارسنجی مشتری %customer_name% با شماره %customer_phone% رد شد.\nکد فاکتور: %invoice_code%\nدلیل: %reason%",
+1380: 			'followup' => "%staff_name% عزیز، زمان تماس مجدد با %customer_name% (%customer_phone%) برای پرونده #%case_id% رسیده است.\nموعد: %followup_at%",
+1381: 		];
+1382: 		?>
+1383: 		<input type="hidden" name="sn_dot_settings_present" value="1">
+1384: 		<div class="sn-dot-admin-section">
+1385: 			<div class="sn-dot-admin-hero">
+1386: 				<div><span class="sn-dot-admin-kicker">DOT SETTINGS</span><h2>فلو اعتبارسنجی و تبدیل</h2><p>مدیریت یکپارچه محصول اعتبارسنجی، اعتبار نمایشی، انتخاب مشتری، پیامک و تبدیل.</p></div>
+1387: 				<div class="sn-dot-admin-states">
+1388: 					<div class="sn-dot-admin-state <?php echo ! empty( $config['enabled'] ) ? 'is-active' : ''; ?>"><span></span><?php echo ! empty( $config['enabled'] ) ? 'فلو فعال است' : 'فلو غیرفعال است'; ?></div>
+1389: 					<?php if ( ! empty( $config['sms_test_mode'] ) ) : ?><div class="sn-dot-admin-state is-test"><span></span>پیامک آزمایشی فعال</div><?php endif; ?>
+1390: 				</div>
+1391: 			</div>
+1392: 			<div class="sn-dot-admin-note"><strong>سازگاری با سیستم فعلی</strong><span>کاربران و ارتباط سرپرست/نیرو از HR قدیمی خوانده می‌شوند و محصولات عادی همچنان از فلوهای قبلی عبور می‌کنند.</span></div>
+1393: 			<div class="sn-dot-admin-subsection" style="margin-top:20px">
+1394: 				<h3>گزارش‌های دات فلو معمولی</h3>
+1395: 				<p class="description">خروجی لیدها، مسیر ورود و فاکتور اولیه را نشان می‌دهد. خروجی انتخاب و پرداخت فقط پرونده‌های ایجادشده را با گزینه انتخابی، تبدیل‌کننده و تمام وضعیت‌های پرداخت ارائه می‌کند.</p>
+1396: 				<p><a class="button button-primary" href="<?php echo esc_url( $this->dot_report_export_url( 'regular', 'leads' ) ); ?>">خروجی لیدهای دات معمولی (<?php echo esc_html( number_format_i18n( (int) $report_counts['regular_leads'] ) ); ?>)</a> <a class="button" href="<?php echo esc_url( $this->dot_report_export_url( 'regular', 'outcomes' ) ); ?>">خروجی انتخاب و پرداخت (<?php echo esc_html( number_format_i18n( (int) $report_counts['regular_outcomes'] ) ); ?>)</a></p>
+1397: 			</div>
+1398: 			<table class="form-table">
+1399: 				<tr><th>فعال‌سازی فلو</th><td><label><input type="checkbox" name="sn_dot[enabled]" value="1" <?php checked( ! empty( $config['enabled'] ) ); ?>> فعال</label></td></tr>
+1400: 				<tr class="sn-dot-test-mode-row"><th>پیامک آزمایشی فلو</th><td><input type="hidden" name="sn_dot_sms_test_mode" value="0"><label class="sn-dot-test-toggle"><input type="checkbox" name="sn_dot_sms_test_mode" value="1" <?php checked( ! empty( $config['sms_test_mode'] ) ); ?>><span><strong>نمایش آزمایشی روی صفحه</strong><small>فقط پیامک‌های همین فلو به‌صورت پاپ‌آپ کوچک نمایش داده شوند.</small></span></label><div class="sn-dot-test-warning"><strong>مخصوص دمو و تست</strong><span>در حالت فعال، پیامک واقعی این فلو به سرویس‌دهنده ارسال نمی‌شود. متن نهایی، شماره مقصد، رمز و لینک فقط برای مدیری که این حالت را ذخیره کرده و افراد مرتبط همان پرونده در پنل CRM نمایش داده می‌شود؛ پیامک سایر بخش‌ها هیچ تغییری نمی‌کند.</span></div></td></tr>
+1401: 				<tr><th>زمان ارسال پیامک ورود</th><td><div class="sn-dot-delay-control"><input id="sn-dot-sms-delay" type="number" min="0" max="10080" name="sn_dot[sms_delay_minutes]" value="<?php echo esc_attr( (string) $config['sms_delay_minutes'] ); ?>"><span>دقیقه پس از پرداخت موفق</span></div><div class="sn-dot-delay-presets" aria-label="انتخاب سریع زمان"><button type="button" class="button" data-sn-delay="0">فوری</button><button type="button" class="button" data-sn-delay="15">۱۵ دقیقه</button><button type="button" class="button" data-sn-delay="30">۳۰ دقیقه</button><button type="button" class="button" data-sn-delay="60">۱ ساعت</button><button type="button" class="button" data-sn-delay="120">۲ ساعت</button></div><p class="description">از ۰ تا ۱۰٬۰۸۰ دقیقه قابل تنظیم است. اگر تأیید مالی دیرتر از این زمان انجام شود، پیامک بلافاصله پس از تأیید مالی ارسال می‌شود.</p></td></tr>
+1402: 				<tr><th>لینک ورود مشتری</th><td><span class="sn-dot-rule-chip">بدون تاریخ انقضا</span><p class="description">لینک و رمز اختصاصی مشتری با گذشت زمان منقضی نمی‌شوند و ارسال مجدد نیز همان دسترسی پایدار را ایجاد می‌کند.</p></td></tr>
+1403: 				<tr><th>تأیید مالی پرداخت‌ها</th><td><span class="sn-dot-rule-chip">الزامی و غیرقابل دور زدن</span><p class="description">پرداخت اولیه اعتبارسنجی و تمام پرداخت‌های کامل، پیش‌پرداخت و تسویه—چه درگاهی و چه کارت‌به‌کارت—پس از ثبت موفق وارد صف تأیید مالی می‌شوند.</p></td></tr>
+1404: 			</table>
+1405: 
+1406: 			<h3>متن و لینک صفحه انتخاب مشتری</h3>
+1407: 			<p class="description">متن‌های این بخش مستقیماً در صفحه نتیجه و انتخاب مشتری نمایش داده می‌شوند. لینک‌های خالی در صفحه به‌صورت دکمه غیرفعال دیده می‌شوند تا زمانی که مقصدشان تعیین شود.</p>
+1408: 			<table class="form-table sn-dot-customer-ui-settings">
+1409: 				<tr><th>عنوان باکس اول</th><td><input class="large-text" type="text" name="sn_dot[customer_ui][hero_title]" value="<?php echo esc_attr( (string) ( $config['customer_ui']['hero_title'] ?? '' ) ); ?>"></td></tr>
+1410: 				<tr><th>زیرعنوان باکس اول</th><td><input class="large-text" type="text" name="sn_dot[customer_ui][hero_subtitle]" value="<?php echo esc_attr( (string) ( $config['customer_ui']['hero_subtitle'] ?? '' ) ); ?>"></td></tr>
+1411: 				<tr><th>متن توضیحات اعتبار</th><td><textarea class="large-text" rows="7" name="sn_dot[customer_ui][result_description]"><?php echo esc_textarea( (string) ( $config['customer_ui']['result_description'] ?? '' ) ); ?></textarea><p class="description">خط‌های جدید در همین کادر در صفحه مشتری نیز حفظ می‌شوند.</p></td></tr>
+1412: 				<tr><th>لینک «درباره بیاوین»</th><td><input class="large-text code" type="url" dir="ltr" name="sn_dot[customer_ui][about_url]" value="<?php echo esc_attr( (string) ( $config['customer_ui']['about_url'] ?? '' ) ); ?>" placeholder="https://..."></td></tr>
+1413: 				<tr><th>لینک «سوالات متداول»</th><td><input class="large-text code" type="url" dir="ltr" name="sn_dot[customer_ui][faq_url]" value="<?php echo esc_attr( (string) ( $config['customer_ui']['faq_url'] ?? '' ) ); ?>" placeholder="https://..."></td></tr>
+1414: 				<tr><th>لینک «راه‌های ارتباطی بیاوین»</th><td><input class="large-text code" type="url" dir="ltr" name="sn_dot[customer_ui][contact_url]" value="<?php echo esc_attr( (string) ( $config['customer_ui']['contact_url'] ?? '' ) ); ?>" placeholder="https://..."></td></tr>
+1415: 			</table>
+1416: 
+1417: 			<h3>حوزه سرپرست‌ها</h3>
+1418: 			<div class="sn-dot-admin-note"><strong>همه سرپرست‌ها مشمول‌اند</strong><span>برای محصولات نوع «اعتبارسنجی» نیازی به انتخاب سرپرست نیست. هر فاکتور پس از تسویه و تأیید مالی، بر اساس زنجیره HR فروشنده به صف سرپرست مستقیم او می‌رود.</span></div>
+1419: 
+1420: 			<h3>اعتبارها</h3>
+1421: 			<table class="widefat striped" id="sn-dot-credits"><thead><tr><th>کلید</th><th>عنوان مدیریتی</th><th>مبلغ (تومان)</th><th></th></tr></thead><tbody>
+1422: 			<?php foreach ( $credits as $i => $credit ) : ?><tr><td><input name="sn_dot[nominal_credits][<?php echo esc_attr( (string) $i ); ?>][key]" value="<?php echo esc_attr( (string) $credit['key'] ); ?>" dir="ltr"></td><td><input class="regular-text" name="sn_dot[nominal_credits][<?php echo esc_attr( (string) $i ); ?>][label]" value="<?php echo esc_attr( (string) $credit['label'] ); ?>"></td><td><input class="regular-text" name="sn_dot[nominal_credits][<?php echo esc_attr( (string) $i ); ?>][amount]" value="<?php echo esc_attr( (string) $credit['amount'] ); ?>" inputmode="numeric"></td><td><button type="button" class="button sn-dot-remove-credit">حذف</button></td></tr><?php endforeach; ?>
+1423: 			</tbody></table><p><button type="button" class="button" id="sn-dot-add-credit">+ افزودن مبلغ اعتبار</button></p>
+1424: 
+1425: 			<h3>شرط رقم آخر موبایل</h3>
+1426: 			<table class="widefat striped"><thead><tr><th>رقم آخر</th><th>اعتبار نمایشی</th></tr></thead><tbody><?php foreach ( range( 0, 9 ) as $digit ) : ?><tr><td><strong><?php echo esc_html( (string) $digit ); ?></strong></td><td><select name="sn_dot[digit_map][<?php echo esc_attr( (string) $digit ); ?>]"><option value="">انتخاب کنید</option><?php foreach ( $credits as $credit ) : ?><option value="<?php echo esc_attr( (string) $credit['key'] ); ?>" <?php selected( (string) ( $config['digit_map'][ (string) $digit ] ?? '' ), (string) $credit['key'] ); ?>><?php echo esc_html( (string) $credit['label'] . ' — ' . number_format_i18n( (float) $credit['amount'] ) . ' تومان' ); ?></option><?php endforeach; ?></select></td></tr><?php endforeach; ?></tbody></table>
+1427: 
+1428: 			<h3>اشتراک‌های قابل انتخاب مشتری</h3>
+1429: 			<p class="description">هر گزینه به یک محصول واقعی ووکامرس متصل است و قیمت مستقیماً از همان محصول خوانده می‌شود. همان محصول باید در تب «پروژه‌ها» به‌عنوان اشتراک و همراه محتویاتش تعریف شود. عنوان، رنگ و توضیحات فقط نحوه نمایش در صفحه انتخاب را کنترل می‌کنند. ردیف‌های قدیمی بدون محصول تا زمان انتخاب محصول برای حفظ سوابق باقی می‌مانند.</p>
+1430: 			<table class="widefat striped" id="sn-dot-options"><thead><tr><th>فعال</th><th>کلید</th><th>عنوان</th><th>رنگ</th><th>توضیحات اشتراک</th><th>محصول ووکامرس و قیمت</th><th></th></tr></thead><tbody>
+1431: 			<?php foreach ( $options as $i => $option ) : $option_color = sanitize_hex_color( (string) ( $option['color'] ?? '' ) ) ?: '#b8893e'; ?>
+1432: 				<tr><td><input type="checkbox" name="sn_dot[options][<?php echo esc_attr( (string) $i ); ?>][active]" value="1" <?php checked( ! empty( $option['active'] ) ); ?>></td><td><input name="sn_dot[options][<?php echo esc_attr( (string) $i ); ?>][key]" value="<?php echo esc_attr( (string) $option['key'] ); ?>" dir="ltr"></td><td><input name="sn_dot[options][<?php echo esc_attr( (string) $i ); ?>][title]" value="<?php echo esc_attr( (string) $option['title'] ); ?>"></td><td><input type="color" class="sn-dot-option-color" name="sn_dot[options][<?php echo esc_attr( (string) $i ); ?>][color]" value="<?php echo esc_attr( $option_color ); ?>" aria-label="رنگ <?php echo esc_attr( (string) $option['title'] ); ?>"></td><td><textarea rows="3" class="large-text code" name="sn_dot[options][<?php echo esc_attr( (string) $i ); ?>][content]" dir="rtl"><?php echo esc_textarea( (string) ( $option['content'] ?? '' ) ); ?></textarea></td><td><select class="sn-dot-option-product" name="sn_dot[options][<?php echo esc_attr( (string) $i ); ?>][product_id]"><option value="0" data-price="<?php echo esc_attr( (string) (float) ( $option['price'] ?? 0 ) ); ?>">— محصول قدیمی/انتخاب نشده —</option><?php foreach ( $products as $product ) : ?><option value="<?php echo esc_attr( (string) (int) $product['id'] ); ?>" data-price="<?php echo esc_attr( (string) (float) $product['price'] ); ?>" <?php selected( (int) ( $option['product_id'] ?? 0 ), (int) $product['id'] ); ?>><?php echo esc_html( (string) $product['name'] . ' (#' . (int) $product['id'] . ')' ); ?></option><?php endforeach; ?></select><input type="hidden" class="sn-dot-option-legacy-price" name="sn_dot[options][<?php echo esc_attr( (string) $i ); ?>][price]" value="<?php echo esc_attr( (string) (float) ( $option['price'] ?? 0 ) ); ?>"><small class="sn-dot-option-live-price"><?php echo esc_html( number_format_i18n( (float) ( $option['price'] ?? 0 ) ) ); ?> تومان</small></td><td><button type="button" class="button sn-dot-remove-option">حذف</button></td></tr>
+1433: 			<?php endforeach; ?>
+1434: 			</tbody></table><p><button type="button" class="button" id="sn-dot-add-option">+ افزودن گزینه</button></p>
+1435: 
+1436: 			<h3>پترن‌ها و متن‌های پیامک</h3>
+1437: 			<p class="description">در فیلد «پترن» کد پترن ساخته‌شده در پنل پیامک را وارد کنید. نمونه‌های زیر متن پیشنهادی برای ساخت همان پترن هستند؛ نام متغیرها باید دقیقاً حفظ شود.</p>
+1438: 			<table class="form-table">
+1439: 				<tr><th>پترن پیامک ورود</th><td><input class="regular-text" name="sn_dot[sms][access_pattern]" value="<?php echo esc_attr( (string) $config['sms']['access_pattern'] ); ?>"><p class="description">متغیرها: customer_name, access_code, code, access_note, access_link, link, nominal_credit, invoice_code</p><div class="sn-dot-sms-example"><span>نمونه متن پیشنهادی</span><code><?php echo esc_html( $sms_examples['access'] ); ?></code></div></td></tr>
+1440: 				<tr><th>متن جایگزین ورود</th><td><textarea class="large-text" rows="4" name="sn_dot[sms][access_template]"><?php echo esc_textarea( (string) $config['sms']['access_template'] ); ?></textarea></td></tr>
+1441: 				<tr><th>پترن «اعتبارسنجی هدیه»</th><td><input class="regular-text" name="sn_dot[sms][gift_access_pattern]" value="<?php echo esc_attr( (string) ( $config['sms']['gift_access_pattern'] ?? '' ) ); ?>"><p class="description">این پیامک فقط با دکمه «ارسال لینک انتخاب» سرپرست ارسال می‌شود. متغیرها: customer_name, access_code, code, access_note, gift_message, access_link, link, nominal_credit, invoice_code</p><div class="sn-dot-sms-example"><span>نمونه متن پیشنهادی</span><code><?php echo esc_html( $sms_examples['gift_access'] ); ?></code></div></td></tr>
+1442: 				<tr><th>متن جایگزین «اعتبارسنجی هدیه»</th><td><textarea class="large-text" rows="5" name="sn_dot[sms][gift_access_template]"><?php echo esc_textarea( (string) ( $config['sms']['gift_access_template'] ?? '' ) ); ?></textarea><p class="description">اگر سرویس پیامک پترنی نباشد یا ارسال پترن ناموفق شود، این متن استفاده می‌شود.</p></td></tr>
+1443: 				<tr><th>پترن لینک پرداخت</th><td><input class="regular-text" name="sn_dot[sms][payment_pattern]" value="<?php echo esc_attr( (string) $config['sms']['payment_pattern'] ); ?>"><p class="description">متغیرها: customer_name, option_title, amount, payment_type, invoice_url, remaining_amount</p><div class="sn-dot-sms-example"><span>نمونه متن پیشنهادی</span><code><?php echo esc_html( $sms_examples['payment'] ); ?></code></div></td></tr>
+1444: 				<tr><th>متن جایگزین پرداخت</th><td><textarea class="large-text" rows="4" name="sn_dot[sms][payment_template]"><?php echo esc_textarea( (string) $config['sms']['payment_template'] ); ?></textarea></td></tr>
+1445: 				<tr><th>پترن رد مالی فروشنده</th><td><input class="regular-text" name="sn_dot[sms][reject_pattern]" value="<?php echo esc_attr( (string) $config['sms']['reject_pattern'] ); ?>"><p class="description">متغیرها: seller_name, customer_name, customer_phone, invoice_code, reason</p><div class="sn-dot-sms-example"><span>نمونه متن پیشنهادی</span><code><?php echo esc_html( $sms_examples['reject'] ); ?></code></div></td></tr>
+1446: 				<tr><th>متن جایگزین رد مالی</th><td><textarea class="large-text" rows="4" name="sn_dot[sms][reject_template]"><?php echo esc_textarea( (string) $config['sms']['reject_template'] ); ?></textarea></td></tr>
+1447: 				<tr><th>پترن یادآور تماس مجدد</th><td><input class="regular-text" name="sn_dot[sms][followup_pattern]" value="<?php echo esc_attr( (string) ( $config['sms']['followup_pattern'] ?? '' ) ); ?>"><p class="description">متغیرها: staff_name, customer_name, customer_phone, case_id, followup_at</p><div class="sn-dot-sms-example"><span>نمونه متن پیشنهادی</span><code><?php echo esc_html( $sms_examples['followup'] ); ?></code></div></td></tr>
+1448: 				<tr><th>متن جایگزین یادآور تماس مجدد</th><td><textarea class="large-text" rows="4" name="sn_dot[sms][followup_template]"><?php echo esc_textarea( (string) ( $config['sms']['followup_template'] ?? '' ) ); ?></textarea><p class="description">در موعد انتخاب‌شده یک‌بار برای مسئول فعلی پرونده ارسال می‌شود؛ یادآور داخل پنل حتی در صورت خطای پیامک باقی می‌ماند.</p></td></tr>
+1449: 			</table>
+1450: 		</div>
+1451: 		<script>
+1452: 		(function(){
+1453: 			var delayInput=document.getElementById('sn-dot-sms-delay');
+1454: 			document.querySelectorAll('[data-sn-delay]').forEach(function(button){
+1455: 				button.addEventListener('click',function(){
+1456: 					if(!delayInput){return;}
+1457: 					delayInput.value=String(button.getAttribute('data-sn-delay')||'0');
+1458: 					delayInput.dispatchEvent(new Event('change',{bubbles:true}));
+1459: 					delayInput.focus();
+1460: 				});
+1461: 			});
+1462: 			var creditTable=document.querySelector('#sn-dot-credits tbody');
+1463: 			var addCredit=document.getElementById('sn-dot-add-credit');
+1464: 			var nextCreditIndex=0;
+1465: 			function creditRows(){return creditTable?Array.prototype.slice.call(creditTable.querySelectorAll('tr')):[];}
+1466: 			function creditData(){
+1467: 				return creditRows().map(function(row){
+1468: 					var key=row.querySelector('[name$="[key]"]'), label=row.querySelector('[name$="[label]"]'), amount=row.querySelector('[name$="[amount]"]');
+1469: 					return {key:key?String(key.value||'').trim():'',label:label?String(label.value||'').trim():'',amount:amount?String(amount.value||'').trim():''};
+1470: 				}).filter(function(item){return item.key!=='';});
+1471: 			}
+1472: 			function rebuildCreditChoices(replacements){
+1473: 				var data=creditData();
+1474: 				document.querySelectorAll('select[name^="sn_dot[digit_map]"]').forEach(function(select){
+1475: 					var selected=String(select.value||'');
+1476: 					if(replacements&&Object.prototype.hasOwnProperty.call(replacements,selected)){selected=replacements[selected];}
+1477: 					while(select.firstChild){select.removeChild(select.firstChild);}
+1478: 					select.appendChild(new Option('انتخاب کنید',''));
+1479: 					data.forEach(function(item){select.appendChild(new Option((item.label||item.key)+' — '+(item.amount||'0')+' تومان',item.key));});
+1480: 					select.value=selected;
+1481: 				});
+1482: 			}
+1483: 			if(creditTable){
+1484: 				creditTable.querySelectorAll('[name^="sn_dot[nominal_credits]"]').forEach(function(field){
+1485: 					var match=String(field.name||'').match(/sn_dot\[nominal_credits\]\[(\d+)\]/);
+1486: 					if(match){nextCreditIndex=Math.max(nextCreditIndex,Number(match[1])+1);}
+1487: 				});
+1488: 				creditRows().forEach(function(row){var key=row.querySelector('[name$="[key]"]');row.dataset.snCreditKey=key?String(key.value||''):'';});
+1489: 				creditTable.addEventListener('input',function(e){
+1490: 					var row=e.target.closest('tr');if(!row){return;}
+1491: 					var keyField=row.querySelector('[name$="[key]"]'), oldKey=String(row.dataset.snCreditKey||''), newKey=keyField?String(keyField.value||'').trim():'';
+1492: 					var replacements={};if(oldKey&&oldKey!==newKey){replacements[oldKey]=newKey;}
+1493: 					row.dataset.snCreditKey=newKey;rebuildCreditChoices(replacements);
+1494: 				});
+1495: 			}
+1496: 			if(addCredit&&creditTable){
+1497: 				addCredit.addEventListener('click',function(){
+1498: 					var i=nextCreditIndex++, number=creditRows().length+1, tr=document.createElement('tr');
+1499: 					tr.innerHTML='<td><input name="sn_dot[nominal_credits]['+i+'][key]" value="credit_'+number+'" dir="ltr"></td><td><input class="regular-text" name="sn_dot[nominal_credits]['+i+'][label]" value="اعتبار '+number+'"></td><td><input class="regular-text" name="sn_dot[nominal_credits]['+i+'][amount]" inputmode="numeric"></td><td><button type="button" class="button sn-dot-remove-credit">حذف</button></td>';
+1500: 					tr.dataset.snCreditKey='credit_'+number;creditTable.appendChild(tr);rebuildCreditChoices();
+1501: 				});
+1502: 			}
+1503: 			var table=document.querySelector('#sn-dot-options tbody');
+1504: 			var add=document.getElementById('sn-dot-add-option');
+1505: 			var productOptionsHtml=<?php echo wp_json_encode( $product_options_html, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
+1506: 			var nextIndex=0;
+1507: 			if(table){
+1508: 				table.querySelectorAll('[name^="sn_dot[options]"]').forEach(function(field){
+1509: 					var match=String(field.name||'').match(/sn_dot\[options\]\[(\d+)\]/);
+1510: 					if(match){nextIndex=Math.max(nextIndex,Number(match[1])+1);}
+1511: 				});
+1512: 			}
+1513: 			if(add&&table){
+1514: 				add.addEventListener('click',function(){
+1515: 					var i=nextIndex++, number=table.querySelectorAll('tr').length+1, tr=document.createElement('tr');
+1516: 					var palette=['#b8893e','#137b72','#27658c','#9a4c3c'], color=palette[(number-1)%palette.length];
+1517: 					tr.innerHTML='<td><input type="checkbox" name="sn_dot[options]['+i+'][active]" value="1" checked></td><td><input name="sn_dot[options]['+i+'][key]" value="option_'+number+'" dir="ltr"></td><td><input name="sn_dot[options]['+i+'][title]" value="گزینه '+number+'"></td><td><input type="color" class="sn-dot-option-color" name="sn_dot[options]['+i+'][color]" value="'+color+'" aria-label="رنگ گزینه '+number+'"></td><td><textarea rows="3" class="large-text code" name="sn_dot[options]['+i+'][content]"></textarea></td><td><select class="sn-dot-option-product" name="sn_dot[options]['+i+'][product_id]">'+productOptionsHtml+'</select><input type="hidden" class="sn-dot-option-legacy-price" name="sn_dot[options]['+i+'][price]" value="0"><small class="sn-dot-option-live-price">۰ تومان</small></td><td><button type="button" class="button sn-dot-remove-option">حذف</button></td>';
+1518: 					table.appendChild(tr);
+1519: 				});
+1520: 			}
+1521: 			document.addEventListener('click',function(e){
+1522: 				if(e.target&&e.target.classList.contains('sn-dot-remove-credit')){
+1523: 					var creditRow=e.target.closest('tr');if(creditRow){creditRow.remove();rebuildCreditChoices();}
+1524: 				}
+1525: 				if(e.target&&e.target.classList.contains('sn-dot-remove-option')){
+1526: 					var row=e.target.closest('tr');
+1527: 					if(row){row.remove();}
+1528: 				}
+1529: 			});
+1530: 			document.addEventListener('change',function(e){
+1531: 				if(!e.target||!e.target.classList.contains('sn-dot-option-product')){return;}
+1532: 				var row=e.target.closest('tr'), option=e.target.options[e.target.selectedIndex], price=Number(option&&option.dataset?option.dataset.price:0)||0;
+1533: 				if(row){var hidden=row.querySelector('.sn-dot-option-legacy-price'), label=row.querySelector('.sn-dot-option-live-price');if(hidden){hidden.value=String(price);}if(label){label.textContent=new Intl.NumberFormat('fa-IR').format(price)+' تومان';}}
+1534: 			});
+1535: 		})();
+1536: 		</script>
+1537: 		<?php
+1538: 	}

@@ -1,0 +1,55 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل MIS" [level=1]
+  - heading "پنل MIS" [level=2]
+  - generic: کاربر
+  - strong: "MIS ماکسیمم #7"
+  - generic: "MIS | #7"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - button "👥 کار امروز"
+  - button "🧾 آپلود فایل"
+  - button "📊 تخصیص / برگشت"
+  - button "💼 تحویل به فروش"
+  - button "💳 گزارش شماره‌ها"
+  - button "⚙️ پرونده‌ها"
+  - button "• ابزار سریع"
+  - button "• برنامه پخش"
+  - button "• ساخت لید" [active]
+  - button "• لاگ و عیب‌یابی"
+  - link "• گزارش‌های MIS":
+    - /url: /crm-mis/?sn_ui_active_tab=mis-report#mis-report
+  - generic "6-7 تأیید برنامه و ساخت کنترل‌شده لید":
+    - generic: 6-7
+    - strong: تأیید برنامه و ساخت کنترل‌شده لید
+  - paragraph: این بخش مسیر کنترل‌شده و ویژه ساخت لید از MIS است و جریان استاندارد اپراتوری MIS محسوب نمی‌شود. فقط برنامه تأییدشده پردازش می‌شود، پیامک ارسال نمی‌شود و لیدهای موجود آپدیت یا حذف نمی‌شوند.
+  - paragraph: برای تأیید برنامه باید APPROVE نوشته شود. برای ساخت کنترل‌شده لید باید APPLY نوشته شود.
+  - text: برنامه توزیع
+  - combobox "برنامه توزیع"
+  - text: دلیل
+  - textbox "دلیل": approve MIS distribution plan
+  - text: تأیید
+  - textbox "تأیید":
+    - /placeholder: APPROVE
+  - button "تأیید برنامه توزیع"
+  - text: برنامه تأییدشده
+  - combobox "برنامه تأییدشده"
+  - text: دلیل
+  - textbox "دلیل": ساخت کنترل‌شده لید از برنامه تأییدشده MIS
+  - text: کلمه تأیید ثبت
+  - textbox "کلمه تأیید ثبت":
+    - /placeholder: APPLY
+  - button "پیش‌نمایش بدون ذخیره"
+  - button "ثبت با تأیید"
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

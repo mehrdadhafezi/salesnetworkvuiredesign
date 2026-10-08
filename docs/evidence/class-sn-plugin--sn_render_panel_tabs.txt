@@ -1,0 +1,23 @@
+8300: 
+8301: 	private function sn_render_panel_tabs(array $tabs, string $active = '', array $hrefs = []): void
+8302: 	{
+8303: 		$tabs = array_filter($tabs, static fn($label) => (string) $label !== '');
+8304: 		if (! $tabs) {
+8305: 			return;
+8306: 		}
+8307: 		if ($active === '' || ! array_key_exists($active, $tabs)) {
+8308: 			$active = (string) array_key_first($tabs);
+8309: 		}
+8310: 		$active = $this->sn_effective_panel_tab($active, $tabs);
+8311: 		echo '<div class="sn-panel-toolbar"><div class="sn-tabs sn-tab-nav" data-sn-tabs>';
+8312: 		foreach ($tabs as $id => $label) {
+8313: 			$id = sanitize_key((string) $id);
+8314: 			$classes = 'sn-tab-button' . ($id === $active ? ' sn-tab-button-active' : '');
+8315: 			if (! empty($hrefs[$id])) {
+8316: 				echo '<a href="' . esc_url((string) $hrefs[$id]) . '" class="' . esc_attr($classes) . '" data-sn-tab-target="' . esc_attr($id) . '" aria-controls="' . esc_attr($id) . '" aria-selected="' . esc_attr($id === $active ? 'true' : 'false') . '">' . esc_html((string) $label) . '</a>';
+8317: 			} else {
+8318: 				echo '<button type="button" class="' . esc_attr($classes) . '" data-sn-tab-target="' . esc_attr($id) . '" aria-controls="' . esc_attr($id) . '" aria-selected="' . esc_attr($id === $active ? 'true' : 'false') . '">' . esc_html((string) $label) . '</button>';
+8319: 			}
+8320: 		}
+8321: 		echo '</div></div>';
+8322: 	}

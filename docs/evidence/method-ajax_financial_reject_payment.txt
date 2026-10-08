@@ -1,0 +1,49 @@
+30464: 
+30465: 			public function ajax_financial_reject_payment(): void
+30466: 			{
+30467: 				if (! $this->sn_can_reject_payment()) { if (function_exists('status_header')) { status_header(403); } SN_Helpers::send_json(false, 'دسترسی غیرمجاز'); return; }
+30468: 				$valid = check_ajax_referer('sn_admin', 'nonce', false) || check_ajax_referer('sn_public', 'nonce', false);
+30469: 				if (! $valid) { SN_Helpers::send_json(false, 'نانس نامعتبر'); return; }
+30470: 				$id = absint($_POST['invoice_id'] ?? 0);
+30471: 				$reason = sanitize_textarea_field(wp_unslash($_POST['reason'] ?? ''));
+30472: 				if (! $id || $reason === '') { SN_Helpers::send_json(false, 'شناسه یا دلیل رد نامعتبر است'); return; }
+30473: 				$this->sn_ensure_payment_migrations();
+30474: 				global $wpdb;
+30475: 				$invoice_table=$wpdb->prefix.'sn_invoices'; $stage_table=$wpdb->prefix.'sn_invoice_payment_stages'; $payments_table=$wpdb->prefix.'sn_payments';
+30476: 				$wpdb->query('START TRANSACTION');
+30477: 				$inv=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$invoice_table} WHERE id=%d FOR UPDATE",$id));
+30478: 				if (! $inv) { $wpdb->query('ROLLBACK'); SN_Helpers::send_json(false,'فاکتور یافت نشد'); return; }
+30479: 				$totals=$this->sn_invoice_payment_totals($inv);
+30480: 				if ($totals['remaining']<=0 || $totals['workflow_status']==='completed') { $wpdb->query('ROLLBACK'); SN_Helpers::send_json(false,'فاکتور تسویه‌شده قابل رد نیست'); return; }
+30481: 				$stage_no=(int)$totals['stage_no'];
+30482: 				$stage=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$stage_table} WHERE invoice_id=%d AND stage_no=%d FOR UPDATE",$id,$stage_no));
+30483: 				$reconcile=$this->sn_finance_reconcile_review_stage($id,$inv,$stage,$stage_no);
+30484: 				if (!empty($reconcile['ready']) && !empty($reconcile['stage'])) { $stage=$reconcile['stage']; }
+30485: 				if (! $stage || ! in_array((string)$stage->status,['pending_financial_approval','receipt_uploaded'],true)) { $wpdb->query('ROLLBACK'); SN_Helpers::send_json(false,'این مرحله در صف تایید مالی نیست یا اطلاعات واریزی جدیدی برای بررسی ثبت نشده است'); return; }
+30486: 				$data=$this->sn_filter_existing_columns($invoice_table,[
+30487: 					'status'=>'rejected','invoice_status'=>'rejected','payment_status'=>'rejected','rejected_by'=>get_current_user_id(),'rejected_at'=>current_time('mysql'),'rejected_reason'=>$reason,
+30488: 					'financial_reviewed_by'=>get_current_user_id(),'financial_reviewed_at'=>current_time('mysql'),'financial_reject_reason'=>$reason,'financial_rejected_at'=>current_time('mysql'),'financial_rejected_by'=>get_current_user_id(),
+30489: 					'financial_return_state'=>'returned_to_seller','returned_to_seller_at'=>current_time('mysql'),'updated_at'=>current_time('mysql'),
+30490: 				]);
+30491: 				if (false===$wpdb->update($invoice_table,$data,['id'=>$id])) { $wpdb->query('ROLLBACK'); SN_Helpers::send_json(false,'ثبت رد مالی انجام نشد'); return; }
+30492: 				if (false===$wpdb->update($stage_table,['status'=>'rejected','updated_at'=>current_time('mysql')],['id'=>(int)$stage->id])) { $wpdb->query('ROLLBACK'); SN_Helpers::send_json(false,'وضعیت مرحله پرداخت ذخیره نشد'); return; }
+30493: 				$payment_update=$this->sn_filter_existing_columns($payments_table,['status'=>'rejected','pay_method'=>'card','payment_source'=>'finance_rejected','updated_at'=>current_time('mysql')]);
+30494: 				if ($payment_update) {
+30495: 					$set=[]; $args=[]; foreach($payment_update as $col=>$value){$set[]="`{$col}`=%s";$args[]=$value;} $args[]=$id; $args[]=(int)$totals['stage_no'];
+30496: 					$wpdb->query($wpdb->prepare("UPDATE {$payments_table} SET ".implode(', ',$set)." WHERE invoice_id=%d AND payment_stage_no=%d AND status='pending' AND (authority IS NULL OR authority='')",...$args));
+30497: 				}
+30498: 				$wpdb->query('COMMIT');
+30499: 				if (! empty($inv->wc_order_id) && function_exists('wc_get_order')) {
+30500: 					$reopen_order = wc_get_order((int)$inv->wc_order_id);
+30501: 					if ($reopen_order && (string)$reopen_order->get_meta('_sn_finance_reopened', true) === '1') {
+30502: 						$reopen_order->update_status('cancelled', 'رد مالی پس از بازگشت فاکتور به بررسی: ' . $reason);
+30503: 						$reopen_order->delete_meta_data('_sn_finance_reopened');
+30504: 						$reopen_order->save();
+30505: 					}
+30506: 				}
+30507: 				$this->sn_log_activity($id,(int)$inv->lead_id,'payment_rejected','پرداخت توسط واحد مالی رد شد',['reason'=>$reason,'rejected_by'=>get_current_user_id(),'old_value'=>(string)$inv->status,'new_value'=>'rejected','stage_no'=>(int)$totals['stage_no']]);
+30508: 				do_action('sn_invoice_financial_rejected', $id, $inv, $reason);
+30509: 				$reviewer=wp_get_current_user(); $reviewed_at=current_time('mysql');
+30510: 				SN_Helpers::send_json(true,'پرداخت رد شد',['status'=>'rejected','status_label'=>SN_Helpers::status_label('rejected'),'reviewed_by'=>get_current_user_id(),'reviewed_by_name'=>(string)($reviewer->display_name ?: $reviewer->user_login),'reviewed_at'=>$reviewed_at,'rejected_reason'=>$reason,'financial_reject_reason'=>$reason,'financial_rejected_by'=>get_current_user_id(),'financial_rejected_by_name'=>(string)($reviewer->display_name ?: $reviewer->user_login),'financial_rejected_at'=>$reviewed_at]);
+30511: 			}
+30512: 

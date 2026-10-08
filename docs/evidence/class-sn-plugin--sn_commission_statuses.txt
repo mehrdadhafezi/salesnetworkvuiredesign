@@ -1,0 +1,12 @@
+32084: 
+32085: 			private function sn_commission_statuses(): array
+32086: 			{
+32087: 				return [
+32088: 					'' => 'همه وضعیت‌ها',
+32089: 					'paid,approved' => 'پرداخت‌شده / تاییدشده',
+32090: 					'paid' => 'پرداخت‌شده',
+32091: 					'approved' => 'تاییدشده',
+32092: 					'pending_financial_approval' => 'در انتظار تایید مالی',
+32093: 					'rejected' => 'رد شده',
+32094: 				];
+32095: 			}

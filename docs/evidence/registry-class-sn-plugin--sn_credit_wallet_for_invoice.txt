@@ -1,0 +1,91 @@
+35651: 
+35652: 			private function sn_credit_wallet_for_invoice(int $invoice_id, $invoice, bool $force = false): void
+35653: 			{
+35654: 				if ( class_exists( 'SN_Purpose_Commission' ) && SN_Purpose_Commission::is_matrix_engine_enabled() ) {
+35655: 					return;
+35656: 				}
+35657: 				if (! $force && get_option('sn_wallet_auto_credit', '1') !== '1') {
+35658: 					return;
+35659: 				}
+35660: 				global $wpdb;
+35661: 				$wallet_table = $wpdb->prefix . 'sn_wallet_transactions';
+35662: 				if (! $this->sn_wallet_table_exists($wallet_table)) {
+35663: 					return;
+35664: 				}
+35665: 				$inv = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sn_invoices WHERE id=%d", $invoice_id), ARRAY_A);
+35666: 				if (! $inv) {
+35667: 					$inv = is_array($invoice) ? $invoice : (is_object($invoice) ? (array) $invoice : []);
+35668: 				}
+35669: 				$payload = $this->sn_commission_engine_wallet_payload($invoice_id, $inv);
+35670: 				$context = (array) ($payload['context'] ?? []);
+35671: 				$seller_id = (int) ($context['seller_id'] ?? 0);
+35672: 				$lead_id = (int) ($inv['lead_id'] ?? 0);
+35673: 				if (! $seller_id && $lead_id > 0 && $this->sn_table_exists_quiet($wpdb->prefix . 'sn_leads')) {
+35674: 					$seller_id = (int) $wpdb->get_var($wpdb->prepare("SELECT seller_id FROM {$wpdb->prefix}sn_leads WHERE id=%d", $lead_id));
+35675: 				}
+35676: 				if (! $seller_id) {
+35677: 					return;
+35678: 				}
+35679: 
+35680: 				$commission_amount = (float) ($payload['commission_amount'] ?? 0);
+35681: 				$missing_seller = ! empty($payload['diagnostics']) && in_array('missing_seller_id', (array) $payload['diagnostics'], true);
+35682: 				if ($commission_amount > 0 && ! $missing_seller && ! $this->sn_wallet_existing_commission_transaction_id($invoice_id, $seller_id)) {
+35683: 					$this->sn_add_wallet_transaction($seller_id, 'seller', $commission_amount, 'credit', 'commission_engine', 'پورسانت بر اساس قوانین مالی برای فاکتور ' . (string) (($context['invoice_code'] ?? '') ?: $invoice_id), $invoice_id, $lead_id ?: null, [
+35684: 						'base_amount' => (float) ($context['invoice_total'] ?? 0),
+35685: 						'payment_method' => (string) ($context['payment_method_normalized'] ?? ''),
+35686: 						'employment_type' => (string) ($context['seller_employment_type'] ?? ''),
+35687: 						'compensation_history_id' => (int) ($context['compensation_history_id'] ?? 0),
+35688: 						'calculation_date' => (string) ($context['calculation_date'] ?? ''),
+35689: 						'issued_by_user_id' => (int) ($context['issued_by_user_id'] ?? 0),
+35690: 						'matched_rule_ids' => (array) ($payload['matched_rule_ids'] ?? []),
+35691: 						'commission_components' => (array) ($payload['components'] ?? []),
+35692: 						'snapshot_version' => defined('SN_VERSION') ? SN_VERSION : '',
+35693: 						'source' => $force ? 'wallet_recalculate_finance_rules' : 'invoice_auto_credit_finance_rules',
+35694: 					]);
+35695: 				}
+35696: 
+35697: 				// Supervisor wallet is independent from seller commission posting. Existing seller wallet rows must not block supervisor commission.
+35698: 				$supervisor_id = 0;
+35699: 				if ($lead_id > 0 && $this->sn_table_exists_quiet($wpdb->prefix . 'sn_leads')) {
+35700: 					$supervisor_id = (int) $wpdb->get_var($wpdb->prepare("SELECT supervisor_id FROM {$wpdb->prefix}sn_leads WHERE id=%d", $lead_id));
+35701: 				}
+35702: 				if ($supervisor_id < 1) {
+35703: 					$supervisor_id = (int) get_user_meta($seller_id, 'sn_supervisor_id', true);
+35704: 				}
+35705: 				if ($supervisor_id < 1 && $this->sn_table_exists_quiet($wpdb->prefix . 'sn_hr_profiles') && $this->sn_table_exists_quiet($wpdb->prefix . 'sn_hr_assignments')) {
+35706: 					$profile_ids = $this->sn_hr_profile_ids_for_user($seller_id);
+35707: 					if ($profile_ids) {
+35708: 						$ph = implode(',', array_fill(0, count($profile_ids), '%d'));
+35709: 						$supervisor_id = (int) $wpdb->get_var($wpdb->prepare(
+35710: 							"SELECT hp.user_id
+35711: 							 FROM {$wpdb->prefix}sn_hr_assignments a
+35712: 							 INNER JOIN {$wpdb->prefix}sn_hr_profiles hp ON hp.id=a.parent_profile_id AND hp.is_active=1
+35713: 							 INNER JOIN {$wpdb->prefix}sn_hr_positions pos ON pos.id=hp.position_id
+35714: 							 WHERE a.child_profile_id IN ({$ph}) AND a.is_current=1 AND pos.slug IN ('supervisor','senior_supervisor')
+35715: 							 ORDER BY FIELD(pos.slug,'supervisor','senior_supervisor'), a.id DESC LIMIT 1",
+35716: 							...$profile_ids
+35717: 						));
+35718: 					}
+35719: 				}
+35720: 				if ($supervisor_id > 0 && $supervisor_id !== $seller_id) {
+35721: 					$existing_supervisor_tx = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wallet_table} WHERE invoice_id=%d AND user_id=%d AND wallet_type='supervisor' AND type='supervisor_commission' LIMIT 1", $invoice_id, $supervisor_id));
+35722: 					if (! $existing_supervisor_tx) {
+35723: 						$supervisor_type = sanitize_key((string) get_option('sn_supervisor_commission_type', 'percent'));
+35724: 						$supervisor_value = (float) get_option('sn_supervisor_commission_value', '0');
+35725: 						$base_amount = (float) ($context['invoice_total'] ?? 0);
+35726: 						$supervisor_amount = $supervisor_type === 'fixed' ? $supervisor_value : ($base_amount * $supervisor_value / 100);
+35727: 						if ($supervisor_amount > 0) {
+35728: 							$this->sn_add_wallet_transaction($supervisor_id, 'supervisor', $supervisor_amount, 'credit', 'supervisor_commission', 'پورسانت سرپرست برای فاکتور ' . (string) (($context['invoice_code'] ?? '') ?: $invoice_id), $invoice_id, $lead_id ?: null, [
+35729: 								'base_amount' => $base_amount,
+35730: 								'seller_id' => $seller_id,
+35731: 								'commission_type' => $supervisor_type,
+35732: 								'commission_value' => $supervisor_value,
+35733: 								'supervisor_id_snapshot' => $supervisor_id,
+35734: 								'snapshot_version' => defined('SN_VERSION') ? SN_VERSION : '',
+35735: 								'source' => $force ? 'wallet_recalculate_supervisor_rules' : 'invoice_auto_credit_supervisor_rules',
+35736: 							]);
+35737: 						}
+35738: 					}
+35739: 				}
+35740: 			}
+35741: 

@@ -1,0 +1,8 @@
+29227: 
+29228: 			private function sn_can_view_finance(): bool
+29229: 			{
+29230: 				return current_user_can('manage_options')
+29231: 					|| current_user_can('sn_view_finance')
+29232: 					|| $this->sn_user_has_hr_position((int) get_current_user_id(), 'finance');
+29233: 			}
+29234: 

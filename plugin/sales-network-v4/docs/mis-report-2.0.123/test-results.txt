@@ -1,0 +1,34 @@
+PASS: 413 unique rows across both MIS source types
+PASS: 367 delivered even with manager column empty
+PASS: 10 sellers
+PASS: flow no_answer=148
+PASS: flow not_purchased=136
+PASS: flow pre_invoice=44
+PASS: flow callback=28
+PASS: flow unrecorded=11
+PASS: flow not_delivered=46
+PASS: 42 short reasons flagged
+PASS: 44 linked cases and 44 unique invoices
+PASS: 43 awaiting, one approved/completed; completion distinct from pre-invoice
+PASS: pagination contains every case exactly once
+PASS: bounded source query count, no invoice-correlated distribution scans
+PASS: reason quality and originals preserved
+PASS: partial paid is never completed despite approved/completed flags
+PASS: approval alone and invalid paid_at cannot establish sale
+PASS: strict calendar parsing
+PASS: XLSX fully generated with dashboard reconciliation
+PASS: matching customer phone never creates invoice linkage
+PASS: fallback does not mislabel seller_notes as purchase reason
+PASS: all definite invoices, including earlier event links, retained
+PASS: manager receives own subtree
+PASS: another user cannot read/download a job token
+PASS: forged hierarchy filter rejected
+PASS: custody transfer immediately revokes existing snapshot
+PASS: out-of-scope case excluded from direct source query
+PASS: anonymous access denied
+SYNTHETIC ACCEPTANCE PASS (not a production audit). Batches=5
+
+Continuation verification: PHP-WASM synthetic suite re-run passed; jsdom UI test passed.
+XLSX independent OOXML readback: 413 cases, 44 invoices, 42 reviews; case IDs, batch IDs and phones inlineStr.
+PHP-WASM syntax checks passed for 5 report classes, bootstrap, main plugin and live-check.php.
+Backup shell script: bash -n passed. MySQL online migration and production audit NOT RUN.

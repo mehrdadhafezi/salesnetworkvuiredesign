@@ -1,0 +1,10 @@
+10396: 
+10397: 	private function sn_hr_change_request_can_review($row, int $actor_user_id): bool
+10398: 	{
+10399: 		if (! $row || $actor_user_id < 1) { return false; }
+10400: 		$status = (string) ($row->status ?? '');
+10401: 		if (! in_array($status, ['pending_review', 'pending_hr'], true)) { return false; }
+10402: 		if ($this->sn_hr_change_request_is_hr_reviewer($actor_user_id)) { return true; }
+10403: 		return $status === 'pending_review' && (int) ($row->current_reviewer_user_id ?? 0) === $actor_user_id;
+10404: 	}
+10405: 

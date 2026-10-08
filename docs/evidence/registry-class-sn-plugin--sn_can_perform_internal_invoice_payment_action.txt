@@ -1,0 +1,43 @@
+29391: 
+29392: 			private function sn_can_perform_internal_invoice_payment_action($invoice, string $action = ''): bool
+29393: 			{
+29394: 				if (! $invoice || ! is_user_logged_in()) {
+29395: 					return false;
+29396: 				}
+29397: 				if (current_user_can('manage_options') || $this->sn_can_view_finance()) {
+29398: 					return true;
+29399: 				}
+29400: 				$user = wp_get_current_user();
+29401: 				$roles = (array) $user->roles;
+29402: 				$user_id = (int) $user->ID;
+29403: 				// Use the canonical HR/scope position resolver here as well. Invoice lists
+29404: 				// are scoped with SN_Scope_Service; using a different resolver for the
+29405: 				// write action could make a visible invoice fail only at payment time.
+29406: 				$position = $this->sn_hr_position_for_user($user_id);
+29407: 				$invoice_id = (int) ($invoice->id ?? 0);
+29408: 				if ($invoice_id < 1) {
+29409: 					return false;
+29410: 				}
+29411: 				$is_manager = (bool) array_intersect($roles, ['sn_supervisor', 'sn_senior_supervisor', 'sn_sales_manager'])
+29412: 					|| in_array($position, ['supervisor', 'senior_supervisor', 'sales_manager'], true);
+29413: 				if ($is_manager) {
+29414: 					if (class_exists('SN_Scope_Service') && in_array($position, ['supervisor', 'senior_supervisor', 'sales_manager'], true)) {
+29415: 						$scope_allowed = (new SN_Scope_Service())->can_view_invoice($user_id, $invoice_id);
+29416: 						if ($scope_allowed) { return true; }
+29417: 					}
+29418: 					return $this->sn_supervisor_can_access_invoice($invoice_id, $user_id);
+29419: 				}
+29420: 				$is_seller = in_array('sn_seller', $roles, true) || $position === 'seller';
+29421: 				if ($is_seller) {
+29422: 					// فروشنده برای فاکتور خودش اطلاعات و فیش را در همان درخواست دستی ثبت می‌کند.
+29423: 					return $action === 'manual_payment'
+29424: 						&& (int) ($invoice->seller_id ?? 0) === $user_id
+29425: 						&& (! $this->sn_invoice_is_conversion_payment($invoice_id) || (int) ($invoice->issued_by_user_id ?? 0) === $user_id);
+29426: 				}
+29427: 				$is_converter = in_array('sn_converter', $roles, true) || $position === 'converter';
+29428: 				if ($is_converter) {
+29429: 					return $this->sn_converter_can_access_invoice($invoice, $user_id);
+29430: 				}
+29431: 				return false;
+29432: 			}
+29433: 

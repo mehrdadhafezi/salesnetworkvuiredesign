@@ -1,0 +1,5 @@
+364: 
+365: 	public function render_dot_converter_panel(): string
+366: 	{
+367: 		return class_exists('SN_Dot_Flow') ? SN_Dot_Flow::instance()->render_converter_panel() : '';
+368: 	}

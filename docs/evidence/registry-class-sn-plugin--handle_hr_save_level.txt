@@ -1,0 +1,57 @@
+16546: 
+16547: 	public function handle_hr_save_level(): void
+16548: 	{
+16549: 		if (! $this->sn_can_manage_hr_panel()) { wp_die('دسترسی غیرمجاز برای تغییر وضعیت سطح'); }
+16550: 		check_admin_referer('sn_hr_save_level');
+16551: 		global $wpdb;
+16552: 		$id = absint($_POST['level_id'] ?? 0);
+16553: 		$slug = sanitize_key(wp_unslash($_POST['slug'] ?? ''));
+16554: 		$label = sanitize_text_field(wp_unslash($_POST['label'] ?? ''));
+16555: 		$description = sanitize_textarea_field(wp_unslash($_POST['description'] ?? ''));
+16556: 		$status_action = sanitize_key(wp_unslash($_POST['level_status_action'] ?? 'save'));
+16557: 		$posted_is_active = wp_unslash($_POST['is_active'] ?? '');
+16558: 		if (is_array($posted_is_active)) { $posted_is_active = end($posted_is_active); }
+16559: 		if ($status_action === 'activate') {
+16560: 			$is_active = 1;
+16561: 		} elseif ($status_action === 'deactivate') {
+16562: 			$is_active = 0;
+16563: 		} else {
+16564: 			$is_active = (string) $posted_is_active === '1' ? 1 : 0;
+16565: 		}
+16566: 		$table = $wpdb->prefix . 'sn_hr_levels';
+16567: 		if ($id && $status_action === 'delete') {
+16568: 			$deleted = $this->sn_hr_delete_lookup_row('level', $id);
+16569: 			update_option('sn_hr_last_level_action_report', ['time' => current_time('mysql'), 'actor_user_id' => get_current_user_id(), 'level_id' => $id, 'level_status_action' => 'delete', 'verified' => $deleted, 'message' => $deleted ? 'hr_level_deleted' : 'hr_level_delete_failed'], false);
+16570: 			$this->sn_hr_lookup_ajax_response($deleted ? 'hr_level_deleted' : 'hr_level_delete_failed', ['type' => 'level', 'id' => $id, 'deleted' => (bool) $deleted]);
+16571: 		}
+16572: 		$columns = $this->sn_table_columns($table);
+16573: 		$active_column = in_array('is_active', $columns, true) ? 'is_active' : (in_array('active', $columns, true) ? 'active' : '');
+16574: 		if ($active_column === '') {
+16575: 			$this->sn_hr_lookup_ajax_response('hr_level_update_failed', ['type' => 'level', 'id' => $id, 'db_error' => 'active_column_missing']);
+16576: 		}
+16577: 		$result = false;
+16578: 		if ($id) {
+16579: 			$data = in_array($status_action, ['activate', 'deactivate'], true)
+16580: 				? [$active_column => $is_active, 'updated_at' => current_time('mysql')]
+16581: 				: ['label' => $label, 'description' => $description, $active_column => $is_active, 'updated_at' => current_time('mysql')];
+16582: 			$result = $wpdb->update($table, $this->sn_filter_existing_columns($table, $data), ['id' => $id]);
+16583: 		} elseif ($slug !== '' && $label !== '') {
+16584: 			$existing = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE slug=%s", $slug));
+16585: 			if ($existing) {
+16586: 				$result = $wpdb->update($table, $this->sn_filter_existing_columns($table, ['label' => $label, 'description' => $description, $active_column => $is_active, 'updated_at' => current_time('mysql')]), ['id' => $existing]);
+16587: 				$id = $existing;
+16588: 			} else {
+16589: 				$result = $wpdb->insert($table, $this->sn_filter_existing_columns($table, ['slug' => $slug, 'label' => $label, 'description' => $description, $active_column => $is_active, 'is_system' => 0, 'created_at' => current_time('mysql'), 'updated_at' => current_time('mysql')]));
+16590: 				$id = $result !== false ? (int) $wpdb->insert_id : 0;
+16591: 			}
+16592: 		}
+16593: 		$row = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $id), ARRAY_A) : null;
+16594: 		$saved = $result !== false && $id > 0;
+16595: 		if ($saved && $status_action === 'activate') { $message = 'hr_level_activated'; }
+16596: 		elseif ($saved && $status_action === 'deactivate') { $message = 'hr_level_deactivated'; }
+16597: 		elseif ($saved) { $message = 'hr_level_saved'; }
+16598: 		else { $message = 'hr_level_update_failed'; }
+16599: 		update_option('sn_hr_last_level_action_report', ['time' => current_time('mysql'), 'actor_user_id' => get_current_user_id(), 'level_id' => $id, 'level_status_action' => $status_action, 'verified' => $saved, 'message' => $message, 'db_error' => (string) $wpdb->last_error], false);
+16600: 		$this->sn_hr_lookup_ajax_response($message, ['type' => 'level', 'id' => $id, 'row' => $row ?: [], 'db_error' => (string) $wpdb->last_error]);
+16601: 	}
+16602: 

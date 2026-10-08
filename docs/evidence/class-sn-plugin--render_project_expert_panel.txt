@@ -1,0 +1,5 @@
+379: 
+380: 	public function render_project_expert_panel(): string
+381: 	{
+382: 		return $this->render_operations_sales_expert_panel();
+383: 	}

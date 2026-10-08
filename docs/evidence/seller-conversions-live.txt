@@ -1,0 +1,46 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل فروشنده" [level=1]
+  - 'heading "پنل فروشنده — فروشنده ماکسیمم #6" [level=2]'
+  - generic: کاربر
+  - strong: "فروشنده ماکسیمم #6"
+  - generic: "فروشنده‌ها | #6"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "اعلان‌های گفت‌وگو با بیاوین":
+    - generic: 🔔
+    - generic: ۰
+  - button "باز کردن منوی پنل": ☰
+  - button "🧾 شماره‌های من"
+  - button "📊 آماده‌های تبدیل" [active]
+  - button "💼 نیاز به اقدام مجدد"
+  - button "💳 فاکتورها"
+  - button "⚙️ رفتار مشتریان"
+  - button "• درخواست اضافه کردن شماره"
+  - button "• کیف پول من"
+  - text: دات‌فلو
+  - heading "آماده‌های تبدیل من" [level=3]
+  - paragraph: فقط پرونده‌هایی که هنگام ثبت فاکتور «تبدیل توسط خودم» را انتخاب کرده‌اید نمایش داده می‌شوند.
+  - generic "خلاصه پرونده‌ها":
+    - strong: "0"
+    - text: کل پرونده
+    - strong: "0"
+    - text: نیازمند پیگیری
+    - strong: "0"
+    - text: تماس سررسیدشده
+    - strong: "0"
+    - text: دارای مانده
+    - strong: "0"
+    - text: تکمیل‌شده
+  - generic: هنوز فاکتور اعتبارسنجی آماده‌ای با مسیر «تبدیل توسط خودم» ندارید.
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

@@ -1,0 +1,493 @@
+4532: 
+4533: 	private function sn_create_invoice_core(array $request, bool $allow_controlled_workflow_invoice = false): array
+4534: 	{
+4535: 		if (! is_user_logged_in()) {
+4536: 			return ['success' => false, 'message' => 'لطفاً ابتدا وارد شوید', 'status' => 401];
+4537: 		}
+4538: 
+4539: 		$this->maybe_create_tables();
+4540: 		$schema = $this->sn_ensure_invoice_creation_schema();
+4541: 		if (empty($schema['success'])) {
+4542: 			return ['success' => false, 'message' => (string) ($schema['message'] ?? 'ساختار دیتابیس صدور فاکتور آماده نیست.'), 'status' => 500];
+4543: 		}
+4544: 		$user = wp_get_current_user();
+4545: 		$roles = (array) $user->roles;
+4546: 		$is_admin = current_user_can('manage_options');
+4547: 		$actor_position = $this->sn_hr_position_for_user((int) $user->ID);
+4548: 		$is_seller = in_array('sn_seller', $roles, true) || $actor_position === 'seller';
+4549: 		$is_converter = in_array('sn_converter', $roles, true) || $actor_position === 'converter';
+4550: 		$is_supervisor = in_array('sn_supervisor', $roles, true) || in_array($actor_position, ['supervisor', 'senior_supervisor', 'sales_manager', 'sales_deputy'], true);
+4551: 		if (! $is_admin && ! $is_seller && ! $is_converter && ! $is_supervisor) {
+4552: 			return ['success' => false, 'message' => 'دسترسی غیرمجاز — مجوز صدور فاکتور ندارید', 'status' => 403];
+4553: 		}
+4554: 		if (! $is_admin && ! $allow_controlled_workflow_invoice && ! $this->sn_user_can_create_manual_invoice((int) $user->ID)) {
+4555: 			return ['success' => false, 'message' => 'دسترسی صدور پیش‌فاکتور از پرونده برای شما در پنل HR غیرفعال شده است', 'status' => 403];
+4556: 		}
+4557: 		$requested_lead_id = absint($request['lead_id'] ?? 0);
+4558: 		if (! $allow_controlled_workflow_invoice && $requested_lead_id < 1 && ! $this->sn_seller_manual_invoice_enabled()) {
+4559: 			return ['success' => false, 'message' => 'پیش‌فاکتور فقط از داخل پرونده یا شمارهٔ تخصیص‌یافته صادر می‌شود.', 'status' => 403];
+4560: 		}
+4561: 		$seller_assigned_only = $is_seller && ! $is_admin;
+4562: 
+4563: 		// Converter manual invoices are owned by the converter account itself.
+4564: 		// A validated controlled workflow must retain the original seller even on
+4565: 		// legacy accounts that accidentally carry more than one sales role.
+4566: 		$seller_id = $allow_controlled_workflow_invoice
+4567: 			? absint($request['seller_id'] ?? 0)
+4568: 			: (($is_seller || $is_converter) ? (int) $user->ID : absint($request['seller_id'] ?? 0));
+4569: 		if (! $seller_id) {
+4570: 			return ['success' => false, 'message' => 'فروشنده نامعتبر است'];
+4571: 		}
+4572: 		$seller_user = get_user_by('id', $seller_id);
+4573: 		$seller_owner_position = $seller_user ? $this->sn_hr_position_for_user($seller_id) : '';
+4574: 		$seller_owner_roles = $seller_user ? (array) $seller_user->roles : [];
+4575: 		$seller_owner_valid = $seller_user && (
+4576: 			in_array('sn_seller', $seller_owner_roles, true)
+4577: 			|| $seller_owner_position === 'seller'
+4578: 			|| (($is_converter || $is_admin) && (in_array('sn_converter', $seller_owner_roles, true) || $seller_owner_position === 'converter'))
+4579: 		);
+4580: 		if (! $seller_owner_valid) {
+4581: 			return ['success' => false, 'message' => 'صادرکننده فاکتور معتبر نیست'];
+4582: 		}
+4583: 		if ($is_supervisor && ! $is_admin && ! $this->sn_user_can_issue_invoice_for_seller((int) $user->ID, $seller_id)) {
+4584: 			return ['success' => false, 'message' => 'این فروشنده در محدوده HR شما نیست', 'status' => 403];
+4585: 		}
+4586: 
+4587: 		$name    = sanitize_text_field(wp_unslash($request['customer_name'] ?? ''));
+4588: 		$phone   = SN_Helpers::normalize_mobile(sanitize_text_field(wp_unslash($request['customer_phone'] ?? '')));
+4589: 		$phone_secondary = SN_Helpers::normalize_mobile(sanitize_text_field(wp_unslash($request['customer_phone_secondary'] ?? '')));
+4590: 		if ($phone_secondary !== '' && ! SN_Helpers::is_valid_mobile($phone_secondary)) {
+4591: 			return ['success'=>false,'message'=>'شماره دوم مشتری معتبر نیست.','status'=>400];
+4592: 		}
+4593: 		// Seller invoice UI may explicitly opt out of Bale while keeping the canonical SMS send.
+4594: 		// Missing keeps the 2.0.118 behaviour for older cached clients: Bale remains requested.
+4595: 		$bale_choice_present = array_key_exists('send_bale', $request);
+4596: 		$bale_choice_raw = strtolower(trim((string) wp_unslash($request['send_bale'] ?? '1')));
+4597: 		$send_bale = ! $bale_choice_present || in_array($bale_choice_raw, ['1','true','yes','on'], true);
+4598: 		$prov    = sanitize_text_field(wp_unslash($request['province'] ?? ''));
+4599: 		$city    = sanitize_text_field(wp_unslash($request['city'] ?? ''));
+4600: 		// Keep the canonical names used by current panels while accepting the
+4601: 		// legacy aliases used by older cached/front-end forms during upgrades.
+4602: 		$customer_address = sanitize_textarea_field(wp_unslash($request['customer_address'] ?? $request['address'] ?? ''));
+4603: 		$customer_postal_code = preg_replace('/\D+/', '', strtr((string) wp_unslash($request['customer_postal_code'] ?? $request['postal_code'] ?? ''), ['۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9','٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9']));
+4604: 		$prod_id = absint($request['product_id'] ?? 0);
+4605: 		$product_ids_raw = $request['product_ids'] ?? [];
+4606: 		$qtys_raw = $request['product_qtys'] ?? [];
+4607: 		if (! is_array($product_ids_raw)) { $product_ids_raw = $product_ids_raw ? explode(',', (string) $product_ids_raw) : []; }
+4608: 		if (! is_array($qtys_raw)) { $qtys_raw = []; }
+4609: 		$product_ids = array_values(array_filter(array_map('absint', $product_ids_raw)));
+4610: 		if (! $product_ids && $prod_id) { $product_ids = [$prod_id]; }
+4611: 		if (class_exists('SN_Projects')) {
+4612: 			$project_validation = SN_Projects::instance()->validate_invoice_products($product_ids, (int) $user->ID);
+4613: 			if (is_wp_error($project_validation)) {
+4614: 				return ['success' => false, 'message' => $project_validation->get_error_message(), 'status' => 403];
+4615: 			}
+4616: 		}
+4617: 		if (class_exists('SN_Seller_Flow')) {
+4618: 			$product_type_validation = SN_Seller_Flow::instance()->validate_invoice_product_types($product_ids, $qtys_raw);
+4619: 			if (is_wp_error($product_type_validation)) {
+4620: 				return ['success' => false, 'message' => $product_type_validation->get_error_message(), 'status' => 400];
+4621: 			}
+4622: 			if (! $allow_controlled_workflow_invoice) {
+4623: 				foreach ($product_ids as $selected_product_id) {
+4624: 					if (! SN_Seller_Flow::instance()->standalone_sale_visible($selected_product_id)) {
+4625: 						return ['success' => false, 'message' => 'فروش مستقل این محصول* در تنظیمات محصول غیرفعال است.', 'status' => 403];
+4626: 					}
+4627: 				}
+4628: 			}
+4629: 		}
+4630: 		$max_products = $this->sn_invoice_max_products();
+4631: 		if ($max_products > 0 && count($product_ids) > $max_products) {
+4632: 			return ['success' => false, 'message' => sprintf('حداکثر %d محصول در هر پیش‌فاکتور قابل انتخاب است. این مقدار از تنظیمات قابل تغییر است.', $max_products), 'status' => 400];
+4633: 		}
+4634: 		$lead_id = $requested_lead_id;
+4635: 
+4636: 		global $wpdb;
+4637: 		$v4_item_id_for_invoice = $this->sn_distribution_item_id_from_virtual_lead($lead_id);
+4638: 		if ($v4_item_id_for_invoice > 0) {
+4639: 			$item = $this->sn_distribution_load_conversion_item($v4_item_id_for_invoice);
+4640: 			if (! $item) {
+4641: 				return ['success' => false, 'message' => 'شماره تحویل‌شده یافت نشد'];
+4642: 			}
+4643: 			$is_owner = (int) ($item->current_owner_user_id ?? 0) === (int) $seller_id || (int) ($item->current_owner_user_id ?? 0) === (int) $user->ID;
+4644: 			if (! $is_owner && ! $is_admin) {
+4645: 				return ['success' => false, 'message' => 'این شماره به فروشنده انتخاب‌شده تحویل نشده است', 'status' => 403];
+4646: 			}
+4647: 			if (class_exists('SN_Seller_Flow') && SN_Seller_Flow::instance()->is_archived('v4_distribution_item', $v4_item_id_for_invoice)) {
+4648: 				return ['success' => false, 'message' => 'این شماره در بایگانی مدیر فروش قرار دارد و از پنل فروشنده قابل صدور پیش‌فاکتور نیست.', 'status' => 403];
+4649: 			}
+4650: 			$item_name = (string) ($item->customer_name ?? '');
+4651: 			$item_phone = SN_Helpers::normalize_mobile((string) (($item->normalized_phone ?? '') ?: ($item->customer_phone ?? '')));
+4652: 			$item_province = (string) ($item->province ?? '');
+4653: 			$item_city = (string) ($item->city ?? '');
+4654: 			if ((string) ($item->source_type ?? '') === 'paid_invoice_referral' && ! SN_Helpers::is_valid_mobile($item_phone)) {
+4655: 				$source_invoice_id = absint(($item->ref_invoice_id ?? 0) ?: ($item->source_id ?? 0));
+4656: 				$source_invoice = $source_invoice_id > 0 ? $wpdb->get_row($wpdb->prepare("SELECT customer_name,customer_phone,province,city FROM {$wpdb->prefix}sn_invoices WHERE id=%d", $source_invoice_id)) : null;
+4657: 				if ($source_invoice) {
+4658: 					$item_name = $item_name ?: (string) ($source_invoice->customer_name ?? '');
+4659: 					$item_phone = SN_Helpers::normalize_mobile((string) ($source_invoice->customer_phone ?? ''));
+4660: 					$item_province = $item_province ?: (string) ($source_invoice->province ?? '');
+4661: 					$item_city = $item_city ?: (string) ($source_invoice->city ?? '');
+4662: 				}
+4663: 			}
+4664: 			if (empty($name)) { $name = $item_name; }
+4665: 			if ($seller_assigned_only || empty($phone)) { $phone = $item_phone; }
+4666: 			if (empty($prov)) { $prov = $item_province; }
+4667: 			if (empty($city)) { $city = $item_city; }
+4668: 			// مسیر V4 به صورت پیش‌فرض sn_leads نمی‌سازد؛ فاکتور بدون lead_id زنده ثبت می‌شود.
+4669: 			$lead_id = 0;
+4670: 		}
+4671: 
+4672: 		if ($lead_id) {
+4673: 			$lead = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sn_leads WHERE id=%d", $lead_id));
+4674: 			if (! $lead) {
+4675: 				return ['success' => false, 'message' => 'شماره یافت نشد'];
+4676: 			}
+4677: 			if ($is_seller && (int) $lead->seller_id !== (int) $user->ID) {
+4678: 				return ['success' => false, 'message' => 'این شماره به شما تخصیص داده نشده است', 'status' => 403];
+4679: 			}
+4680: 			if ($is_supervisor && ! $is_admin && (int) $lead->supervisor_id !== (int) $user->ID && (int) get_user_meta((int) $lead->seller_id, 'sn_supervisor_id', true) !== (int) $user->ID) {
+4681: 				return ['success' => false, 'message' => 'این شماره در دسترس شما نیست', 'status' => 403];
+4682: 			}
+4683: 			if (! $is_admin && $seller_id && (int) $lead->seller_id && (int) $lead->seller_id !== $seller_id) {
+4684: 				return ['success' => false, 'message' => 'این شماره متعلق به فروشنده انتخاب‌شده نیست', 'status' => 403];
+4685: 			}
+4686: 			if (class_exists('SN_Seller_Flow') && SN_Seller_Flow::instance()->is_archived('legacy_lead', $lead_id)) {
+4687: 				return ['success' => false, 'message' => 'این شماره در بایگانی مدیر فروش قرار دارد و از پنل فروشنده قابل صدور پیش‌فاکتور نیست.', 'status' => 403];
+4688: 			}
+4689: 			if ((int) $lead->seller_id) {
+4690: 				$seller_id = (int) $lead->seller_id;
+4691: 			}
+4692: 			if (empty($name)) { $name = (string) ($lead->customer_name ?? ''); }
+4693: 			if ($seller_assigned_only || empty($phone)) { $phone = SN_Helpers::normalize_mobile((string) $lead->phone); }
+4694: 			if (empty($prov)) { $prov = (string) ($lead->province ?? ''); }
+4695: 			if (empty($city)) { $city = (string) ($lead->city ?? ''); }
+4696: 		}
+4697: 
+4698: 		if (empty($name) || ! SN_Helpers::is_valid_mobile($phone) || ! $product_ids) {
+4699: 			return ['success' => false, 'message' => 'اطلاعات ناقص است'];
+4700: 		}
+4701: 		if (! class_exists('WooCommerce')) {
+4702: 			return ['success' => false, 'message' => 'ووکامرس فعال نیست'];
+4703: 		}
+4704: 
+4705: 		$items = [];
+4706: 		$total = 0.0;
+4707: 		foreach ($product_ids as $idx => $pid) {
+4708: 			$product = wc_get_product($pid);
+4709: 			if (! $product || get_post_status($pid) !== 'publish') {
+4710: 				return ['success' => false, 'message' => 'محصول یافت نشد یا منتشر نشده است'];
+4711: 			}
+4712: 			if ((string) get_post_meta($pid, '_sn_enabled', true) !== '1') {
+4713: 				return ['success' => false, 'message' => 'این محصول برای شبکه فروش فعال نیست', 'status' => 403];
+4714: 			}
+4715: 			$qty = isset($qtys_raw[$idx]) ? absint($qtys_raw[$idx]) : 1;
+4716: 			if ($qty < 1) { $qty = 1; }
+4717: 			$unit_price = (float) $product->get_price();
+4718: 			$line_total = $unit_price * $qty;
+4719: 			$total += $line_total;
+4720: 			$product_type = class_exists('SN_Seller_Flow') ? SN_Seller_Flow::instance()->product_type($pid) : '';
+4721: 			$items[] = ['product_id' => $pid, 'product_name' => $product->get_name(), 'product_type' => $product_type ?: null, 'qty' => $qty, 'unit_price' => $unit_price, 'total_price' => $line_total, 'is_free' => 0];
+4722: 		}
+4723: 		$invoice_product_types = array_values(array_unique(array_filter(array_column($items, 'product_type'))));
+4724: 		if (in_array('product', $invoice_product_types, true) && ($prov === '' || $city === '' || trim($customer_address) === '')) {
+4725: 			return ['success' => false, 'message' => 'برای محصول عادی، استان، شهر و آدرس کامل مشتری اجباری است.', 'status' => 400];
+4726: 		}
+4727: 		if ($customer_postal_code !== '' && strlen($customer_postal_code) !== 10) {
+4728: 			return ['success' => false, 'message' => 'کد پستی باید ۱۰ رقم باشد.', 'status' => 400];
+4729: 		}
+4730: 
+4731: 		$payment_plan = sanitize_key((string) ($request['payment_plan'] ?? $request['payment_mode'] ?? 'full'));
+4732: 		if (! in_array($payment_plan, ['full','partial'], true)) { $payment_plan = 'full'; }
+4733: 		$initial_due = $total;
+4734: 		if ($payment_plan === 'partial') {
+4735: 			$initial_due = $this->sn_parse_money_value($request['prepayment_amount'] ?? $request['payment_amount'] ?? 0);
+4736: 			if ($initial_due <= 0) { return ['success'=>false,'message'=>'مبلغ پیش‌پرداخت باید بیشتر از صفر باشد']; }
+4737: 			if ($initial_due - $total > 0.5) { return ['success'=>false,'message'=>'مبلغ مرحله پرداخت نمی‌تواند از مبلغ کل فاکتور بیشتر باشد.']; }
+4738: 			// A custom staged amount equal to the invoice total is a full first stage.
+4739: 			// Normalize it instead of rejecting the seller's valid choice.
+4740: 			if ( abs( $initial_due - $total ) <= 0.5 ) { $payment_plan = 'full'; $initial_due = $total; }
+4741: 		}
+4742: 		if ($payment_plan === 'partial' && class_exists('SN_Dot_Flow')) {
+4743: 			foreach ($product_ids as $product_id) {
+4744: 				if (SN_Dot_Flow::instance()->is_assessment_product((int) $product_id)) {
+4745: 					return ['success'=>false,'message'=>'برای محصول اعتبارسنجی پیش‌پرداخت مرحله‌ای مجاز نیست. پرداخت کامل را انتخاب کنید.','status'=>400];
+4746: 				}
+4747: 			}
+4748: 		}
+4749: 		$dot_context = [];
+4750: 		if (class_exists('SN_Dot_Flow')) {
+4751: 			$is_assessment_invoice = in_array('assessment', $invoice_product_types, true);
+4752: 			$current_decision_ui = (string) wp_unslash($request['dot_assessment_decision_ui'] ?? '') === '1';
+4753: 			$dot_route_choice_present = array_key_exists('dot_conversion_route', $request);
+4754: 			$dot_conversion_route = sanitize_key((string) wp_unslash($request['dot_conversion_route'] ?? 'supervisor_queue'));
+4755: 			$dot_sms_choice_present = array_key_exists('dot_send_assessment_sms', $request);
+4756: 			$dot_sms_choice_raw = strtolower(trim((string) wp_unslash($request['dot_send_assessment_sms'] ?? '1')));
+4757: 			if ($is_assessment_invoice && $current_decision_ui) {
+4758: 				if (! $dot_sms_choice_present || ! in_array($dot_sms_choice_raw, ['0','1'], true)) {
+4759: 					return ['success'=>false, 'message'=>'ابتدا وضعیت «ارسال پیامک نتیجه اعتبارسنجی» را انتخاب کنید.', 'status'=>400];
+4760: 				}
+4761: 				if (! $dot_route_choice_present || ! in_array($dot_conversion_route, ['supervisor_queue', 'seller_self'], true)) {
+4762: 					return ['success'=>false, 'message'=>'پس از انتخاب وضعیت پیامک، گزینه «ارسال برای سرپرست / تبدیل توسط خودم» را انتخاب کنید.', 'status'=>400];
+4763: 				}
+4764: 			}
+4765: 			// Missing is a legacy form/client and intentionally preserves the old
+4766: 			// behavior. Only the owning seller may suppress this customer SMS.
+4767: 			$dot_send_assessment_sms = ! $dot_sms_choice_present || in_array($dot_sms_choice_raw, ['1','true','yes','on'], true);
+4768: 			if (! in_array($dot_conversion_route, ['supervisor_queue', 'seller_self'], true)) {
+4769: 				$dot_conversion_route = 'supervisor_queue';
+4770: 			}
+4771: 			if (! $is_assessment_invoice) {
+4772: 				$dot_conversion_route = 'supervisor_queue';
+4773: 				$dot_send_assessment_sms = true;
+4774: 			} elseif ($dot_conversion_route === 'seller_self' && (! $is_seller || (int) $user->ID !== (int) $seller_id)) {
+4775: 				return ['success'=>false, 'message'=>'گزینه «تبدیل توسط خودم» فقط برای فروشنده‌ای مجاز است که فاکتور اعتبارسنجی را برای مشتری خودش ثبت می‌کند.', 'status'=>403];
+4776: 			}
+4777: 			if (! $is_seller || (int) $user->ID !== (int) $seller_id) { $dot_send_assessment_sms = true; }
+4778: 			$dot_context = SN_Dot_Flow::instance()->prepare_invoice_context($product_ids, $seller_id, $payment_plan, array_column($items, 'qty'), $dot_conversion_route, $dot_send_assessment_sms);
+4779: 			if (is_wp_error($dot_context)) {
+4780: 				return ['success'=>false, 'message'=>$dot_context->get_error_message(), 'status'=>403];
+4781: 			}
+4782: 		}
+4783: 
+4784: 		try {
+4785: 			$code = $this->sn_generate_invoice_code();
+4786: 		} catch (RuntimeException $e) {
+4787: 			return ['success' => false, 'message' => 'تولید کد شش‌رقمی فاکتور ممکن نشد. لطفاً وضعیت کدهای فاکتور را در یکپارچه‌سازی بررسی کنید.', 'status' => 500];
+4788: 		}
+4789: 		$access_token = SN_Helpers::generate_unique_access_token();
+4790: 		$prod_id = (int) $items[0]['product_id'];
+4791: 		$invoice_card = $this->sn_resolve_sales_manager_card_for_seller($seller_id);
+4792: 		$invoice_data = $this->sn_filter_existing_columns_fresh($wpdb->prefix . 'sn_invoices', [
+4793: 			'invoice_code'   => $code,
+4794: 			'access_token'   => $access_token,
+4795: 			'seller_id'      => $seller_id,
+4796: 			'lead_id'        => $lead_id ?: null,
+4797: 			'customer_name'  => $name,
+4798: 			'customer_phone' => $phone,
+4799: 			'customer_phone_secondary' => $phone_secondary ?: null,
+4800: 			'province'       => $prov,
+4801: 			'city'           => $city,
+4802: 			'customer_address' => $customer_address ?: null,
+4803: 			'customer_postal_code' => $customer_postal_code ?: null,
+4804: 			'product_id'     => $prod_id,
+4805: 			'product_price'  => $total,
+4806: 			'final_total'    => $total,
+4807: 			'payment_plan' => $payment_plan,
+4808: 			'payment_total_amount' => $total,
+4809: 			'current_due_amount' => $initial_due,
+4810: 			'paid_total_amount' => 0,
+4811: 			'remaining_amount' => $total,
+4812: 			'current_payment_stage' => 1,
+4813: 			'payment_workflow_status' => 'awaiting_payment',
+4814: 			'current_stage_issued_by_user_id' => (int) $user->ID,
+4815: 			'payment_card_number' => (string) ($invoice_card['number'] ?? ''),
+4816: 			'payment_card_owner' => (string) ($invoice_card['owner'] ?? ''),
+4817: 			'payment_card_sales_manager_user_id' => absint($invoice_card['sales_manager_user_id'] ?? 0) ?: null,
+4818: 			'payment_card_deputy_user_id' => absint($invoice_card['deputy_user_id'] ?? 0) ?: null,
+4819: 			'status'         => 'pre_invoice',
+4820: 			'created_at'     => current_time('mysql'),
+4821: 			'updated_at'     => current_time('mysql'),
+4822: 			'issued_by_user_id' => (int) $user->ID,
+4823: 			'original_seller_id' => $seller_id,
+4824: 			'referral_item_id' => absint($request['sn_paid_referral_item_id'] ?? 0),
+4825: 		]);
+4826: 		$invoice_table = $wpdb->prefix . 'sn_invoices';
+4827: 		$item_table = $wpdb->prefix . 'sn_invoice_items';
+4828: 		$pre_invoice_lead_status = 'پیش‌فاکتور';
+4829: 		$this->sn_ensure_pre_invoice_lead_status();
+4830: 		if (! empty($v4_item_id_for_invoice)) {
+4831: 			// Schema repairs may issue DDL and therefore must run before opening the
+4832: 			// invoice transaction. The actual source update remains transactional.
+4833: 			$this->sn_distribution_ensure_seller_inline_columns();
+4834: 		}
+4835: 		$wpdb->query('START TRANSACTION');
+4836: 
+4837: 		// Lock the live source before any seller-flow state lock. The archive job
+4838: 		// uses the same source -> shared-state order, so a concurrent archive or
+4839: 		// reassignment cannot leave the invoice and source in different states.
+4840: 		if ($lead_id) {
+4841: 			$locked_source = $wpdb->get_row($wpdb->prepare(
+4842: 				"SELECT id,seller_id FROM {$wpdb->prefix}sn_leads WHERE id=%d LIMIT 1 FOR UPDATE",
+4843: 				$lead_id
+4844: 			));
+4845: 			if (! $locked_source) {
+4846: 				$wpdb->query('ROLLBACK');
+4847: 				return ['success'=>false,'message'=>'فاکتور ایجاد نشد؛ شماره منبع هنگام ثبت نهایی در دسترس نبود.','status'=>409];
+4848: 			}
+4849: 			if ((int) ($locked_source->seller_id ?? 0) > 0 && (int) $locked_source->seller_id !== (int) $seller_id) {
+4850: 				$wpdb->query('ROLLBACK');
+4851: 				return ['success'=>false,'message'=>'مالک شماره هنگام صدور پیش‌فاکتور تغییر کرده است؛ صفحه را تازه‌سازی کنید.','status'=>409];
+4852: 			}
+4853: 		}
+4854: 		if (! empty($v4_item_id_for_invoice)) {
+4855: 			$locked_source = $wpdb->get_row($wpdb->prepare(
+4856: 				"SELECT id,current_owner_user_id FROM {$wpdb->prefix}sn_distribution_items WHERE id=%d LIMIT 1 FOR UPDATE",
+4857: 				(int) $v4_item_id_for_invoice
+4858: 			));
+4859: 			if (! $locked_source) {
+4860: 				$wpdb->query('ROLLBACK');
+4861: 				return ['success'=>false,'message'=>'فاکتور ایجاد نشد؛ شماره توزیع‌شده هنگام ثبت نهایی در دسترس نبود.','status'=>409];
+4862: 			}
+4863: 			$locked_owner_id = (int) ($locked_source->current_owner_user_id ?? 0);
+4864: 			if (! $is_admin && $locked_owner_id !== (int) $seller_id && $locked_owner_id !== (int) $user->ID) {
+4865: 				$wpdb->query('ROLLBACK');
+4866: 				return ['success'=>false,'message'=>'مالک شماره توزیع‌شده هنگام صدور پیش‌فاکتور تغییر کرده است؛ صفحه را تازه‌سازی کنید.','status'=>409];
+4867: 			}
+4868: 		}
+4869: 		$inserted = $wpdb->insert($invoice_table, $invoice_data);
+4870: 		if (! $inserted) {
+4871: 			$wpdb->query('ROLLBACK');
+4872: 			return ['success' => false, 'message' => 'ذخیره فاکتور انجام نشد: ' . ($wpdb->last_error ?: 'خطای نامشخص'), 'status' => 500];
+4873: 		}
+4874: 		$invoice_id = (int) $wpdb->insert_id;
+4875: 		$stored_access_token = (string) $wpdb->get_var($wpdb->prepare("SELECT access_token FROM {$invoice_table} WHERE id=%d", $invoice_id));
+4876: 		if ($stored_access_token === '' && in_array('access_token', $this->sn_table_columns($invoice_table), true)) {
+4877: 			$access_token = SN_Helpers::generate_unique_access_token();
+4878: 			$token_updated = $wpdb->update($invoice_table, ['access_token' => $access_token], ['id' => $invoice_id]);
+4879: 			if ($token_updated === false) {
+4880: 				$wpdb->query('ROLLBACK');
+4881: 				return ['success'=>false,'message'=>'فاکتور ایجاد نشد؛ ذخیره توکن لینک عمومی با خطا مواجه شد: '.($wpdb->last_error ?: 'خطای دیتابیس'),'status'=>500];
+4882: 			}
+4883: 		} elseif ($stored_access_token !== '') {
+4884: 			$access_token = $stored_access_token;
+4885: 		}
+4886: 		$invoice_row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$invoice_table} WHERE id=%d", $invoice_id));
+4887: 		if (! $invoice_row || empty($invoice_row->access_token)) {
+4888: 			$wpdb->query('ROLLBACK');
+4889: 			return ['success' => false, 'message' => 'فاکتور ایجاد نشد؛ توکن لینک عمومی قابل ذخیره نبود.', 'status' => 500];
+4890: 		}
+4891: 		$access_token = (string) $invoice_row->access_token;
+4892: 		if (! $this->sn_create_invoice_payment_stage($invoice_id, 1, $payment_plan, $initial_due, (int) $user->ID, $payment_plan === 'partial' ? 'پیش‌پرداخت اولیه' : 'پرداخت کامل')) {
+4893: 			$wpdb->query('ROLLBACK');
+4894: 			return ['success'=>false,'message'=>'فاکتور ایجاد نشد؛ ثبت مرحله پرداخت اولیه با خطا مواجه شد: '.($wpdb->last_error ?: 'خطای دیتابیس'),'status'=>500];
+4895: 		}
+4896: 		foreach ($items as $it) {
+4897: 			$item_data = $this->sn_filter_existing_columns_fresh($item_table, $it + ['invoice_id' => $invoice_id, 'created_at' => current_time('mysql')]);
+4898: 			$item_inserted = $wpdb->insert($item_table, $item_data);
+4899: 			if (! $item_inserted) {
+4900: 				$wpdb->query('ROLLBACK');
+4901: 				return ['success'=>false,'message'=>'فاکتور ایجاد نشد؛ ثبت اقلام فاکتور با خطا مواجه شد: '.($wpdb->last_error ?: 'خطای دیتابیس'),'status'=>500];
+4902: 			}
+4903: 		}
+4904: 		if ($dot_context && class_exists('SN_Dot_Flow') && ! SN_Dot_Flow::instance()->register_source_invoice_in_transaction($invoice_id, $dot_context)) {
+4905: 			$wpdb->query('ROLLBACK');
+4906: 			return ['success'=>false,'message'=>'فاکتور ایجاد نشد؛ اتصال امن آن به فلو اعتبارسنجی با خطا مواجه شد: '.($wpdb->last_error ?: 'خطای دیتابیس'),'status'=>500];
+4907: 		}
+4908: 		if ($lead_id) {
+4909: 			$lead_status_updated = $wpdb->update($wpdb->prefix . 'sn_leads', $this->sn_filter_existing_columns($wpdb->prefix . 'sn_leads', [
+4910: 				'status' => 'invoiced',
+4911: 				'lead_status' => $pre_invoice_lead_status,
+4912: 				'updated_at' => current_time('mysql'),
+4913: 			]), ['id' => $lead_id]);
+4914: 			if ($lead_status_updated === false) {
+4915: 				$wpdb->query('ROLLBACK');
+4916: 				return ['success'=>false,'message'=>'فاکتور ایجاد نشد؛ وضعیت شماره منبع ذخیره نشد: '.($wpdb->last_error ?: 'خطای دیتابیس'),'status'=>500];
+4917: 			}
+4918: 		}
+4919: 		if (! empty($v4_item_id_for_invoice)) {
+4920: 			$item_table_for_invoice_status = $wpdb->prefix . 'sn_distribution_items';
+4921: 			$v4_status_updated = $wpdb->update($item_table_for_invoice_status, $this->sn_distribution_filter_existing_columns_fresh($item_table_for_invoice_status, [
+4922: 				'seller_contact_status' => $pre_invoice_lead_status,
+4923: 				'seller_updated_by' => (int) $user->ID,
+4924: 				'seller_updated_at' => current_time('mysql'),
+4925: 				'updated_at' => current_time('mysql'),
+4926: 				'follow_invoice_id' => $invoice_id,
+4927: 			]), ['id' => (int) $v4_item_id_for_invoice]);
+4928: 			if ($v4_status_updated === false) {
+4929: 				$wpdb->query('ROLLBACK');
+4930: 				return ['success'=>false,'message'=>'فاکتور ایجاد نشد؛ وضعیت شماره توزیع‌شده ذخیره نشد: '.($wpdb->last_error ?: 'خطای دیتابیس'),'status'=>500];
+4931: 			}
+4932: 		}
+4933: 		if (class_exists('SN_Seller_Flow')) {
+4934: 			$flow_source_kind = ! empty($v4_item_id_for_invoice) ? 'v4_distribution_item' : 'legacy_lead';
+4935: 			$flow_source_id = ! empty($v4_item_id_for_invoice) ? (int) $v4_item_id_for_invoice : (int) $lead_id;
+4936: 			if ($flow_source_id > 0) {
+4937: 				$flow_result = SN_Seller_Flow::instance()->apply_activity([
+4938: 					'source_kind' => $flow_source_kind,
+4939: 					'source_id' => $flow_source_id,
+4940: 					'seller_user_id' => $seller_id,
+4941: 					'actor_user_id' => (int) $user->ID,
+4942: 					'status_label' => 'پیش‌فاکتور',
+4943: 					'status_changed' => true,
+4944: 					'invoice_id' => $invoice_id,
+4945: 					'changed_field' => 'invoice_created',
+4946: 				]);
+4947: 				if (is_wp_error($flow_result)) {
+4948: 					$wpdb->query('ROLLBACK');
+4949: 					return ['success'=>false,'message'=>'فاکتور ایجاد نشد؛ ثبت یکپارچه وضعیت مرحله فروشنده ناموفق بود: '.$flow_result->get_error_message(),'status'=>500];
+4950: 				}
+4951: 			}
+4952: 		}
+4953: 		$wpdb->query('COMMIT');
+4954: 		$invoice_row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$invoice_table} WHERE id=%d", $invoice_id));
+4955: 
+4956: 		if ($is_converter && (int) $user->ID === (int) $seller_id) {
+4957: 			$invoice_actor_action = 'invoice_created_by_converter';
+4958: 			$invoice_actor_message = 'صدور پیش‌فاکتور دستی توسط تبدیل‌کننده';
+4959: 		} else {
+4960: 			$invoice_actor_action = ((int) $user->ID === (int) $seller_id) ? 'invoice_created' : 'invoice_created_by_supervisor_for_seller';
+4961: 			$invoice_actor_message = ((int) $user->ID === (int) $seller_id) ? 'صدور پیش‌فاکتور توسط فروشنده' : 'صدور پیش‌فاکتور توسط سرپرست برای فروشنده';
+4962: 		}
+4963: 		$this->sn_log_activity($invoice_id, $lead_id ?: null, $invoice_actor_action, $invoice_actor_message, ['seller_id' => $seller_id, 'issued_by_user_id' => (int) $user->ID, 'product_ids' => $product_ids, 'amount' => $total, 'payment_plan'=>$payment_plan, 'current_due_amount'=>$initial_due, 'dot_conversion_route'=>(string) ($dot_context['conversion_route'] ?? ''), 'dot_send_assessment_sms'=>isset($dot_context['send_assessment_sms']) ? (int) $dot_context['send_assessment_sms'] : null, 'send_bale_requested'=>$send_bale ? 1 : 0, 'referral_item_id' => absint($request['sn_paid_referral_item_id'] ?? 0)]);
+4964: 
+4965: 		$customer_wp_id = $this->get_or_create_customer_account($phone, $name);
+4966: 		if ($customer_wp_id) {
+4967: 			$wpdb->update($wpdb->prefix . 'sn_invoices', $this->sn_filter_existing_columns($wpdb->prefix . 'sn_invoices', ['customer_wp_id' => $customer_wp_id]), ['id' => $invoice_id]);
+4968: 			$this->sn_sync_customer_profile_from_invoice($customer_wp_id, (object) [
+4969: 				'id' => $invoice_id, 'invoice_code' => $code, 'customer_name' => $name, 'customer_phone' => $phone, 'province' => $prov, 'city' => $city
+4970: 			]);
+4971: 		}
+4972: 
+4973: 		// The invoice is already committed; delivery failures must not look like a failed creation.
+4974: 		$sms_sent = false;
+4975: 		$sms_error = '';
+4976: 		$invoice_url = $this->sn_invoice_public_url($invoice_row);
+4977: 		$amount = number_format($initial_due, 0, '', ',');
+4978: 		$card_number = $this->sn_card_to_card_enabled() ? (string) ($this->sn_resolve_invoice_card($invoice_row)['number'] ?? '') : '';
+4979: 		try {
+4980: 			$sms = new SN_SMS();
+4981: 			$sms_sent = $sms->send_invoice_link($phone, $code, $invoice_url, $name, $amount, $card_number);
+4982: 			$sms_error = $sms->get_last_error();
+4983: 		} catch (Throwable $error) {
+4984: 			$sms_error = 'خطا در اجرای ارسال پیامک؛ جزئیات در گزارش خطای سرور ثبت شد.';
+4985: 			error_log('SN invoice created #' . $invoice_id . ', SMS failed: ' . $error->getMessage());
+4986: 		}
+4987: 		$bale_result = ['success'=>false,'status'=>'not_requested'];
+4988: 		if ($send_bale && class_exists('SN_Notification_Service')) {
+4989: 			try {
+4990: 				$bale_result = SN_Notification_Service::instance()->mirror_invoice('invoice.created', $phone, (string)$code, (string)$invoice_url, (string)$name, $amount, $card_number, [ 'entity_type'=>'invoice', 'entity_id'=>$invoice_id, 'invoice_id'=>$invoice_id, 'dedupe_key'=>'invoice-created-'.$invoice_id, 'source'=>'invoice_create' ]);
+4991: 			} catch (Throwable $error) {
+4992: 				$bale_result = ['success'=>false,'status'=>'failed','error_message'=>'خطا در اجرای ارسال بله'];
+4993: 				error_log('SN invoice created #' . $invoice_id . ', Bale mirror failed: ' . $error->getMessage());
+4994: 			}
+4995: 		}
+4996: 		$message = 'پیش‌فاکتور با موفقیت صادر شد.';
+4997: 
+4998: 		return ['success' => true, 'message' => $message, 'data' => [
+4999: 			'sms_sent' => $sms_sent,
+5000: 			'sms_status' => $sms_sent ? 'sent' : 'failed',
+5001: 			'sms_message' => $sms_sent ? 'درخواست پیامک توسط سرویس پذیرفته شد.' : ('پیش‌فاکتور صادر شد. ' . ($sms_error ?: 'ارسال پیامک تأیید نشد؛ تنظیمات سرویس پیامک را بررسی کنید.')),
+5002: 			'bale_requested' => $send_bale ? 1 : 0,
+5003: 			'bale_sent' => ! empty($bale_result['success']),
+5004: 			'bale_status' => (string)($bale_result['status'] ?? 'skipped'),
+5005: 			'bale_message_id' => (string)($bale_result['message_id'] ?? ''),
+5006: 			'invoice_id' => $invoice_id,
+5007: 			'invoice_code' => $code,
+5008: 			'code' => $code,
+5009: 			'customer_wp_id' => $customer_wp_id,
+5010: 			'payment_plan' => $payment_plan,
+5011: 			'payment_total_amount' => $total,
+5012: 			'current_due_amount' => $initial_due,
+5013: 			'remaining_amount' => $total,
+5014: 			'dot_conversion_route' => (string) ($dot_context['conversion_route'] ?? ''),
+5015: 			'dot_conversion_route_label' => ! empty($dot_context) ? ((string) ($dot_context['conversion_route'] ?? '') === 'seller_self' ? 'تبدیل توسط خودم' : 'ارسال برای سرپرست') : '',
+5016: 			'dot_send_assessment_sms' => isset($dot_context['send_assessment_sms']) ? (int) $dot_context['send_assessment_sms'] : null,
+5017: 			'dot_send_assessment_sms_label' => ! empty($dot_context) ? (! empty($dot_context['send_assessment_sms']) ? 'ارسال پیامک نتیجه اعتبارسنجی' : 'عدم ارسال پیامک نتیجه اعتبارسنجی؛ ورود مستقیم به تبدیل') : '',
+5018: 		]];
+5019: 	}
+5020: 
+5021: 	/**
+5022: 	 * Fallback: صدور فاکتور از طریق form POST (برای وقتی AJAX مشکل داره)
+5023: 	 */
+5024: 	public function handle_create_invoice_post(): void

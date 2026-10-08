@@ -1,0 +1,11 @@
+315: 
+316: 	public function handle_save_matrix(): void {
+317: 		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'sn_manage_wallets' ) ) { wp_die( 'دسترسی غیرمجاز' ); }
+318: 		check_admin_referer( 'sn_save_purpose_commission_matrix' );
+319: 		$raw = isset( $_POST['rates'] ) && is_array( $_POST['rates'] ) ? wp_unslash( $_POST['rates'] ) : [];
+320: 		$result = $this->persist_rates( $raw );
+321: 		if ( is_wp_error( $result ) ) { wp_die( esc_html( $result->get_error_message() ) ); }
+322: 		wp_safe_redirect( add_query_arg( 'sn_commission_saved', '1', admin_url( 'admin.php?page=sn-commission-matrix' ) ) );
+323: 		exit;
+324: 	}
+325: 

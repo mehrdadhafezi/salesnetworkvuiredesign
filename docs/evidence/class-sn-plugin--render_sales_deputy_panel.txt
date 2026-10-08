@@ -1,0 +1,165 @@
+8332: 
+8333: 	public function render_sales_deputy_panel(): string
+8334: 	{
+8335: 		if (! is_user_logged_in()) {
+8336: 			return $this->render_unified_panel_login();
+8337: 		}
+8338: 		if (! current_user_can('manage_options') && $this->sn_fast_hr_position_for_user(get_current_user_id()) !== 'sales_deputy') {
+8339: 			return '<div class="sn-panel" dir="rtl"><div class="sn-notice sn-error">دسترسی به پنل معاون فروش مجاز نیست.</div></div>';
+8340: 		}
+8341: 		if (! class_exists('SN_Scope_Service') || ! class_exists('SN_Hierarchy_Service') || ! class_exists('SN_HR_Service')) {
+8342: 			return '<div class="sn-panel" dir="rtl"><div class="sn-notice sn-error">سرویس منابع انسانی در دسترس نیست.</div></div>';
+8343: 		}
+8344: 
+8345: 		$filters = $this->sn_sales_deputy_filters();
+8346: 		$filter_date_from_value = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($filters['date_from'] ?? '')) ? SN_Helpers::gregorian_to_jalali_input_value((string) $filters['date_from']) : sanitize_text_field(wp_unslash($_GET['sn_sd_date_from'] ?? ''));
+8347: 		$filter_date_to_value = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($filters['date_to'] ?? '')) ? SN_Helpers::gregorian_to_jalali_input_value((string) $filters['date_to']) : sanitize_text_field(wp_unslash($_GET['sn_sd_date_to'] ?? ''));
+8348: 		$viewer_id = get_current_user_id();
+8349: 		$visible_seller_ids = $this->sn_get_seller_ids_in_hr_scope($viewer_id);
+8350: 		$visible_profile_ids = current_user_can('manage_options')
+8351: 			? array_map('intval', array_column(array_merge($this->sn_hr_all_users_by_position('sales_manager'), $this->sn_hr_all_users_by_position('senior_supervisor'), $this->sn_hr_all_users_by_position('supervisor'), $this->sn_hr_all_users_by_position('seller')), 'profile_id'))
+8352: 			: array_map('intval', array_column($this->sn_get_descendant_users($viewer_id), 'profile_id'));
+8353: 		$manager_options = $this->sn_sales_deputy_profiles_by_position('sales_manager', $visible_profile_ids);
+8354: 		$senior_options = $this->sn_sales_deputy_profiles_by_position('senior_supervisor', $visible_profile_ids);
+8355: 		$supervisor_options = $this->sn_sales_deputy_profiles_by_position('supervisor', $visible_profile_ids);
+8356: 		$seller_options = $this->sn_sales_deputy_profiles_by_position('seller', $visible_profile_ids);
+8357: 		$filtered_seller_ids = $this->sn_sales_deputy_filtered_seller_ids($visible_seller_ids, $filters);
+8358: 		$summary = $this->sn_sales_deputy_summary($filtered_seller_ids, $filters);
+8359: 		$hierarchy = $this->sn_sales_deputy_hierarchy_overview($manager_options, $visible_seller_ids, $filters);
+8360: 		$manager_rows = $this->sn_sales_deputy_performance_rows($manager_options, $visible_seller_ids, $filters, 'sales_manager');
+8361: 		$senior_rows = $this->sn_sales_deputy_performance_rows($senior_options, $visible_seller_ids, $filters, 'senior_supervisor');
+8362: 		$supervisor_rows = $this->sn_sales_deputy_performance_rows($supervisor_options, $visible_seller_ids, $filters, 'supervisor');
+8363: 		$seller_rows = $this->sn_sales_deputy_performance_rows($seller_options, $visible_seller_ids, $filters, 'seller');
+8364: 		$recent_invoices = $this->sn_sales_deputy_recent_invoices($filtered_seller_ids, $filters);
+8365: 
+8366: 		ob_start();
+8367: 		?>
+8368: 		<div id="sn-sales-deputy-panel" class="sn-panel sn-portal sn-sales-deputy-panel sn-has-sidebar-tabs" dir="rtl">
+8369: 			<div class="sn-panel-header">
+8370: 				<h2>پنل معاون فروش</h2>
+8371: 				<a class="sn-btn sn-btn-secondary" href="#sn-reports-panel">گزارش جامع</a>
+8372: 				<?php echo $this->sn_panel_user_actions_markup(); ?>
+8373: 			</div>
+8374: 			<?php $this->sn_render_panel_tabs([
+8375: 				'sd-overview' => 'نمای کلی',
+8376: 				'sd-hierarchy' => 'سلسله‌مراتب',
+8377: 				'sd-managers' => 'مدیران فروش',
+8378: 				'sd-seniors' => 'سرپرست‌های ارشد',
+8379: 				'sd-supervisors' => 'سرپرست‌ها',
+8380: 				'sd-sellers' => 'فروشنده‌ها',
+8381: 				'sd-distribution' => 'تخصیص شماره',
+8382: 				'sd-invoices' => 'فاکتورها',
+8383: 				'sd-wallet' => 'کیف پول',
+8384: 			], 'sd-overview'); ?>
+8385: 
+8386: 			<section id="sd-overview" class="<?php echo esc_attr($this->sn_tab_panel_class('sd-overview', 'sd-overview')); ?>" data-sn-tab-panel="sd-overview">
+8387: 			<form method="get" class="sn-card sn-filter-form sn-scope-filter-form" style="margin-bottom:16px">
+8388: 				<div class="sn-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+8389: 					<label>از تاریخ شمسی<br><input type="text" class="sn-jalali-date" name="sn_sd_date_from" value="<?php echo esc_attr($filter_date_from_value); ?>" placeholder="1403/02/18"></label>
+8390: 					<label>تا تاریخ شمسی<br><input type="text" class="sn-jalali-date" name="sn_sd_date_to" value="<?php echo esc_attr($filter_date_to_value); ?>" placeholder="1403/02/18"></label>
+8391: 					<label>مدیر فروش<br>
+8392: 						<select name="sn_sd_sales_manager">
+8393: 							<option value="0">همه</option>
+8394: 							<?php foreach ($manager_options as $manager) : ?>
+8395: 								<option value="<?php echo esc_attr((string) (int) $manager->user_id); ?>" <?php selected($filters['sales_manager_id'], (int) $manager->user_id); ?>><?php echo esc_html($this->sn_user_label((int) $manager->user_id)); ?></option>
+8396: 							<?php endforeach; ?>
+8397: 						</select>
+8398: 					</label>
+8399: 					<label>سرپرست ارشد<br>
+8400: 						<select name="sn_sd_senior_supervisor">
+8401: 							<option value="0">همه</option>
+8402: 							<?php foreach ($senior_options as $senior) : ?>
+8403: 								<option value="<?php echo esc_attr((string) (int) $senior->user_id); ?>" <?php selected($filters['senior_supervisor_id'], (int) $senior->user_id); ?>><?php echo esc_html($this->sn_user_label((int) $senior->user_id)); ?></option>
+8404: 							<?php endforeach; ?>
+8405: 						</select>
+8406: 					</label>
+8407: 					<label>وضعیت فاکتور<br><input type="text" name="sn_sd_invoice_status" value="<?php echo esc_attr($filters['invoice_status']); ?>" placeholder="paid, approved, rejected..."></label>
+8408: 				</div>
+8409: 				<p style="margin-top:12px"><button type="submit" class="sn-btn">اعمال فیلتر</button></p>
+8410: 			</form>
+8411: 
+8412: 			<div class="sn-dashboard-grid">
+8413: 				<?php foreach ($summary as $label => $value) : ?>
+8414: 					<div class="sn-card"><strong><?php echo esc_html((string) $value); ?></strong><br><span><?php echo esc_html((string) $label); ?></span></div>
+8415: 				<?php endforeach; ?>
+8416: 			</div>
+8417: 			</section>
+8418: 
+8419: 			<section id="sd-hierarchy" class="<?php echo esc_attr($this->sn_tab_panel_class('sd-hierarchy', 'sd-overview')); ?>" data-sn-tab-panel="sd-hierarchy">
+8420: 			<div class="sn-card">
+8421: 				<h3>نمای سلسله‌مراتب</h3>
+8422: 				<table class="sn-table">
+8423: 					<thead><tr><th>مدیر فروش</th><th>سرپرست‌های ارشد</th><th>فروشنده‌های مستقیم مدیر</th><th>کل فروشنده‌های زیرمجموعه</th></tr></thead>
+8424: 					<tbody>
+8425: 						<?php if (! $hierarchy) : ?><tr><td colspan="4"><div class="sn-empty-state">ساختار فروش زیرمجموعه‌ای برای این فیلتر پیدا نشد.</div></td></tr><?php endif; ?>
+8426: 						<?php foreach ($hierarchy as $row) : ?>
+8427: 							<tr>
+8428: 								<td><?php echo esc_html((string) $row['manager_label']); ?></td>
+8429: 								<td><?php echo esc_html((string) $row['senior_summary']); ?></td>
+8430: 								<td><?php echo esc_html((string) (int) $row['direct_sellers']); ?></td>
+8431: 								<td><?php echo esc_html((string) (int) $row['total_sellers']); ?></td>
+8432: 							</tr>
+8433: 						<?php endforeach; ?>
+8434: 					</tbody>
+8435: 				</table>
+8436: 			</div>
+8437: 			</section>
+8438: 
+8439: 			<section id="sd-managers" class="<?php echo esc_attr($this->sn_tab_panel_class('sd-managers', 'sd-overview')); ?>" data-sn-tab-panel="sd-managers">
+8440: 			<div class="sn-card">
+8441: 				<h3>عملکرد مدیران فروش</h3>
+8442: 				<?php $this->sn_sales_deputy_render_performance_table($manager_rows, 'مدیر فروش', ''); ?>
+8443: 			</div>
+8444: 			</section>
+8445: 
+8446: 			<section id="sd-seniors" class="<?php echo esc_attr($this->sn_tab_panel_class('sd-seniors', 'sd-overview')); ?>" data-sn-tab-panel="sd-seniors">
+8447: 			<div class="sn-card">
+8448: 				<h3>عملکرد سرپرست‌های ارشد</h3>
+8449: 				<?php $this->sn_sales_deputy_render_performance_table($senior_rows, 'سرپرست ارشد', 'مدیر فروش بالادستی'); ?>
+8450: 			</div>
+8451: 			</section>
+8452: 
+8453: 			<section id="sd-supervisors" class="<?php echo esc_attr($this->sn_tab_panel_class('sd-supervisors', 'sd-overview')); ?>" data-sn-tab-panel="sd-supervisors">
+8454: 			<div class="sn-card">
+8455: 				<h3>عملکرد سرپرست‌ها</h3>
+8456: 				<?php $this->sn_sales_deputy_render_performance_table($supervisor_rows, 'سرپرست', 'بالادستی'); ?>
+8457: 			</div>
+8458: 			</section>
+8459: 
+8460: 			<section id="sd-sellers" class="<?php echo esc_attr($this->sn_tab_panel_class('sd-sellers', 'sd-overview')); ?>" data-sn-tab-panel="sd-sellers">
+8461: 			<div class="sn-card">
+8462: 				<h3>عملکرد فروشنده‌ها</h3>
+8463: 				<?php $this->sn_sales_deputy_render_performance_table($seller_rows, 'فروشنده', 'سرپرست بالادستی'); ?>
+8464: 			</div>
+8465: 			</section>
+8466: 
+8467: 			<section id="sd-distribution" class="<?php echo esc_attr($this->sn_tab_panel_class('sd-distribution', 'sd-overview')); ?>" data-sn-tab-panel="sd-distribution">
+8468: 				<?php $this->sn_render_supervisor_progressive_assign_tab($viewer_id); ?>
+8469: 			</section>
+8470: 
+8471: 			<section id="sd-invoices" class="<?php echo esc_attr($this->sn_tab_panel_class('sd-invoices', 'sd-overview')); ?>" data-sn-tab-panel="sd-invoices">
+8472: 			<div class="sn-card">
+8473: 				<h3>آخرین فاکتورهای محدوده معاون فروش</h3>
+8474: 				<table class="sn-table">
+8475: 					<thead><tr><th>کد فاکتور</th><th>فروشنده</th><th>وضعیت</th><th>مبلغ</th><th>وضعیت پرداخت</th><th>تاریخ</th></tr></thead>
+8476: 					<tbody>
+8477: 						<?php if (! $recent_invoices) : ?><tr><td colspan="6"><div class="sn-empty-state">فاکتوری برای نمایش در محدوده معاون فروش وجود ندارد.</div></td></tr><?php endif; ?>
+8478: 						<?php foreach ($recent_invoices as $invoice) : ?>
+8479: 							<tr>
+8480: 								<td><code><?php echo esc_html((string) $invoice['invoice_code']); ?></code></td>
+8481: 								<td><?php echo esc_html((string) $invoice['seller_name']); ?></td>
+8482: 								<td><?php echo esc_html(SN_Helpers::status_label((string) $invoice['status'])); ?></td>
+8483: 								<td><?php echo esc_html(SN_Helpers::format_price((float) $invoice['amount'])); ?></td>
+8484: 								<td><?php echo esc_html(SN_Helpers::status_label((string) ($invoice['payment_status'] ?: $invoice['invoice_status'] ?: $invoice['status']))); ?></td>
+8485: 								<td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $invoice['created_at'])); ?></td>
+8486: 							</tr>
+8487: 						<?php endforeach; ?>
+8488: 					</tbody>
+8489: 				</table>
+8490: 			</div>
+8491: 			</section>
+8492: 			<section id="sd-wallet" class="<?php echo esc_attr($this->sn_tab_panel_class('sd-wallet', 'sd-overview')); ?>" data-sn-tab-panel="sd-wallet"><?php if ( class_exists('SN_Purpose_Commission') ) { echo SN_Purpose_Commission::render_dual_wallet_cards($viewer_id, 25); } ?></section>
+8493: 		</div>
+8494: 		<?php
+8495: 		return ob_get_clean() . $this->sn_dashboard_reporting_content();
+8496: 	}

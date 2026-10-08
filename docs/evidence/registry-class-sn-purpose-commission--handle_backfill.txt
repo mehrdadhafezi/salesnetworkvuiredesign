@@ -1,0 +1,9 @@
+302: 
+303: 	public function handle_backfill(): void {
+304: 		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'sn_manage_wallets' ) ) { wp_die( 'دسترسی غیرمجاز' ); }
+305: 		check_admin_referer( 'sn_backfill_purpose_commissions' );
+306: 		$this->queue_backfill();
+307: 		wp_safe_redirect( admin_url( 'admin.php?page=sn-commission-matrix' ) );
+308: 		exit;
+309: 	}
+310: 

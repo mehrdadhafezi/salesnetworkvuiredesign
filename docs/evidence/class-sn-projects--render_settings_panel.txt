@@ -1,0 +1,105 @@
+1704: 
+1705: 	public function render_settings_panel(): void {
+1706: 		$products = class_exists( 'SN_Helpers' ) ? SN_Helpers::get_sn_products() : [];
+1707: 		$maps = $this->settings_maps();
+1708: 		$sales_managers = $this->sales_manager_users();
+1709: 		$operations_managers = $this->operations_sales_manager_users();
+1710: 		$operations_supervisors = $this->operations_sales_supervisor_users();
+1711: 		$subscription_rows = (array) $maps['subscriptions'];
+1712: 		if ( ! $subscription_rows ) { $subscription_rows = [ 0 => [] ]; }
+1713: 		$product_options_html = '<option value="0">— انتخاب محصول اشتراک —</option>';
+1714: 		$content_options_html = '';
+1715: 		$sales_manager_options_html = '<option value="0">— مدیر فروش مبدأ —</option>';
+1716: 		$operations_supervisor_options_html = '<option value="0">— سرپرست فروش عملیات مقصد —</option>';
+1717: 		foreach ( $sales_managers as $sales_manager ) { $sales_manager_options_html .= '<option value="' . esc_attr( (string) $sales_manager->ID ) . '">' . esc_html( (string) $sales_manager->display_name . ' (#' . (int) $sales_manager->ID . ')' ) . '</option>'; }
+1718: 		foreach ( $operations_supervisors as $supervisor ) { $operations_supervisor_options_html .= '<option value="' . esc_attr( (string) $supervisor->ID ) . '" data-manager="' . esc_attr( (string) (int) ( $supervisor->sn_operations_manager_user_id ?? 0 ) ) . '">' . esc_html( (string) $supervisor->display_name . ' (#' . (int) $supervisor->ID . ')' ) . '</option>'; }
+1719: 		foreach ( $products as $row_product ) {
+1720: 			$pid = (int) $row_product['id'];
+1721: 			$label = esc_html( (string) $row_product['name'] . ' (#' . $pid . ')' );
+1722: 			$product_options_html .= '<option value="' . esc_attr( (string) $pid ) . '">' . $label . '</option>';
+1723: 			$content_options_html .= '<option value="' . esc_attr( (string) $pid ) . '">' . $label . '</option>';
+1724: 		}
+1725: 		?>
+1726: 		<input type="hidden" name="sn_projects_settings_present" value="1">
+1727: 		<input type="hidden" name="sn_operations_supervisor_routes_present" value="1">
+1728: 		<div class="sn-project-admin-settings" dir="rtl">
+1729: 			<h2>پروژه‌ها و اشتراک‌های بیاوین</h2>
+1730: 			<p class="description">محصول اشتراک قابل فروش است؛ محصولات محتوا فقط داخل پروژه مصرف می‌شوند و برای فروشنده/تبدیل‌کننده در صدور فاکتور نمایش داده نخواهند شد. تغییر این صفحه روی عضویت‌های قبلی اثر نمی‌گذارد.</p>
+1731: 			<table class="form-table" style="max-width:820px"><tr><th>عدم انجام عمل توسط مشتری روی کارت</th><td><input type="number" name="sn_operations_customer_inactivity_days" min="0" max="365" step="1" value="<?php echo esc_attr( (string) min( 365, max( 0, absint( get_option( 'sn_operations_customer_inactivity_days', 3 ) ) ) ) ); ?>" class="small-text"> روز<p class="description">پس از این تعداد روز، کارتِ بدون انتخاب وارد صف مدیر فروش عملیات می‌شود. مقدار صفر یعنی ارسال فوری همه کارت‌های خودکارِ در انتظار و حذف امکان فعال‌سازی توسط مشتری. رکوردهای تاریخی که مجوز مسیریابی خودکار ندارند جابه‌جا نمی‌شوند.</p></td></tr></table>
+1732: 			<table class="widefat striped" id="sn-project-subscription-table">
+1733: 				<thead><tr><th style="width:70px">فعال</th><th>محصول ووکامرس اشتراک</th><th>محتویات اشتراک (چند انتخابی)</th><th style="width:80px"></th></tr></thead>
+1734: 				<tbody>
+1735: 				<?php if ( ! $products ) : ?><tr class="sn-project-no-products"><td colspan="4">محصول فعال شبکه فروش یافت نشد.</td></tr><?php endif; ?>
+1736: 				<?php $row_index = 0; foreach ( $subscription_rows as $subscription_id => $selected_contents ) : $subscription_id = (int) $subscription_id; ?>
+1737: 				<tr class="sn-project-subscription-row">
+1738: 					<td><input type="checkbox" name="sn_projects[subscription_rows][<?php echo esc_attr( (string) $row_index ); ?>][active]" value="1" checked></td>
+1739: 					<td><select class="sn-project-subscription-product" name="sn_projects[subscription_rows][<?php echo esc_attr( (string) $row_index ); ?>][product_id]" style="width:100%;max-width:420px"><option value="0">— انتخاب محصول اشتراک —</option><?php foreach ( $products as $product ) : $pid = (int) $product['id']; ?><option value="<?php echo esc_attr( (string) $pid ); ?>" <?php selected( $subscription_id, $pid ); ?>><?php echo esc_html( (string) $product['name'] . ' (#' . $pid . ')' ); ?></option><?php endforeach; ?></select></td>
+1740: 					<td><select class="sn-project-subscription-contents" multiple size="5" name="sn_projects[subscription_rows][<?php echo esc_attr( (string) $row_index ); ?>][contents][]" style="width:100%;max-width:620px"><?php foreach ( $products as $content ) : $cid = (int) $content['id']; ?><option value="<?php echo esc_attr( (string) $cid ); ?>" <?php selected( in_array( $cid, (array) $selected_contents, true ) ); ?>><?php echo esc_html( (string) $content['name'] . ' (#' . $cid . ')' ); ?></option><?php endforeach; ?></select></td>
+1741: 					<td><button type="button" class="button sn-project-remove-subscription">حذف</button></td>
+1742: 				</tr>
+1743: 				<?php $row_index++; endforeach; ?>
+1744: 				</tbody>
+1745: 			</table>
+1746: 			<p><button type="button" class="button" id="sn-project-add-subscription">+ افزودن اشتراک</button></p>
+1747: 
+1748: 			<h3 style="margin-top:28px">مدیر و سرپرست فروش عملیات هر کارت، API مقصد و پورسانت بیاوین</h3>
+1749: 			<p class="description">برای هر کارت یک مدیر فروش عملیات انتخاب کنید؛ سپس مشخص کنید فروش زیرمجموعه هر مدیر فروش مستقیماً به کدام سرپرستِ زیرمجموعه همان مدیر عملیات برسد. مقصد هنگام ایجاد کارت ذخیره می‌شود و تغییر تنظیمات فقط روی خریدهای بعدی اثر دارد.</p>
+1750: 			<table class="widefat striped">
+1751: 				<thead><tr><th>محصول محتوا / کارت</th><th style="min-width:460px">مدیران فروش عملیات و مسیر شاخه‌های فروش</th><th>آدرس API مقصد</th><th>کد پروژه</th><th>کلید API</th><th>API فعال</th><th>نوع پورسانت</th><th>مقدار</th><th>پورسانت فعال</th></tr></thead>
+1752: 				<tbody>
+1753: 				<?php foreach ( $products as $product ) : $pid = (int) $product['id']; $rule = (array) ( $maps['rules'][ $pid ] ?? [] ); $api = (array) ( $maps['api_configs'][ $pid ] ?? [] ); ?>
+1754: 				<tr class="sn-project-content-config-row" data-content-product="<?php echo esc_attr( (string) $pid ); ?>">
+1755: 					<td><strong><?php echo esc_html( (string) $product['name'] ); ?></strong><br><code>#<?php echo esc_html( (string) $pid ); ?></code></td>
+1756: 					<td>
+1757: 						<div class="sn-project-route-box sn-operations-route-box">
+1758: 						<label><strong>مدیر فروش عملیات کارت</strong><br><select class="sn-operations-card-manager" name="sn_projects[operations_managers][<?php echo esc_attr( (string) $pid ); ?>]" style="width:100%;max-width:420px"><option value="0">— انتخاب مدیر فروش عملیات —</option><?php foreach ( $operations_managers as $manager ) : ?><option value="<?php echo esc_attr( (string) $manager->ID ); ?>" <?php selected( (int) ( $maps['operations_managers'][ $pid ] ?? 0 ), (int) $manager->ID ); ?>><?php echo esc_html( (string) $manager->display_name . ' (#' . (int) $manager->ID . ')' ); ?></option><?php endforeach; ?></select></label>
+1759: 						<p class="description" style="margin:6px 0">اگر برای شاخه فروش مسیر مستقیم تعریف نشده باشد، کارت ابتدا وارد صف همین مدیر عملیات می‌شود.</p>
+1760: 						<div><strong>مدیر فروش مبدأ ← سرپرست فروش عملیات مقصد</strong><div class="sn-operations-manager-route-list" data-content-product="<?php echo esc_attr( (string) $pid ); ?>">
+1761: 							<?php $operations_route_index = 0; foreach ( (array) ( $maps['operations_supervisor_routes'][ $pid ] ?? [] ) as $route ) : ?>
+1762: 							<div class="sn-operations-manager-route-row" style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">
+1763: 								<select name="sn_projects[operations_supervisor_routes][<?php echo esc_attr( (string) $pid ); ?>][<?php echo esc_attr( (string) $operations_route_index ); ?>][sales_manager_user_id]" style="min-width:180px"><option value="0">— مدیر فروش مبدأ —</option><?php foreach ( $sales_managers as $sales_manager ) : ?><option value="<?php echo esc_attr( (string) $sales_manager->ID ); ?>" <?php selected( (int) ( $route['sales_manager_user_id'] ?? 0 ), (int) $sales_manager->ID ); ?>><?php echo esc_html( (string) $sales_manager->display_name . ' (#' . (int) $sales_manager->ID . ')' ); ?></option><?php endforeach; ?></select>
+1764: 								<span>←</span>
+1765: 								<select class="sn-operations-route-supervisor" name="sn_projects[operations_supervisor_routes][<?php echo esc_attr( (string) $pid ); ?>][<?php echo esc_attr( (string) $operations_route_index ); ?>][operations_supervisor_user_id]" style="min-width:220px"><option value="0">— سرپرست فروش عملیات مقصد —</option><?php foreach ( $operations_supervisors as $supervisor ) : ?><option value="<?php echo esc_attr( (string) $supervisor->ID ); ?>" data-manager="<?php echo esc_attr( (string) (int) ( $supervisor->sn_operations_manager_user_id ?? 0 ) ); ?>" <?php selected( (int) ( $route['operations_supervisor_user_id'] ?? 0 ), (int) $supervisor->ID ); ?>><?php echo esc_html( (string) $supervisor->display_name . ' (#' . (int) $supervisor->ID . ')' ); ?></option><?php endforeach; ?></select>
+1766: 								<button type="button" class="button-link-delete sn-project-remove-operations-route" aria-label="حذف مسیر عملیات">حذف</button>
+1767: 							</div>
+1768: 							<?php $operations_route_index++; endforeach; ?>
+1769: 						</div><button type="button" class="button button-small sn-project-add-operations-route" data-content-product="<?php echo esc_attr( (string) $pid ); ?>" data-next-index="<?php echo esc_attr( (string) $operations_route_index ); ?>" style="margin-top:7px">+ افزودن مسیر سرپرست عملیات</button></div></div>
+1770: 					</td>
+1771: 					<td><input type="url" name="sn_projects[apis][<?php echo esc_attr( (string) $pid ); ?>][endpoint_url]" value="<?php echo esc_attr( (string) ( $api['endpoint_url'] ?? '' ) ); ?>" placeholder="https://target.example/wp-json/dcw/v1/sn" style="min-width:240px" dir="ltr"></td>
+1772: 					<td><input type="text" name="sn_projects[apis][<?php echo esc_attr( (string) $pid ); ?>][project_code]" value="<?php echo esc_attr( (string) ( $api['project_code'] ?? '' ) ); ?>" placeholder="shoe-project" pattern="[A-Za-z0-9_.:-]+" dir="ltr" style="width:130px"></td>
+1773: 					<td><input type="password" name="sn_projects[apis][<?php echo esc_attr( (string) $pid ); ?>][api_key]" value="" placeholder="<?php echo ! empty( $api['api_key'] ) ? '•••••••••••• (ثبت شده)' : 'کلید مقصد'; ?>" autocomplete="new-password" dir="ltr" style="width:150px"></td>
+1774: 					<td><input type="checkbox" name="sn_projects[apis][<?php echo esc_attr( (string) $pid ); ?>][is_active]" value="1" <?php checked( ! empty( $api['is_active'] ) ); ?>></td>
+1775: 					<td><select name="sn_projects[rules][<?php echo esc_attr( (string) $pid ); ?>][type]"><option value="percent" <?php selected( (string) ( $rule['commission_type'] ?? 'percent' ), 'percent' ); ?>>درصد از فروش تاییدشده</option><option value="fixed" <?php selected( (string) ( $rule['commission_type'] ?? '' ), 'fixed' ); ?>>مبلغ ثابت برای فاکتور</option></select></td>
+1776: 					<td><input type="number" min="0" step="0.01" name="sn_projects[rules][<?php echo esc_attr( (string) $pid ); ?>][value]" value="<?php echo esc_attr( (string) ( $rule['commission_value'] ?? 0 ) ); ?>"></td>
+1777: 					<td><input type="checkbox" name="sn_projects[rules][<?php echo esc_attr( (string) $pid ); ?>][active]" value="1" <?php checked( ! empty( $rule['is_active'] ) ); ?>></td>
+1778: 				</tr>
+1779: 				<?php endforeach; ?>
+1780: 				</tbody>
+1781: 			</table>
+1782: 		</div>
+1783: 		<script>
+1784: 		(function(){
+1785: 			var table=document.querySelector('#sn-project-subscription-table tbody'),add=document.getElementById('sn-project-add-subscription'),nextIndex=<?php echo (int) $row_index; ?>;
+1786: 			var productOptions=<?php echo wp_json_encode( $product_options_html, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
+1787: 			var contentOptions=<?php echo wp_json_encode( $content_options_html, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
+1788: 			var salesManagerOptions=<?php echo wp_json_encode( $sales_manager_options_html, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
+1789: 			var operationsSupervisorOptions=<?php echo wp_json_encode( $operations_supervisor_options_html, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
+1790: 			function filterOperationsSupervisors(box){var manager=box.querySelector('.sn-operations-card-manager'),managerId=manager?String(manager.value||'0'):'0';box.querySelectorAll('.sn-operations-route-supervisor').forEach(function(select){var selected=select.value;select.querySelectorAll('option').forEach(function(option){var allowed=!option.value||String(option.dataset.manager||'0')===managerId;option.hidden=!allowed;option.disabled=!allowed;});if(selected&&select.options[select.selectedIndex]&&select.options[select.selectedIndex].disabled){select.value='0';}});}
+1791: 			function refreshContentRows(){
+1792: 				var selected={};document.querySelectorAll('.sn-project-subscription-contents option:checked').forEach(function(option){selected[String(option.value)]=true;});
+1793: 				document.querySelectorAll('.sn-project-content-config-row').forEach(function(row){row.style.display=selected[String(row.dataset.contentProduct||'')]?'':'none';});
+1794: 			}
+1795: 			if(add&&table){add.addEventListener('click',function(){var i=nextIndex++,row=document.createElement('tr');row.className='sn-project-subscription-row';row.innerHTML='<td><input type="checkbox" name="sn_projects[subscription_rows]['+i+'][active]" value="1" checked></td><td><select class="sn-project-subscription-product" name="sn_projects[subscription_rows]['+i+'][product_id]" style="width:100%;max-width:420px">'+productOptions+'</select></td><td><select class="sn-project-subscription-contents" multiple size="5" name="sn_projects[subscription_rows]['+i+'][contents][]" style="width:100%;max-width:620px">'+contentOptions+'</select></td><td><button type="button" class="button sn-project-remove-subscription">حذف</button></td>';table.appendChild(row);});}
+1796: 			document.addEventListener('click',function(event){
+1797: 				if(!event.target){return;}
+1798: 				if(event.target.classList.contains('sn-project-remove-subscription')){var subscriptionRow=event.target.closest('tr');if(subscriptionRow){subscriptionRow.remove();refreshContentRows();}return;}
+1799: 				if(event.target.classList.contains('sn-project-remove-operations-route')){var operationsRouteRow=event.target.closest('.sn-operations-manager-route-row');if(operationsRouteRow){operationsRouteRow.remove();}return;}
+1800: 				if(event.target.classList.contains('sn-project-add-operations-route')){var operationsButton=event.target,operationsPid=String(operationsButton.dataset.contentProduct||''),operationsList=operationsButton.parentNode.querySelector('.sn-operations-manager-route-list'),operationsIndex=parseInt(operationsButton.dataset.nextIndex||'0',10);if(!operationsPid||!operationsList){return;}operationsButton.dataset.nextIndex=String(operationsIndex+1);var operationsRoute=document.createElement('div');operationsRoute.className='sn-operations-manager-route-row';operationsRoute.style.cssText='display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';operationsRoute.innerHTML='<select name="sn_projects[operations_supervisor_routes]['+operationsPid+']['+operationsIndex+'][sales_manager_user_id]" style="min-width:180px">'+salesManagerOptions+'</select><span>←</span><select class="sn-operations-route-supervisor" name="sn_projects[operations_supervisor_routes]['+operationsPid+']['+operationsIndex+'][operations_supervisor_user_id]" style="min-width:220px">'+operationsSupervisorOptions+'</select><button type="button" class="button-link-delete sn-project-remove-operations-route" aria-label="حذف مسیر عملیات">حذف</button>';operationsList.appendChild(operationsRoute);filterOperationsSupervisors(operationsButton.closest('.sn-operations-route-box'));}
+1801: 			});
+1802: 			document.addEventListener('change',function(event){if(!event.target){return;}if(event.target.classList.contains('sn-project-subscription-contents')){refreshContentRows();}if(event.target.classList.contains('sn-operations-card-manager')){filterOperationsSupervisors(event.target.closest('.sn-operations-route-box'));}});
+1803: 			document.querySelectorAll('.sn-operations-route-box').forEach(filterOperationsSupervisors);
+1804: 			refreshContentRows();
+1805: 		})();
+1806: 		</script>
+1807: 		<?php
+1808: 	}

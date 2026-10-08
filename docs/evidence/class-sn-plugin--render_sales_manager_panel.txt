@@ -1,0 +1,45 @@
+13555: 
+13556: 	public function render_sales_manager_panel(): string
+13557: 	{
+13558: 		if (! is_user_logged_in()) {
+13559: 			$auth_id = (int) get_option('sn_sales_manager_auth_page_id', 0);
+13560: 			$url = $auth_id ? get_permalink($auth_id) : wp_login_url();
+13561: 			return '<script>window.location.href=' . json_encode($url) . ';</script><div class="sn-notice">در حال انتقال به صفحه ورود...</div>';
+13562: 		}
+13563: 		$current_user_id = get_current_user_id();
+13564: 		if (! $this->sn_current_user_can_sales_manager_panel()) {
+13565: 			$user = wp_get_current_user();
+13566: 			$position = $this->sn_fast_hr_position_for_user((int) $user->ID);
+13567: 			$roles = array_filter(array_map('sanitize_key', (array) $user->roles));
+13568: 			return '<div class="sn-notice sn-error" dir="rtl"><strong>دسترسی غیرمجاز.</strong><div class="sn-muted" style="margin-top:6px">شناسه کاربر: #' . esc_html((string) $user->ID) . ' | سمت HR: ' . esc_html($position !== '' ? $position : 'نامشخص') . ' | نقش‌های وردپرس: ' . esc_html($roles ? implode(', ', $roles) : 'ندارد') . ' | مقدار مورد انتظار: sales_manager</div></div>';
+13569: 		}
+13570: 		ob_start();
+13571: 		?>
+13572: 		<div class="sn-panel sn-portal" id="sn-sales-manager-panel" dir="rtl" data-sn-manager-lazy="1">
+13573: 			<div class="sn-panel-header"><div><h2>پنل مدیر فروش</h2><div class="sn-muted">کاربر فعلی: <?php echo esc_html($this->sn_user_label($current_user_id)); ?> | سمت سریع: <?php echo esc_html($this->sn_hr_persian_label($this->sn_fast_hr_position_for_user($current_user_id))); ?> | User ID: #<?php echo esc_html((string) $current_user_id); ?></div></div><a class="sn-btn sn-btn-secondary" href="#sn-reports-panel">گزارش جامع</a><?php echo $this->sn_panel_user_actions_markup(); ?></div>
+13574: 			<?php $this->sn_render_panel_tabs([
+13575: 				'manager-overview' => 'نمای کلی',
+13576: 				'manager-distribution' => 'تخصیص شماره',
+13577: 				'manager-report' => 'گزارش سرنخ‌ها',
+13578: 				'manager-invoices' => 'فاکتورها',
+13579: 				'manager-customer-actions' => 'رفتار مشتریان',
+13580: 				'manager-archives' => 'بایگانی‌ها',
+13581: 				'manager-extra-number-requests' => 'درخواست شماره',
+13582: 				'manager-hr-requests' => 'درخواست HR',
+13583: 				'manager-wallet' => 'کیف پول',
+13584: 			], 'manager-overview'); ?>
+13585: 			<section id="manager-overview" class="<?php echo esc_attr($this->sn_tab_panel_class('manager-overview', 'manager-overview')); ?> sn-manager-lazy-tab" data-sn-tab-panel="manager-overview"><?php $this->sn_sales_manager_lazy_placeholder('manager-overview', 'نمای کلی سریع', 'برای لود آمار سبک مدیر فروش کلیک کن.'); ?></section>
+13586: 			<section id="manager-distribution" class="<?php echo esc_attr($this->sn_tab_panel_class('manager-distribution', 'manager-overview')); ?> sn-manager-lazy-tab" data-sn-tab-panel="manager-distribution"><?php $this->sn_sales_manager_lazy_placeholder('manager-distribution', 'تخصیص شماره', 'فرم و جدول تخصیص فقط هنگام نیاز بارگذاری می‌شود.'); ?></section>
+13587: 			<section id="manager-report" class="<?php echo esc_attr($this->sn_tab_panel_class('manager-report', 'manager-overview')); ?> sn-manager-lazy-tab" data-sn-tab-panel="manager-report"><?php $this->sn_sales_manager_lazy_placeholder('manager-report', 'گزارش سرنخ‌ها', 'گزارش با فیلتر و محدودیت ردیف لود می‌شود.'); ?></section>
+13588: 			<section id="manager-invoices" class="<?php echo esc_attr($this->sn_tab_panel_class('manager-invoices', 'manager-overview')); ?> sn-manager-lazy-tab" data-sn-tab-panel="manager-invoices"><?php $this->sn_sales_manager_lazy_placeholder('manager-invoices', 'فاکتورها', 'گزارش فاکتورها جدا از ورود پنل لود می‌شود.'); ?></section>
+13589: 			<section id="manager-customer-actions" class="<?php echo esc_attr($this->sn_tab_panel_class('manager-customer-actions', 'manager-overview')); ?> sn-manager-lazy-tab" data-sn-tab-panel="manager-customer-actions"><?php $this->sn_sales_manager_lazy_placeholder('manager-customer-actions', 'رفتار مشتریان', 'رفتار مشتری در فاکتورهای زیرمجموعه هنگام باز کردن تب بارگذاری می‌شود.'); ?></section>
+13590: 			<section id="manager-archives" class="<?php echo esc_attr($this->sn_tab_panel_class('manager-archives', 'manager-overview')); ?> sn-manager-lazy-tab" data-sn-tab-panel="manager-archives"><?php $this->sn_sales_manager_lazy_placeholder('manager-archives', 'بایگانی‌ها', 'موارد جواب‌نداده، عدم پرداخت اعتبارسنجی و عدم پرداخت اشتراک در این بخش قرار می‌گیرند.'); ?></section>
+13591: 			<section id="manager-extra-number-requests" class="<?php echo esc_attr($this->sn_tab_panel_class('manager-extra-number-requests', 'manager-overview')); ?> sn-manager-lazy-tab" data-sn-tab-panel="manager-extra-number-requests"><?php $this->sn_sales_manager_lazy_placeholder('manager-extra-number-requests', 'درخواست شماره', 'درخواست‌های شماره جداگانه بارگذاری می‌شود.'); ?></section>
+13592: 			<section id="manager-hr-requests" class="<?php echo esc_attr($this->sn_tab_panel_class('manager-hr-requests', 'manager-overview')); ?> sn-manager-lazy-tab" data-sn-tab-panel="manager-hr-requests"><?php $this->sn_sales_manager_lazy_placeholder('manager-hr-requests', 'درخواست HR', 'درخواست‌های HR جداگانه بارگذاری می‌شود.'); ?></section>
+13593: 			<section id="manager-wallet" class="<?php echo esc_attr($this->sn_tab_panel_class('manager-wallet', 'manager-overview')); ?>" data-sn-tab-panel="manager-wallet"><?php if ( class_exists('SN_Purpose_Commission') ) { echo SN_Purpose_Commission::render_dual_wallet_cards($current_user_id, 25); } ?></section>
+13594: 		</div>
+13595: 		<?php
+13596: 		return ob_get_clean() . $this->sn_dashboard_reporting_content();
+13597: 	}
+13598: 
+13599: 	// --- پنل فروشنده ---

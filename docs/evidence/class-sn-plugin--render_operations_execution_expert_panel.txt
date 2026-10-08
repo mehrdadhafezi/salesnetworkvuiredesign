@@ -1,0 +1,1 @@
+394: 	public function render_operations_execution_expert_panel(): string { return class_exists('SN_Operations_Execution') ? SN_Operations_Execution::instance()->render_expert_panel() : ''; }

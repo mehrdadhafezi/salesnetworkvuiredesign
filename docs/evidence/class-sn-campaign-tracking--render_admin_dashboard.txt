@@ -1,0 +1,78 @@
+1672: 
+1673: 	public function render_admin_dashboard(): void {
+1674: 		if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'دسترسی غیرمجاز.' ); }
+1675: 		$this->maybe_upgrade();
+1676: 		$filters = $this->normalize_filters( $_GET );
+1677: 		$analytics = $this->analytics( $filters );
+1678: 		global $wpdb;
+1679: 		$t = $this->tables();
+1680: 		$edit_id = absint( $_GET['edit_campaign'] ?? 0 );
+1681: 		$edit = $edit_id > 0 ? $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t['campaigns']} WHERE id=%d LIMIT 1", $edit_id ), ARRAY_A ) : [];
+1682: 		$partners = get_users( [ 'role' => 'sn_campaign_partner', 'number' => 1000, 'orderby' => 'display_name', 'order' => 'ASC' ] );
+1683: 		$all_campaigns = $wpdb->get_results( "SELECT * FROM {$t['campaigns']} ORDER BY id DESC LIMIT 5000", ARRAY_A ) ?: [];
+1684: 		$assignments = [];
+1685: 		foreach ( (array) $wpdb->get_results( "SELECT partner_user_id,campaign_id FROM {$t['assignments']}", ARRAY_A ) as $row ) { $assignments[ (int) $row['partner_user_id'] ][] = (int) $row['campaign_id']; }
+1686: 		$tokens = [];
+1687: 		foreach ( (array) $wpdb->get_results( "SELECT * FROM {$t['tokens']} ORDER BY id DESC", ARRAY_A ) as $row ) { $tokens[ (int) $row['partner_user_id'] ][] = $row; }
+1688: 		?>
+1689: 		<div class="wrap sn-campaign-admin" dir="rtl">
+1690: 			<h1>تحلیل کمپین و گزارش پارتنرها</h1>
+1691: 			<p class="description">گزارش مسیر کاربر از اولین ورود با UTM تا ثبت‌نام، لید، پرداخت و فروش. مدل انتساب را از «اولین تعامل» یا «آخرین تعامل» انتخاب کنید.</p>
+1692: 			<?php $this->admin_notice(); ?>
+1693: 			<section class="sn-campaign-section">
+1694: 				<h2>داشبورد تحلیل کمپین</h2>
+1695: 				<p class="description">«بازدید و بستن صفحه بدون لید» یعنی کاربر با لینک UTM وارد شده، صفحه را ترک کرده و در همان نشست هیچ ارسال فرم مارکتینگ داتی ثبت نشده است.</p>
+1696: 				<?php $this->render_filters( $filters, 0, true ); ?>
+1697: 				<?php echo $this->metric_cards( $analytics['totals'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+1698: 				<?php $this->render_report_table( $analytics['rows'], true ); ?>
+1699: 			</section>
+1700: 
+1701: 			<section class="sn-campaign-section" id="campaign-editor">
+1702: 				<h2><?php echo $edit ? 'ویرایش کمپین #' . esc_html( (string) $edit_id ) : 'تعریف کمپین و هزینه'; ?></h2>
+1703: 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="sn-campaign-editor">
+1704: 					<input type="hidden" name="action" value="sn_campaign_save"><input type="hidden" name="campaign_id" value="<?php echo esc_attr( (string) $edit_id ); ?>">
+1705: 					<?php wp_nonce_field( 'sn_campaign_save' ); ?>
+1706: 					<label>عنوان داخلی<input type="text" name="title" maxlength="191" value="<?php echo esc_attr( (string) ( $edit['title'] ?? '' ) ); ?>"></label>
+1707: 					<?php foreach ( [ 'source' => 'منبع (utm_source)','medium' => 'رسانه (utm_medium)','campaign' => 'کمپین (utm_campaign)','content' => 'محتوای تبلیغ (utm_content)','term' => 'کلیدواژه (utm_term)' ] as $name => $column ) : ?><label><?php echo esc_html( $column ); ?><input type="text" name="<?php echo esc_attr( $name ); ?>" maxlength="191" value="<?php echo esc_attr( (string) ( $edit[ 'utm_' . $name ] ?? '' ) ); ?>"></label><?php endforeach; ?>
+1708: 					<label>بودجه<input type="number" min="0" step="0.01" name="budget_amount" value="<?php echo esc_attr( (string) ( $edit['budget_amount'] ?? '0' ) ); ?>"></label>
+1709: 					<label>هزینه کمپین<input type="number" min="0" step="0.01" name="cost_amount" value="<?php echo esc_attr( (string) ( $edit['cost_amount'] ?? '0' ) ); ?>"><small>مبنای هزینه هر لید و هزینه هر مشتری؛ اگر صفر باشد بودجه استفاده می‌شود.</small></label>
+1710: 					<label>واحد پول<input type="text" name="currency" maxlength="12" value="<?php echo esc_attr( (string) ( $edit['currency'] ?? ( function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'IRR' ) ) ); ?>"></label>
+1711: 					<label>وضعیت<select name="status"><option value="active" <?php selected( (string) ( $edit['status'] ?? 'active' ), 'active' ); ?>>فعال</option><option value="inactive" <?php selected( (string) ( $edit['status'] ?? '' ), 'inactive' ); ?>>غیرفعال</option></select></label>
+1712: 					<button class="button button-primary" type="submit">ذخیره کمپین</button>
+1713: 				</form>
+1714: 				<?php if ( $all_campaigns ) : ?><div class="sn-campaign-compact-list"><?php foreach ( $all_campaigns as $campaign ) : ?><a href="<?php echo esc_url( add_query_arg( [ 'page' => 'sn-campaign-analytics', 'edit_campaign' => (int) $campaign['id'] ], admin_url( 'admin.php' ) ) ); ?>#campaign-editor"><strong><?php echo esc_html( (string) $campaign['title'] ); ?></strong><span><?php echo esc_html( (string) ( $campaign['utm_source'] ?: '—' ) . ' / ' . (string) ( $campaign['utm_campaign'] ?: '—' ) ); ?></span></a><?php endforeach; ?></div><?php endif; ?>
+1715: 			</section>
+1716: 
+1717: 			<section class="sn-campaign-section">
+1718: 				<h2>دسترسی پارتنرها</h2>
+1719: 				<p>کاربر را از بخش کاربران وردپرس با Role «پارتنر کمپین» بسازید؛ سپس فقط کمپین‌های مجاز او را اینجا انتخاب کنید.</p>
+1720: 				<?php if ( ! $partners ) : ?><div class="notice notice-info inline"><p>هنوز کاربری با Role پارتنر کمپین ساخته نشده است.</p></div><?php endif; ?>
+1721: 				<?php foreach ( $partners as $partner ) : $allowed = $assignments[ (int) $partner->ID ] ?? []; ?>
+1722: 					<div class="sn-campaign-partner-card">
+1723: 						<div><h3><?php echo esc_html( $partner->display_name ?: $partner->user_login ); ?></h3><code><?php echo esc_html( $partner->user_login ); ?></code></div>
+1724: 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+1725: 							<input type="hidden" name="action" value="sn_campaign_assign_partner"><input type="hidden" name="partner_user_id" value="<?php echo esc_attr( (string) $partner->ID ); ?>"><?php wp_nonce_field( 'sn_campaign_assign_partner_' . (int) $partner->ID ); ?>
+1726: 							<div class="sn-campaign-assignment-list"><?php foreach ( $all_campaigns as $campaign ) : ?><label><input type="checkbox" name="campaign_ids[]" value="<?php echo esc_attr( (string) $campaign['id'] ); ?>" <?php checked( in_array( (int) $campaign['id'], $allowed, true ) ); ?>><?php echo esc_html( (string) $campaign['title'] ); ?> <small><?php echo esc_html( (string) ( $campaign['utm_source'] ?: '—' ) . ' / ' . (string) ( $campaign['utm_campaign'] ?: '—' ) ); ?></small></label><?php endforeach; ?></div>
+1727: 							<button class="button button-primary" type="submit">ذخیره دسترسی‌ها</button>
+1728: 						</form>
+1729: 						<div class="sn-campaign-token-actions">
+1730: 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="sn_campaign_generate_token"><input type="hidden" name="partner_user_id" value="<?php echo esc_attr( (string) $partner->ID ); ?>"><?php wp_nonce_field( 'sn_campaign_generate_token_' . (int) $partner->ID ); ?><button class="button" type="submit">ساخت توکن جدید</button></form>
+1731: 							<?php foreach ( $tokens[ (int) $partner->ID ] ?? [] as $token ) : ?><div class="sn-campaign-token-row"><code><?php echo esc_html( (string) $token['token_prefix'] ); ?>…</code><span><?php echo esc_html( (string) $token['status'] ); ?></span><span>آخرین استفاده: <?php echo esc_html( (string) ( $token['last_used_at'] ?: '—' ) ); ?></span><?php if ( $token['status'] === 'active' ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="sn_campaign_revoke_token"><input type="hidden" name="token_id" value="<?php echo esc_attr( (string) $token['id'] ); ?>"><?php wp_nonce_field( 'sn_campaign_revoke_token_' . (int) $token['id'] ); ?><button class="button-link-delete" type="submit">ابطال</button></form><?php endif; ?></div><?php endforeach; ?>
+1732: 						</div>
+1733: 					</div>
+1734: 				<?php endforeach; ?>
+1735: 				<div class="sn-campaign-api-help"><strong>API Read Only:</strong> <code><?php echo esc_html( home_url( '/api/campaign/report' ) ); ?></code><br><small>هدر پیشنهادی: <code>Authorization: Bearer TOKEN</code>. توکن در Query String پذیرفته نمی‌شود.</small></div>
+1736: 			</section>
+1737: 
+1738: 			<section class="sn-campaign-section">
+1739: 				<h2>تنظیمات Tracking و حریم خصوصی</h2>
+1740: 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="sn-campaign-settings-form"><input type="hidden" name="action" value="sn_campaign_save_settings"><?php wp_nonce_field( 'sn_campaign_save_settings' ); ?>
+1741: 					<label><input type="checkbox" name="tracking_enabled" value="1" <?php checked( $this->tracking_enabled() ); ?>> Tracking فعال باشد</label>
+1742: 					<label><input type="checkbox" name="store_ip" value="1" <?php checked( (string) get_option( 'sn_campaign_store_ip', '0' ), '1' ); ?>> IP خام ذخیره شود <small>به‌صورت پیش‌فرض خاموش است.</small></label>
+1743: 					<label>پنجره Attribution (روز)<input type="number" name="window_days" min="1" max="3650" value="<?php echo esc_attr( (string) $this->attribution_window_days() ); ?>"></label>
+1744: 					<button class="button button-primary" type="submit">ذخیره تنظیمات</button>
+1745: 				</form>
+1746: 			</section>
+1747: 		</div>
+1748: 		<?php
+1749: 	}

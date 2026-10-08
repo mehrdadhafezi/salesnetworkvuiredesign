@@ -1,0 +1,40 @@
+4219: 
+4220: 	public function ajax_create_invoice(): void
+4221: 	{
+4222: 		// پاک کردن هر output قبلی که ممکنه از jwt یا پلاگین دیگه‌ای باشه
+4223: 		if (ob_get_level()) {
+4224: 			ob_clean();
+4225: 		}
+4226: 
+4227: 		if (! check_ajax_referer('sn_public', 'nonce', false)) {
+4228: 			error_log('SN create_invoice: nonce verification failed');
+4229: 			wp_send_json_error(['message' => 'خطای امنیتی — صفحه را رفرش کنید'], 403);
+4230: 			return;
+4231: 		}
+4232: 		$result = $this->sn_create_invoice_core($_POST);
+4233: 		$payload = array_merge(['message' => (string) ($result['message'] ?? '')], (array) ($result['data'] ?? []));
+4234: 		if (! empty($result['success'])) {
+4235: 			wp_send_json_success($payload);
+4236: 		}
+4237: 		$status = (int) ($result['status'] ?? 0);
+4238: 		if ($status >= 500) {
+4239: 			error_log('SN create_invoice failed: ' . (string) ($result['message'] ?? 'unknown_error'));
+4240: 			wp_send_json_error($payload, $status);
+4241: 		}
+4242: 		if (in_array($status, [401, 403], true)) {
+4243: 			wp_send_json_error($payload, $status);
+4244: 		}
+4245: 		// Validation/business errors are valid AJAX responses. Returning them as
+4246: 		// HTTP 200 keeps jQuery in its JSON branch so the seller sees the real
+4247: 		// Persian reason instead of a generic "400 Bad Request" network error.
+4248: 		wp_send_json_error($payload);
+4249: 	}
+4250: 
+4251: 	/**
+4252: 	 * Verify and repair only the tables/columns required by invoice creation.
+4253: 	 * Full runtime migrations can be marked complete on older installations even
+4254: 	 * when a single dbDelta statement was rejected by the database host. Keeping
+4255: 	 * this focused guard in the submit path makes full and staged invoices usable
+4256: 	 * without requiring a deactivate/activate cycle.
+4257: 	 */
+4258: 	private function sn_ensure_invoice_creation_schema(): array

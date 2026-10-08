@@ -1,0 +1,69 @@
+﻿# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Database / private exports
+*.sql
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.dump
+
+# Logs / temp
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Archives / deployment artifacts
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.cache/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Agent local/session state
+.claude/
+.codex/
+
+# Test/runtime local artifacts
+.phpunit.result.cache
+.cache/
+tmp/
+temp/
+
+# WordPress runtime/user data if ever copied
+wp-content/cache/
+wp-content/uploads/
+wp-content/upgrade/
+wp-content/backups/
+wp-content/ai1wm-backups/
+
+# Credentials / sessions
+cookies*
+session*
+credentials*
+secrets*
+auth.json

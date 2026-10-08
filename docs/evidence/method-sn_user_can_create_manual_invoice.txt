@@ -1,0 +1,18 @@
+6232: 
+6233: 	private function sn_user_can_create_manual_invoice(int $user_id): bool
+6234: 	{
+6235: 		if ($user_id < 1) { return false; }
+6236: 		if (user_can($user_id, 'manage_options')) { return true; }
+6237: 		$mode = $this->sn_effective_manual_invoice_access_mode($user_id);
+6238: 		if ($mode === 'allow') { return true; }
+6239: 		if ($mode === 'deny') { return false; }
+6240: 		$user = get_user_by('id', $user_id);
+6241: 		if (! $user) { return false; }
+6242: 		$position = $this->sn_hr_position_for_user($user_id);
+6243: 		$roles = (array) $user->roles;
+6244: 		return in_array('sn_seller', $roles, true)
+6245: 			|| in_array('sn_supervisor', $roles, true)
+6246: 			|| in_array('sn_converter', $roles, true)
+6247: 			|| in_array($position, ['seller','converter','supervisor','senior_supervisor','sales_manager','sales_deputy'], true);
+6248: 	}
+6249: 

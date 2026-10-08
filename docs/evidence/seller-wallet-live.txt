@@ -1,0 +1,70 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل فروشنده" [level=1]
+  - 'heading "پنل فروشنده — فروشنده ماکسیمم #6" [level=2]'
+  - generic: کاربر
+  - strong: "فروشنده ماکسیمم #6"
+  - generic: "فروشنده‌ها | #6"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "اعلان‌های گفت‌وگو با بیاوین":
+    - generic: 🔔
+    - generic: ۰
+  - button "باز کردن منوی پنل": ☰
+  - button "🧾 شماره‌های من"
+  - button "📊 آماده‌های تبدیل"
+  - button "💼 نیاز به اقدام مجدد"
+  - button "💳 فاکتورها"
+  - button "⚙️ رفتار مشتریان"
+  - button "• درخواست اضافه کردن شماره"
+  - button "• کیف پول من" [active]
+  - tablist "نوع کیف پول":
+    - tab "فروش و پورسانت" [selected]
+    - tab "بیاوین"
+  - button "همه"
+  - button "کیف پول پرداختی‌های آنلاین"
+  - button "کیف پول پرداخت‌های کارت‌به‌کارتی"
+  - heading "کیف پول فروشنده" [level=3]
+  - strong: موجودی قابل تسویه
+  - text: 0 تومان
+  - strong: کل بستانکاری
+  - text: 0 تومان
+  - strong: کل برداشت/تسویه
+  - text: 0 تومان
+  - heading "آخرین تراکنش‌ها" [level=4]
+  - table:
+    - rowgroup:
+      - row "تاریخ نوع مبلغ شرح":
+        - columnheader "تاریخ"
+        - columnheader "نوع"
+        - columnheader "مبلغ"
+        - columnheader "شرح"
+    - rowgroup:
+      - row "تراکنشی ثبت نشده است.":
+        - cell "تراکنشی ثبت نشده است."
+  - heading "پورسانت‌های قابل خواندن از قوانین مالی" [level=4]
+  - paragraph: این جدول از قوانین فعال مالی، نوع همکاری HR و روش پرداخت فاکتور خوانده می‌شود. ردیف‌های «آماده ثبت» هنوز به کیف پول ارسال نشده‌اند؛ ثبت کیف پول فقط از مسیر کنترل‌شده مالی انجام می‌شود.
+  - table:
+    - rowgroup:
+      - row "فاکتور مبلغ فاکتور روش پرداخت نوع همکاری قوانین پورسانت وضعیت":
+        - columnheader "فاکتور"
+        - columnheader "مبلغ فاکتور"
+        - columnheader "روش پرداخت"
+        - columnheader "نوع همکاری"
+        - columnheader "قوانین"
+        - columnheader "پورسانت"
+        - columnheader "وضعیت"
+    - rowgroup:
+      - row "فاکتور تاییدشده‌ای برای محاسبه پورسانت پیدا نشد.":
+        - cell "فاکتور تاییدشده‌ای برای محاسبه پورسانت پیدا نشد."
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

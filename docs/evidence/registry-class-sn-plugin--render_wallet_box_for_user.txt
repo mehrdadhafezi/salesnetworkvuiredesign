@@ -1,0 +1,76 @@
+35848: 
+35849: 
+35850: 			public function render_wallet_box_for_user(int $user_id, string $wallet_type = 'seller', bool $include_finance_preview = true): string
+35851: 			{
+35852: 				if (! $user_id) {
+35853: 					return '<div class="sn-card">کاربر نامعتبر است.</div>';
+35854: 				}
+35855: 				$autopost_report = [];
+35856: 				if ($wallet_type === 'seller') {
+35857: 					$autopost_report = $this->sn_wallet_autopost_recent_commissions_for_seller($user_id, 30);
+35858: 				} elseif ($wallet_type === 'supervisor') {
+35859: 					$autopost_report = $this->sn_wallet_autopost_recent_supervisor_commissions($user_id, 120);
+35860: 				}
+35861: 				$data = $this->sn_wallet_summary($user_id, $wallet_type);
+35862: 				$w = $data['wallet'];
+35863: 				// در پنل فروشنده، پیش‌نمایش محدود همیشه کمک می‌کند مشخص شود پرداخت تاییدشده قانون پورسانت دارد یا نه.
+35864: 				$finance_preview_rows = ($wallet_type === 'seller') ? $this->sn_wallet_finance_commission_preview_rows($user_id, $include_finance_preview ? 20 : 8) : [];
+35865: 				ob_start();
+35866: 	?>
+35867: 		<div class="sn-card sn-wallet-box" dir="rtl">
+35868: 			<h3><?php echo esc_html($wallet_type === 'supervisor' ? 'کیف پول سرپرست' : 'کیف پول فروشنده'); ?></h3>
+35869: 			<div class="sn-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+35870: 				<div class="sn-stat"><strong>موجودی قابل تسویه</strong><br><span><?php echo esc_html(SN_Helpers::format_price((float) ($w['balance'] ?? 0))); ?></span></div>
+35871: 				<div class="sn-stat"><strong>کل بستانکاری</strong><br><span><?php echo esc_html(SN_Helpers::format_price((float) ($w['total_credit'] ?? 0))); ?></span></div>
+35872: 				<div class="sn-stat"><strong>کل برداشت/تسویه</strong><br><span><?php echo esc_html(SN_Helpers::format_price((float) ($w['total_debit'] ?? 0))); ?></span></div>
+35873: 			</div>
+35874: 			<h4>آخرین تراکنش‌ها</h4>
+35875: 			<table class="sn-table">
+35876: 				<thead>
+35877: 					<tr>
+35878: 						<th>تاریخ</th>
+35879: 						<th>نوع</th>
+35880: 						<th>مبلغ</th>
+35881: 						<th>شرح</th>
+35882: 					</tr>
+35883: 				</thead>
+35884: 				<tbody>
+35885: 					<?php if (empty($data['transactions'])) : ?><tr>
+35886: 							<td colspan="4">تراکنشی ثبت نشده است.<?php if ($wallet_type === 'seller' && ! empty($finance_preview_rows)) : ?><br><small class="sn-muted">پرداخت/تایید مالی پیدا شده، اما اگر تراکنش ساخته نشده یعنی هنوز قانون پورسانت منطبق تعریف نشده یا مبلغ پورسانت صفر است. جدول پایین را بررسی کنید.</small><?php endif; ?></td>
+35887: 						</tr><?php endif; ?>
+35888: 					<?php foreach ($data['transactions'] as $t) : $tx_meta=json_decode((string)($t['meta'] ?? '{}'), true); $pay_method=(string)($t['invoice_pay_method'] ?: ($tx_meta['payment_method'] ?? ($tx_meta['pay_method'] ?? ''))); ?>
+35889: 						<tr data-payment-method="<?php echo esc_attr($pay_method); ?>">
+35890: 							<td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date($t['created_at'])); ?></td>
+35891: 							<td><?php echo esc_html($t['direction'] === 'debit' ? 'بدهکار/تسویه' : 'بستانکار'); ?><?php if ($pay_method) : ?><br><small><?php echo esc_html(SN_Helpers::pay_method_label($pay_method)); ?></small><?php endif; ?></td>
+35892: 							<td><?php echo esc_html(SN_Helpers::format_price((float) $t['amount'])); ?></td>
+35893: 							<td><?php echo esc_html($t['description']); ?><?php if (! empty($tx_meta['matched_rule_ids'])) : ?><br><small><?php echo esc_html('قوانین مالی: #' . implode(' + #', array_map('intval', (array) $tx_meta['matched_rule_ids']))); ?></small><?php endif; ?></td>
+35894: 						</tr>
+35895: 					<?php endforeach; ?>
+35896: 				</tbody>
+35897: 			</table>
+35898: 			<?php if ($wallet_type === 'seller' && $include_finance_preview) : ?>
+35899: 				<h4>پورسانت‌های قابل خواندن از قوانین مالی</h4>
+35900: 				<p class="sn-muted">این جدول از قوانین فعال مالی، نوع همکاری HR و روش پرداخت فاکتور خوانده می‌شود. ردیف‌های «آماده ثبت» هنوز به کیف پول ارسال نشده‌اند؛ ثبت کیف پول فقط از مسیر کنترل‌شده مالی انجام می‌شود.</p>
+35901: 				<table class="sn-table sn-wallet-finance-preview">
+35902: 					<thead><tr><th>فاکتور</th><th>مبلغ فاکتور</th><th>روش پرداخت</th><th>نوع همکاری</th><th>قوانین</th><th>پورسانت</th><th>وضعیت</th></tr></thead>
+35903: 					<tbody>
+35904: 						<?php if (empty($finance_preview_rows)) : ?><tr><td colspan="7">فاکتور تاییدشده‌ای برای محاسبه پورسانت پیدا نشد.</td></tr><?php endif; ?>
+35905: 						<?php foreach ($finance_preview_rows as $row) : ?>
+35906: 							<tr>
+35907: 								<td><?php echo esc_html((string) ($row['invoice_code'] ?? '')); ?></td>
+35908: 								<td><?php echo esc_html(SN_Helpers::format_price((float) ($row['base_amount'] ?? 0))); ?></td>
+35909: 								<td><?php echo esc_html($this->sn_commission_option_label($this->sn_commission_payment_method_options(), (string) ($row['payment_method'] ?? 'unknown'))); ?></td>
+35910: 								<td><?php echo esc_html($this->sn_commission_option_label($this->sn_commission_employment_type_options(), (string) ($row['employment_type'] ?? ''))); ?></td>
+35911: 								<td><?php $rule_ids = array_values(array_filter(array_map('intval', (array) ($row['matched_rule_ids'] ?? [])))); echo $rule_ids ? esc_html('#' . implode(' + #', $rule_ids)) : '<span class="sn-muted">بدون قانون</span>'; ?></td>
+35912: 								<td><?php echo esc_html(SN_Helpers::format_price((float) ($row['commission_amount'] ?? 0))); ?></td>
+35913: 								<td><?php if ((string) ($row['status'] ?? '') === 'posted') : ?><span class="sn-badge sn-status-approved">ثبت‌شده در کیف پول</span><?php elseif ((string) ($row['status'] ?? '') === 'ready') : ?><span class="sn-badge sn-status">آماده ثبت مالی</span><?php else : ?><span class="sn-badge">بدون قانون</span><?php endif; ?><?php if (! empty($row['diagnostics'])) : ?><br><small><?php echo esc_html(implode('، ', array_map('strval', (array) $row['diagnostics']))); ?></small><?php endif; ?></td>
+35914: 							</tr>
+35915: 						<?php endforeach; ?>
+35916: 					</tbody>
+35917: 				</table>
+35918: 			<?php endif; ?>
+35919: 		</div>
+35920: 	<?php
+35921: 				return ob_get_clean();
+35922: 			}
+35923: 

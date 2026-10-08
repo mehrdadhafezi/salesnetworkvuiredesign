@@ -1,0 +1,13 @@
+30677: 
+30678: 			public function ajax_financial_reopen_invoice(): void
+30679: 			{
+30680: 				if (! $this->sn_can_approve_payment()) { if (function_exists('status_header')) { status_header(403); } SN_Helpers::send_json(false,'دسترسی غیرمجاز'); return; }
+30681: 				$valid=check_ajax_referer('sn_admin','nonce',false)||check_ajax_referer('sn_public','nonce',false);
+30682: 				if (! $valid) { SN_Helpers::send_json(false,'نانس نامعتبر'); return; }
+30683: 				$id=absint($_POST['invoice_id'] ?? 0);
+30684: 				$reason=sanitize_textarea_field(wp_unslash($_POST['reason'] ?? ''));
+30685: 				$out=$this->sn_financial_reopen_invoice_internal($id,$reason);
+30686: 				if (empty($out['success'])) { SN_Helpers::send_json(false,(string)($out['message'] ?? 'بازگشت به بررسی انجام نشد')); return; }
+30687: 				SN_Helpers::send_json(true,(string)$out['message'],(array)($out['data'] ?? []));
+30688: 			}
+30689: 

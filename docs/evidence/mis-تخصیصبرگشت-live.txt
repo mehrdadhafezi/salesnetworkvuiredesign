@@ -1,0 +1,115 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل MIS" [level=1]
+  - heading "پنل MIS" [level=2]
+  - generic: کاربر
+  - strong: "MIS ماکسیمم #7"
+  - generic: "MIS | #7"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - button "👥 کار امروز"
+  - button "🧾 آپلود فایل"
+  - button "📊 تخصیص / برگشت" [active]
+  - button "💼 تحویل به فروش"
+  - button "💳 گزارش شماره‌ها"
+  - button "⚙️ پرونده‌ها"
+  - button "• ابزار سریع"
+  - button "• برنامه پخش"
+  - button "• ساخت لید"
+  - button "• لاگ و عیب‌یابی"
+  - link "• گزارش‌های MIS":
+    - /url: /crm-mis/?sn_ui_active_tab=mis-report#mis-report
+  - generic "3 پرونده‌های اطلاعات و اختصاص به مدیر فروش":
+    - generic: "3"
+    - strong: پرونده‌های اطلاعات و اختصاص به مدیر فروش
+  - paragraph: اینجا مالک اولیه پرونده را مشخص می‌کنید. تخصیص فقط روی ردیف‌های معتبرِ بدون مدیر انجام می‌شود و نتیجه آن باید در ستون «تخصیص‌داده‌شده» دیده شود.
+  - strong: "پرونده فعال برای اقدام امروز:"
+  - code: MIS-20260825-R7IX
+  - text: — پرونده تستی
+  - text: "قابل تخصیص به مدیر فروش: 0 / دست مدیر فروش: 0 / تحویل‌شده به زنجیره: 1"
+  - strong: "تعریف ساده:"
+  - text: «قابل تخصیص» یعنی شماره معتبر است و هنوز مدیر فروش ندارد. «برگشت» یعنی همین مالک مدیر فروش حذف می‌شود و شماره دوباره به همین وضعیت قابل تخصیص برمی‌گردد.
+  - heading "تخصیص شماره‌های سالم به مدیر فروش" [level=3]
+  - generic: فقط ردیف‌های سالم و بدون مدیر فروش تخصیص می‌گیرند.
+  - text: پرونده
+  - combobox "پرونده":
+    - option "MIS-20260825-R7IX" [selected]
+  - text: مدیر فروش
+  - combobox "مدیر فروش":
+    - 'option "مدیر فروش ماکسیمم #3" [selected]'
+  - text: دلیل
+  - textbox "دلیل"
+  - button "تخصیص به مدیر فروش"
+  - table:
+    - rowgroup:
+      - row "کد پرونده عنوان منبع کمپین دسته وضعیت ردیف‌ها معتبر/تکراری/نامعتبر قابل تخصیص دست مدیر تحویل فروش مدیر فروش ایجاد عملیات":
+        - columnheader "کد پرونده"
+        - columnheader "عنوان"
+        - columnheader "منبع"
+        - columnheader "کمپین"
+        - columnheader "دسته"
+        - columnheader "وضعیت"
+        - columnheader "ردیف‌ها"
+        - columnheader "معتبر/تکراری/نامعتبر"
+        - columnheader "قابل تخصیص"
+        - columnheader "دست مدیر"
+        - columnheader "تحویل فروش"
+        - columnheader "مدیر فروش"
+        - columnheader "ایجاد"
+        - columnheader "عملیات"
+    - rowgroup:
+      - row "MIS-20260825-R7IX پرونده تستی واردشده 1 1/0/0 0 0 1 — 1405/06/03 15:32 پیش‌نمایش آرشیو":
+        - cell "MIS-20260825-R7IX":
+          - code: MIS-20260825-R7IX
+        - cell "پرونده تستی"
+        - cell
+        - cell
+        - cell
+        - cell "واردشده":
+          - generic: واردشده
+        - cell "1"
+        - cell "1/0/0"
+        - cell "0":
+          - strong: "0"
+        - cell "0"
+        - cell "1"
+        - cell "—"
+        - cell "1405/06/03 15:32"
+        - cell "پیش‌نمایش آرشیو":
+          - link "پیش‌نمایش":
+            - /url: /crm-mis/?sn_ui_active_tab=hr-workforce&sn_mis_batch_id=1
+          - button "آرشیو"
+  - heading "برگشت دیتای تخصیص‌داده‌شده" [level=3]
+  - paragraph: برگشت یعنی شماره از مالک فعلی جدا می‌شود و به همان پرونده MIS برمی‌گردد؛ در نتیجه دوباره در عدد «قابل تخصیص به مدیر فروش» دیده می‌شود. اگر گزینه برگشت از صف/زنجیره را فعال نکنید، فقط ردیف‌هایی برمی‌گردند که هنوز وارد صف آماده یا زنجیره فروش نشده‌اند.
+  - strong: "مسیر برگشت:"
+  - text: مدیر فروش / صف آماده / زنجیره پخش ← پرونده MIS ← وضعیت «بدون مدیر فروش». ردیف‌های تبدیل‌شده به لید یا فاکتور قفل می‌مانند.
+  - text: پرونده
+  - combobox "پرونده":
+    - option "MIS-20260825-R7IX – پرونده تستی" [selected]
+  - text: مدیر فروش
+  - combobox "مدیر فروش":
+    - option "همه مدیرهای این پرونده" [selected]
+    - 'option "مدیر فروش ماکسیمم #3"'
+  - text: حداکثر تعداد
+  - spinbutton "حداکثر تعداد": "500"
+  - text: دلیل
+  - textbox "دلیل": برگشت تخصیص اشتباه MIS
+  - checkbox "برگشت از صف آماده و زنجیره پخش هم انجام شود"
+  - text: برگشت از صف آماده و زنجیره پخش هم انجام شود
+  - text: کلمه تأیید برای ثبت
+  - textbox "کلمه تأیید برای ثبت":
+    - /placeholder: RETURN
+  - button "پیش‌نمایش برگشت"
+  - button "ثبت برگشت"
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

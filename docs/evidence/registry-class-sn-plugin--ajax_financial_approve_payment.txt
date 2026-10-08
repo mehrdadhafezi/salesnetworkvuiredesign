@@ -1,0 +1,16 @@
+30429: 
+30430: 			public function ajax_financial_approve_payment(): void
+30431: 			{
+30432: 				if (! $this->sn_can_approve_payment()) { if (function_exists('status_header')) { status_header(403); } SN_Helpers::send_json(false,'دسترسی غیرمجاز'); return; }
+30433: 				$valid=check_ajax_referer('sn_admin','nonce',false)||check_ajax_referer('sn_public','nonce',false);
+30434: 				if (! $valid) { SN_Helpers::send_json(false,'نانس نامعتبر'); return; }
+30435: 				$id=absint($_POST['invoice_id'] ?? 0);
+30436: 				$input=[];
+30437: 				foreach (['finance_edit_note','customer_name','customer_phone','manual_card_from','manual_card_to','manual_paid_at_jalali'] as $field) {
+30438: 					if (isset($_POST[$field])) { $input[$field]=wp_unslash($_POST[$field]); }
+30439: 				}
+30440: 				$out=$this->sn_financial_approve_invoice_internal($id,$input);
+30441: 				if (empty($out['success'])) { SN_Helpers::send_json(false,(string)($out['message'] ?? 'تایید انجام نشد')); return; }
+30442: 				SN_Helpers::send_json(true,(string)$out['message'],(array)($out['data'] ?? []));
+30443: 			}
+30444: 

@@ -1,0 +1,5 @@
+168: 
+169: 	public function register_admin_page(): void {
+170: 		add_submenu_page( 'sn-dashboard', 'پورسانت', 'پورسانت', 'sn_view_wallet_commission', 'sn-commission-matrix', [ $this, 'render_admin_page' ] );
+171: 	}
+172: 

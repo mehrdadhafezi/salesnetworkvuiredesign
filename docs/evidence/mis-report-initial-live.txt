@@ -1,0 +1,217 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل MIS" [level=1]
+  - heading "پنل MIS" [level=2]
+  - generic: کاربر
+  - strong: "MIS ماکسیمم #7"
+  - generic: "MIS | #7"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - button "👥 کار امروز"
+  - button "🧾 آپلود فایل"
+  - button "📊 تخصیص / برگشت"
+  - button "💼 تحویل به فروش"
+  - button "💳 گزارش شماره‌ها"
+  - button "⚙️ پرونده‌ها"
+  - button "• ابزار سریع"
+  - button "• برنامه پخش"
+  - button "• ساخت لید"
+  - button "• لاگ و عیب‌یابی"
+  - link "• گزارش‌های MIS":
+    - /url: /crm-mis/?sn_ui_active_tab=mis-report#mis-report
+  - heading "گزارش‌های MIS" [level=3]
+  - paragraph: گزارش پرونده‌ها، عملکرد فروشنده و نتیجه فروش. محاسبه فقط هنگام باز بودن همین تب انجام می‌شود.
+  - paragraph: پرونده یکتا = شناسه ردیف MIS. پیش‌فاکتور، تأیید فاکتور و تکمیل پرداخت جدا محاسبه می‌شوند. مبالغ با واحد ذخیره‌شده در CRM هستند.
+  - text: کمپین
+  - combobox "کمپین":
+    - option "همه کمپین‌ها" [selected]
+  - text: دسته واردات
+  - combobox "دسته واردات":
+    - option "همه دسته‌ها" [selected]
+    - 'option "پرونده تستی #1"'
+  - text: دسته داده
+  - combobox "دسته داده":
+    - option "همه دسته‌های داده" [selected]
+  - text: معاون فروش
+  - combobox "معاون فروش":
+    - option "همه افراد مجاز این سطح" [selected]
+    - 'option "معاون فروش ماکسیمم #2"'
+  - text: مدیر فروش
+  - combobox "مدیر فروش":
+    - option "همه افراد مجاز این سطح" [selected]
+    - 'option "مدیر فروش ماکسیمم #3"'
+  - text: سرپرست ارشد
+  - combobox "سرپرست ارشد":
+    - option "همه افراد مجاز این سطح" [selected]
+    - 'option "سرپرست ارشد ماکسیمم #4"'
+  - text: سرپرست
+  - combobox "سرپرست":
+    - option "همه افراد مجاز این سطح" [selected]
+    - 'option "سرپرست ماکسیمم #5"'
+  - text: فروشنده
+  - combobox "فروشنده":
+    - option "همه افراد مجاز این سطح" [selected]
+    - 'option "فروشنده ماکسیمم #6"'
+  - text: اعتبار ردیف
+  - combobox "اعتبار ردیف"
+  - text: وضعیت توزیع
+  - combobox "وضعیت توزیع"
+  - text: پیگیری فروشنده
+  - combobox "پیگیری فروشنده":
+    - option "همه" [selected]
+    - option "جواب نداده"
+    - option "تماس مجدد"
+    - option "عدم خرید"
+    - option "پیش‌فاکتور"
+    - option "ثبت نشده"
+    - option "تکراری"
+  - text: وضعیت فاکتور
+  - combobox "وضعیت فاکتور"
+  - text: پرداخت
+  - combobox "پرداخت":
+    - option "همه" [selected]
+    - option "فروش تکمیل‌شده"
+    - option "پرداخت ناقص"
+    - option "بدون پرداخت ثبت‌شده"
+    - option "منتظر پرداخت"
+    - option "منتظر تخصیص مرحله بعد"
+  - text: کنترل دلیل
+  - combobox "کنترل دلیل":
+    - option "همه" [selected]
+    - option "خالی"
+    - option "دو نویسه یا کمتر"
+    - option "نشانه‌ای / تکراری / مبهم"
+    - option "ثبت‌شده؛ عبور از کنترل شکلی"
+  - text: مبنای زمان
+  - combobox "مبنای زمان":
+    - option "زمان ورود داده به MIS" [selected]
+    - option "زمان رویداد تخصیص"
+    - option "زمان ثبت پیگیری"
+    - option "زمان صدور فاکتور"
+    - option "زمان تأیید / تکمیل پرداخت"
+  - text: از تاریخ و ساعت میلادی
+  - textbox "از تاریخ و ساعت میلادی"
+  - text: تا تاریخ و ساعت میلادی
+  - textbox "تا تاریخ و ساعت میلادی"
+  - text: جستجوی شماره، نام، ردیف یا کد فاکتور
+  - searchbox "جستجوی شماره، نام، ردیف یا کد فاکتور"
+  - paragraph: "بازه خالی = همه زمان‌ها. منطقه زمانی: +03:30. فیلتر زمان، پرونده‌های دارای رویداد در بازه را انتخاب می‌کند؛ وضعیت‌ها جاری هنگام گردآوری‌اند."
+  - button "ساخت / به‌روزرسانی گزارش"
+  - button "پاک کردن فیلترها"
+  - button "لغو گزارش"
+  - status: گزارش آماده است. اعداد و خروجی اکسل از یک مجموعه داده ساخته می‌شوند.
+  - heading "پرونده‌های منتخب بر مبنای زمان ورود داده به MIS" [level=3]
+  - paragraph: "گردآوری UTC: 2026-09-30 10:14:32 تا 2026-09-30 10:14:32 — همه زمان‌ها"
+  - generic: ردیف / پرونده یکتا
+  - strong: ۱
+  - generic: تخصیص به مدیریت (تاریخچه)
+  - strong: ۰
+  - generic: تحویل به فروشنده (تاریخچه)
+  - strong: ۱
+  - generic: بدون سابقه تحویل
+  - strong: ۰
+  - generic: بازگشت‌خورده
+  - strong: ۰
+  - generic: منتقل‌شده
+  - strong: ۰
+  - generic: دارای سابقه پیش‌فاکتور
+  - strong: ۱
+  - generic: دارای فاکتور با پیوند قطعی
+  - strong: ۱
+  - generic: پرونده با فاکتور تأییدشده
+  - strong: ۰
+  - generic: پرونده با فروش تکمیل‌شده
+  - strong: ۰
+  - generic: دلیل نیازمند بازبینی
+  - strong: ۰
+  - generic: فروشنده نهایی متمایز
+  - strong: ۱
+  - generic: اختلاف داده ثبت‌شده
+  - strong: ۰
+  - generic "اعتبار ردیف"
+  - generic "پیگیری جاری فروشنده"
+  - generic "توزیع جاری MIS"
+  - generic "کنترل کیفیت دلیل عدم خرید"
+  - heading "فاکتورهای یکتا و پرداخت؛ مستقل از پیگیری فروشنده" [level=3]
+  - paragraph: "فاکتور یکتا: 1 | مبلغ: 15000.00 | پرداخت تأییدشده: 0.00 | مانده: 15000.00 | فروش تکمیل‌شده: 0 | مبلغ فروش تکمیل‌شده: 0.00"
+  - table:
+    - rowgroup:
+      - row "وضعیت فاکتور گردش پرداخت تعداد فاکتور مبلغ پرداخت مانده تأیید تکمیل ناقص":
+        - columnheader "وضعیت فاکتور"
+        - columnheader "گردش پرداخت"
+        - columnheader "تعداد فاکتور"
+        - columnheader "مبلغ"
+        - columnheader "پرداخت"
+        - columnheader "مانده"
+        - columnheader "تأیید"
+        - columnheader "تکمیل"
+        - columnheader "ناقص"
+    - rowgroup:
+      - row "پیش‌فاکتور منتظر پرداخت 1 15000.00 0.00 15000.00 0 0 0":
+        - cell "پیش‌فاکتور"
+        - cell "منتظر پرداخت"
+        - cell "1"
+        - cell "15000.00"
+        - cell "0.00"
+        - cell "15000.00"
+        - cell "0"
+        - cell "0"
+        - cell "0"
+  - generic "تفکیک کمپین و دسته"
+  - generic "عملکرد افراد در سلسله‌مراتب جاری HR"
+  - generic "دریافت واقعی هر فرد در تاریخچه؛ مستقل از مالک فعلی"
+  - generic "تعریف شاخص‌ها و منشأ داده"
+  - button "ساخت خروجی XLSX همین گزارش"
+  - status
+  - heading "ریز پرونده‌ها" [level=3]
+  - table:
+    - rowgroup:
+      - row "جزئیات ردیف کمپین / دسته شماره و مشتری اعتبار تحویل‌گیرنده جاری توزیع پیگیری آخرین فعالیت دلیل اصلی کیفیت دلیل فاکتورها / وضعیت پرداخت مانده تکمیل فروش":
+        - columnheader "جزئیات"
+        - columnheader "ردیف"
+        - columnheader "کمپین / دسته"
+        - columnheader "شماره و مشتری"
+        - columnheader "اعتبار"
+        - columnheader "تحویل‌گیرنده جاری"
+        - columnheader "توزیع"
+        - columnheader "پیگیری"
+        - columnheader "آخرین فعالیت"
+        - columnheader "دلیل اصلی"
+        - columnheader "کیفیت دلیل"
+        - columnheader "فاکتورها / وضعیت"
+        - columnheader "پرداخت"
+        - columnheader "مانده"
+        - columnheader "تکمیل فروش"
+    - rowgroup:
+      - 'row "باز کردن 1 / پرونده تستی #1 09100766169 بسی معتبر فروشنده ماکسیمم #6 تحویل به فروشنده پیش‌فاکتور sn_seller_flow_states#1 2026-09-30 12:38:27 نامرتبط 89663612 #1 پیش‌فاکتور / منتظر پرداخت 0 15000 خیر"':
+        - cell "باز کردن":
+          - button "باز کردن"
+        - cell "1"
+        - 'cell "/ پرونده تستی #1"'
+        - cell "09100766169 بسی"
+        - cell "معتبر"
+        - 'cell "فروشنده ماکسیمم #6"'
+        - cell "تحویل به فروشنده"
+        - cell "پیش‌فاکتور sn_seller_flow_states#1"
+        - cell "2026-09-30 12:38:27"
+        - cell
+        - cell "نامرتبط"
+        - 'cell "89663612 #1 پیش‌فاکتور / منتظر پرداخت"'
+        - cell "0"
+        - cell "15000"
+        - cell "خیر"
+  - button "قبلی" [disabled]
+  - generic: صفحه 1 از 1 — 1 پرونده
+  - button "بعدی" [disabled]
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

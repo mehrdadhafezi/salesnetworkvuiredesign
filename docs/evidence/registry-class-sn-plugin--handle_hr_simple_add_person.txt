@@ -1,0 +1,165 @@
+18286: 
+18287: 	public function handle_hr_simple_add_person(): void
+18288: 	{
+18289: 		if (! $this->sn_can_manage_hr_panel()) {
+18290: 			if (wp_doing_ajax()) { wp_send_json(['success' => false, 'message' => 'دسترسی غیرمجاز برای افزودن نیرو']); }
+18291: 			wp_die('دسترسی غیرمجاز');
+18292: 		}
+18293: 		if (! check_admin_referer('sn_hr_simple_add_person', '_wpnonce', false)) {
+18294: 			if (wp_doing_ajax()) { wp_send_json(['success' => false, 'message' => 'نشست منقضی شده است؛ صفحه منابع انسانی را رفرش کنید.']); }
+18295: 			wp_die('نشست منقضی شده است');
+18296: 		}
+18297: 		global $wpdb;
+18298: 		$this->sn_ensure_hr_profile_schema_runtime();
+18299: 		$first_name = sanitize_text_field(wp_unslash($_POST['first_name'] ?? ''));
+18300: 		$last_name = sanitize_text_field(wp_unslash($_POST['last_name'] ?? ''));
+18301: 		$display_name = trim($first_name . ' ' . $last_name);
+18302: 		$mobile = class_exists('SN_Helpers') ? SN_Helpers::normalize_mobile(sanitize_text_field(wp_unslash($_POST['mobile'] ?? ''))) : sanitize_text_field(wp_unslash($_POST['mobile'] ?? ''));
+18303: 		$position_raw = sanitize_text_field(wp_unslash($_POST['position'] ?? ''));
+18304: 		$position_slug = $this->sn_slug_from_label($position_raw);
+18305: 		$notes = sanitize_textarea_field(wp_unslash($_POST['notes'] ?? ''));
+18306: 		$level_id = absint($_POST['level_id'] ?? 0);
+18307: 		$manager_user_id = absint($_POST['manager_user_id'] ?? 0);
+18308: 		$allow_create = ! empty($_POST['allow_create_wp_user']);
+18309: 		$report = [
+18310: 			'action' => 'hr_simple_add_person',
+18311: 			'version' => SN_VERSION,
+18312: 			'valid' => 0,
+18313: 			'invalid' => 0,
+18314: 			'created_users' => 0,
+18315: 			'matched_users' => 0,
+18316: 			'profiles_created' => 0,
+18317: 			'profiles_updated' => 0,
+18318: 			'errors' => [],
+18319: 			'warnings' => [],
+18320: 			'updated_at' => current_time('mysql'),
+18321: 		];
+18322: 		if ($display_name === '') { $report['errors'][] = 'نام وارد نشده است'; }
+18323: 		if (! class_exists('SN_Helpers') || ! SN_Helpers::is_valid_mobile($mobile)) { $report['errors'][] = 'موبایل معتبر نیست'; }
+18324: 		$position = $this->sn_find_hr_lookup_row('sn_hr_positions', $position_slug, $position_raw);
+18325: 		if (! $position) { $report['errors'][] = 'سمت شناسایی نشد'; }
+18326: 		// Validate a supplied manager against the selected HR position. The
+18327: 		// generic manual-add picker contains all organizational leaders, so the
+18328: 		// server must enforce the allowed chain (including Operations roles).
+18329: 		if ($position && $manager_user_id && class_exists('SN_HR_Service')) {
+18330: 			$manager_profile = (new SN_HR_Service())->get_profile_by_user_id($manager_user_id);
+18331: 			$manager_position = $manager_profile ? $this->sn_hr_position_slug_by_id((int) $manager_profile->position_id) : '';
+18332: 			$allowed_parent_positions = $this->sn_hr_allowed_parent_positions((string) $position->slug);
+18333: 			if (! $manager_profile || ($allowed_parent_positions && ! $this->sn_hr_manager_allowed_for_child((string) $position->slug, $manager_position))) {
+18334: 				$report['errors'][] = 'نیروی بالادستی با سمت انتخاب‌شده سازگار نیست';
+18335: 			}
+18336: 		}
+18337: 		$level = $level_id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sn_hr_levels WHERE id=%d", $level_id)) : null;
+18338: 		if ($level_id && ! $level) { $report['errors'][] = 'سطح شناسایی نشد'; }
+18339: 		$user = $mobile !== '' ? $this->sn_find_user_by_lookup($mobile) : null;
+18340: 		if ($user instanceof WP_User) {
+18341: 			$report['matched_users'] = 1;
+18342: 		} elseif (! $allow_create) {
+18343: 			$report['errors'][] = 'کاربر پیدا نشد و گزینه ساخت کاربر جدید فعال نیست';
+18344: 		}
+18345: 		if (empty($report['errors']) && ! ($user instanceof WP_User)) {
+18346: 			$base_login = sanitize_user($mobile);
+18347: 			$login = $base_login;
+18348: 			if ($login === '' || username_exists($login)) {
+18349: 				$base_login = sanitize_user('user_' . $mobile);
+18350: 				$login = $base_login;
+18351: 			}
+18352: 			$suffix = 1;
+18353: 			while (username_exists($login)) {
+18354: 				$suffix++;
+18355: 				$login = $base_login . '_' . $suffix;
+18356: 			}
+18357: 			$email_base = sanitize_user($login, true) ?: ('sn_user_' . time());
+18358: 			$email = $email_base . '@sn.local';
+18359: 			$email_suffix = 1;
+18360: 			while (email_exists($email)) {
+18361: 				$email_suffix++;
+18362: 				$email = $email_base . '_' . $email_suffix . '@sn.local';
+18363: 			}
+18364: 			$user_id = wp_create_user($login, wp_generate_password(16, true, true), $email);
+18365: 			if (is_wp_error($user_id)) {
+18366: 				$report['errors'][] = 'خطا در ساخت کاربر: ' . $user_id->get_error_code();
+18367: 				$report['wp_error_message'] = $user_id->get_error_message();
+18368: 			} else {
+18369: 				$user = get_user_by('id', (int) $user_id);
+18370: 				if ($user instanceof WP_User) {
+18371: 					wp_update_user(['ID' => (int) $user->ID, 'display_name' => $display_name, 'first_name' => $first_name, 'last_name' => $last_name]);
+18372: 					update_user_meta((int) $user->ID, 'mobile', $mobile);
+18373: 					update_user_meta((int) $user->ID, 'phone', $mobile);
+18374: 					update_user_meta((int) $user->ID, 'billing_phone', $mobile);
+18375: 					update_user_meta((int) $user->ID, 'digits_phone', $mobile);
+18376: 					update_user_meta((int) $user->ID, 'digits_phone_no', $mobile);
+18377: 					update_user_meta((int) $user->ID, 'sn_phone', $mobile);
+18378: 					$report['created_users'] = 1;
+18379: 				}
+18380: 			}
+18381: 		}
+18382: 		if (empty($report['errors']) && $user instanceof WP_User) {
+18383: 			$update_user = ['ID' => (int) $user->ID];
+18384: 			if ($display_name !== '') { $update_user['display_name'] = $display_name; }
+18385: 			if ($first_name !== '') { $update_user['first_name'] = $first_name; }
+18386: 			if ($last_name !== '') { $update_user['last_name'] = $last_name; }
+18387: 			wp_update_user($update_user);
+18388: 			foreach (['mobile', 'phone', 'billing_phone', 'digits_phone', 'digits_phone_no', 'sn_phone'] as $meta_key) {
+18389: 				update_user_meta((int) $user->ID, $meta_key, $mobile);
+18390: 			}
+18391: 			$user = get_user_by('id', (int) $user->ID);
+18392: 		}
+18393: 		if (empty($report['errors']) && $user instanceof WP_User && class_exists('SN_HR_Service')) {
+18394: 			$hr = new SN_HR_Service();
+18395: 			$old_profile = $hr->get_profile_by_user_id((int) $user->ID);
+18396: 			$profile = $hr->get_or_create_profile_for_user((int) $user->ID);
+18397: 			if ($profile) {
+18398: 				$data = $this->sn_filter_existing_columns($wpdb->prefix . 'sn_hr_profiles', [
+18399: 					'hr_display_name' => $display_name,
+18400: 					'position_id' => (int) $position->id,
+18401: 					'level_id' => $level_id ?: null,
+18402: 					'legacy_role' => $this->sn_hr_legacy_role_for_position($position_slug) ?: $position_slug,
+18403: 					'legacy_source' => 'hr_simple_add',
+18404: 					'employment_status' => 'active',
+18405: 					'is_active' => 1,
+18406: 					'work_phone' => $mobile,
+18407: 					'notes' => $notes,
+18408: 					'updated_at' => current_time('mysql'),
+18409: 				]);
+18410: 				$updated = $wpdb->update($wpdb->prefix . 'sn_hr_profiles', $data, ['id' => (int) $profile->id]);
+18411: 				if ($updated === false) {
+18412: 					$report['errors'][] = 'خطا در ذخیره پروفایل منابع انسانی';
+18413: 					$report['db_error'] = (string) $wpdb->last_error;
+18414: 				} else {
+18415: 					$this->sn_hr_apply_user_access_for_position((int) $user->ID, $position_slug);
+18416: 					$old_profile ? $report['profiles_updated']++ : $report['profiles_created']++;
+18417: 				}
+18418: 				if ($manager_user_id && class_exists('SN_Hierarchy_Service')) {
+18419: 					$parent_profile = $hr->get_profile_by_user_id($manager_user_id);
+18420: 					if ($parent_profile) {
+18421: 						$result = (new SN_Hierarchy_Service())->assign_parent((int) $profile->id, (int) $parent_profile->id, get_current_user_id(), 'hr_simple_add', $notes ?: 'manual add parent');
+18422: 						if (! empty($result['success'])) { $report['assignments_changed'] = 1; } else { $report['warnings'][] = (string) ($result['message'] ?? 'manager_assign_failed'); }
+18423: 					} else { $report['warnings'][] = 'manager_profile_missing'; }
+18424: 				}
+18425: 				$report['valid'] = 1;
+18426: 				$this->sn_hr_panel_log_profile((int) $profile->id, (int) $user->ID, 'hr_simple_person_saved', null, $data, ['source' => 'manual_simple_add']);
+18427: 			} else {
+18428: 				$report['errors'][] = 'profile_create_failed';
+18429: 			}
+18430: 		}
+18431: 		if (! empty($report['errors'])) {
+18432: 			$report['invalid'] = 1;
+18433: 		}
+18434: 		update_option('sn_hr_csv_dry_run_report', $report, false);
+18435: 		if (! empty($report['errors'])) {
+18436: 			error_log('SN HR manual add failed | ' . wp_json_encode($report, JSON_UNESCAPED_UNICODE));
+18437: 		}
+18438: 		$redirect = ($this->sn_hr_panel_return_url(['sn_msg' => empty($report['errors']) ? 'hr_simple_person_saved' : 'hr_simple_person_error'])) . '#hr-manual-add';
+18439: 		if (wp_doing_ajax()) {
+18440: 			wp_send_json([
+18441: 				'success' => empty($report['errors']),
+18442: 				'message' => empty($report['errors']) ? 'نیرو اضافه شد و دسترسی پنل ثبت شد.' : implode('، ', array_map('strval', $report['errors'])),
+18443: 				'redirect' => $redirect,
+18444: 				'report' => $report,
+18445: 			]);
+18446: 		}
+18447: 		wp_safe_redirect($redirect);
+18448: 		exit;
+18449: 	}
+18450: 

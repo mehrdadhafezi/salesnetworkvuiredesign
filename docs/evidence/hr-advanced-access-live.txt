@@ -1,0 +1,122 @@
+- navigation "نوار ابزار":
+  - menu:
+    - menuitem "درباره وردپرس":
+      - generic: درباره وردپرس
+    - menuitem "crm"
+    - menuitem "فروشگاه به زودی راه‌اندازی می‌شود"
+    - menuitem "ویرایش سایت"
+    - menuitem "2 به‌روزرسانی دردسترس":
+      - generic: "2"
+      - generic: 2 به‌روزرسانی دردسترس
+    - menuitem "0 دیدگاه در حالت رسیدگی":
+      - generic: "0"
+      - generic: 0 دیدگاه در حالت رسیدگی
+    - menuitem "تازه":
+      - generic: تازه
+    - menuitem "ویرایش برگه"
+  - menu:
+    - menuitem "سلام admin1"
+    - menuitem "جستجو":
+      - textbox "جستجو"
+      - generic: جستجو
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل منابع انسانی" [level=1]
+  - heading "پنل منابع انسانی" [level=2]
+  - generic: کاربر
+  - strong: "admin1 #1"
+  - generic: "بدون سمت | #1"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - tab "👥 مدیریت نیروها"
+  - tab "🧾 افزودن دستی نیرو"
+  - tab "📊 ورودی/خروجی کاربران"
+  - tab "💼 تغییرات گروهی"
+  - tab "💳 درخواست‌های جابجایی/قطع همکاری"
+  - tab "⚙️ تاریخچه حقوق و پورسانت"
+  - tab "• سمت‌ها و سطح‌ها"
+  - tab "• ابزارهای پیشرفته" [active] [selected]
+  - tab "• نمای کلی"
+  - tab "• ساختار واحدی"
+  - tab "• سلسله‌مراتب"
+  - tab "• لاگ‌ها"
+  - tabpanel:
+    - generic "کاربران بدون پروفایل HR":
+      - strong: کاربران بدون پروفایل HR
+    - option "انتخاب از پروفایل‌های HR" [selected]
+    - 'option "MIS ماکسیمم – @[mobile redacted] – #7 – MIS / mis"'
+    - 'option "سرپرست ارشد ماکسیمم – @[mobile redacted] – #4 – سرپرست ارشد / senior_supervisor"'
+    - 'option "سرپرست ماکسیمم – @[mobile redacted] – #5 – سرپرست / supervisor"'
+    - 'option "فروشنده ماکسیمم – @[mobile redacted] – #6 – فروشنده / seller"'
+    - 'option "مدیر فروش ماکسیمم – @[mobile redacted] – #3 – مدیر فروش / sales_manager"'
+    - 'option "معاون فروش ماکسیمم – @[mobile redacted] – #2 – معاون فروش / sales_deputy"'
+    - option "بدون تغییر" [selected]
+    - option "معاون فروش – sales_deputy"
+    - option "مدیر فروش – sales_manager"
+    - option "سرپرست ارشد – senior_supervisor"
+    - option "سرپرست – supervisor"
+    - option "تبدیل‌کننده – converter"
+    - option "فروشنده – seller"
+    - option "مالی – finance"
+    - option "منابع انسانی – hr"
+    - option "MIS – mis"
+    - option "خدمات پس از فروش – after_sales"
+    - option "کارشناس ارسال – shipping_expert"
+    - option "مدیر فروش عملیات – operations_sales_manager"
+    - option "سرپرست فروش عملیات – operations_sales_supervisor"
+    - option "کارشناس فروش عملیات – operations_sales_expert"
+    - option "مدیر اجرایی عملیات – operations_executive_manager"
+    - option "کارشناس اجرایی عملیات – operations_execution_expert"
+    - option "بدون تغییر" [selected]
+    - option "بدون سطح / پاک شود"
+    - option "آموزشی – trainee"
+    - option "قراردادی – standard"
+    - option "ارشد – senior"
+    - option "مدیریتی – manager"
+    - option "بدون مدیر مستقیم / بدون تغییر" [selected]
+    - 'option "معاون فروش ماکسیمم – @[mobile redacted] – #2 – معاون فروش / sales_deputy"'
+    - 'option "مدیر فروش ماکسیمم – @[mobile redacted] – #3 – مدیر فروش / sales_manager"'
+    - 'option "سرپرست ارشد ماکسیمم – @[mobile redacted] – #4 – سرپرست ارشد / senior_supervisor"'
+    - 'option "سرپرست ماکسیمم – @[mobile redacted] – #5 – سرپرست / supervisor"'
+    - 'option "MIS ماکسیمم – @[mobile redacted] – #7 – MIS / mis"'
+    - option "بدون تغییر" [selected]
+    - option "پاک شود"
+    - option "بدون تغییر" [selected]
+    - option "پاک شود"
+    - option "بدون تغییر" [selected]
+    - option "پاک شود"
+    - option "بدون تغییر" [selected]
+    - option "فعال"
+    - option "غیرفعال"
+    - option "تعلیق"
+    - option "استعفا"
+    - option "قطع همکاری"
+    - option "آزمایشی"
+    - option "بدون تغییر" [selected]
+    - option "تمام‌وقت"
+    - option "پاره‌وقت"
+    - option "قراردادی"
+    - option "کارآموز"
+    - option "بدون تغییر" [selected]
+    - option "تومان / IRT"
+    - option "ریال / IRR"
+    - option "بدون تغییر" [selected]
+    - option "خودکار از قوانین مالی سمت/سطح"
+    - 'option "استثنای دستی: قانون انتخابی"'
+    - 'option "استثنای دستی: بدون پورسانت"'
+    - option "بدون تغییر"
+    - option "بدون قانون دستی" [selected]
+    - option "قانون پورسانتی ثبت نشده است" [disabled]
+    - generic "نگاشت نقش قدیمی به سمت HR":
+      - strong: نگاشت نقش قدیمی به سمت HR
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

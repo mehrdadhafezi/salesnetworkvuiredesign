@@ -1,0 +1,246 @@
+27672: 
+27673: 			public function ajax_save_customer_info(): void
+27674: 			{
+27675: 				if (! is_user_logged_in() || ! check_ajax_referer('sn_public', 'nonce', false)) {
+27676: 					SN_Helpers::send_json(false, 'دسترسی غیرمجاز');
+27677: 					return;
+27678: 				}
+27679: 				$this->maybe_create_tables();
+27680: 				$user    = wp_get_current_user();
+27681: 				$lead_id_raw = wp_unslash($_POST['lead_id'] ?? '');
+27682: 				$lead_id = absint($lead_id_raw);
+27683: 				if (! $lead_id) {
+27684: 					SN_Helpers::send_json(false, 'شناسه نامعتبر');
+27685: 					return;
+27686: 				}
+27687: 
+27688: 				global $wpdb;
+27689: 
+27690: 				// شناسه‌های مجازی V4 داخل همان UI قدیمی فروشنده نمایش داده می‌شوند، اما ذخیره آن‌ها روی sn_distribution_items انجام می‌شود.
+27691: 				// برای پایداری بیشتر، JS شناسه واقعی distribution_item_id را هم می‌فرستد؛ اگر نبود از lead_id مجازی استخراج می‌کنیم.
+27692: 				$v4_item_id = absint($_POST['distribution_item_id'] ?? 0);
+27693: 				if ($v4_item_id < 1) {
+27694: 					$v4_item_id = $this->sn_distribution_item_id_from_virtual_lead($lead_id);
+27695: 				}
+27696: 				if ($v4_item_id > 0) {
+27697: 					// اطمینان از وجود ستون‌های seller_*؛ در بعضی محیط‌ها جدول توزیع قبل از اضافه شدن این ستون‌ها ساخته شده است.
+27698: 					$this->sn_distribution_ensure_schema();
+27699: 					$this->sn_distribution_ensure_seller_inline_columns();
+27700: 					$item_table = $wpdb->prefix . 'sn_distribution_items';
+27701: 					$item = $this->sn_distribution_tables_ready() ? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$item_table} WHERE id=%d", $v4_item_id)) : null;
+27702: 					if (! $item) {
+27703: 						SN_Helpers::send_json(false, 'شماره تحویل‌شده یافت نشد');
+27704: 						return;
+27705: 					}
+27706: 					$is_owner = (int) ($item->current_owner_user_id ?? 0) === (int) $user->ID;
+27707: 					if (! $is_owner && ! current_user_can('manage_options')) {
+27708: 						SN_Helpers::send_json(false, 'این شماره دیگر مالکیت فعلی شما نیست و از پنل شما قابل تعیین وضعیت نیست.', [
+27709: 							'distribution_item_id' => $v4_item_id,
+27710: 							'current_owner_user_id' => (int) ($item->current_owner_user_id ?? 0),
+27711: 							'final_seller_user_id' => (int) ($item->final_seller_user_id ?? 0),
+27712: 						]);
+27713: 						return;
+27714: 					}
+27715: 					$probability_raw = sanitize_text_field(wp_unslash($_POST['sales_prediction'] ?? ''));
+27716: 					$probability_digits = preg_replace('/\D+/', '', strtr($probability_raw, ['۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9','٪'=>'']));
+27717: 					$probability_num = $probability_digits !== '' ? absint($probability_digits) : 0;
+27718: 					if ($probability_num < 1) {
+27719: 						$probability_map = ['ضعیف' => 25, 'متوسط' => 50, 'بالا' => 75, 'زیاد' => 75, '۱۰۰٪' => 100, '100%' => 100, '100' => 100];
+27720: 						$probability_num = (int) ($probability_map[$probability_raw] ?? 0);
+27721: 					}
+27722: 					$changed_field = sanitize_text_field(wp_unslash($_POST['changed_field'] ?? ''));
+27723: 					$incoming_contact_status = sanitize_text_field(wp_unslash($_POST['lead_status'] ?? ''));
+27724: 					$customer_name = sanitize_text_field(wp_unslash($_POST['customer_name'] ?? ''));
+27725: 					$province = sanitize_text_field(wp_unslash($_POST['province'] ?? ''));
+27726: 					$city = sanitize_text_field(wp_unslash($_POST['city'] ?? ''));
+27727: 					$note = sanitize_textarea_field(wp_unslash($_POST['note'] ?? ''));
+27728: 					$not_purchase_reason = sanitize_textarea_field(wp_unslash($_POST['not_purchase_reason'] ?? ''));
+27729: 					$callback_at = sanitize_text_field(wp_unslash($_POST['callback_at'] ?? ''));
+27730: 					$flow = class_exists('SN_Seller_Flow') ? SN_Seller_Flow::instance() : null;
+27731: 					$incoming_flow_slug = $flow ? $flow->status_slug($incoming_contact_status) : '';
+27732: 					if ($incoming_flow_slug !== '') {
+27733: 						// Persist one canonical display label. Older/cached clients may submit
+27734: 						// a slug or a Persian spelling variant; tabs always operate on the slug.
+27735: 						$incoming_contact_status = $flow->status_label($incoming_flow_slug);
+27736: 					}
+27737: 					$current_contact_status = (string) ($item->seller_contact_status ?? '');
+27738: 					$flow_status_equal = $flow && $flow->status_slug($incoming_contact_status) !== '' && $flow->status_slug($incoming_contact_status) === $flow->status_slug($current_contact_status);
+27739: 					$flow_status_changed = $changed_field === 'lead_status' || ($incoming_contact_status !== '' && ! $flow_status_equal && $incoming_contact_status !== $current_contact_status);
+27740: 					$flow_reason_changed = $changed_field === 'not_purchase_reason';
+27741: 					if ($flow && $flow->is_archived('v4_distribution_item', $v4_item_id)) {
+27742: 						SN_Helpers::send_json(false, 'این شماره بایگانی شده و از پنل فروشنده قابل ویرایش نیست.');
+27743: 						return;
+27744: 					}
+27745: 					if ($flow && $flow_status_changed) {
+27746: 						$flow_validation = $flow->validate_status_change($incoming_contact_status, $not_purchase_reason);
+27747: 						if (is_wp_error($flow_validation)) {
+27748: 							SN_Helpers::send_json(false, $flow_validation->get_error_message());
+27749: 							return;
+27750: 						}
+27751: 					}
+27752: 					$raw_data = [
+27753: 						'seller_customer_name' => $customer_name,
+27754: 						'seller_province' => $province,
+27755: 						'seller_city' => $city,
+27756: 						'seller_sale_probability' => min(100, $probability_num),
+27757: 						'seller_sale_probability_label' => $probability_raw,
+27758: 						'seller_notes' => $note,
+27759: 						'seller_updated_by' => (int) $user->ID,
+27760: 						'seller_updated_at' => current_time('mysql'),
+27761: 						'updated_at' => current_time('mysql'),
+27762: 					];
+27763: 					// ذخیره نام/یادداشت/شهر نباید وابسته به تعیین وضعیت باشد و نباید وضعیت را ناخواسته خالی کند.
+27764: 					if ($changed_field === 'lead_status' || $incoming_contact_status !== '') {
+27765: 						$raw_data['seller_contact_status'] = $incoming_contact_status;
+27766: 					}
+27767: 					$data = $this->sn_distribution_filter_existing_columns_fresh($item_table, $raw_data);
+27768: 					if (empty($data)) {
+27769: 						SN_Helpers::send_json(false, 'ستون‌های ذخیره‌سازی فروشنده در جدول توزیع آماده نیستند', [
+27770: 							'action' => 'seller_inline_v4_save',
+27771: 							'distribution_item_id' => $v4_item_id,
+27772: 							'actor_user_id' => (int) $user->ID,
+27773: 							'error' => 'no_writable_seller_columns',
+27774: 						]);
+27775: 						return;
+27776: 					}
+27777: 					if ($flow) { $wpdb->query('START TRANSACTION'); }
+27778: 					$updated = $wpdb->update($item_table, $data, ['id' => $v4_item_id]);
+27779: 					$report = [
+27780: 						'action' => 'seller_inline_v4_save',
+27781: 						'lead_id' => $lead_id,
+27782: 						'distribution_item_id' => $v4_item_id,
+27783: 						'actor_user_id' => (int) $user->ID,
+27784: 						'changed_field' => $changed_field,
+27785: 						'saved' => $updated !== false,
+27786: 						'contact_status' => (string) ($data['seller_contact_status'] ?? ''),
+27787: 						'db_error' => $updated === false ? (string) $wpdb->last_error : '',
+27788: 						'updated_at' => current_time('mysql'),
+27789: 					];
+27790: 					update_option('sn_distribution_seller_inline_save_report', $report, false);
+27791: 					if ($updated === false) {
+27792: 						if ($flow) { $wpdb->query('ROLLBACK'); }
+27793: 						error_log('SN seller inline save failed for distribution item ' . $v4_item_id . ': ' . sanitize_text_field((string) $wpdb->last_error));
+27794: 						SN_Helpers::send_json(false, 'خطا در ذخیره اطلاعات فروشنده؛ لطفاً دوباره تلاش کنید.');
+27795: 						return;
+27796: 					}
+27797: 					$flow_state = [];
+27798: 					if ($flow) {
+27799: 						$flow_result = $flow->apply_activity([
+27800: 							'source_kind' => 'v4_distribution_item',
+27801: 							'source_id' => $v4_item_id,
+27802: 							'seller_user_id' => (int) ($item->current_owner_user_id ?? $user->ID),
+27803: 							'actor_user_id' => (int) $user->ID,
+27804: 							'status_label' => $incoming_contact_status,
+27805: 							'not_purchase_reason' => $not_purchase_reason,
+27806: 							'callback_at' => $callback_at,
+27807: 							'status_changed' => $flow_status_changed,
+27808: 							'reason_changed' => $flow_reason_changed,
+27809: 							'changed_field' => $changed_field,
+27810: 						]);
+27811: 						if (is_wp_error($flow_result)) {
+27812: 							$wpdb->query('ROLLBACK');
+27813: 							SN_Helpers::send_json(false, $flow_result->get_error_message());
+27814: 							return;
+27815: 						}
+27816: 						$flow_state = $flow_result;
+27817: 						$wpdb->query('COMMIT');
+27818: 					}
+27819: 					SN_Helpers::send_json(true, 'اطلاعات ذخیره شد', array_merge([
+27820: 						'distribution_item_id' => $v4_item_id,
+27821: 						'lead_id' => $this->sn_distribution_virtual_lead_id($v4_item_id),
+27822: 						'changed_field' => $changed_field,
+27823: 						'customer_name' => $customer_name,
+27824: 						'province' => $province,
+27825: 						'city' => $city,
+27826: 						'sales_prediction' => $probability_raw,
+27827: 						'note' => $note,
+27828: 						'lead_status' => array_key_exists('seller_contact_status', $data) ? (string) $data['seller_contact_status'] : $incoming_contact_status,
+27829: 						'not_purchase_reason' => $not_purchase_reason,
+27830: 						'callback_at' => $callback_at,
+27831: 					], $flow_state));
+27832: 					return;
+27833: 				}
+27834: 
+27835: 				$legacy_lead = $wpdb->get_row($wpdb->prepare(
+27836: 					"SELECT seller_id,lead_status FROM {$wpdb->prefix}sn_leads WHERE id=%d",
+27837: 					$lead_id
+27838: 				));
+27839: 				if (! $legacy_lead) {
+27840: 					SN_Helpers::send_json(false, 'شماره یافت نشد');
+27841: 					return;
+27842: 				}
+27843: 				$owner = (int) ($legacy_lead->seller_id ?? 0);
+27844: 				if ($owner !== (int) $user->ID && ! current_user_can('manage_options')) {
+27845: 					SN_Helpers::send_json(false, 'دسترسی غیرمجاز');
+27846: 					return;
+27847: 				}
+27848: 
+27849: 				$changed_field = sanitize_text_field(wp_unslash($_POST['changed_field'] ?? ''));
+27850: 				$incoming_lead_status = sanitize_text_field(wp_unslash($_POST['lead_status'] ?? ''));
+27851: 				$not_purchase_reason = sanitize_textarea_field(wp_unslash($_POST['not_purchase_reason'] ?? ''));
+27852: 				$callback_at = sanitize_text_field(wp_unslash($_POST['callback_at'] ?? ''));
+27853: 				$flow = class_exists('SN_Seller_Flow') ? SN_Seller_Flow::instance() : null;
+27854: 				$incoming_flow_slug = $flow ? $flow->status_slug($incoming_lead_status) : '';
+27855: 				if ($incoming_flow_slug !== '') {
+27856: 					$incoming_lead_status = $flow->status_label($incoming_flow_slug);
+27857: 				}
+27858: 				$current_lead_status = (string) ($legacy_lead->lead_status ?? '');
+27859: 				$flow_status_equal = $flow && $flow->status_slug($incoming_lead_status) !== '' && $flow->status_slug($incoming_lead_status) === $flow->status_slug($current_lead_status);
+27860: 				$flow_status_changed = $changed_field === 'lead_status' || ($incoming_lead_status !== '' && ! $flow_status_equal && $incoming_lead_status !== $current_lead_status);
+27861: 				$flow_reason_changed = $changed_field === 'not_purchase_reason';
+27862: 				if ($flow && $flow->is_archived('legacy_lead', $lead_id)) {
+27863: 					SN_Helpers::send_json(false, 'این شماره بایگانی شده و از پنل فروشنده قابل ویرایش نیست.');
+27864: 					return;
+27865: 				}
+27866: 				if ($flow && $flow_status_changed) {
+27867: 					$flow_validation = $flow->validate_status_change($incoming_lead_status, $not_purchase_reason);
+27868: 					if (is_wp_error($flow_validation)) {
+27869: 						SN_Helpers::send_json(false, $flow_validation->get_error_message());
+27870: 						return;
+27871: 					}
+27872: 				}
+27873: 				$data = [
+27874: 					'customer_name'    => sanitize_text_field(wp_unslash($_POST['customer_name']    ?? '')),
+27875: 					'province'         => sanitize_text_field(wp_unslash($_POST['province']         ?? '')),
+27876: 					'city'             => sanitize_text_field(wp_unslash($_POST['city']             ?? '')),
+27877: 					'sales_prediction' => sanitize_text_field(wp_unslash($_POST['sales_prediction'] ?? '')),
+27878: 					'note'             => sanitize_textarea_field(wp_unslash($_POST['note']        ?? '')),
+27879: 				];
+27880: 				if ($changed_field === 'lead_status' || $incoming_lead_status !== '') {
+27881: 					$data['lead_status'] = $incoming_lead_status;
+27882: 				}
+27883: 
+27884: 				if ($flow) { $wpdb->query('START TRANSACTION'); }
+27885: 				$updated = $wpdb->update($wpdb->prefix . 'sn_leads', $data, ['id' => $lead_id]);
+27886: 				if ($updated === false) {
+27887: 					if ($flow) { $wpdb->query('ROLLBACK'); }
+27888: 					error_log('SN customer info save failed for lead ' . $lead_id . ': ' . sanitize_text_field((string) $wpdb->last_error));
+27889: 					SN_Helpers::send_json(false, 'خطا در ذخیره اطلاعات مشتری؛ لطفاً دوباره تلاش کنید.');
+27890: 					return;
+27891: 				}
+27892: 				$flow_state = [];
+27893: 				if ($flow) {
+27894: 					$flow_result = $flow->apply_activity([
+27895: 						'source_kind' => 'legacy_lead',
+27896: 						'source_id' => $lead_id,
+27897: 						'seller_user_id' => $owner,
+27898: 						'actor_user_id' => (int) $user->ID,
+27899: 						'status_label' => $incoming_lead_status,
+27900: 						'not_purchase_reason' => $not_purchase_reason,
+27901: 						'callback_at' => $callback_at,
+27902: 						'status_changed' => $flow_status_changed,
+27903: 						'reason_changed' => $flow_reason_changed,
+27904: 						'changed_field' => $changed_field,
+27905: 					]);
+27906: 					if (is_wp_error($flow_result)) {
+27907: 						$wpdb->query('ROLLBACK');
+27908: 						SN_Helpers::send_json(false, $flow_result->get_error_message());
+27909: 						return;
+27910: 					}
+27911: 					$flow_state = $flow_result;
+27912: 					$wpdb->query('COMMIT');
+27913: 				}
+27914: 				if (! empty($data['lead_status']) && class_exists('SN_Campaign_Tracking')) { SN_Campaign_Tracking::mark_lead_status($lead_id, (string) $data['lead_status']); }
+27915: 				SN_Helpers::send_json(true, 'اطلاعات ذخیره شد', array_merge($data + ['lead_id' => $lead_id, 'not_purchase_reason' => $not_purchase_reason, 'callback_at' => $callback_at], $flow_state));
+27916: 			}
+27917: 

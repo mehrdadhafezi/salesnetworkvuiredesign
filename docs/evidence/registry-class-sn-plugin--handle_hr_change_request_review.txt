@@ -1,0 +1,41 @@
+10438: 
+10439: 	public function handle_hr_change_request_review(): void
+10440: 	{
+10441: 		if (! is_user_logged_in()) { wp_die('دسترسی غیرمجاز'); }
+10442: 		check_admin_referer('sn_hr_change_request_review');
+10443: 		if (! $this->sn_hr_change_request_ensure_table()) { wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'table_missing')); exit; }
+10444: 		global $wpdb;
+10445: 		$actor_id = get_current_user_id();
+10446: 		$request_id = absint($_POST['request_id'] ?? 0);
+10447: 		$decision = sanitize_key(wp_unslash($_POST['decision'] ?? ''));
+10448: 		$notes = sanitize_textarea_field(wp_unslash($_POST['reviewer_notes'] ?? ''));
+10449: 		$table = $wpdb->prefix . 'sn_hr_change_requests';
+10450: 		$row = $request_id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $request_id)) : null;
+10451: 		if (! $row || ! $this->sn_hr_change_request_can_review($row, $actor_id) || ! in_array($decision, ['approve', 'reject'], true)) {
+10452: 			wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'review_permission')); exit;
+10453: 		}
+10454: 		if ($decision === 'reject') {
+10455: 			$path = $this->sn_hr_change_request_append_path($row->approval_path, ['action' => 'rejected', 'actor_user_id' => $actor_id, 'notes' => $notes]);
+10456: 			$wpdb->update($table, ['status' => 'rejected', 'current_reviewer_user_id' => null, 'reviewer_notes' => $notes, 'approval_path' => $path, 'updated_at' => current_time('mysql')], ['id' => $request_id], ['%s','%d','%s','%s','%s'], ['%d']);
+10457: 			wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_rejected')); exit;
+10458: 		}
+10459: 		$is_final = $this->sn_hr_change_request_is_hr_reviewer($actor_id) || (string) $row->status === 'pending_hr';
+10460: 		if ($is_final) {
+10461: 			$apply = $this->sn_hr_change_request_apply($row, $actor_id);
+10462: 			if (empty($apply['success'])) {
+10463: 				$path = $this->sn_hr_change_request_append_path($row->approval_path, ['action' => 'apply_failed', 'actor_user_id' => $actor_id, 'message' => (string) ($apply['message'] ?? '')]);
+10464: 				$wpdb->update($table, ['status' => 'failed', 'reviewer_notes' => $notes, 'approval_path' => $path, 'updated_at' => current_time('mysql')], ['id' => $request_id], ['%s','%s','%s','%s'], ['%d']);
+10465: 				wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', (string) ($apply['message'] ?? 'apply_failed'))); exit;
+10466: 			}
+10467: 			$path = $this->sn_hr_change_request_append_path($row->approval_path, ['action' => 'approved_final', 'actor_user_id' => $actor_id, 'notes' => $notes]);
+10468: 			$wpdb->update($table, ['status' => 'approved', 'current_reviewer_user_id' => null, 'reviewer_notes' => $notes, 'approval_path' => $path, 'applied_at' => current_time('mysql'), 'updated_at' => current_time('mysql')], ['id' => $request_id], ['%s','%d','%s','%s','%s','%s'], ['%d']);
+10469: 			wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_approved')); exit;
+10470: 		}
+10471: 		$next_reviewer = $this->sn_hr_change_request_next_reviewer_user_id($actor_id);
+10472: 		$status = $next_reviewer > 0 ? 'pending_review' : 'pending_hr';
+10473: 		$path = $this->sn_hr_change_request_append_path($row->approval_path, ['action' => 'approved_step', 'actor_user_id' => $actor_id, 'next_reviewer_user_id' => $next_reviewer, 'status' => $status, 'notes' => $notes]);
+10474: 		$wpdb->update($table, ['status' => $status, 'current_reviewer_user_id' => $next_reviewer ?: null, 'reviewer_notes' => $notes, 'approval_path' => $path, 'updated_at' => current_time('mysql')], ['id' => $request_id], ['%s','%d','%s','%s','%s'], ['%d']);
+10475: 		wp_safe_redirect($this->sn_hr_change_request_return_url($status === 'pending_hr' ? 'hr_change_request_sent_to_hr' : 'hr_change_request_step_approved'));
+10476: 		exit;
+10477: 	}
+10478: 

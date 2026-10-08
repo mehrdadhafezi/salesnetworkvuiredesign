@@ -1,0 +1,32 @@
+592: 
+593: 	private function post_commissions_for_stage( int $invoice_id, int $stage_no, float $stage_amount, $invoice = null ): array {
+594: 		global $wpdb;
+595: 		$report = [ 'created'=>0, 'existing'=>0, 'unresolved'=>[], 'purpose'=>'' ];
+596: 		$purpose = $this->resolve_purpose( $invoice_id, $invoice ); $report['purpose'] = $purpose;
+597: 		if ( ! isset( self::purposes()[ $purpose ] ) || $stage_amount <= 0 ) { return $report; }
+598: 		$recipients = $this->resolve_recipients( $invoice_id, $invoice );
+599: 		$invoice_row = is_object( $invoice ) ? $invoice : $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}sn_invoices WHERE id=%d", $invoice_id ) );
+600: 		$invoice_code = (string) ( $invoice_row->invoice_code ?? ( '#' . $invoice_id ) );
+601: 		$lead_id = (int) ( $invoice_row->lead_id ?? 0 ); $purpose_label = (string) self::purposes()[ $purpose ]['label'];
+602: 		foreach ( self::roles() as $role_key => $role_def ) {
+603: 			$rate = $this->get_rate( $purpose, $role_key ); if ( $rate <= 0 ) { continue; }
+604: 			$user_id = (int) ( $recipients[ $role_key ] ?? 0 );
+605: 			if ( $user_id < 1 ) { $report['unresolved'][] = $role_key; continue; }
+606: 			$amount = round( $stage_amount * $rate / 100, 2 ); if ( $amount <= 0 ) { continue; }
+607: 			$wallet_type = $this->wallet_type_for( $purpose, $role_key );
+608: 			$key = implode( ':', [ 'purpose-commission', $invoice_id, 'stage', $stage_no, $purpose, $role_key, 'user', $user_id ] );
+609: 			// A later HR assignment must not credit the same invoice, stage and role twice.
+610: 			$role_prefix = implode( ':', [ 'purpose-commission', $invoice_id, 'stage', $stage_no, $purpose, $role_key, 'user', '' ] );
+611: 			$existing = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}sn_wallet_transactions WHERE idempotency_key LIKE %s LIMIT 1", $wpdb->esc_like( $role_prefix ) . '%' ) );
+612: 			if ( $existing > 0 ) { $report['existing']++; continue; }
+613: 			$description = sprintf( 'پورسانت %s — %s — مرحله %d فاکتور %s (%.2f%%)', $purpose_label, (string) $role_def['label'], $stage_no, $invoice_code, $rate );
+614: 			$tx_id = $this->post_transaction( $user_id, $wallet_type, $amount, 'credit', 'purpose_commission', $description, $invoice_id, $lead_id ?: null, [
+615: 				'engine'=>'purpose_matrix','payment_purpose'=>$purpose,'payment_purpose_label'=>$purpose_label,'payment_cycle'=>(string) self::purposes()[$purpose]['cycle'],
+616: 				'role_key'=>$role_key,'role_label'=>(string)$role_def['label'],'rate_percent'=>$rate,'base_amount'=>$stage_amount,'stage_no'=>$stage_no,
+617: 				'invoice_code'=>$invoice_code,'recipient_user_id'=>$user_id,'wallet_label'=>$wallet_type==='seller'?'فروش':'بیاوین','snapshot_version'=>defined('SN_VERSION')?SN_VERSION:'',
+618: 			], $key );
+619: 			if ( $tx_id > 0 ) { $report['created']++; }
+620: 		}
+621: 		return $report;
+622: 	}
+623: 

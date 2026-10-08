@@ -1,0 +1,49 @@
+30381: 
+30382: 			private function sn_financial_approve_invoice_internal(int $id, array $input = []): array
+30383: 			{
+30384: 				if ($id < 1) { return ['success'=>false,'message'=>'شناسه فاکتور نامعتبر است']; }
+30385: 				global $wpdb;
+30386: 				$inv=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sn_invoices WHERE id=%d",$id));
+30387: 				if (! $inv) { return ['success'=>false,'message'=>'فاکتور یافت نشد']; }
+30388: 				$totals=$this->sn_invoice_payment_totals($inv);
+30389: 				$stage_no=(int)$totals['stage_no'];
+30390: 				$stage=$this->sn_current_invoice_payment_stage($id,$stage_no);
+30391: 				if ($totals['workflow_status']==='completed' && $totals['remaining']<=0) {
+30392: 					return ['success'=>true,'message'=>'پرداخت قبلاً به طور کامل تایید شده است','data'=>['status'=>(string)$inv->status,'status_label'=>SN_Helpers::status_label((string)$inv->status),'completed'=>true,'remaining_amount'=>0]];
+30393: 				}
+30394: 				$reconcile=$this->sn_finance_reconcile_review_stage($id,$inv,$stage,$stage_no);
+30395: 				if (!empty($reconcile['ready']) && !empty($reconcile['stage'])) { $stage=$reconcile['stage']; }
+30396: 				if (! $stage || ! in_array((string)$stage->status,['pending_financial_approval','receipt_uploaded'],true)) {
+30397: 					return ['success'=>false,'message'=>'مرحله فعال در صف تایید مالی نیست یا اطلاعات واریزی جدیدی برای بررسی ثبت نشده است'];
+30398: 				}
+30399: 				if (! in_array((string)($inv->payment_status ?? ''),['pending_financial_approval','receipt_uploaded'],true) || ! in_array((string)($inv->status ?? ''),['pending_financial_approval','receipt_uploaded'],true)) {
+30400: 					$sync=$this->sn_filter_existing_columns($wpdb->prefix.'sn_invoices',['status'=>'pending_financial_approval','invoice_status'=>'pending_financial_approval','payment_status'=>'pending_financial_approval','payment_workflow_status'=>'awaiting_financial_approval','updated_at'=>current_time('mysql')]);
+30401: 					$wpdb->update($wpdb->prefix.'sn_invoices',$sync,['id'=>$id]);
+30402: 				}
+30403: 				$finance_edit_note=sanitize_textarea_field((string)($input['finance_edit_note'] ?? ''));
+30404: 				$editable=[];
+30405: 				foreach (['customer_name','customer_phone','manual_card_from','manual_card_to','manual_paid_at_jalali'] as $field) {
+30406: 					if (isset($input[$field]) && trim((string)$input[$field])!=='') { $editable[$field]=sanitize_text_field((string)$input[$field]); }
+30407: 				}
+30408: 				$editable['manual_amount']=(float)$totals['due'];
+30409: 				$editable['deposit_amount']=(float)$totals['due'];
+30410: 				$editable['finance_edit_note']=$finance_edit_note;
+30411: 				$approved_pay_method = ($stage && (string)($stage->pay_method ?? '') === 'online') || (string)($inv->pay_method ?? '') === 'online' ? 'online' : 'card';
+30412: 				$result=$this->sn_finalize_current_payment_stage($id,$approved_pay_method,(string)(($inv->payment_source ?? '') ?: 'finance_approval'),(string)($stage->payment_ref_id ?? ''),(int)get_current_user_id(),'approved');
+30413: 				if (empty($result['success'])) { return ['success'=>false,'message'=>(string)($result['message'] ?? 'تایید مرحله پرداخت انجام نشد')]; }
+30414: 				if ($editable) { $wpdb->update($wpdb->prefix.'sn_invoices',$this->sn_filter_existing_columns($wpdb->prefix.'sn_invoices',$editable),['id'=>$id]); }
+30415: 				$reviewer=wp_get_current_user();
+30416: 				$message=!empty($result['completed'])?'پرداخت کامل فاکتور توسط مالی تایید شد':'پیش‌پرداخت تایید شد و برای تکمیل واریزی به فروشنده اصلی ارجاع شد';
+30417: 				return ['success'=>true,'message'=>$message,'data'=>[
+30418: 					'status'=>(string)($result['status'] ?? 'partial_paid'),
+30419: 					'status_label'=>SN_Helpers::status_label((string)($result['status'] ?? 'partial_paid')),
+30420: 					'completed'=>!empty($result['completed']),
+30421: 					'paid_total'=>(float)($result['paid'] ?? 0),
+30422: 					'remaining_amount'=>(float)($result['remaining'] ?? 0),
+30423: 					'finance_review_tag'=>'تایید شده توسط مالی',
+30424: 					'reviewed_by'=>get_current_user_id(),
+30425: 					'reviewed_by_name'=>(string)($reviewer->display_name ?: $reviewer->user_login),
+30426: 					'reviewed_at'=>current_time('mysql'),
+30427: 				]];
+30428: 			}
+30429: 

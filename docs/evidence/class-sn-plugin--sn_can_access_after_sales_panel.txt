@@ -1,0 +1,15 @@
+33921: 
+33922: 			private function sn_can_access_after_sales_panel(): bool
+33923: 			{
+33924: 				if (current_user_can('manage_options')) {
+33925: 					return true;
+33926: 				}
+33927: 				if (! is_user_logged_in()) {
+33928: 					return false;
+33929: 				}
+33930: 				$user = wp_get_current_user();
+33931: 				if (in_array('sn_after_sales', (array) $user->roles, true) || current_user_can('sn_view_customer_profiles')) {
+33932: 					return true;
+33933: 				}
+33934: 				return class_exists('SN_Scope_Service') && (new SN_Scope_Service())->get_viewer_position_slug(get_current_user_id()) === 'after_sales';
+33935: 			}

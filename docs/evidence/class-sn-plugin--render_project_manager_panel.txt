@@ -1,0 +1,5 @@
+374: 
+375: 	public function render_project_manager_panel(): string
+376: 	{
+377: 		return $this->render_operations_sales_manager_panel();
+378: 	}

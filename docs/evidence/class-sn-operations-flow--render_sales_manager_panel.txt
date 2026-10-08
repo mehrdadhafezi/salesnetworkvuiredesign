@@ -1,0 +1,2 @@
+1641: 
+1642: 	public function render_sales_manager_panel(): string { return $this->render_panel('manager'); }

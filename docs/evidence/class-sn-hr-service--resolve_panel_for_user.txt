@@ -1,0 +1,60 @@
+440: 
+441: 	public function resolve_panel_for_user( int $user_id ): array {
+442: 		if ( isset( $this->resolved_panel_cache[ $user_id ] ) ) {
+443: 			return $this->resolved_panel_cache[ $user_id ];
+444: 		}
+445: 		$user = get_user_by( 'id', $user_id );
+446: 		$profile = $this->get_profile_by_user_id( $user_id );
+447: 		$legacy_role = $user instanceof WP_User ? $this->infer_primary_legacy_role( $user ) : '';
+448: 		$position_slug = '';
+449: 		$level_slug = '';
+450: 		$fallback_used = false;
+451: 		$fallback_reason = '';
+452: 
+453: 		if ( $profile && ! empty( $profile->position_id ) ) {
+454: 			$position_id = (int) $profile->position_id;
+455: 			if ( ! array_key_exists( $position_id, $this->position_slug_by_id_cache ) ) {
+456: 				$this->position_slug_by_id_cache[ $position_id ] = (string) $this->wpdb->get_var( $this->wpdb->prepare(
+457: 					"SELECT slug FROM {$this->wpdb->prefix}sn_hr_positions WHERE id=%d LIMIT 1",
+458: 					$position_id
+459: 				) );
+460: 			}
+461: 			$position_slug = (string) $this->position_slug_by_id_cache[ $position_id ];
+462: 		}
+463: 		if ( $profile && ! empty( $profile->level_id ) ) {
+464: 			$level_id = (int) $profile->level_id;
+465: 			if ( ! array_key_exists( $level_id, $this->level_slug_by_id_cache ) ) {
+466: 				$this->level_slug_by_id_cache[ $level_id ] = (string) $this->wpdb->get_var( $this->wpdb->prepare(
+467: 					"SELECT slug FROM {$this->wpdb->prefix}sn_hr_levels WHERE id=%d LIMIT 1",
+468: 					$level_id
+469: 				) );
+470: 			}
+471: 			$level_slug = (string) $this->level_slug_by_id_cache[ $level_id ];
+472: 		}
+473: 
+474: 		if ( $position_slug === '' ) {
+475: 			$fallback_used = true;
+476: 			$fallback_reason = $profile ? 'missing_hr_position' : 'missing_hr_profile';
+477: 			$position_slug = $this->fallback_position_from_legacy_role( $legacy_role, $user );
+478: 		}
+479: 
+480: 		$map = $this->panel_mapping();
+481: 		$resolved = $map[ $position_slug ] ?? $map['unknown'];
+482: 		$result = [
+483: 			'user_id' => $user_id,
+484: 			'wp_roles' => $user instanceof WP_User ? array_values( (array) $user->roles ) : [],
+485: 			'legacy_role' => $profile && ! empty( $profile->legacy_role ) ? (string) $profile->legacy_role : $legacy_role,
+486: 			'has_hr_profile' => (bool) $profile,
+487: 			'position_slug' => $position_slug,
+488: 			'level_slug' => $level_slug,
+489: 			'panel_key' => (string) $resolved['panel_key'],
+490: 			'panel_label' => (string) $resolved['panel_label'],
+491: 			'shortcode' => (string) $resolved['shortcode'],
+492: 			'route_type' => (string) $resolved['route_type'],
+493: 			'fallback_used' => $fallback_used,
+494: 			'fallback_reason' => $fallback_reason,
+495: 			'warnings' => $this->panel_resolver_warnings( $position_slug, $fallback_used, $fallback_reason ),
+496: 		];
+497: 		$this->resolved_panel_cache[ $user_id ] = $result;
+498: 		return $result;
+499: 	}

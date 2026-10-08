@@ -1,0 +1,41 @@
+290: 
+291: 	public function render_shipping_panel(): string {
+292: 		if ( ! is_user_logged_in() ) { return '<div class="sn-notice">ابتدا وارد حساب کاربری شوید.</div>'; }
+293: 		if ( ! $this->can_manage_shipping() ) { return '<div class="sn-notice sn-error">این صفحه فقط برای کارشناس ارسال است.</div>'; }
+294: 		global $wpdb; $t = $this->tables();
+295: 		if ( ! $this->table_exists( $t['orders'] ) ) { $this->install_schema(); }
+296: 		$q = sanitize_text_field( wp_unslash( $_GET['shipping_q'] ?? '' ) );
+297: 		$status_filter = sanitize_key( wp_unslash( $_GET['shipping_status'] ?? '' ) );
+298: 		$where = [ '1=1' ]; $args = [];
+299: 		if ( $q !== '' ) { $like = '%' . $wpdb->esc_like( $q ) . '%'; $where[] = '(customer_name LIKE %s OR customer_phone LIKE %s OR invoice_id IN (SELECT id FROM ' . $wpdb->prefix . 'sn_invoices WHERE invoice_code LIKE %s) OR tracking_code LIKE %s)'; array_push( $args, $like, $like, $like, $like ); }
+300: 		if ( isset( $this->fulfillment_statuses()[ $status_filter ] ) ) { $where[] = 'fulfillment_status=%s'; $args[] = $status_filter; }
+301: 		$sql = "SELECT * FROM {$t['orders']} WHERE " . implode( ' AND ', $where ) . ' ORDER BY FIELD(fulfillment_status,\'awaiting_address\',\'awaiting_review\',\'preparing\',\'shipped\',\'not_sent\',\'returned\',\'delivered\',\'cancelled\'),updated_at DESC,id DESC LIMIT 200';
+302: 		$orders = $args ? ( $wpdb->get_results( $wpdb->prepare( $sql, ...$args ) ) ?: [] ) : ( $wpdb->get_results( $sql ) ?: [] );
+303: 		$counts = [];
+304: 		foreach ( $wpdb->get_results( "SELECT fulfillment_status,COUNT(*) total FROM {$t['orders']} GROUP BY fulfillment_status" ) ?: [] as $row ) { $counts[(string)$row->fulfillment_status] = (int) $row->total; }
+305: 		if ( class_exists( 'SN_Operations_Execution' ) ) { foreach ( SN_Operations_Execution::instance()->shipping_counts() as $key=>$total ) { $counts[$key]=(int)($counts[$key]??0)+(int)$total; } }
+306: 		ob_start(); ?>
+307: 			<div class="sn-panel sn-portal" id="sn-shipping-panel" dir="rtl">
+308: 				<div class="sn-panel-header"><div><h2>پنل ارسال</h2><p class="sn-muted">سفارش‌های محصول عادی و کارت‌های فاکتور کالا اینجا پیگیری می‌شوند.</p></div><a class="sn-btn" href="<?php echo esc_url( wp_logout_url( function_exists( 'sn_crm_login_url' ) ? sn_crm_login_url() : home_url( '/crm-login/' ) ) ); ?>">خروج</a></div>
+309: 			<?php if ( ! empty( $_GET['sn_shipping_message'] ) ) : ?><div class="sn-notice <?php echo (string) ( $_GET['sn_shipping_result'] ?? '' ) === 'success' ? 'sn-success' : 'sn-error'; ?>"><?php echo esc_html( sanitize_text_field( wp_unslash( $_GET['sn_shipping_message'] ) ) ); ?></div><?php endif; ?>
+310: 			<div class="sn-kpi-grid"><?php foreach ( $this->fulfillment_statuses() as $key => $label ) : ?><div class="sn-kpi"><strong><?php echo esc_html( number_format_i18n( (int) ( $counts[$key] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( $label ); ?></span></div><?php endforeach; ?></div>
+311: 				<form method="get" class="sn-card sn-filter-bar"><label class="sn-grow">جستجو<input type="search" name="shipping_q" value="<?php echo esc_attr( $q ); ?>" placeholder="نام، موبایل، کد فاکتور یا رهگیری"></label><label>وضعیت<select name="shipping_status"><option value="">همه</option><?php foreach ( $this->fulfillment_statuses() as $key => $label ) : ?><option value="<?php echo esc_attr($key); ?>" <?php selected($status_filter,$key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label><button class="sn-btn sn-btn-primary">اعمال</button></form>
+312: 				<?php if ( class_exists( 'SN_Operations_Execution' ) ) { echo SN_Operations_Execution::instance()->render_shipping_handoffs(); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+313: 				<?php if ( ! $orders ) : ?><div class="sn-card sn-empty-state">سفارش محصول عادی با این فیلتر یافت نشد.</div><?php endif; ?>
+314: 			<?php foreach ( $orders as $order ) : $items = json_decode( (string) $order->items_snapshot_json, true ); ?>
+315: 			<details class="sn-card sn-section" <?php echo in_array((string)$order->fulfillment_status,['awaiting_address','awaiting_review'],true)?'open':''; ?>>
+316: 				<summary><strong>سفارش #<?php echo esc_html((string)$order->id); ?></strong> — فاکتور #<?php echo esc_html((string)$order->invoice_id); ?> — <?php echo esc_html((string)$order->customer_name); ?> — <span class="sn-badge"><?php echo esc_html($this->fulfillment_statuses()[(string)$order->fulfillment_status]??(string)$order->fulfillment_status); ?></span></summary>
+317: 				<div class="sn-table-wrap"><table class="sn-table"><thead><tr><th>محصول</th><th>تعداد</th><th>قیمت</th></tr></thead><tbody><?php foreach (is_array($items)?$items:[] as $item): ?><tr><td><?php echo esc_html((string)($item['product_name']??'—')); ?></td><td><?php echo esc_html(number_format_i18n((int)($item['qty']??1))); ?></td><td><?php echo esc_html(class_exists('SN_Helpers')?SN_Helpers::format_price((float)($item['total_price']??0)):(string)($item['total_price']??0)); ?></td></tr><?php endforeach; ?></tbody></table></div>
+318: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-form-grid"><input type="hidden" name="action" value="sn_shipping_update_order"><input type="hidden" name="order_id" value="<?php echo esc_attr((string)$order->id); ?>"><?php wp_nonce_field('sn_shipping_update_'.(int)$order->id); ?>
+319: 					<div class="sn-field"><label>نام مشتری<input name="customer_name" value="<?php echo esc_attr((string)$order->customer_name); ?>" required></label></div><div class="sn-field"><label>موبایل<input name="customer_phone" value="<?php echo esc_attr((string)$order->customer_phone); ?>" required></label></div>
+320: 					<div class="sn-field"><label>استان<input name="province" value="<?php echo esc_attr((string)$order->province); ?>"></label></div><div class="sn-field"><label>شهر<input name="city" value="<?php echo esc_attr((string)$order->city); ?>"></label></div>
+321: 					<div class="sn-field sn-full"><label>آدرس کامل<textarea name="address" rows="3"><?php echo esc_textarea((string)$order->address); ?></textarea></label></div><div class="sn-field"><label>کد پستی<input name="postal_code" value="<?php echo esc_attr((string)$order->postal_code); ?>"></label></div>
+322: 					<div class="sn-field"><label>نتیجه تماس<select name="contact_status"><?php foreach($this->contact_statuses() as $key=>$label): ?><option value="<?php echo esc_attr($key); ?>" <?php selected((string)$order->contact_status,$key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label></div>
+323: 					<div class="sn-field"><label>وضعیت ارسال<select name="fulfillment_status"><?php foreach($this->fulfillment_statuses() as $key=>$label): ?><option value="<?php echo esc_attr($key); ?>" <?php selected((string)$order->fulfillment_status,$key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label></div>
+324: 					<div class="sn-field"><label>روش ارسال<input name="shipping_method" value="<?php echo esc_attr((string)$order->shipping_method); ?>" placeholder="پست، تیپاکس، پیک..."></label></div><div class="sn-field"><label>شرکت حمل<input name="carrier" value="<?php echo esc_attr((string)$order->carrier); ?>"></label></div><div class="sn-field"><label>کد رهگیری<input name="tracking_code" value="<?php echo esc_attr((string)$order->tracking_code); ?>"></label></div>
+325: 					<div class="sn-field sn-full"><label>یادداشت کارشناس<textarea name="expert_note" rows="3"><?php echo esc_textarea((string)$order->expert_note); ?></textarea></label></div><div class="sn-field sn-full"><label>علت ارسال‌نشدن/مرجوعی/لغو<textarea name="failure_reason" rows="2"><?php echo esc_textarea((string)$order->failure_reason); ?></textarea></label></div>
+326: 					<div class="sn-field sn-full"><button class="sn-btn sn-btn-primary">ذخیره پیگیری ارسال</button></div>
+327: 				</form>
+328: 			</details><?php endforeach; ?>
+329: 		</div><?php return ob_get_clean();
+330: 	}

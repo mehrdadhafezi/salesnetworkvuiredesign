@@ -1,0 +1,21 @@
+30444: 
+30445: 			public function ajax_financial_bulk_approve(): void
+30446: 			{
+30447: 				if (! $this->sn_can_approve_payment()) { if (function_exists('status_header')) { status_header(403); } SN_Helpers::send_json(false,'دسترسی غیرمجاز'); return; }
+30448: 				$valid=check_ajax_referer('sn_admin','nonce',false)||check_ajax_referer('sn_public','nonce',false);
+30449: 				if (! $valid) { SN_Helpers::send_json(false,'نانس نامعتبر'); return; }
+30450: 				$raw=$_POST['invoice_ids'] ?? [];
+30451: 				if (is_string($raw)) { $decoded=json_decode(wp_unslash($raw),true); if (is_array($decoded)) { $raw=$decoded; } }
+30452: 				$ids=array_values(array_unique(array_filter(array_map('absint',(array)$raw))));
+30453: 				if (! $ids) { SN_Helpers::send_json(false,'هیچ فاکتوری انتخاب نشده است'); return; }
+30454: 				if (count($ids)>100) { $ids=array_slice($ids,0,100); }
+30455: 				$approved=[]; $failed=[];
+30456: 				foreach ($ids as $id) {
+30457: 					$out=$this->sn_financial_approve_invoice_internal((int)$id,[]);
+30458: 					if (!empty($out['success'])) { $approved[]=(int)$id; }
+30459: 					else { $failed[]=['id'=>(int)$id,'message'=>(string)($out['message'] ?? 'خطا')]; }
+30460: 				}
+30461: 				$msg=sprintf('%s فاکتور تایید شد%s.', number_format_i18n(count($approved)), $failed ? ' و '.number_format_i18n(count($failed)).' مورد انجام نشد' : '');
+30462: 				SN_Helpers::send_json((bool)$approved,$msg,['approved_ids'=>$approved,'failed'=>$failed,'approved_count'=>count($approved),'failed_count'=>count($failed)]);
+30463: 			}
+30464: 

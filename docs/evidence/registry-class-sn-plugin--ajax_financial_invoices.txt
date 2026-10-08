@@ -1,0 +1,214 @@
+36597: 
+36598: 			public function ajax_financial_invoices(): void
+36599: 			{
+36600: 				if (! $this->sn_can_view_finance()) { if (function_exists('status_header')) { status_header(403); } SN_Helpers::send_json(false, 'دسترسی غیرمجاز'); return; }
+36601: 				$valid = check_ajax_referer('sn_admin', 'nonce', false) || check_ajax_referer('sn_public', 'nonce', false);
+36602: 				if (! $valid) { SN_Helpers::send_json(false, 'نانس نامعتبر'); return; }
+36603: 				$this->maybe_create_tables();
+36604: 				$tab = sanitize_key($_POST['tab'] ?? 'needs_review');
+36605: 				$page = max(1, absint($_POST['page'] ?? 1));
+36606: 				$limit = min(100, max(10, absint($_POST['limit'] ?? 30)));
+36607: 				$q = trim(sanitize_text_field(wp_unslash($_POST['q'] ?? '')));
+36608: 				$q_english = trim(SN_Helpers::to_english_nums($q));
+36609: 				$q_digits = preg_replace('/\D+/u', '', $q_english);
+36610: 				$sort = sanitize_key($_POST['sort'] ?? 'deposit_newest');
+36611: 				$can_approve = $this->sn_can_approve_payment();
+36612: 				$can_reject = $this->sn_can_reject_payment();
+36613: 				global $wpdb;
+36614: 
+36615: 				$invoice_table = $wpdb->prefix . 'sn_invoices';
+36616: 				$payment_table = $wpdb->prefix . 'sn_payments';
+36617: 				$hr_table = $wpdb->prefix . 'sn_hr_profiles';
+36618: 				$invoice_cols = $this->sn_table_columns($invoice_table);
+36619: 
+36620: 				// 1.0.193: restore the exact production-proven 1.0.188 finance queue predicate.
+36621: 				$needs = "(i.status IN ('pending_financial_approval','receipt_uploaded') OR i.payment_status IN ('pending_financial_approval','receipt_uploaded') OR i.invoice_status IN ('pending_financial_approval','receipt_uploaded') OR ((COALESCE(i.receipt_url,'')<>'' OR COALESCE(i.receipt_file,'')<>'' OR COALESCE(i.manual_card_from,'')<>'' OR COALESCE(i.deposit_card_from_last4,'')<>'') AND COALESCE(i.status,'') NOT IN ('approved','paid','rejected','cancelled','payment_archived') AND COALESCE(i.payment_status,'') NOT IN ('approved','paid','rejected','cancelled','payment_archived') AND COALESCE(i.invoice_status,'') NOT IN ('approved','paid','rejected','cancelled','payment_archived')))";
+36622: 				$approved = "(i.status='approved' OR i.payment_status='approved' OR i.invoice_status='approved')";
+36623: 				$rejected = "(i.status='rejected' OR i.payment_status='rejected' OR i.invoice_status='rejected')";
+36624: 				$receipt_uploaded = "(COALESCE(i.receipt_url,'')<>'' OR COALESCE(i.receipt_file,'')<>'' OR i.status IN ('receipt_uploaded','pending_financial_approval') OR i.payment_status IN ('receipt_uploaded','pending_financial_approval') OR i.invoice_status IN ('receipt_uploaded','pending_financial_approval'))";
+36625: 				$returned = "(i.financial_return_state IN ('returned_to_seller','resent_after_return','cancelled_by_finance','cancelled_by_finance_refund'))";
+36626: 				$online_paid = "(i.pay_method IN ('online','gateway') AND i.status IN ('paid','approved'))";
+36627: 
+36628: 				if ($tab === 'online_paid') { $base_where = $online_paid; }
+36629: 				elseif ($tab === 'approved') { $base_where = $approved; }
+36630: 				elseif ($tab === 'rejected') { $base_where = $rejected; }
+36631: 				elseif ($tab === 'receipt_uploaded') { $base_where = $receipt_uploaded; }
+36632: 				else { $base_where = $needs; }
+36633: 
+36634: 				$where_parts = ['(' . $base_where . ')'];
+36635: 				$where_args = [];
+36636: 				$join_hr = $this->sn_table_exists_quiet($hr_table);
+36637: 				$join_payments = $this->sn_table_exists_quiet($payment_table);
+36638: 
+36639: 				if ($q_english !== '') {
+36640: 					$where_parts = ['1=1']; // Global search across finance records.
+36641: 					$like = '%' . $wpdb->esc_like($q_english) . '%';
+36642: 					$digit_like = $q_digits !== '' ? '%' . $wpdb->esc_like($q_digits) . '%' : $like;
+36643: 					$search = [];
+36644: 					if ($q_digits !== '') {
+36645: 						$search[] = 'CAST(i.id AS CHAR) LIKE %s'; $where_args[] = $digit_like;
+36646: 						if (ctype_digit($q_digits)) { $search[] = 'i.id=%d'; $where_args[] = (int) $q_digits; }
+36647: 					}
+36648: 					foreach (['invoice_code','customer_name','province','city','financial_reject_reason','rejected_reason','manual_paid_at_jalali','payment_source','receipt_source'] as $col) {
+36649: 						if (in_array($col, $invoice_cols, true)) { $search[] = "i.{$col} LIKE %s"; $where_args[] = $like; }
+36650: 					}
+36651: 					foreach (['customer_phone','manual_card_from','manual_card_to','manual_card_to_number','payment_card_number','deposit_card_from_last4','deposit_card_to_last4'] as $col) {
+36652: 						if (in_array($col, $invoice_cols, true)) { $search[] = "i.{$col} LIKE %s"; $where_args[] = $digit_like; }
+36653: 					}
+36654: 					foreach (['manual_amount','deposit_amount','final_total','product_price','paid_total_amount','remaining_amount'] as $col) {
+36655: 						if ($q_digits !== '' && in_array($col, $invoice_cols, true)) { $search[] = "CAST(i.{$col} AS CHAR) LIKE %s"; $where_args[] = $digit_like; }
+36656: 					}
+36657: 					$search[] = 'u.display_name LIKE %s'; $where_args[] = $like;
+36658: 					$search[] = 'u.user_login LIKE %s'; $where_args[] = $like;
+36659: 					if ($join_hr) { $search[] = 'hp.hr_display_name LIKE %s'; $where_args[] = $like; }
+36660: 					if ($join_payments) {
+36661: 						$search[] = "EXISTS (SELECT 1 FROM {$payment_table} sp WHERE sp.invoice_id=i.id AND (COALESCE(sp.ref_id,'') LIKE %s OR COALESCE(sp.payment_source,'') LIKE %s OR CAST(COALESCE(sp.amount,0) AS CHAR) LIKE %s))";
+36662: 						$where_args[] = $like; $where_args[] = $like; $where_args[] = $digit_like;
+36663: 					}
+36664: 					$where_parts[] = '(' . implode(' OR ', $search) . ')';
+36665: 				}
+36666: 				$where = implode(' AND ', $where_parts);
+36667: 
+36668: 				$join = "LEFT JOIN {$wpdb->users} u ON u.ID=i.seller_id";
+36669: 				$seller_expr = "COALESCE(u.display_name, CONCAT('#', i.seller_id))";
+36670: 				if ($join_hr) {
+36671: 					$join .= " LEFT JOIN {$hr_table} hp ON hp.user_id=i.seller_id AND hp.is_active=1";
+36672: 					$seller_expr = "COALESCE(NULLIF(hp.hr_display_name,''), u.display_name, CONCAT('#', i.seller_id))";
+36673: 				}
+36674: 				if ($join_payments) {
+36675: 					$join .= " LEFT JOIN {$payment_table} p ON p.id=(SELECT p2.id FROM {$payment_table} p2 WHERE p2.invoice_id=i.id ORDER BY p2.id DESC LIMIT 1)";
+36676: 				}
+36677: 
+36678: 				$count_sql = "SELECT COUNT(DISTINCT i.id) FROM {$invoice_table} i {$join} WHERE {$where}";
+36679: 				$sum_sql = "SELECT COALESCE(SUM(COALESCE(i.final_total,i.product_price,0)),0) FROM {$invoice_table} i {$join} WHERE {$where}";
+36680: 				$total = (int) ($where_args ? $wpdb->get_var($wpdb->prepare($count_sql, ...$where_args)) : $wpdb->get_var($count_sql));
+36681: 				$sum = (float) ($where_args ? $wpdb->get_var($wpdb->prepare($sum_sql, ...$where_args)) : $wpdb->get_var($sum_sql));
+36682: 				$total_pages = max(1, (int) ceil($total / $limit));
+36683: 				if ($page > $total_pages) { $page = $total_pages; }
+36684: 				$offset = ($page - 1) * $limit;
+36685: 
+36686: 				if ($join_payments) {
+36687: 					$payment_newest = 'COALESCE(p.created_at,i.updated_at,i.created_at)';
+36688: 					$payment_amount = 'COALESCE(p.amount,i.manual_amount,i.deposit_amount,0)';
+36689: 				} else {
+36690: 					$payment_newest = 'COALESCE(i.updated_at,i.created_at)';
+36691: 					$payment_amount = 'COALESCE(i.manual_amount,i.deposit_amount,0)';
+36692: 				}
+36693: 				$order_map = [
+36694: 					'deposit_newest' => $payment_newest . ' DESC, i.id DESC', 'deposit_oldest' => $payment_newest . ' ASC, i.id ASC',
+36695: 					'newest' => 'i.updated_at DESC, i.id DESC', 'oldest' => 'i.updated_at ASC, i.id ASC',
+36696: 					'invoice_asc' => 'i.invoice_code ASC, i.id ASC', 'invoice_desc' => 'i.invoice_code DESC, i.id DESC',
+36697: 					'customer_asc' => 'i.customer_name ASC, i.id DESC', 'customer_desc' => 'i.customer_name DESC, i.id DESC',
+36698: 					'seller_asc' => 'seller_name ASC, i.id DESC', 'seller_desc' => 'seller_name DESC, i.id DESC',
+36699: 					'status_asc' => 'i.status ASC, i.id DESC', 'status_desc' => 'i.status DESC, i.id DESC',
+36700: 					'phone_asc' => 'i.customer_phone ASC, i.id DESC', 'phone_desc' => 'i.customer_phone DESC, i.id DESC',
+36701: 					'amount_desc' => 'COALESCE(i.final_total,i.product_price,0) DESC, i.id DESC', 'amount_asc' => 'COALESCE(i.final_total,i.product_price,0) ASC, i.id DESC',
+36702: 					'payment_desc' => $payment_amount . ' DESC, i.id DESC', 'payment_asc' => $payment_amount . ' ASC, i.id DESC',
+36703: 					'receipt_first' => "(COALESCE(i.receipt_url,'')<>'' OR COALESCE(i.receipt_file,'')<>'') DESC, i.updated_at DESC, i.id DESC",
+36704: 					'manual_first' => "(COALESCE(i.manual_card_from,'')<>'' OR COALESCE(i.deposit_card_from_last4,'')<>'') DESC, i.updated_at DESC, i.id DESC",
+36705: 				];
+36706: 				$order = $order_map[$sort] ?? $order_map['deposit_newest'];
+36707: 
+36708: 				if ($join_payments) {
+36709: 					$payment_select = ', p.uploaded_by_type latest_uploaded_by_type, p.uploaded_by_user_id latest_uploaded_by_user_id, p.amount latest_payment_amount, p.status latest_payment_status, p.pay_method latest_payment_method, p.payment_source latest_payment_source, p.payment_stage_no latest_payment_stage_no, p.ref_id latest_payment_ref_id, p.created_at latest_payment_created_at';
+36710: 				} else {
+36711: 					$payment_select = ", '' latest_uploaded_by_type, 0 latest_uploaded_by_user_id, 0 latest_payment_amount, '' latest_payment_status, '' latest_payment_method, '' latest_payment_source, 1 latest_payment_stage_no, '' latest_payment_ref_id, '' latest_payment_created_at";
+36712: 				}
+36713: 				$select = "SELECT i.*, {$seller_expr} seller_name {$payment_select} FROM {$invoice_table} i {$join} WHERE {$where} ORDER BY {$order} LIMIT %d OFFSET %d";
+36714: 				$query_args = array_merge($where_args, [$limit, $offset]);
+36715: 				$rows = $wpdb->get_results($wpdb->prepare($select, ...$query_args), ARRAY_A) ?: [];
+36716: 
+36717: 				// Marketing Dot Flow source invoices are created under dedicated system
+36718: 				// sellers. Cache the marker once per seller so Finance can identify the
+36719: 				// transaction without changing the proven finance queue predicate.
+36720: 				$dot_marketing_sellers = [];
+36721: 				foreach ($rows as $finance_row) {
+36722: 					$sid = absint($finance_row['seller_id'] ?? 0);
+36723: 					if ($sid > 0 && ! array_key_exists($sid, $dot_marketing_sellers)) {
+36724: 						$dot_marketing_sellers[$sid] = (string) get_user_meta($sid, '_sn_dot_marketing_seller', true) === '1';
+36725: 					}
+36726: 				}
+36727: 
+36728: 				foreach ($rows as &$r) {
+36729: 					$source = (string) (($r['latest_payment_source'] ?? '') ?: ($r['payment_source'] ?? '') ?: ($r['receipt_source'] ?? '') ?: ($r['latest_uploaded_by_type'] ?? ''));
+36730: 					$r['status_label'] = $this->sn_invoice_review_status_label($r);
+36731: 					$r['pay_method_label'] = SN_Helpers::pay_method_label((string) (($r['latest_payment_method'] ?? '') ?: ($r['pay_method'] ?? '')));
+36732: 					$r['payment_source_label'] = SN_Helpers::payment_source_label($source);
+36733: 					$receipt_url = (string) (($r['receipt_url'] ?? '') ?: ($r['receipt_file'] ?? ''));
+36734: 					$manual_from = (string) (($r['manual_card_from'] ?? '') ?: ($r['deposit_card_from_last4'] ?? ''));
+36735: 					$manual_to = $this->sn_manual_destination_card_display($r);
+36736: 					$manual_amount = (string) (($r['manual_amount'] ?? '') ?: ($r['deposit_amount'] ?? ''));
+36737: 					$manual_jalali = (string) (($r['manual_paid_at_jalali'] ?? '') ?: ($r['deposit_jalali_datetime'] ?? ''));
+36738: 					$r['receipt_url'] = $receipt_url;
+36739: 					$r['has_receipt'] = $receipt_url !== '';
+36740: 					$payment_info_parts = [$receipt_url ? 'فیش بارگذاری شده' : 'اطلاعات واریز'];
+36741: 					if ($manual_to !== '') { $payment_info_parts[] = '۴ رقم آخر کارت مقصد: ' . $manual_to; }
+36742: 					if (! $receipt_url) {
+36743: 						$manual_details = trim($manual_from . ' / ' . $manual_amount . ' / ' . $manual_jalali, " /");
+36744: 						if ($manual_details !== '') { $payment_info_parts[] = $manual_details; }
+36745: 					}
+36746: 					$r['payment_info_text'] = implode(' | ', $payment_info_parts);
+36747: 					$r['manual_card_from_display'] = $manual_from;
+36748: 					$r['manual_card_to_display'] = $manual_to;
+36749: 					$effective_status = (string) (($r['payment_status'] ?? '') ?: (($r['invoice_status'] ?? '') ?: ($r['status'] ?? '')));
+36750: 					$status_blob = (string) ($r['status'] ?? '') . ' ' . (string) ($r['payment_status'] ?? '') . ' ' . (string) ($r['invoice_status'] ?? '');
+36751: 					$is_pending_review = in_array($effective_status, ['pending_financial_approval','receipt_uploaded'], true) || (bool) preg_match('/pending_financial_approval|receipt_uploaded/', $status_blob);
+36752: 					$is_online_paid = in_array((string) ($r['pay_method'] ?? ''), ['online','gateway','zarinpal','zibal'], true) && (bool) preg_match('/\b(paid|approved)\b/', $status_blob) && ! (bool) preg_match('/\b(rejected|cancelled)\b/', $status_blob);
+36753: 					$r['can_review'] = $is_pending_review || $is_online_paid;
+36754: 					$r['can_approve_payment'] = $is_pending_review && $can_approve;
+36755: 					$r['can_reject_payment'] = ($is_pending_review || $is_online_paid) && $can_reject;
+36756: 					$r['can_cancel_invoice'] = $can_reject
+36757: 						&& ! in_array((string) ($r['status'] ?? ''), ['cancelled','payment_archived'], true)
+36758: 						&& ! in_array((string) ($r['payment_status'] ?? ''), ['cancelled','payment_archived'], true)
+36759: 						&& ! in_array((string) ($r['invoice_status'] ?? ''), ['cancelled','payment_archived'], true);
+36760: 					$r['can_reopen_financial'] = $tab === 'approved' && $can_approve && (bool) preg_match('/approved/', $status_blob);
+36761: 					$r['financial_reject_reason'] = (string) ($r['financial_reject_reason'] ?? ($r['rejected_reason'] ?? ''));
+36762: 					$reject_user_id = (int) ($r['financial_rejected_by'] ?? ($r['rejected_by'] ?? 0));
+36763: 					$reject_user = $reject_user_id > 0 ? get_userdata($reject_user_id) : null;
+36764: 					$r['financial_rejected_by_name'] = $reject_user ? (string) ($reject_user->display_name ?: $reject_user->user_login) : '';
+36765: 					$r['financial_rejected_at'] = (string) ($r['financial_rejected_at'] ?? ($r['rejected_at'] ?? ''));
+36766: 					$r['seller_response_note']=''; $r['seller_response_at']=''; $r['recontact_note_display']=(string)($r['recontact_note'] ?? '');
+36767: 					$return_state = (string) ($r['financial_return_state'] ?? '');
+36768: 					$is_resent_pending = $return_state === 'resent_after_return' && $is_pending_review;
+36769: 					if ($is_resent_pending) { $r['status_label'] = 'در انتظار بررسی مجدد'; }
+36770: 					$r['financial_return_label'] = $is_resent_pending ? 'اصلاح و ارسال مجدد' : ($return_state === 'returned_to_seller' ? 'برگشت به فروشنده' : (str_starts_with($return_state, 'cancelled_by_finance') ? 'لغو شده توسط مالی' : ''));
+36771: 					$r['wc_order_id'] = (int) ($r['wc_order_id'] ?? 0);
+36772: 					$payment_totals = $this->sn_invoice_payment_totals((object) $r);
+36773: 					$current_payment_amount = (float) ($r['latest_payment_amount'] ?? 0);
+36774: 					if ($current_payment_amount <= 0) { $current_payment_amount = (float) (($r['manual_amount'] ?? 0) ?: ($r['deposit_amount'] ?? 0) ?: ($payment_totals['due'] ?? 0)); }
+36775: 					$r['invoice_total_amount'] = (float) $payment_totals['total'];
+36776: 					$r['invoice_total_amount_fmt'] = SN_Helpers::format_price((float) $payment_totals['total']);
+36777: 					$r['current_payment_amount'] = $current_payment_amount;
+36778: 					$r['current_payment_amount_fmt'] = SN_Helpers::format_price($current_payment_amount);
+36779: 					$r['approved_paid_amount'] = (float) $payment_totals['paid'];
+36780: 					$r['approved_paid_amount_fmt'] = SN_Helpers::format_price((float) $payment_totals['paid']);
+36781: 					$r['remaining_amount_value'] = (float) $payment_totals['remaining'];
+36782: 					$r['remaining_amount_fmt'] = SN_Helpers::format_price((float) $payment_totals['remaining']);
+36783: 					$r['finance_cancel_requires_refund_confirm'] = (float) $payment_totals['paid'] > 0.5;
+36784: 					$r['is_fully_settled'] = (float) $payment_totals['remaining'] <= 0.5;
+36785: 					$r['amount_fmt'] = $r['invoice_total_amount_fmt'];
+36786: 					$r['product_name'] = $this->sn_invoice_items_label((int) $r['id'], (int) ($r['product_id'] ?? 0));
+36787: 					$r['deposit_sort_at'] = (string) (($r['latest_payment_created_at'] ?? '') ?: ($r['updated_at'] ?? '') ?: ($r['created_at'] ?? ''));
+36788: 					$r['deposit_date_label'] = $manual_jalali !== '' ? $manual_jalali : SN_Helpers::gregorian_to_jalali_date($r['deposit_sort_at']);
+36789: 					$seller_id = absint($r['seller_id'] ?? 0);
+36790: 					$r['is_dot_marketing'] = ! empty($dot_marketing_sellers[$seller_id]);
+36791: 					$r['finance_tag'] = $r['is_dot_marketing'] ? 'مارکتینگ دات فلو' : '';
+36792: 				}
+36793: 				unset($r);
+36794: 
+36795: 				$queue_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$invoice_table} i WHERE {$needs}");
+36796: 				$kpi = [
+36797: 					'count' => $total, 'filtered_count' => $total, 'queue_total' => $queue_total,
+36798: 					'amount' => $sum, 'amount_fmt' => SN_Helpers::format_price($sum),
+36799: 					'needs_review' => $queue_total,
+36800: 					'online_paid' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$invoice_table} i WHERE {$online_paid}"),
+36801: 					'receipt_uploaded' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$invoice_table} i WHERE {$receipt_uploaded}"),
+36802: 					'approved' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$invoice_table} i WHERE {$approved}"),
+36803: 					'rejected' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$invoice_table} i WHERE {$rejected}"),
+36804: 					'returned_to_seller' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$invoice_table} i WHERE {$returned}"),
+36805: 					'needs_amount_fmt' => SN_Helpers::format_price((float) $wpdb->get_var("SELECT COALESCE(SUM(COALESCE(i.final_total,i.product_price,0)),0) FROM {$invoice_table} i WHERE {$needs}")),
+36806: 					'approved_amount_fmt' => SN_Helpers::format_price((float) $wpdb->get_var("SELECT COALESCE(SUM(COALESCE(i.final_total,i.product_price,0)),0) FROM {$invoice_table} i WHERE {$approved}")),
+36807: 				];
+36808: 				SN_Helpers::send_json(true, '', ['items' => $rows, 'page' => $page, 'limit' => $limit, 'total' => $total, 'total_pages' => $total_pages, 'sort' => $sort, 'q' => $q, 'kpi' => $kpi, 'can_approve_payment' => $can_approve, 'can_reject_payment' => $can_reject]);
+36809: 			}
+36810: 

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>پنل فروشنده — نسخه A (ساختار فعلی، بهینه‌شده)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="a.css">
+</head>
+<body>
+<div class="demo-switch" role="navigation" aria-label="مقایسه نسخه‌ها (فقط دمو)">
+  <span class="lbl">مقایسه:</span>
+  <span class="seg"><a href="a.html" id="sw-a" aria-current="page">A — نسخه بهینه‌شده فعلی</a><a href="index.html" id="sw-b">B — بازطراحی کامل</a></span>
+</div>
+
+<div class="page">
+  <div class="panel">
+    <header class="p-head">
+      <button type="button" class="icon-btn hamburger" id="hamburger" aria-label="باز کردن منوی پنل" aria-expanded="false"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <span class="logo" aria-hidden="true"></span>
+      <h1>پنل فروشنده — مهدی زاده <span class="num">#۲۳۱۰۴</span></h1>
+      <span class="grow"></span>
+      <div class="who-chip"><span>کاربر · فروشنده‌ها</span><b>مهدی زاده #۲۳۱۰۴</b></div>
+      <button type="button" class="btn btn-sm desk" data-demo="نمایشی: تغییر رمز">رمز من</button>
+      <button type="button" class="btn btn-sm desk" data-demo="نمایشی: خروج انجام نشد">خروج</button>
+      <button type="button" class="btn btn-sm desk" data-demo="نمایشی: حالت شب">🌙 حالت شب</button>
+      <button type="button" class="icon-btn" aria-label="اعلان‌ها — ۲ مورد" data-demo="اعلان‌ها: ۱ تماس مجدد امروز، ۱ فاکتور رد شده"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="badge-dot">۲</span></button>
+    </header>
+
+    <div class="p-body" id="p-body">
+      <aside class="side" id="side" aria-label="منوی پنل فروشنده">
+        <div class="side-head"><b>پنل فروشنده</b><button type="button" class="side-toggle" id="side-toggle" aria-label="جمع کردن منو">×</button></div>
+        <nav id="side-nav"></nav>
+      </aside>
+      <main class="content" id="content"></main>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="modal" id="modal" hidden><div class="bd" data-close-modal></div><div class="box" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1" id="modal-box"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js"></script>
+<script src="a.js"></script>
+</body>
+</html>

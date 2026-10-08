@@ -1,0 +1,8 @@
+10283: 
+10284: 	private function sn_hr_change_request_can_create(int $actor_user_id): bool
+10285: 	{
+10286: 		if ($actor_user_id < 1) { return false; }
+10287: 		if (current_user_can('manage_options')) { return true; }
+10288: 		return $this->sn_user_has_hr_position($actor_user_id, ['supervisor', 'senior_supervisor', 'sales_manager', 'sales_deputy', 'hr']);
+10289: 	}
+10290: 

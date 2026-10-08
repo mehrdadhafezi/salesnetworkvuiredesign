@@ -1,0 +1,1418 @@
+[
+  {
+    "file": "includes/class-sn-campaign-tracking.php",
+    "line": 40,
+    "hook": "wp_ajax_sn_campaign_track",
+    "callback": "[ $this, 'ajax_track' ] )"
+  },
+  {
+    "file": "includes/class-sn-campaign-tracking.php",
+    "line": 41,
+    "hook": "wp_ajax_nopriv_sn_campaign_track",
+    "callback": "[ $this, 'ajax_track' ] )"
+  },
+  {
+    "file": "includes/class-sn-campaign-tracking.php",
+    "line": 47,
+    "hook": "admin_post_sn_campaign_save",
+    "callback": "[ $this, 'handle_save_campaign' ] )"
+  },
+  {
+    "file": "includes/class-sn-campaign-tracking.php",
+    "line": 48,
+    "hook": "admin_post_sn_campaign_assign_partner",
+    "callback": "[ $this, 'handle_assign_partner' ] )"
+  },
+  {
+    "file": "includes/class-sn-campaign-tracking.php",
+    "line": 49,
+    "hook": "admin_post_sn_campaign_generate_token",
+    "callback": "[ $this, 'handle_generate_token' ] )"
+  },
+  {
+    "file": "includes/class-sn-campaign-tracking.php",
+    "line": 50,
+    "hook": "admin_post_sn_campaign_revoke_token",
+    "callback": "[ $this, 'handle_revoke_token' ] )"
+  },
+  {
+    "file": "includes/class-sn-campaign-tracking.php",
+    "line": 51,
+    "hook": "admin_post_sn_campaign_save_settings",
+    "callback": "[ $this, 'handle_save_settings' ] )"
+  },
+  {
+    "file": "includes/class-sn-customer-portal.php",
+    "line": 40,
+    "hook": "wp_ajax_sn_customer_portal_send_otp",
+    "callback": "[ $this, 'ajax_send_otp' ] )"
+  },
+  {
+    "file": "includes/class-sn-customer-portal.php",
+    "line": 41,
+    "hook": "wp_ajax_nopriv_sn_customer_portal_send_otp",
+    "callback": "[ $this, 'ajax_send_otp' ] )"
+  },
+  {
+    "file": "includes/class-sn-customer-portal.php",
+    "line": 42,
+    "hook": "wp_ajax_sn_customer_portal_verify_otp",
+    "callback": "[ $this, 'ajax_verify_otp' ] )"
+  },
+  {
+    "file": "includes/class-sn-customer-portal.php",
+    "line": 43,
+    "hook": "wp_ajax_nopriv_sn_customer_portal_verify_otp",
+    "callback": "[ $this, 'ajax_verify_otp' ] )"
+  },
+  {
+    "file": "includes/class-sn-customer-portal.php",
+    "line": 44,
+    "hook": "wp_ajax_sn_customer_purchased_subscriptions",
+    "callback": "[ $this, 'ajax_customer_purchased_subscriptions' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 92,
+    "hook": "admin_post_nopriv_sn_dot_verify_code",
+    "callback": "[ $this, 'handle_verify_code' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 93,
+    "hook": "admin_post_nopriv_sn_dot_select_option",
+    "callback": "[ $this, 'handle_select_option' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 94,
+    "hook": "admin_post_sn_dot_marketing_start_payment",
+    "callback": "[ $this, 'handle_marketing_start_payment' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 95,
+    "hook": "admin_post_nopriv_sn_dot_marketing_start_payment",
+    "callback": "[ $this, 'handle_marketing_start_payment' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 96,
+    "hook": "wp_ajax_sn_dot_marketing_send_otp",
+    "callback": "[ $this, 'handle_marketing_send_otp' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 97,
+    "hook": "wp_ajax_nopriv_sn_dot_marketing_send_otp",
+    "callback": "[ $this, 'handle_marketing_send_otp' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 98,
+    "hook": "wp_ajax_sn_dot_marketing_verify_otp",
+    "callback": "[ $this, 'handle_marketing_verify_otp' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 99,
+    "hook": "wp_ajax_nopriv_sn_dot_marketing_verify_otp",
+    "callback": "[ $this, 'handle_marketing_verify_otp' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 100,
+    "hook": "wp_ajax_sn_dot_marketing_save_lead",
+    "callback": "[ $this, 'handle_marketing_save_lead' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 101,
+    "hook": "wp_ajax_nopriv_sn_dot_marketing_save_lead",
+    "callback": "[ $this, 'handle_marketing_save_lead' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 102,
+    "hook": "wp_ajax_sn_dot_marketing_record_exit",
+    "callback": "[ $this, 'handle_marketing_record_exit' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 103,
+    "hook": "wp_ajax_nopriv_sn_dot_marketing_record_exit",
+    "callback": "[ $this, 'handle_marketing_record_exit' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 104,
+    "hook": "wp_ajax_sn_dot_marketing_record_event",
+    "callback": "[ $this, 'handle_marketing_record_event' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 105,
+    "hook": "wp_ajax_nopriv_sn_dot_marketing_record_event",
+    "callback": "[ $this, 'handle_marketing_record_event' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 106,
+    "hook": "wp_ajax_sn_dot_poll_test_sms",
+    "callback": "[ $this, 'handle_poll_test_sms' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 107,
+    "hook": "wp_ajax_sn_dot_converter_invoices",
+    "callback": "[ $this, 'handle_converter_invoices' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 108,
+    "hook": "wp_ajax_sn_dot_bulk_assign_converter",
+    "callback": "[ $this, 'handle_bulk_assign_converter' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 109,
+    "hook": "wp_ajax_sn_dot_gift_validation_access",
+    "callback": "[ $this, 'handle_gift_validation_access' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 110,
+    "hook": "admin_post_sn_dot_marketing_export_leads",
+    "callback": "[ $this, 'handle_marketing_export_leads' ] )"
+  },
+  {
+    "file": "includes/class-sn-dot-flow.php",
+    "line": 111,
+    "hook": "admin_post_sn_dot_export_report",
+    "callback": "[ $this, 'handle_dot_export_report' ] )"
+  },
+  {
+    "file": "includes/class-sn-hr-transfer.php",
+    "line": 34,
+    "hook": "admin_post_sn_hr_export_users",
+    "callback": "[ $this, 'handle_export' ] )"
+  },
+  {
+    "file": "includes/class-sn-hr-transfer.php",
+    "line": 35,
+    "hook": "wp_ajax_sn_hr_transfer_search_users",
+    "callback": "[ $this, 'ajax_search_users' ] )"
+  },
+  {
+    "file": "includes/class-sn-operations-execution.php",
+    "line": 38,
+    "hook": "admin_post_sn_execution_save_form",
+    "callback": "[ $this, 'handle_save_form' ] )"
+  },
+  {
+    "file": "includes/class-sn-operations-execution.php",
+    "line": 39,
+    "hook": "admin_post_sn_execution_save_integration",
+    "callback": "[ $this, 'handle_save_integration' ] )"
+  },
+  {
+    "file": "includes/class-sn-operations-execution.php",
+    "line": 40,
+    "hook": "admin_post_sn_operations_execution_action",
+    "callback": "[ $this, 'handle_action' ] )"
+  },
+  {
+    "file": "includes/class-sn-operations-execution.php",
+    "line": 41,
+    "hook": "admin_post_sn_operations_execution_export",
+    "callback": "[ $this, 'handle_manual_export' ] )"
+  },
+  {
+    "file": "includes/class-sn-operations-execution.php",
+    "line": 42,
+    "hook": "admin_post_sn_operations_execution_shipping_update",
+    "callback": "[ $this, 'handle_shipping_update' ] )"
+  },
+  {
+    "file": "includes/class-sn-operations-flow.php",
+    "line": 51,
+    "hook": "admin_post_sn_operations_customer_action",
+    "callback": "[ $this, 'handle_customer_action' ] )"
+  },
+  {
+    "file": "includes/class-sn-operations-flow.php",
+    "line": 52,
+    "hook": "admin_post_sn_operations_staff_action",
+    "callback": "[ $this, 'handle_staff_action' ] )"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 58,
+    "hook": "admin_post_sn_save_finance_user",
+    "callback": "[$this, 'handle_save_finance_user'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 59,
+    "hook": "admin_post_sn_save_hr_role_mappings",
+    "callback": "[$this, 'handle_save_hr_role_mappings'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 60,
+    "hook": "admin_post_sn_repair_hr_defaults",
+    "callback": "[$this, 'handle_repair_hr_defaults'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 61,
+    "hook": "admin_post_sn_backfill_invoice_tokens",
+    "callback": "[$this, 'handle_backfill_invoice_tokens'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 62,
+    "hook": "admin_post_sn_sync_hr_profiles",
+    "callback": "[$this, 'handle_sync_hr_profiles'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 63,
+    "hook": "admin_post_sn_assign_hr_parent",
+    "callback": "[$this, 'handle_assign_hr_parent'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 64,
+    "hook": "admin_post_sn_end_hr_assignment",
+    "callback": "[$this, 'handle_end_hr_assignment'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 65,
+    "hook": "admin_post_sn_sync_hr_hierarchy",
+    "callback": "[$this, 'handle_sync_hr_hierarchy'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 66,
+    "hook": "admin_post_sn_bulk_hr_hierarchy_repair",
+    "callback": "[$this, 'handle_bulk_hr_hierarchy_repair'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 67,
+    "hook": "admin_post_sn_restore_seller_hierarchy_from_leads",
+    "callback": "[$this, 'handle_restore_seller_hierarchy_from_leads'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 68,
+    "hook": "admin_post_sn_hr_bulk_assign_hierarchy",
+    "callback": "[$this, 'handle_hr_bulk_assign_hierarchy'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 69,
+    "hook": "admin_post_sn_hierarchy_consistency_check",
+    "callback": "[$this, 'handle_hierarchy_consistency_check'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 70,
+    "hook": "admin_post_sn_distribution_current_structure_preset",
+    "callback": "[$this, 'handle_distribution_current_structure_preset'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 71,
+    "hook": "admin_post_sn_transition_legacy_supervisors",
+    "callback": "[$this, 'handle_transition_legacy_supervisors'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 72,
+    "hook": "admin_post_sn_assign_sales_deputy_position",
+    "callback": "[$this, 'handle_assign_sales_deputy_position'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 73,
+    "hook": "admin_post_sn_manual_hr_position_correction",
+    "callback": "[$this, 'handle_manual_hr_position_correction'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 74,
+    "hook": "admin_post_sn_hr_save_position",
+    "callback": "[$this, 'handle_hr_save_position'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 75,
+    "hook": "admin_post_sn_hr_save_level",
+    "callback": "[$this, 'handle_hr_save_level'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 76,
+    "hook": "wp_ajax_sn_hr_save_position",
+    "callback": "[$this, 'handle_hr_save_position'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 77,
+    "hook": "wp_ajax_sn_hr_save_level",
+    "callback": "[$this, 'handle_hr_save_level'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 78,
+    "hook": "admin_post_sn_hr_save_structure",
+    "callback": "[$this, 'handle_hr_save_structure'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 79,
+    "hook": "admin_post_sn_hr_csv_dry_run",
+    "callback": "[$this, 'handle_hr_csv_dry_run'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 80,
+    "hook": "admin_post_sn_hr_people_import",
+    "callback": "[$this, 'handle_hr_people_import'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 81,
+    "hook": "admin_post_sn_hr_simple_add_person",
+    "callback": "[$this, 'handle_hr_simple_add_person'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 82,
+    "hook": "wp_ajax_sn_hr_simple_add_person",
+    "callback": "[$this, 'handle_hr_simple_add_person'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 83,
+    "hook": "admin_post_sn_hr_profile_action",
+    "callback": "[$this, 'handle_hr_profile_action'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 84,
+    "hook": "wp_ajax_sn_hr_profile_action",
+    "callback": "[$this, 'handle_hr_profile_action'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 85,
+    "hook": "admin_post_sn_hr_compensation_timeline_action",
+    "callback": "[$this, 'handle_hr_compensation_timeline_action'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 86,
+    "hook": "admin_post_sn_hr_inline_profile_update",
+    "callback": "[$this, 'handle_hr_inline_profile_update'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 87,
+    "hook": "admin_post_sn_hr_bulk_inline_profile_update",
+    "callback": "[$this, 'handle_hr_bulk_inline_profile_update'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 88,
+    "hook": "wp_ajax_sn_hr_bulk_inline_profile_update",
+    "callback": "[$this, 'handle_hr_bulk_inline_profile_update'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 89,
+    "hook": "admin_post_sn_hr_bulk_workforce_action",
+    "callback": "[$this, 'handle_hr_bulk_workforce_action'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 90,
+    "hook": "wp_ajax_sn_hr_bulk_workforce_action",
+    "callback": "[$this, 'handle_hr_bulk_workforce_action'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 91,
+    "hook": "admin_post_sn_hr_send_login_credentials_sms",
+    "callback": "[$this, 'handle_hr_send_login_credentials_sms'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 92,
+    "hook": "admin_post_sn_hr_set_user_password",
+    "callback": "[$this, 'handle_hr_set_user_password'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 93,
+    "hook": "admin_post_sn_hr_bulk_set_password",
+    "callback": "[$this, 'handle_hr_bulk_set_password'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 94,
+    "hook": "admin_post_sn_hr_view_staff_panel",
+    "callback": "[$this, 'handle_hr_view_staff_panel'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 95,
+    "hook": "admin_post_sn_hr_return_from_staff",
+    "callback": "[$this, 'handle_hr_return_from_staff'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 96,
+    "hook": "admin_post_sn_change_own_password",
+    "callback": "[$this, 'handle_change_own_password'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 98,
+    "hook": "wp_ajax_sn_hr_set_user_password",
+    "callback": "[$this, 'handle_hr_set_user_password'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 99,
+    "hook": "wp_ajax_sn_hr_bulk_set_password",
+    "callback": "[$this, 'handle_hr_bulk_set_password'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 100,
+    "hook": "admin_post_sn_hr_replace_supervisor",
+    "callback": "[$this, 'handle_hr_replace_supervisor'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 101,
+    "hook": "admin_post_sn_hr_change_request_create",
+    "callback": "[$this, 'handle_hr_change_request_create'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 102,
+    "hook": "admin_post_sn_hr_change_request_review",
+    "callback": "[$this, 'handle_hr_change_request_review'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 103,
+    "hook": "admin_post_sn_mis_create_batch",
+    "callback": "[$this, 'handle_mis_create_batch'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 104,
+    "hook": "admin_post_sn_mis_import_csv",
+    "callback": "[$this, 'handle_mis_import_csv'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 105,
+    "hook": "admin_post_sn_mis_assign_batch",
+    "callback": "[$this, 'handle_mis_assign_batch'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 106,
+    "hook": "admin_post_sn_mis_return_assignments",
+    "callback": "[$this, 'handle_mis_return_assignments'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 107,
+    "hook": "admin_post_sn_mis_quick_assign_data",
+    "callback": "[$this, 'handle_mis_quick_assign_data'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 108,
+    "hook": "admin_post_sn_mis_prepare_lead_pool",
+    "callback": "[$this, 'handle_mis_prepare_lead_pool'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 109,
+    "hook": "admin_post_sn_mis_create_distribution_rule",
+    "callback": "[$this, 'handle_mis_create_distribution_rule'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 110,
+    "hook": "admin_post_sn_mis_create_distribution_plan",
+    "callback": "[$this, 'handle_mis_create_distribution_plan'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 111,
+    "hook": "admin_post_sn_mis_approve_distribution_plan",
+    "callback": "[$this, 'handle_mis_approve_distribution_plan'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 112,
+    "hook": "admin_post_sn_mis_create_live_leads_from_plan",
+    "callback": "[$this, 'handle_mis_create_live_leads_from_plan'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 113,
+    "hook": "admin_post_sn_mis_archive_batch",
+    "callback": "[$this, 'handle_mis_archive_batch'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 114,
+    "hook": "admin_post_sn_mis_delete_batch_data",
+    "callback": "[$this, 'handle_mis_delete_batch_data'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 115,
+    "hook": "admin_post_sn_mis_cleanup_deleted_traces",
+    "callback": "[$this, 'handle_mis_cleanup_deleted_traces'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 116,
+    "hook": "admin_post_sn_repair_mis_schema",
+    "callback": "[$this, 'handle_repair_mis_schema'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 117,
+    "hook": "admin_post_sn_distribution_save_chain",
+    "callback": "[$this, 'handle_distribution_save_chain'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 118,
+    "hook": "admin_post_sn_distribution_deliver_pool",
+    "callback": "[$this, 'handle_distribution_deliver_pool'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 119,
+    "hook": "admin_post_sn_distribution_transfer_items",
+    "callback": "[$this, 'handle_distribution_transfer_items'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 120,
+    "hook": "wp_ajax_sn_distribution_transfer_items",
+    "callback": "[$this, 'handle_distribution_transfer_items'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 121,
+    "hook": "admin_post_sn_distribution_return_items",
+    "callback": "[$this, 'handle_distribution_return_items'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 122,
+    "hook": "wp_ajax_sn_distribution_return_items",
+    "callback": "[$this, 'handle_distribution_return_items'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 123,
+    "hook": "admin_post_sn_distribution_convert_items",
+    "callback": "[$this, 'handle_distribution_convert_items'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 124,
+    "hook": "admin_post_sn_distribution_update_seller_item",
+    "callback": "[$this, 'handle_distribution_update_seller_item'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 125,
+    "hook": "admin_post_sn_paid_referral_route",
+    "callback": "[$this, 'handle_paid_referral_route'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 126,
+    "hook": "admin_post_sn_paid_referral_create_follow_invoice",
+    "callback": "[$this, 'handle_paid_referral_create_follow_invoice'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 127,
+    "hook": "admin_post_sn_invoice_payment_workflow_cancel",
+    "callback": "[$this, 'handle_invoice_payment_workflow_cancel'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 128,
+    "hook": "admin_post_sn_after_sales_create_case",
+    "callback": "[$this, 'handle_after_sales_create_case'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 129,
+    "hook": "admin_post_sn_after_sales_update_case",
+    "callback": "[$this, 'handle_after_sales_update_case'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 130,
+    "hook": "admin_post_sn_commission_save_rule",
+    "callback": "[$this, 'handle_commission_save_rule'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 131,
+    "hook": "admin_post_sn_commission_run_dry_run",
+    "callback": "[$this, 'handle_commission_run_dry_run'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 132,
+    "hook": "admin_post_sn_commission_review_run",
+    "callback": "[$this, 'handle_commission_review_run'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 133,
+    "hook": "admin_post_sn_commission_save_posting_flag",
+    "callback": "[$this, 'handle_commission_save_posting_flag'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 134,
+    "hook": "admin_post_sn_commission_post_wallet",
+    "callback": "[$this, 'handle_commission_post_wallet'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 135,
+    "hook": "admin_post_sn_save_scope_enforcement_mode",
+    "callback": "[$this, 'handle_save_scope_enforcement_mode'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 136,
+    "hook": "admin_post_sn_export_report_csv",
+    "callback": "[$this, 'handle_export_report_csv'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 137,
+    "hook": "admin_post_sn_reporting_export",
+    "callback": "[$this, 'sn_reporting_export'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 138,
+    "hook": "admin_post_sn_export_payment_rewards",
+    "callback": "[$this, 'handle_export_payment_rewards'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 139,
+    "hook": "admin_post_sn_portal_page_setup",
+    "callback": "[$this, 'handle_portal_page_setup'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 166,
+    "hook": "wp_ajax_sn_import_leads",
+    "callback": "[$this, 'ajax_import_leads'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 167,
+    "hook": "wp_ajax_sn_assign_leads",
+    "callback": "[$this, 'ajax_assign_leads'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 168,
+    "hook": "wp_ajax_sn_assign_supervisor_leads",
+    "callback": "[$this, 'ajax_assign_supervisor_leads'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 169,
+    "hook": "wp_ajax_sn_sales_manager_leads",
+    "callback": "[$this, 'ajax_sales_manager_leads'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 170,
+    "hook": "wp_ajax_sn_sales_manager_lazy_tab",
+    "callback": "[$this, 'ajax_sales_manager_lazy_tab'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 171,
+    "hook": "wp_ajax_sn_senior_supervisor_lazy_tab",
+    "callback": "[$this, 'ajax_senior_supervisor_lazy_tab'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 172,
+    "hook": "wp_ajax_sn_save_seller_supervisor",
+    "callback": "[$this, 'ajax_save_seller_supervisor'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 173,
+    "hook": "wp_ajax_sn_bulk_seller_action",
+    "callback": "[$this, 'ajax_bulk_seller_action'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 174,
+    "hook": "wp_ajax_sn_save_settings",
+    "callback": "[$this, 'ajax_save_settings'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 175,
+    "hook": "wp_ajax_sn_full_data_reset",
+    "callback": "[$this, 'ajax_full_data_reset'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 176,
+    "hook": "wp_ajax_sn_repair_pages",
+    "callback": "[$this, 'ajax_repair_pages'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 177,
+    "hook": "wp_ajax_sn_wallet_manual_adjust",
+    "callback": "[$this, 'ajax_wallet_manual_adjust'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 178,
+    "hook": "wp_ajax_sn_wallet_recalculate",
+    "callback": "[$this, 'ajax_wallet_recalculate'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 181,
+    "hook": "wp_ajax_sn_save_customer_info",
+    "callback": "[$this, 'ajax_save_customer_info'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 182,
+    "hook": "wp_ajax_nopriv_sn_save_customer_info",
+    "callback": "[$this, 'ajax_save_customer_info'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 183,
+    "hook": "wp_ajax_sn_toggle_seller_active",
+    "callback": "[$this, 'ajax_toggle_seller_active'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 184,
+    "hook": "wp_ajax_sn_create_invoice",
+    "callback": "[$this, 'ajax_create_invoice'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 185,
+    "hook": "wp_ajax_nopriv_sn_create_invoice",
+    "callback": "[$this, 'ajax_create_invoice'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 186,
+    "hook": "wp_ajax_sn_converter_issue_payment_stage",
+    "callback": "[$this, 'ajax_converter_issue_payment_stage'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 188,
+    "hook": "admin_post_sn_create_invoice",
+    "callback": "[$this, 'handle_create_invoice_post'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 189,
+    "hook": "admin_post_nopriv_sn_create_invoice",
+    "callback": "[$this, 'handle_create_invoice_post'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 190,
+    "hook": "wp_ajax_sn_seller_leads",
+    "callback": "[$this, 'ajax_seller_leads'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 191,
+    "hook": "wp_ajax_nopriv_sn_seller_leads",
+    "callback": "[$this, 'ajax_seller_leads'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 192,
+    "hook": "wp_ajax_sn_seller_invoices",
+    "callback": "[$this, 'ajax_seller_invoices'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 193,
+    "hook": "wp_ajax_nopriv_sn_seller_invoices",
+    "callback": "[$this, 'ajax_seller_invoices'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 194,
+    "hook": "wp_ajax_sn_resend_invoice_sms",
+    "callback": "[$this, 'ajax_resend_invoice_sms'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 195,
+    "hook": "wp_ajax_sn_copy_invoice_payment_link",
+    "callback": "[$this, 'ajax_copy_invoice_payment_link'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 196,
+    "hook": "wp_ajax_sn_invoice_pre_payment_edit",
+    "callback": "[$this, 'ajax_invoice_pre_payment_edit'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 197,
+    "hook": "wp_ajax_sn_seller_wallet_box",
+    "callback": "[$this, 'ajax_seller_wallet_box'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 200,
+    "hook": "wp_ajax_sn_supervisor_data",
+    "callback": "[$this, 'ajax_supervisor_data'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 201,
+    "hook": "wp_ajax_sn_supervisor_lazy_tab",
+    "callback": "[$this, 'ajax_supervisor_lazy_tab'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 202,
+    "hook": "wp_ajax_sn_supervisor_distribution_items",
+    "callback": "[$this, 'ajax_supervisor_distribution_items'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 203,
+    "hook": "wp_ajax_sn_get_unassigned",
+    "callback": "[$this, 'ajax_get_unassigned'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 204,
+    "hook": "wp_ajax_sn_supervisor_unassign_leads",
+    "callback": "[$this, 'ajax_supervisor_unassign_leads'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 205,
+    "hook": "wp_ajax_sn_lead_profile",
+    "callback": "[$this, 'ajax_lead_profile'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 206,
+    "hook": "wp_ajax_sn_customer_profile_search",
+    "callback": "[$this, 'ajax_customer_profile_search'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 207,
+    "hook": "wp_ajax_sn_seller_profile",
+    "callback": "[$this, 'ajax_seller_profile'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 208,
+    "hook": "wp_ajax_sn_supervisor_upload_receipt",
+    "callback": "[$this, 'ajax_supervisor_upload_receipt'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 209,
+    "hook": "wp_ajax_sn_supervisor_invoices",
+    "callback": "[$this, 'ajax_supervisor_invoices'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 212,
+    "hook": "wp_ajax_sn_confirm_card_payment",
+    "callback": "[$this, 'ajax_confirm_card_payment'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 213,
+    "hook": "wp_ajax_sn_reject_receipt",
+    "callback": "[$this, 'ajax_reject_receipt'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 214,
+    "hook": "wp_ajax_sn_admin_change_status",
+    "callback": "[$this, 'ajax_admin_change_invoice_status'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 215,
+    "hook": "wp_ajax_sn_financial_approve_payment",
+    "callback": "[$this, 'ajax_financial_approve_payment'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 216,
+    "hook": "wp_ajax_sn_financial_bulk_approve",
+    "callback": "[$this, 'ajax_financial_bulk_approve'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 217,
+    "hook": "wp_ajax_sn_financial_reject_payment",
+    "callback": "[$this, 'ajax_financial_reject_payment'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 218,
+    "hook": "wp_ajax_sn_financial_cancel_invoice",
+    "callback": "[$this, 'ajax_financial_cancel_invoice'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 219,
+    "hook": "wp_ajax_sn_financial_reopen_invoice",
+    "callback": "[$this, 'ajax_financial_reopen_invoice'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 220,
+    "hook": "wp_ajax_sn_financial_invoices",
+    "callback": "[$this, 'ajax_financial_invoices'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 221,
+    "hook": "wp_ajax_sn_financial_invoice_details",
+    "callback": "[$this, 'ajax_financial_invoice_details'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 222,
+    "hook": "admin_post_sn_financial_gateway_export",
+    "callback": "[$this, 'handle_financial_gateway_export'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 223,
+    "hook": "wp_ajax_sn_seller_resend_financial",
+    "callback": "[$this, 'ajax_seller_resend_financial'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 224,
+    "hook": "wp_ajax_sn_seller_mark_recontact_status",
+    "callback": "[$this, 'ajax_seller_mark_recontact_status'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 225,
+    "hook": "wp_ajax_sn_seller_request_extra_number",
+    "callback": "[$this, 'ajax_seller_request_extra_number'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 226,
+    "hook": "wp_ajax_sn_manager_review_extra_number",
+    "callback": "[$this, 'ajax_manager_review_extra_number'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 227,
+    "hook": "wp_ajax_sn_paid_referral_cancel",
+    "callback": "[$this, 'ajax_paid_referral_cancel'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 228,
+    "hook": "wp_ajax_sn_paid_referral_restore",
+    "callback": "[$this, 'ajax_paid_referral_restore'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 231,
+    "hook": "wp_ajax_nopriv_sn_invoice_info",
+    "callback": "[$this, 'ajax_invoice_info'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 232,
+    "hook": "wp_ajax_sn_invoice_info",
+    "callback": "[$this, 'ajax_invoice_info'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 233,
+    "hook": "wp_ajax_nopriv_sn_pay_online",
+    "callback": "[$this, 'ajax_pay_online'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 234,
+    "hook": "wp_ajax_sn_pay_online",
+    "callback": "[$this, 'ajax_pay_online'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 235,
+    "hook": "wp_ajax_nopriv_sn_upload_receipt",
+    "callback": "[$this, 'ajax_upload_receipt'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 236,
+    "hook": "wp_ajax_sn_upload_receipt",
+    "callback": "[$this, 'ajax_upload_receipt'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 237,
+    "hook": "wp_ajax_nopriv_sn_submit_manual_payment",
+    "callback": "[$this, 'ajax_submit_manual_payment'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 238,
+    "hook": "wp_ajax_sn_submit_manual_payment",
+    "callback": "[$this, 'ajax_submit_manual_payment'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 239,
+    "hook": "wp_ajax_nopriv_sn_invoice_recontact",
+    "callback": "[$this, 'ajax_invoice_recontact'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 240,
+    "hook": "wp_ajax_sn_invoice_recontact",
+    "callback": "[$this, 'ajax_invoice_recontact'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 241,
+    "hook": "wp_ajax_nopriv_sn_submit_payment_reward_contact",
+    "callback": "[$this, 'ajax_submit_payment_reward_contact'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 242,
+    "hook": "wp_ajax_sn_submit_payment_reward_contact",
+    "callback": "[$this, 'ajax_submit_payment_reward_contact'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 243,
+    "hook": "wp_ajax_nopriv_sn_spin_invoice_wheel",
+    "callback": "[$this, 'ajax_spin_invoice_wheel'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 244,
+    "hook": "wp_ajax_sn_spin_invoice_wheel",
+    "callback": "[$this, 'ajax_spin_invoice_wheel'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 245,
+    "hook": "wp_ajax_nopriv_sn_apply_invoice_wheel_reward",
+    "callback": "[$this, 'ajax_apply_invoice_wheel_reward'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 246,
+    "hook": "wp_ajax_sn_apply_invoice_wheel_reward",
+    "callback": "[$this, 'ajax_apply_invoice_wheel_reward'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 247,
+    "hook": "wp_ajax_nopriv_sn_apply_invoice_coupon",
+    "callback": "[$this, 'ajax_apply_invoice_coupon'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 248,
+    "hook": "wp_ajax_sn_apply_invoice_coupon",
+    "callback": "[$this, 'ajax_apply_invoice_coupon'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 249,
+    "hook": "wp_ajax_nopriv_sn_remove_invoice_coupon",
+    "callback": "[$this, 'ajax_remove_invoice_coupon'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 250,
+    "hook": "wp_ajax_sn_remove_invoice_coupon",
+    "callback": "[$this, 'ajax_remove_invoice_coupon'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 251,
+    "hook": "wp_ajax_nopriv_sn_invoice_customer_action",
+    "callback": "[$this, 'ajax_invoice_customer_action'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 252,
+    "hook": "wp_ajax_sn_invoice_customer_action",
+    "callback": "[$this, 'ajax_invoice_customer_action'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 253,
+    "hook": "wp_ajax_nopriv_sn_invoice_customer_actions_batch",
+    "callback": "[$this, 'ajax_invoice_customer_actions_batch'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 254,
+    "hook": "wp_ajax_sn_invoice_customer_actions_batch",
+    "callback": "[$this, 'ajax_invoice_customer_actions_batch'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 255,
+    "hook": "wp_ajax_sn_seller_customer_actions",
+    "callback": "[$this, 'ajax_seller_customer_actions'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 262,
+    "hook": "admin_post_nopriv_sn_seller_login",
+    "callback": "[$this, 'handle_seller_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 263,
+    "hook": "admin_post_sn_seller_login",
+    "callback": "[$this, 'handle_seller_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 264,
+    "hook": "admin_post_nopriv_sn_seller_register",
+    "callback": "[$this, 'handle_seller_register'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 265,
+    "hook": "admin_post_sn_seller_register",
+    "callback": "[$this, 'handle_seller_register'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 266,
+    "hook": "admin_post_sn_seller_logout",
+    "callback": "[$this, 'handle_seller_logout'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 267,
+    "hook": "admin_post_nopriv_sn_financial_login",
+    "callback": "[$this, 'handle_financial_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 268,
+    "hook": "admin_post_sn_financial_login",
+    "callback": "[$this, 'handle_financial_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 269,
+    "hook": "admin_post_sn_financial_logout",
+    "callback": "[$this, 'handle_seller_logout'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 270,
+    "hook": "admin_post_nopriv_sn_my_panel_login",
+    "callback": "[$this, 'handle_my_panel_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 271,
+    "hook": "admin_post_sn_my_panel_login",
+    "callback": "[$this, 'handle_my_panel_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 272,
+    "hook": "admin_post_nopriv_sn_unified_login",
+    "callback": "[$this, 'handle_unified_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 273,
+    "hook": "admin_post_sn_unified_login",
+    "callback": "[$this, 'handle_unified_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 274,
+    "hook": "admin_post_nopriv_sn_supervisor_login",
+    "callback": "[$this, 'handle_supervisor_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 275,
+    "hook": "admin_post_sn_supervisor_login",
+    "callback": "[$this, 'handle_supervisor_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 276,
+    "hook": "admin_post_nopriv_sn_sales_manager_login",
+    "callback": "[$this, 'handle_sales_manager_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 277,
+    "hook": "admin_post_sn_sales_manager_login",
+    "callback": "[$this, 'handle_sales_manager_login'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 278,
+    "hook": "admin_post_sn_sales_manager_export",
+    "callback": "[$this, 'handle_sales_manager_export'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 294,
+    "hook": "wp_ajax_sn_test_sms",
+    "callback": "[$this, 'ajax_test_sms'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 295,
+    "hook": "wp_ajax_sn_test_bale",
+    "callback": "[$this, 'ajax_test_bale'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 296,
+    "hook": "wp_ajax_sn_preview_invoice_sms",
+    "callback": "[$this, 'ajax_preview_invoice_sms'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 299,
+    "hook": "wp_ajax_sn_update_lead_status",
+    "callback": "[$this, 'ajax_update_lead_status'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 300,
+    "hook": "wp_ajax_sn_get_lead_statuses",
+    "callback": "[$this, 'ajax_get_lead_statuses'])"
+  },
+  {
+    "file": "includes/class-sn-plugin.php",
+    "line": 301,
+    "hook": "wp_ajax_sn_save_statuses",
+    "callback": "[$this, 'ajax_save_statuses'])"
+  },
+  {
+    "file": "includes/class-sn-product-flow.php",
+    "line": 35,
+    "hook": "admin_post_sn_shipping_update_order",
+    "callback": "[ $this, 'handle_shipping_update' ] )"
+  },
+  {
+    "file": "includes/class-sn-product-flow.php",
+    "line": 36,
+    "hook": "wp_ajax_sn_supervisor_change_subscription",
+    "callback": "[ $this, 'handle_supervisor_change_subscription' ] )"
+  },
+  {
+    "file": "includes/class-sn-projects.php",
+    "line": 69,
+    "hook": "admin_post_sn_project_download",
+    "callback": "[ $this, 'handle_download' ] )"
+  },
+  {
+    "file": "includes/class-sn-purpose-commission.php",
+    "line": 36,
+    "hook": "admin_post_sn_save_purpose_commission_matrix",
+    "callback": "[ $this, 'handle_save_matrix' ] )"
+  },
+  {
+    "file": "includes/class-sn-purpose-commission.php",
+    "line": 37,
+    "hook": "admin_post_sn_backfill_purpose_commissions",
+    "callback": "[ $this, 'handle_backfill' ] )"
+  },
+  {
+    "file": "includes/class-sn-seller-flow.php",
+    "line": 44,
+    "hook": "wp_ajax_sn_seller_flow_no_answer_attempt",
+    "callback": "[ $this, 'ajax_no_answer_attempt' ] )"
+  },
+  {
+    "file": "includes/class-sn-subscription-form.php",
+    "line": 10,
+    "hook": "admin_post_nopriv_sn_subscription_form_pay",
+    "callback": "[ __CLASS__, 'submit' ] )"
+  },
+  {
+    "file": "includes/class-sn-subscription-form.php",
+    "line": 11,
+    "hook": "admin_post_sn_subscription_form_pay",
+    "callback": "[ __CLASS__, 'submit' ] )"
+  },
+  {
+    "file": "includes/reports/class-sn-mis-report.php",
+    "line": 9,
+    "hook": "wp_ajax_sn_mis_report",
+    "callback": "[self::class,'ajax'])"
+  },
+  {
+    "file": "includes/reports/class-sn-mis-report.php",
+    "line": 10,
+    "hook": "admin_post_sn_mis_report_download",
+    "callback": "[self::class,'download'])"
+  }
+]

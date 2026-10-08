@@ -1,0 +1,543 @@
+17744: 
+17745: 	public function handle_hr_people_import(): void
+17746: 	{
+17747: 		if (! $this->sn_can_manage_hr_panel()) { wp_die('دسترسی غیرمجاز'); }
+17748: 		$posted_nonce = sanitize_text_field(wp_unslash($_POST['_wpnonce'] ?? ''));
+17749: 		$has_people_import_nonce = $posted_nonce !== '' && (bool) wp_verify_nonce($posted_nonce, 'sn_hr_people_import');
+17750: 		$nonce_action = $has_people_import_nonce ? 'sn_hr_people_import' : 'sn_hr_csv_dry_run';
+17751: 		check_admin_referer($nonce_action);
+17752: 		$run_mode = sanitize_key(wp_unslash($_POST['run_mode'] ?? 'dry_run'));
+17753: 		if (! in_array($run_mode, ['dry_run', 'apply'], true)) { $run_mode = 'dry_run'; }
+17754: 		// The legacy nonce was issued for preview-only forms. It must never authorize Apply.
+17755: 		if (! $has_people_import_nonce) { $run_mode = 'dry_run'; }
+17756: 		$import_mode = sanitize_key(wp_unslash($_POST['import_mode'] ?? ($_POST['template_type'] ?? 'advanced_people')));
+17757: 		$simple_mode = $import_mode === 'simple_people';
+17758: 		$apply = $run_mode === 'apply';
+17759: 		$allow_create_user = ! empty($_POST['allow_create_wp_user']);
+17760: 		$send_notification = ! empty($_POST['send_user_notification']);
+17761: 		$report = [
+17762: 			'action' => $apply ? 'hr_people_import_apply' : 'hr_people_import_dry_run',
+17763: 			'mode' => $apply ? 'apply' : 'dry_run',
+17764: 			'import_mode' => $simple_mode ? 'simple_people' : ($import_mode === 'roundtrip_people' ? 'roundtrip_people' : 'advanced_people'),
+17765: 			'total_rows' => 0,
+17766: 			'valid' => 0,
+17767: 			'invalid' => 0,
+17768: 			'created_users' => 0,
+17769: 			'matched_users' => 0,
+17770: 			'profiles_created' => 0,
+17771: 			'profiles_updated' => 0,
+17772: 			'assignments_changed' => 0,
+17773: 			'assignments_skipped' => 0,
+17774: 			'compensation_updated' => 0,
+17775: 			'duplicate_employee_code' => 0,
+17776: 			'duplicate_person' => 0,
+17777: 			'identity_conflict' => 0,
+17778: 			'invalid_mobile' => 0,
+17779: 			'name_missing' => 0,
+17780: 			'user_not_found' => 0,
+17781: 			'position_not_found' => 0,
+17782: 			'level_not_found' => 0,
+17783: 			'manager_not_found' => 0,
+17784: 			'manager_resolved' => 0,
+17785: 			'manager_in_file' => 0,
+17786: 			'manager_ambiguous' => 0,
+17787: 			'would_assign' => 0,
+17788: 			'preview' => [],
+17789: 			'errors' => [],
+17790: 			'warnings' => [],
+17791: 		];
+17792: 		if ($apply && strtoupper(sanitize_text_field(wp_unslash($_POST['confirm_apply'] ?? ''))) !== 'APPLY') {
+17793: 			$report['errors'][] = 'apply_confirmation_missing';
+17794: 			update_option('sn_hr_csv_dry_run_report', $report, false);
+17795: 			$redirect = wp_get_referer() ?: home_url('/');
+17796: 			wp_safe_redirect(add_query_arg('sn_transfer_msg', 'apply_confirmation_missing', $redirect));
+17797: 			exit;
+17798: 		}
+17799: 		if (empty($_FILES['hr_csv']['tmp_name']) || ! is_uploaded_file($_FILES['hr_csv']['tmp_name'])) {
+17800: 			$report['errors'][] = 'file_missing';
+17801: 			update_option('sn_hr_csv_dry_run_report', $report, false);
+17802: 			wp_safe_redirect(wp_get_referer() ?: home_url('/'));
+17803: 			exit;
+17804: 		}
+17805: 		$file = $_FILES['hr_csv']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+17806: 		$rows = $this->sn_read_tabular_upload($file, ['csv' => 'text/csv', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+17807: 		if (! empty($rows['errors'])) {
+17808: 			$report['errors'] = array_merge($report['errors'], (array) $rows['errors']);
+17809: 			update_option('sn_hr_csv_dry_run_report', $report, false);
+17810: 			wp_safe_redirect(wp_get_referer() ?: home_url('/'));
+17811: 			exit;
+17812: 		}
+17813: 		if (empty($rows['rows'])) {
+17814: 			$report['errors'][] = 'file_empty';
+17815: 			update_option('sn_hr_csv_dry_run_report', $report, false);
+17816: 			wp_safe_redirect(wp_get_referer() ?: home_url('/'));
+17817: 			exit;
+17818: 		}
+17819: 
+17820: 		global $wpdb;
+17821: 		$this->sn_ensure_hr_profile_schema_runtime();
+17822: 		$position_cache = [];
+17823: 		$level_cache = [];
+17824: 		$structure_cache = ['department' => [], 'unit' => [], 'team' => []];
+17825: 		$commission_rule_cache = [];
+17826: 		$hr = class_exists('SN_HR_Service') ? new SN_HR_Service() : null;
+17827: 		$hierarchy = class_exists('SN_Hierarchy_Service') ? new SN_Hierarchy_Service() : null;
+17828: 		if (! $hr || (! $simple_mode && ! $hierarchy)) {
+17829: 			$report['errors'][] = 'hr_import_service_missing';
+17830: 			update_option('sn_hr_csv_dry_run_report', $report, false);
+17831: 			wp_safe_redirect(wp_get_referer() ?: home_url('/'));
+17832: 			exit;
+17833: 		}
+17834: 		$seen_codes = [];
+17835: 		$prepared_rows = [];
+17836: 		$file_lookup_index = [];
+17837: 		foreach (array_slice((array) $rows['rows'], 0, 10000) as $row_no => $raw_row) {
+17838: 			$data = $this->sn_normalize_hr_people_row((array) $raw_row);
+17839: 			$normalized_mobile = class_exists('SN_Helpers') ? SN_Helpers::normalize_mobile((string) ($data['mobile'] ?? '')) : sanitize_text_field((string) ($data['mobile'] ?? ''));
+17840: 			$prepared_index = count($prepared_rows);
+17841: 			$prepared_rows[] = [
+17842: 				'row' => $row_no + 2,
+17843: 				'data' => $data,
+17844: 				'normalized_mobile' => $normalized_mobile,
+17845: 				'user_id' => 0,
+17846: 				'profile_id' => 0,
+17847: 				'valid' => false,
+17848: 				'manager_lookup' => sanitize_text_field((string) ($data['manager_lookup'] ?? '')),
+17849: 			];
+17850: 			foreach ($this->sn_hr_person_lookup_keys_for_row($data) as $key) {
+17851: 				if (! isset($file_lookup_index[$key])) { $file_lookup_index[$key] = []; }
+17852: 				$file_lookup_index[$key][] = $prepared_index;
+17853: 			}
+17854: 		}
+17855: 
+17856: 		$user_lookup_cache = $this->sn_hr_preload_user_lookup_cache($prepared_rows);
+17857: 		$existing_code_owners = [];
+17858: 		$import_employee_codes = array_values(array_unique(array_filter(array_map(
+17859: 			static fn($item) => sanitize_text_field((string) (($item['data']['employee_code'] ?? ''))),
+17860: 			$prepared_rows
+17861: 		))));
+17862: 		foreach (array_chunk($import_employee_codes, 500) as $code_chunk) {
+17863: 			$placeholders = implode(',', array_fill(0, count($code_chunk), '%s'));
+17864: 			$code_rows = $wpdb->get_results($wpdb->prepare(
+17865: 				"SELECT employee_code,user_id FROM {$wpdb->prefix}sn_hr_profiles WHERE employee_code IN ({$placeholders})",
+17866: 				...$code_chunk
+17867: 			), ARRAY_A) ?: [];
+17868: 			foreach ($code_rows as $code_row) { $existing_code_owners[(string) $code_row['employee_code']] = (int) $code_row['user_id']; }
+17869: 		}
+17870: 		$resolved_user_id_by_key = [];
+17871: 		$assignment_queue = [];
+17872: 		$seen_person_keys = [];
+17873: 		foreach ($prepared_rows as $item_index => $item) {
+17874: 			$report['total_rows']++;
+17875: 			$data = (array) $item['data'];
+17876: 			$employee_code = (string) ($data['employee_code'] ?? '');
+17877: 			$user_lookup = (string) ($data['user_lookup'] ?? '');
+17878: 			$matched_identity_users = [];
+17879: 			foreach (array_values(array_unique(array_filter([
+17880: 				$user_lookup,
+17881: 				(string) ($data['user_login'] ?? ''),
+17882: 				(string) ($data['email'] ?? ''),
+17883: 				(string) ($data['mobile'] ?? ''),
+17884: 			]))) as $identity_lookup) {
+17885: 				$identity_user = $this->sn_hr_find_user_by_lookup_cached((string) $identity_lookup, $user_lookup_cache);
+17886: 				if ($identity_user instanceof WP_User) { $matched_identity_users[(int) $identity_user->ID] = $identity_user; }
+17887: 			}
+17888: 			$identity_conflict = count($matched_identity_users) > 1;
+17889: 			$user = count($matched_identity_users) === 1 ? reset($matched_identity_users) : null;
+17890: 			$position_slug = sanitize_key((string) ($data['position'] ?? ''));
+17891: 			$level_slug = sanitize_key((string) ($data['level'] ?? ''));
+17892: 			$position_raw = (string) ($data['position_raw'] ?? '');
+17893: 			$level_raw = (string) ($data['level_raw'] ?? '');
+17894: 			$manager_lookup = sanitize_text_field((string) ($data['manager_lookup'] ?? ''));
+17895: 			$manager = (! $simple_mode && $manager_lookup !== '') ? $this->sn_hr_find_user_by_lookup_cached($manager_lookup, $user_lookup_cache) : null;
+17896: 			$manager_file_matches = (! $simple_mode && $manager_lookup !== '') ? $this->sn_hr_file_lookup_indexes($manager_lookup, $file_lookup_index) : [];
+17897: 			$manager_in_file = ! $manager instanceof WP_User && count($manager_file_matches) === 1;
+17898: 			$manager_ambiguous = ! $manager instanceof WP_User && count($manager_file_matches) > 1;
+17899: 			$manager_status = 'none';
+17900: 			if ($simple_mode && $manager_lookup !== '') {
+17901: 				$manager_status = 'simple_ignored';
+17902: 			} elseif (! $simple_mode && $manager_lookup !== '') {
+17903: 				if ($manager instanceof WP_User) { $manager_status = 'resolved'; }
+17904: 				elseif ($manager_in_file) { $manager_status = 'in_file'; }
+17905: 				elseif ($manager_ambiguous) { $manager_status = 'ambiguous'; }
+17906: 				else { $manager_status = 'not_found'; }
+17907: 			}
+17908: 			$normalized_mobile = (string) ($item['normalized_mobile'] ?? '');
+17909: 			$reasons = [];
+17910: 			if ($identity_conflict) { $report['identity_conflict']++; $reasons[] = 'identity_fields_match_different_users'; }
+17911: 			if ($simple_mode && $data['display_name'] === '') {
+17912: 				$report['name_missing']++;
+17913: 				$reasons[] = 'نام وارد نشده است';
+17914: 			}
+17915: 			if ($simple_mode && (! class_exists('SN_Helpers') || ! SN_Helpers::is_valid_mobile($normalized_mobile))) {
+17916: 				$report['invalid_mobile']++;
+17917: 				$reasons[] = 'موبایل معتبر نیست';
+17918: 			}
+17919: 			if ($employee_code !== '' && isset($seen_codes[$employee_code])) { $report['duplicate_employee_code']++; $reasons[] = 'duplicate_employee_code'; }
+17920: 			if ($employee_code !== '') { $seen_codes[$employee_code] = true; }
+17921: 			if ($employee_code !== '') {
+17922: 				$employee_code_user_id = (int) ($existing_code_owners[$employee_code] ?? 0);
+17923: 				if ($employee_code_user_id > 0 && (! $user instanceof WP_User || $employee_code_user_id !== (int) $user->ID)) {
+17924: 					$report['duplicate_employee_code']++;
+17925: 					$reasons[] = 'duplicate_employee_code_existing_profile';
+17926: 				}
+17927: 			}
+17928: 			$identity_keys = array_values(array_filter(
+17929: 				$this->sn_hr_person_lookup_keys_for_row($data),
+17930: 				static fn($key) => strpos((string) $key, 'name:') !== 0
+17931: 			));
+17932: 			$duplicate_identity = false;
+17933: 			foreach ($identity_keys as $identity_key) {
+17934: 				if (isset($seen_person_keys[$identity_key])) { $duplicate_identity = true; }
+17935: 			}
+17936: 			if ($duplicate_identity) {
+17937: 				$report['duplicate_person']++;
+17938: 				$reasons[] = 'duplicate_person_in_file';
+17939: 			}
+17940: 			foreach ($identity_keys as $identity_key) { $seen_person_keys[$identity_key] = true; }
+17941: 			if ($user instanceof WP_User) {
+17942: 				$report['matched_users']++;
+17943: 			}
+17944: 			$position = null;
+17945: 			if ($position_slug !== '' || $position_raw !== '') {
+17946: 				$position_cache_key = $position_slug . '|' . $position_raw;
+17947: 				if (! isset($position_cache[$position_cache_key])) {
+17948: 					$position_cache[$position_cache_key] = $this->sn_find_hr_lookup_row('sn_hr_positions', $position_slug, $position_raw);
+17949: 				}
+17950: 				$position = $position_cache[$position_cache_key];
+17951: 				if (! $position) { $report['position_not_found']++; $reasons[] = 'position_not_found'; }
+17952: 			} elseif ($simple_mode) {
+17953: 				$report['position_not_found']++;
+17954: 				$reasons[] = 'سمت شناسایی نشد';
+17955: 			}
+17956: 			$level = null;
+17957: 			if (! $simple_mode && ($level_slug !== '' || $level_raw !== '')) {
+17958: 				$level_cache_key = $level_slug . '|' . $level_raw;
+17959: 				if (! isset($level_cache[$level_cache_key])) {
+17960: 					$level_cache[$level_cache_key] = $this->sn_find_hr_lookup_row('sn_hr_levels', $level_slug, $level_raw);
+17961: 				}
+17962: 				$level = $level_cache[$level_cache_key];
+17963: 				if (! $level) { $report['level_not_found']++; $reasons[] = 'level_not_found'; }
+17964: 			}
+17965: 			$structure_ids = [];
+17966: 			if (! $simple_mode) {
+17967: 				foreach (['department' => 'sn_hr_departments', 'unit' => 'sn_hr_units', 'team' => 'sn_hr_teams'] as $structure_key => $table_suffix) {
+17968: 					$structure_raw = sanitize_text_field((string) ($data[$structure_key] ?? ''));
+17969: 					if ($structure_raw === '') { continue; }
+17970: 					$structure_slug = sanitize_key($structure_raw);
+17971: 					$cache_key = $structure_slug . '|' . $structure_raw;
+17972: 					if (! array_key_exists($cache_key, $structure_cache[$structure_key])) {
+17973: 						$structure_cache[$structure_key][$cache_key] = $this->sn_find_hr_lookup_row($table_suffix, $structure_slug, $structure_raw);
+17974: 					}
+17975: 					$structure_row = $structure_cache[$structure_key][$cache_key];
+17976: 					if (! $structure_row) {
+17977: 						$reasons[] = $structure_key . '_not_found';
+17978: 					} else {
+17979: 						$structure_ids[$structure_key . '_id'] = (int) $structure_row->id;
+17980: 					}
+17981: 				}
+17982: 				foreach (['hire_date', 'termination_date', 'effective_from'] as $date_key) {
+17983: 					$date_value = (string) ($data[$date_key] ?? '');
+17984: 					if ($date_value !== '' && ! $this->sn_is_valid_iso_date($date_value)) { $reasons[] = $date_key . '_invalid'; }
+17985: 				}
+17986: 			}
+17987: 			if (! $simple_mode && $manager_lookup !== '') {
+17988: 				if ($manager instanceof WP_User) { $report['manager_resolved']++; }
+17989: 				elseif ($manager_in_file) { $report['manager_in_file']++; }
+17990: 				elseif ($manager_ambiguous) { $report['manager_ambiguous']++; $reasons[] = 'manager_ambiguous'; }
+17991: 				else { $report['manager_not_found']++; $reasons[] = 'manager_not_found'; }
+17992: 				$manager_position_slug = $manager instanceof WP_User ? $this->sn_hr_position_for_user((int) $manager->ID) : '';
+17993: 				if (count($manager_file_matches) === 1) {
+17994: 					$manager_file_row = (array) ($prepared_rows[(int) $manager_file_matches[0]]['data'] ?? []);
+17995: 					$manager_file_position = sanitize_key((string) ($manager_file_row['position'] ?? ''));
+17996: 					if ($manager_file_position !== '') { $manager_position_slug = $manager_file_position; }
+17997: 				}
+17998: 				$child_position_for_manager = $position_slug !== '' ? $position_slug : ($user instanceof WP_User ? $this->sn_hr_position_for_user((int) $user->ID) : '');
+17999: 				if (($manager instanceof WP_User || $manager_in_file) && ! $this->sn_hr_manager_allowed_for_child($child_position_for_manager, $manager_position_slug)) {
+18000: 					$reasons[] = 'manager_position_not_allowed';
+18001: 				}
+18002: 			}
+18003: 			if ($user instanceof WP_User && $manager instanceof WP_User && (int) $user->ID === (int) $manager->ID) {
+18004: 				$reasons[] = 'manager_self_reference';
+18005: 			}
+18006: 			if ($manager_in_file && in_array($item_index, $manager_file_matches, true)) {
+18007: 				$reasons[] = 'manager_self_reference';
+18008: 			}
+18009: 			$commission_rule_code = sanitize_key((string) ($data['commission_rule_code'] ?? ''));
+18010: 			if (! $simple_mode && $commission_rule_code !== '') {
+18011: 				$rule_code_cache_key = 'code:' . $commission_rule_code;
+18012: 				if (! array_key_exists($rule_code_cache_key, $commission_rule_cache)) {
+18013: 					$commission_rule_cache[$rule_code_cache_key] = (int) $wpdb->get_var($wpdb->prepare(
+18014: 						"SELECT id FROM {$wpdb->prefix}sn_commission_rules WHERE rule_code=%s AND is_active=1 LIMIT 1",
+18015: 						$commission_rule_code
+18016: 					));
+18017: 				}
+18018: 				if (! $commission_rule_cache[$rule_code_cache_key]) {
+18019: 					$reasons[] = 'commission_rule_code_not_found';
+18020: 				} else {
+18021: 					$data['commission_rule_id'] = (int) $commission_rule_cache[$rule_code_cache_key];
+18022: 					$commission_rule_cache[(int) $data['commission_rule_id']] = (int) $data['commission_rule_id'];
+18023: 				}
+18024: 			}
+18025: 			$commission_rule_id = absint($data['commission_rule_id'] ?? 0);
+18026: 			if (! $simple_mode && $commission_rule_id > 0) {
+18027: 				if (! array_key_exists($commission_rule_id, $commission_rule_cache)) {
+18028: 					$commission_rule_cache[$commission_rule_id] = (int) $wpdb->get_var($wpdb->prepare(
+18029: 						"SELECT id FROM {$wpdb->prefix}sn_commission_rules WHERE id=%d AND is_active=1 LIMIT 1",
+18030: 						$commission_rule_id
+18031: 					));
+18032: 				}
+18033: 				if (! $commission_rule_cache[$commission_rule_id]) { $reasons[] = 'commission_rule_not_found'; }
+18034: 			}
+18035: 			$provided_fields = array_map('sanitize_key', (array) ($data['_provided_fields'] ?? []));
+18036: 			$profile_fields = $simple_mode ? array_values(array_diff($provided_fields, ['base_salary', 'salary_currency'])) : $provided_fields;
+18037: 			$has_explicit_compensation = ! $simple_mode && $this->sn_hr_import_has_explicit_compensation($data, $provided_fields);
+18038: 			if ($has_explicit_compensation && (! $this->sn_table_exists_quiet($wpdb->prefix . 'sn_hr_compensation_history') || ! $this->sn_table_exists_quiet($wpdb->prefix . 'sn_hr_compensation_profiles'))) {
+18039: 				$reasons[] = 'compensation_tables_missing';
+18040: 			}
+18041: 			if (empty($reasons) && $has_explicit_compensation && $user instanceof WP_User) {
+18042: 				$preview_profile = $hr->get_profile_by_user_id((int) $user->ID);
+18043: 				if ($preview_profile) {
+18044: 					$preview_profile_data = $this->sn_hr_import_profile_payload($data, $profile_fields, $employee_code, $normalized_mobile, $position, $level, $structure_ids);
+18045: 					$preview_compensation = $this->sn_hr_import_compensation_payload($preview_profile, $preview_profile_data, $data, $provided_fields, $position_slug, $level_slug);
+18046: 					$compensation_preflight = $this->sn_hr_apply_compensation_history_update((int) $preview_profile->id, (int) $user->ID, $preview_compensation, true, 'hr_people_import_preflight');
+18047: 					foreach ((array) ($compensation_preflight['errors'] ?? []) as $comp_error) {
+18048: 						$reason = 'compensation_' . sanitize_key((string) $comp_error);
+18049: 						$reasons[] = $reason;
+18050: 						$report['warnings'][] = $reason . '_row_' . (int) $item['row'];
+18051: 					}
+18052: 				}
+18053: 			}
+18054: 			if (! $user instanceof WP_User && ! $allow_create_user) {
+18055: 				$report['user_not_found']++;
+18056: 				$reasons[] = 'user_not_found';
+18057: 			}
+18058: 			$is_valid = empty($reasons);
+18059: 			$is_valid ? $report['valid']++ : $report['invalid']++;
+18060: 			$created_user_this_row = false;
+18061: 			if ($is_valid && $apply && ! ($user instanceof WP_User) && $allow_create_user) {
+18062: 				$email_local_parts = explode('@', (string) $data['email']);
+18063: 				$email_local = (string) ($email_local_parts[0] ?? '');
+18064: 				$login_base = $data['user_login'] ?: ($normalized_mobile ?: $email_local);
+18065: 				$login = sanitize_user((string) $login_base);
+18066: 				if ($login === '') {
+18067: 					$report['invalid']++;
+18068: 					$report['valid'] = max(0, (int) $report['valid'] - 1);
+18069: 					$reasons[] = 'user_login_missing';
+18070: 					$is_valid = false;
+18071: 				} else {
+18072: 					if (username_exists($login)) {
+18073: 						$base = sanitize_user($normalized_mobile !== '' ? 'user_' . $normalized_mobile : $login . '_import');
+18074: 						$login = $base;
+18075: 						$suffix = 1;
+18076: 						while (username_exists($login)) { $login = $base . '_' . ++$suffix; }
+18077: 					}
+18078: 					$email = sanitize_email((string) ($data['email'] ?? ''));
+18079: 					if ($email === '') {
+18080: 						$email_base = sanitize_user($login, true) ?: ('sn_import_' . (int) $item['row']);
+18081: 						$email = $email_base . '@sn.local';
+18082: 						$email_suffix = 1;
+18083: 						while (email_exists($email)) { $email = $email_base . '_' . ++$email_suffix . '@sn.local'; }
+18084: 					}
+18085: 					if (email_exists($email)) {
+18086: 						$report['invalid']++;
+18087: 						$report['valid'] = max(0, (int) $report['valid'] - 1);
+18088: 						$reasons[] = 'user_email_already_exists';
+18089: 						$is_valid = false;
+18090: 					} else {
+18091: 						$user_id = wp_create_user($login, wp_generate_password(16, true, true), $email);
+18092: 						if (is_wp_error($user_id)) {
+18093: 							$report['invalid']++;
+18094: 							$report['valid'] = max(0, (int) $report['valid'] - 1);
+18095: 							$reasons[] = 'user_create_failed_' . $user_id->get_error_code();
+18096: 							$is_valid = false;
+18097: 						} else {
+18098: 							$user = get_user_by('id', (int) $user_id);
+18099: 							if ($user instanceof WP_User) {
+18100: 								$created_user_this_row = true;
+18101: 								$report['created_users']++;
+18102: 							} else {
+18103: 								$report['invalid']++;
+18104: 								$report['valid'] = max(0, (int) $report['valid'] - 1);
+18105: 								$reasons[] = 'created_user_reload_failed';
+18106: 								$is_valid = false;
+18107: 							}
+18108: 						}
+18109: 					}
+18110: 				}
+18111: 			}
+18112: 			if ($is_valid && $apply && $user instanceof WP_User) {
+18113: 				$wp_user_update = ['ID' => (int) $user->ID];
+18114: 				if (! empty($data['display_name'])) { $wp_user_update['display_name'] = sanitize_text_field((string) $data['display_name']); }
+18115: 				if (! empty($data['first_name'])) { $wp_user_update['first_name'] = sanitize_text_field((string) $data['first_name']); }
+18116: 				if (! empty($data['last_name'])) { $wp_user_update['last_name'] = sanitize_text_field((string) $data['last_name']); }
+18117: 				$import_email = sanitize_email((string) ($data['email'] ?? ''));
+18118: 				$email_owner = $import_email !== '' ? email_exists($import_email) : false;
+18119: 				if ($import_email !== '' && (! $email_owner || (int) $email_owner === (int) $user->ID)) {
+18120: 					$wp_user_update['user_email'] = $import_email;
+18121: 				} elseif ($import_email !== '' && $email_owner) {
+18122: 					$reasons[] = 'user_email_already_exists';
+18123: 					$report['valid'] = max(0, (int) $report['valid'] - 1);
+18124: 					$report['invalid']++;
+18125: 					$is_valid = false;
+18126: 				}
+18127: 				$user_update_result = $is_valid && count($wp_user_update) > 1 ? wp_update_user($wp_user_update) : (int) $user->ID;
+18128: 				if (is_wp_error($user_update_result)) {
+18129: 					$reasons[] = 'user_update_failed_' . $user_update_result->get_error_code();
+18130: 					$report['valid'] = max(0, (int) $report['valid'] - 1);
+18131: 					$report['invalid']++;
+18132: 					$is_valid = false;
+18133: 				}
+18134: 				if ($is_valid && $normalized_mobile !== '' && class_exists('SN_Helpers') && SN_Helpers::is_valid_mobile($normalized_mobile)) {
+18135: 					foreach (['mobile', 'phone', 'billing_phone', 'digits_phone', 'digits_phone_no', 'sn_phone'] as $phone_meta_key) {
+18136: 						update_user_meta((int) $user->ID, $phone_meta_key, $normalized_mobile);
+18137: 					}
+18138: 				}
+18139: 			}
+18140: 			if ($is_valid && $apply && $user instanceof WP_User && $hr) {
+18141: 				$old_profile = $hr->get_profile_by_user_id((int) $user->ID);
+18142: 				$profile = $hr->get_or_create_profile_for_user((int) $user->ID);
+18143: 				if ($profile) {
+18144: 					$profile_data = $this->sn_hr_import_profile_payload($data, $profile_fields, $employee_code, $normalized_mobile, $position, $level, $structure_ids);
+18145: 					$compensation_payload = $has_explicit_compensation ? $this->sn_hr_import_compensation_payload($profile, $profile_data, $data, $provided_fields, $position_slug, $level_slug) : [];
+18146: 					if ($has_explicit_compensation && ! $old_profile) {
+18147: 						$compensation_preflight = $this->sn_hr_apply_compensation_history_update((int) $profile->id, (int) $user->ID, $compensation_payload, true, 'hr_people_import_preflight');
+18148: 						foreach ((array) ($compensation_preflight['errors'] ?? []) as $comp_error) {
+18149: 							$reason = 'compensation_' . sanitize_key((string) $comp_error);
+18150: 							$reasons[] = $reason;
+18151: 							$report['warnings'][] = $reason . '_row_' . (int) $item['row'];
+18152: 						}
+18153: 						if (! empty($compensation_preflight['errors'])) {
+18154: 							$report['valid'] = max(0, (int) $report['valid'] - 1);
+18155: 							$report['invalid']++;
+18156: 							$is_valid = false;
+18157: 						}
+18158: 					}
+18159: 					$profile_update = $is_valid ? $wpdb->update($wpdb->prefix . 'sn_hr_profiles', $this->sn_filter_existing_columns($wpdb->prefix . 'sn_hr_profiles', $profile_data), ['id' => (int) $profile->id]) : false;
+18160: 					if ($profile_update === false) {
+18161: 						if ($is_valid) {
+18162: 							$report['warnings'][] = 'profile_update_failed_row_' . (int) $item['row'];
+18163: 							$report['valid'] = max(0, (int) $report['valid'] - 1);
+18164: 							$report['invalid']++;
+18165: 							$reasons[] = 'profile_update_failed';
+18166: 							$is_valid = false;
+18167: 						}
+18168: 					} else {
+18169: 						$prepared_rows[$item_index]['profile_id'] = (int) $profile->id;
+18170: 						$old_profile ? $report['profiles_updated']++ : $report['profiles_created']++;
+18171: 						$this->sn_hr_panel_log_profile((int) $profile->id, (int) $user->ID, 'hr_people_import_profile_saved', null, $profile_data, ['source' => 'crm_people_import']);
+18172: 					}
+18173: 					if ($profile_update !== false && $has_explicit_compensation) {
+18174: 						$comp_result = $this->sn_hr_apply_compensation_history_update((int) $profile->id, (int) $user->ID, $compensation_payload, false, 'hr_people_import');
+18175: 						if (! empty($comp_result['changed'])) { $report['compensation_updated']++; }
+18176: 						foreach ((array) ($comp_result['errors'] ?? []) as $comp_error) { $report['warnings'][] = 'compensation_' . sanitize_key((string) $comp_error) . '_row_' . (int) $item['row']; }
+18177: 						if (! empty($comp_result['errors'])) {
+18178: 							$report['valid'] = max(0, (int) $report['valid'] - 1);
+18179: 							$report['invalid']++;
+18180: 							$reasons[] = 'compensation_update_failed';
+18181: 							$is_valid = false;
+18182: 						}
+18183: 					}
+18184: 				} else {
+18185: 					$report['warnings'][] = 'profile_create_failed_row_' . (int) $item['row'];
+18186: 					$report['valid'] = max(0, (int) $report['valid'] - 1);
+18187: 					$report['invalid']++;
+18188: 					$reasons[] = 'profile_create_failed';
+18189: 					$is_valid = false;
+18190: 				}
+18191: 			}
+18192: 			if ($created_user_this_row && ! $is_valid) {
+18193: 				$report['warnings'][] = 'partial_user_created_row_' . (int) $item['row'];
+18194: 			}
+18195: 			if ($created_user_this_row && $is_valid && $send_notification && $user instanceof WP_User && ! empty($prepared_rows[$item_index]['profile_id'])) {
+18196: 				wp_new_user_notification((int) $user->ID, null, 'user');
+18197: 			}
+18198: 			if ($is_valid && $user instanceof WP_User) {
+18199: 				$prepared_rows[$item_index]['user_id'] = (int) $user->ID;
+18200: 				foreach ($this->sn_hr_person_lookup_keys_for_row($data) as $key) {
+18201: 					if (count((array) ($file_lookup_index[$key] ?? [])) === 1) { $resolved_user_id_by_key[$key] = (int) $user->ID; }
+18202: 				}
+18203: 			}
+18204: 			$would_assign = ! $simple_mode && $is_valid && $manager_lookup !== '' && ($manager instanceof WP_User || $manager_in_file);
+18205: 			if ($would_assign) { $report['would_assign']++; }
+18206: 			$prepared_rows[$item_index]['valid'] = $is_valid;
+18207: 			$prepared_rows[$item_index]['manager_lookup'] = $manager_lookup;
+18208: 			$prepared_rows[$item_index]['manager_user_id'] = $manager instanceof WP_User ? (int) $manager->ID : 0;
+18209: 			$prepared_rows[$item_index]['manager_file_matches'] = $manager_file_matches;
+18210: 			if ($is_valid && ! $simple_mode && $manager_lookup !== '') {
+18211: 				$assignment_queue[] = [
+18212: 					'row' => (int) $item['row'],
+18213: 					'item_index' => $item_index,
+18214: 					'child_user_id' => $user instanceof WP_User ? (int) $user->ID : 0,
+18215: 					'manager_lookup' => $manager_lookup,
+18216: 					'manager_user_id' => $manager instanceof WP_User ? (int) $manager->ID : 0,
+18217: 				];
+18218: 			}
+18219: 			if (count($report['preview']) < 50) {
+18220: 				$report['preview'][] = [
+18221: 					'row' => (int) $item['row'],
+18222: 					'employee_code' => $employee_code,
+18223: 					'user' => $user instanceof WP_User ? $this->sn_user_label((int) $user->ID) : $user_lookup,
+18224: 					'position' => $position_slug,
+18225: 					'manager' => $manager instanceof WP_User ? $this->sn_user_label((int) $manager->ID) : $manager_lookup,
+18226: 					'manager_lookup' => $manager_lookup,
+18227: 					'manager_name' => sanitize_text_field((string) ($data['manager_name'] ?? '')),
+18228: 					'manager_mobile' => sanitize_text_field((string) ($data['manager_mobile'] ?? '')),
+18229: 					'manager_status' => $manager_status,
+18230: 					'manager_resolved' => $manager instanceof WP_User ? $this->sn_user_label((int) $manager->ID) : '',
+18231: 					'manager_in_file' => $manager_in_file,
+18232: 					'would_assign' => $would_assign,
+18233: 					'valid' => $is_valid,
+18234: 					'reasons' => $reasons,
+18235: 				];
+18236: 			}
+18237: 		}
+18238: 
+18239: 		if ($apply && ! $simple_mode && $hr && $hierarchy && $assignment_queue) {
+18240: 			foreach ($assignment_queue as $assignment) {
+18241: 				$child_user_id = (int) ($assignment['child_user_id'] ?? 0);
+18242: 				if (! $child_user_id && isset($prepared_rows[(int) $assignment['item_index']]['user_id'])) {
+18243: 					$child_user_id = (int) $prepared_rows[(int) $assignment['item_index']]['user_id'];
+18244: 				}
+18245: 				$manager_user_id = (int) ($assignment['manager_user_id'] ?? 0);
+18246: 				if (! $manager_user_id) {
+18247: 					$candidate_ids = [];
+18248: 					foreach ($this->sn_hr_lookup_keys_for_value((string) $assignment['manager_lookup']) as $key) {
+18249: 						if (! empty($resolved_user_id_by_key[$key])) { $candidate_ids[] = (int) $resolved_user_id_by_key[$key]; }
+18250: 					}
+18251: 					$candidate_ids = array_values(array_unique(array_filter($candidate_ids)));
+18252: 					if (count($candidate_ids) === 1) { $manager_user_id = (int) $candidate_ids[0]; }
+18253: 				}
+18254: 				if (! $child_user_id || ! $manager_user_id || $child_user_id === $manager_user_id) {
+18255: 					$report['assignments_skipped']++;
+18256: 					$report['warnings'][] = 'assignment_skipped_row_' . (int) ($assignment['row'] ?? 0);
+18257: 					continue;
+18258: 				}
+18259: 				$child_profile = $hr->get_profile_by_user_id($child_user_id);
+18260: 				$manager_profile = $hr->get_profile_by_user_id($manager_user_id);
+18261: 				if (! $child_profile || ! $manager_profile) {
+18262: 					$report['assignments_skipped']++;
+18263: 					$report['warnings'][] = 'assignment_profile_missing_row_' . (int) ($assignment['row'] ?? 0);
+18264: 					continue;
+18265: 				}
+18266: 				$assigned = $hierarchy->assign_parent((int) $child_profile->id, (int) $manager_profile->id, get_current_user_id(), 'hr_people_import', 'ورود گروهی نیروها');
+18267: 				if (! empty($assigned['success']) && empty($assigned['skipped'])) {
+18268: 					$report['assignments_changed']++;
+18269: 				} else {
+18270: 					$report['assignments_skipped']++;
+18271: 					$report['warnings'][] = 'assignment_' . sanitize_key((string) ($assigned['message'] ?? 'skipped')) . '_row_' . (int) ($assignment['row'] ?? 0);
+18272: 				}
+18273: 			}
+18274: 		}
+18275: 
+18276: 		$report['warning_count'] = count((array) $report['warnings']);
+18277: 		if ($report['warning_count'] > 500) {
+18278: 			$report['warnings'] = array_slice((array) $report['warnings'], 0, 500);
+18279: 			$report['warnings'][] = 'warnings_truncated_after_500';
+18280: 		}
+18281: 		$report['updated_at'] = current_time('mysql');
+18282: 		update_option('sn_hr_csv_dry_run_report', $report, false);
+18283: 		wp_safe_redirect(wp_get_referer() ?: home_url('/'));
+18284: 		exit;
+18285: 	}
+18286: 

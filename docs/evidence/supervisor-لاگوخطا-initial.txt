@@ -1,0 +1,109 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل سرپرست" [level=1]
+  - heading "پنل سرپرست" [level=2]
+  - link "گزارش جامع":
+    - /url: "#sn-reports-panel"
+  - generic: کاربر
+  - strong: "سرپرست ماکسیمم #5"
+  - generic: "سرپرست | #5"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "اعلان‌های گفت‌وگو با بیاوین":
+    - generic: 🔔
+    - generic: ۰
+  - text: پنل سرپرست
+  - button "بستن منوی پنل" [expanded]: ×
+  - button "🧾 فروشندگان و آمار"
+  - button "📊 تبدیل‌کنندگان و آمار"
+  - button "💼 تبدیل‌های من"
+  - button "💳 تخصیص شماره"
+  - button "⚙️ آماده‌های تبدیل"
+  - button "• اشتراک‌های فروشنده"
+  - button "• لاگ و خطا" [active]
+  - button "• جدا کردن سرنخ زنده/قدیمی"
+  - button "• فاکتورها"
+  - button "• رفتار مشتریان"
+  - button "• درخواست HR"
+  - button "• کیف پول"
+  - generic: در حال بارگذاری...
+  - heading "مرکز گزارش‌گیری CRM" [level=2]
+  - paragraph: داده‌های محدودهٔ دسترسی شما؛ انتخاب هر شاخص، ردیف‌های همان گزارش را در این صفحه نشان می‌دهد.
+  - text: نوع گزارش
+  - combobox "نوع گزارش":
+    - option "کل دوره یا بازهٔ زمانی" [selected]
+    - option "وضعیت در لحظه"
+  - text: از تاریخ
+  - textbox "از تاریخ":
+    - /placeholder: 1405/07/01
+  - text: از ساعت
+  - textbox "از ساعت"
+  - text: تا تاریخ
+  - textbox "تا تاریخ":
+    - /placeholder: 1405/07/01
+  - text: تا ساعت
+  - textbox "تا ساعت"
+  - text: سمت
+  - combobox "سمت":
+    - option "همهٔ افراد مجاز" [selected]
+    - option "معاون فروش"
+    - option "مدیر فروش"
+    - option "سرپرست ارشد"
+    - option "سرپرست"
+    - option "فروشنده"
+  - text: فرد و زیرمجموعه
+  - combobox "فرد و زیرمجموعه":
+    - option "همهٔ افراد مجاز" [selected]
+  - button "نمایش گزارش"
+  - link "فاکتورها مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=invoices_register&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: فاکتورها
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "پروفایل مشتری‌ها مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=customer_profiles&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: پروفایل مشتری‌ها
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "جزئیات فاکتور مشتری مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=customer_invoice_details&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: جزئیات فاکتور مشتری
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "تخصیص دادهٔ MIS مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=mis_assignments&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: تخصیص دادهٔ MIS
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "پیش‌فاکتورهای صادرشده مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=pre_invoices&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: پیش‌فاکتورهای صادرشده
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "فروش‌های تکمیل‌شده مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=sales&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: فروش‌های تکمیل‌شده
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "فروش آنلاین مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=online_sales&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: فروش آنلاین
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "فروش کارت‌به‌کارت تأییدشده مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=card_sales&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: فروش کارت‌به‌کارت تأییدشده
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "پیش‌فاکتورهای در انتظار مالی مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=finance_pending&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: پیش‌فاکتورهای در انتظار مالی
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "پیش‌فاکتورهای ردشده مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=finance_rejected&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: پیش‌فاکتورهای ردشده
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - paragraph: برای نمایش تعداد و جزئیات، یک گزارش را انتخاب کنید.
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

@@ -1,0 +1,31 @@
+7367: 
+7368: 	public function render_admin_front_dashboard(): string
+7369: 	{
+7370: 		if (! is_user_logged_in() || ! current_user_can('manage_options')) {
+7371: 			return $this->render_unified_panel_login();
+7372: 		}
+7373: 		wp_enqueue_style('sn-admin', SN_PLUGIN_URL . 'assets/css/admin.css', [], SN_VERSION);
+7374: 		wp_enqueue_style('sn-public', SN_PLUGIN_URL . 'assets/css/public.css', [], SN_VERSION);
+7375: 		ob_start();
+7376: 		?>
+7377: 		<div class="sn-panel sn-no-sidebar sn-portal sn-my-panel-entry sn-admin-front-dashboard" dir="rtl">
+7378: 			<div class="sn-portal-entry-card">
+7379: 				<div>
+7380: 					<h2>داشبورد مدیریت شبکه فروش</h2>
+7381: 					<p class="sn-muted">سلام <?php echo esc_html($this->sn_user_label(get_current_user_id())); ?>، شما به عنوان مدیر سیستم شناسایی شدید.</p>
+7382: 					<div class="sn-portal-entry-detected"><span>پنل شناسایی‌شده</span><strong>داشبورد مدیریت شبکه فروش</strong></div>
+7383: 				</div>
+7384: 				<div class="sn-portal-entry-actions">
+7385: 					<a class="sn-btn sn-btn-primary" href="<?php echo esc_url(admin_url('admin.php?page=sn-dashboard')); ?>">ورود به مدیریت کامل CRM</a>
+7386: 					<?php if (get_option('sn_my_password_page_id')) : ?><a class="sn-btn sn-btn-secondary" href="<?php echo esc_url(get_permalink((int) get_option('sn_my_password_page_id'))); ?>">رمز من</a><?php endif; ?>
+7387: 					<div class="sn-portal-entry-links">
+7388: 						<a href="<?php echo esc_url(admin_url('admin.php?page=sn-sellers')); ?>">فروشندگان</a>
+7389: 						<a href="<?php echo esc_url(admin_url('admin.php?page=sn-settings')); ?>">تنظیمات</a>
+7390: 					</div>
+7391: 				</div>
+7392: 			</div>
+7393: 			<?php echo $this->sn_dashboard_reporting_content(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in reporting renderer. ?>
+7394: 		</div>
+7395: 		<?php
+7396: 		return ob_get_clean();
+7397: 	}

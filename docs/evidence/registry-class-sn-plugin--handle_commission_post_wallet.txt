@@ -1,0 +1,68 @@
+33399: 
+33400: 			public function handle_commission_post_wallet(): void
+33401: 			{
+33402: 				if (! $this->sn_can_view_finance()) {
+33403: 					wp_die('دسترسی غیرمجاز');
+33404: 				}
+33405: 				check_admin_referer('sn_commission_post_wallet');
+33406: 				$this->sn_ensure_commission_tables();
+33407: 				global $wpdb;
+33408: 				$run_id = absint($_POST['run_id'] ?? 0);
+33409: 				$confirm = strtoupper(sanitize_text_field(wp_unslash($_POST['confirm_apply'] ?? '')));
+33410: 				$note = sanitize_textarea_field(wp_unslash($_POST['posting_note'] ?? ''));
+33411: 				$report = ['status' => 'error', 'run_id' => $run_id, 'posted' => 0, 'skipped' => 0, 'errors' => 0, 'message' => 'ارسال به کیف پول اجرا نشد.'];
+33412: 				$run = $this->sn_commission_run($run_id);
+33413: 				if (! $run) {
+33414: 					$report['message'] = 'پیش‌نمایش یافت نشد.';
+33415: 				} elseif (! $this->sn_commission_posting_enabled()) {
+33416: 					$report['message'] = 'کلید فعال‌سازی ارسال به کیف پول غیرفعال است.';
+33417: 				} elseif ($confirm !== 'APPLY') {
+33418: 					$report['message'] = 'برای ارسال به کیف پول باید APPLY وارد شود.';
+33419: 				} elseif ((string) ($run['approval_status'] ?? '') !== 'approved') {
+33420: 					$report['message'] = 'فقط پیش‌نمایش تاییدشده قابل ارسال به کیف پول است.';
+33421: 				} else {
+33422: 					$items_table = $wpdb->prefix . 'sn_commission_dry_run_items';
+33423: 					$items = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$items_table} WHERE run_id=%d ORDER BY id ASC LIMIT 2000", $run_id), ARRAY_A) ?: [];
+33424: 					$posted = 0; $skipped = 0; $errors = 0;
+33425: 					foreach ($items as $item) {
+33426: 						$item_id = (int) $item['id'];
+33427: 						$seller_id = (int) ($item['seller_user_id'] ?? 0);
+33428: 						$invoice_id = (int) ($item['invoice_id'] ?? 0);
+33429: 						$amount = (float) ($item['calculated_commission'] ?? 0);
+33430: 						if (! $seller_id || $amount <= 0 || ! empty($item['wallet_transaction_id']) || in_array((string) ($item['posting_status'] ?? ''), ['posted'], true)) {
+33431: 							$skipped++;
+33432: 							continue;
+33433: 						}
+33434: 						$existing_tx = $this->sn_commission_find_wallet_transaction_id($item_id, $seller_id, $invoice_id);
+33435: 						if ($existing_tx) {
+33436: 							$wpdb->update($items_table, ['wallet_transaction_id' => $existing_tx, 'posted_at' => current_time('mysql'), 'posting_status' => 'posted', 'posting_error' => null], ['id' => $item_id]);
+33437: 							$this->sn_commission_log($run_id, $item_id, 'commission_wallet_posting_idempotent_hit', 'posted', null, ['wallet_transaction_id' => $existing_tx], 'existing transaction linked', $existing_tx);
+33438: 							$skipped++;
+33439: 							continue;
+33440: 						}
+33441: 						$wallet_note_prefix = (string) ($item['item_status'] ?? '') === 'daily_attendance_bonus' ? 'حقوق روزانه مشروط موتور پورسانت برای ' : 'پورسانت تاییدشده موتور جدید برای فاکتور ';
+33442: 						$ok = $this->sn_add_wallet_transaction($seller_id, 'seller', $amount, 'credit', 'commission_engine', $wallet_note_prefix . (string) ($item['invoice_code'] ?? $invoice_id), $invoice_id ?: null, null, [
+33443: 							'commission_run_id' => $run_id,
+33444: 							'commission_dry_run_item_id' => $item_id,
+33445: 							'matched_rule_id' => (int) ($item['matched_rule_id'] ?? 0),
+33446: 							'note' => $note,
+33447: 						]);
+33448: 						$tx_id = $ok ? $this->sn_commission_find_wallet_transaction_id($item_id, $seller_id, $invoice_id) : 0;
+33449: 						if ($ok && $tx_id) {
+33450: 							$wpdb->update($items_table, ['wallet_transaction_id' => $tx_id, 'posted_at' => current_time('mysql'), 'posting_status' => 'posted', 'posting_error' => null], ['id' => $item_id]);
+33451: 							$this->sn_commission_log($run_id, $item_id, 'commission_wallet_posted', 'posted', null, ['wallet_transaction_id' => $tx_id, 'amount' => $amount], $note, $tx_id);
+33452: 							$posted++;
+33453: 						} else {
+33454: 							$error = $wpdb->last_error ? sanitize_text_field((string) $wpdb->last_error) : 'wallet_transaction_not_created';
+33455: 							$wpdb->update($items_table, ['posting_status' => 'error', 'posting_error' => $error], ['id' => $item_id]);
+33456: 							$this->sn_commission_log($run_id, $item_id, 'commission_wallet_post_error', 'error', null, ['error' => $error], $error);
+33457: 							$errors++;
+33458: 						}
+33459: 					}
+33460: 					$report = ['status' => $errors ? 'partial' : 'ok', 'run_id' => $run_id, 'posted' => $posted, 'skipped' => $skipped, 'errors' => $errors, 'message' => $errors ? 'ارسال با خطا/هشدار تمام شد.' : 'ارسال کنترل‌شده انجام شد.'];
+33461: 				}
+33462: 				update_option('sn_commission_wallet_posting_report', $report, false);
+33463: 				wp_safe_redirect(add_query_arg('sn_commission_run_id', (string) $run_id, wp_get_referer() ?: home_url('/')) . '#sn-commission-preview');
+33464: 				exit;
+33465: 			}
+33466: 

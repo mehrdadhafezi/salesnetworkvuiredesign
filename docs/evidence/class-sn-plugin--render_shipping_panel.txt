@@ -1,0 +1,5 @@
+384: 
+385: 	public function render_shipping_panel(): string
+386: 	{
+387: 		return class_exists('SN_Product_Flow') ? SN_Product_Flow::instance()->render_shipping_panel() : '';
+388: 	}

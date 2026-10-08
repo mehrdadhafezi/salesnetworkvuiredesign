@@ -1,0 +1,45 @@
+12743: 
+12744: 	public function render_senior_supervisor_panel(): string
+12745: 	{
+12746: 		if (! is_user_logged_in()) {
+12747: 			return $this->render_unified_panel_login();
+12748: 		}
+12749: 		if (! $this->sn_current_user_can_senior_supervisor_panel()) {
+12750: 			return '<div class="sn-panel" dir="rtl"><div class="sn-notice sn-error">دسترسی به پنل سرپرست ارشد مجاز نیست.</div></div>';
+12751: 		}
+12752: 		ob_start();
+12753: 		?>
+12754: 		<div id="sn-senior-supervisor-panel" class="sn-panel sn-portal sn-senior-supervisor-panel" dir="rtl" data-sn-senior-lazy="1">
+12755: 			<div class="sn-panel-header">
+12756: 				<div><h2>پنل سرپرست ارشد</h2><p>اطلاعات هر بخش فقط هنگام باز کردن همان تب بارگذاری می‌شود تا پنل روی داده‌های حجیم بدون Timeout باز شود.</p></div>
+12757: 				<a class="sn-btn sn-btn-secondary" href="#sn-reports-panel">گزارش جامع</a>
+12758: 				<?php echo $this->sn_panel_user_actions_markup(); ?>
+12759: 			</div>
+12760: 			<?php $this->sn_render_panel_tabs([
+12761: 				'ss-overview' => 'نمای کلی',
+12762: 				'ss-team' => 'ساختار تیم',
+12763: 				'ss-distribution' => 'تخصیص شماره',
+12764: 				'ss-sellers' => 'عملکرد فروشنده‌ها',
+12765: 				'ss-invoices' => 'فاکتورها',
+12766: 				'ss-repeat-actions' => 'آماده‌های تبدیل',
+12767: 				'ss-converter-stats' => 'تبدیل‌کنندگان و آمار',
+12768: 				'ss-my-conversions' => 'تبدیل‌های من',
+12769: 				'ss-hr-requests' => 'درخواست HR',
+12770: 				'ss-leads' => 'لیدها',
+12771: 				'ss-wallet' => 'کیف پول',
+12772: 			], 'ss-overview'); ?>
+12773: 			<section id="ss-overview" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-overview', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-overview"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-overview', 'نمای کلی', 'آمار کلی به‌صورت تجمیعی بارگذاری می‌شود.'); ?></section>
+12774: 			<section id="ss-team" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-team', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-team"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-team', 'ساختار تیم', 'فروشنده‌ها و سرپرست‌های مستقیم فقط در این تب بارگذاری می‌شوند.'); ?></section>
+12775: 			<section id="ss-distribution" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-distribution', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-distribution"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-distribution', 'تخصیص شماره', 'فرم و جدول تخصیص به‌صورت صفحه‌بندی‌شده بارگذاری می‌شود.'); ?></section>
+12776: 			<section id="ss-sellers" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-sellers', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-sellers"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-sellers', 'عملکرد فروشنده‌ها', 'گزارش فروشندگان با کوئری‌های گروهی بارگذاری می‌شود.'); ?></section>
+12777: 			<section id="ss-invoices" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-invoices', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-invoices"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-invoices', 'فاکتورها', 'لیست فاکتورها با فیلتر و صفحه‌بندی جداگانه بارگذاری می‌شود.'); ?></section>
+12778: 			<section id="ss-repeat-actions" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-repeat-actions', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-repeat-actions"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-repeat-actions', 'آماده‌های تبدیل', 'پرونده‌های تبدیل و ارجاع‌های قبلی فقط هنگام باز کردن تب خوانده می‌شوند.'); ?></section>
+12779: 			<section id="ss-converter-stats" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-converter-stats', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-converter-stats"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-converter-stats', 'تبدیل‌کنندگان و آمار', 'آمار تبدیل‌کنندگان کل زیرمجموعه هنگام باز کردن تب محاسبه می‌شود.'); ?></section>
+12780: 			<section id="ss-my-conversions" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-my-conversions', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-my-conversions"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-my-conversions', 'تبدیل‌های من', 'پرونده‌هایی که به خودتان تخصیص داده‌اید در این بخش نمایش داده می‌شوند.'); ?></section>
+12781: 			<section id="ss-hr-requests" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-hr-requests', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-hr-requests"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-hr-requests', 'درخواست HR', 'درخواست‌های منابع انسانی جداگانه بارگذاری می‌شوند.'); ?></section>
+12782: 			<section id="ss-leads" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-leads', 'ss-overview')); ?> sn-senior-lazy-tab" data-sn-tab-panel="ss-leads"><?php $this->sn_senior_supervisor_lazy_placeholder('ss-leads', 'لیدها', 'خلاصه و آخرین لیدها به‌صورت محدود بارگذاری می‌شوند.'); ?></section>
+12783: 			<section id="ss-wallet" class="<?php echo esc_attr($this->sn_tab_panel_class('ss-wallet', 'ss-overview')); ?>" data-sn-tab-panel="ss-wallet"><?php if ( class_exists('SN_Purpose_Commission') ) { echo SN_Purpose_Commission::render_dual_wallet_cards(get_current_user_id(), 25); } ?></section>
+12784: 		</div>
+12785: 		<?php
+12786: 		return ob_get_clean() . $this->sn_dashboard_reporting_content();
+12787: 	}

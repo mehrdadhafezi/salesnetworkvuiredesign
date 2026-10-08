@@ -1,0 +1,22 @@
+36001: 
+36002: 
+36003: 			public function ajax_wallet_manual_adjust(): void
+36004: 			{
+36005: 				if (! current_user_can('manage_options') || ! check_ajax_referer('sn_admin', 'nonce', false)) {
+36006: 					SN_Helpers::send_json(false, 'دسترسی غیرمجاز');
+36007: 					return;
+36008: 				}
+36009: 				$user_id = absint($_POST['user_id'] ?? 0);
+36010: 				$wallet_type = sanitize_key($_POST['wallet_type'] ?? 'seller');
+36011: 				$wallet_type = in_array($wallet_type, ['seller', 'supervisor', 'biavin'], true) ? $wallet_type : 'seller';
+36012: 				$amount = abs((float) ($_POST['amount'] ?? 0));
+36013: 				$direction = sanitize_key($_POST['direction'] ?? 'debit');
+36014: 				$desc = sanitize_text_field(wp_unslash($_POST['description'] ?? ''));
+36015: 				if (! $user_id || $amount <= 0) {
+36016: 					SN_Helpers::send_json(false, 'اطلاعات ناقص است');
+36017: 					return;
+36018: 				}
+36019: 				$this->sn_add_wallet_transaction($user_id, $wallet_type, $amount, $direction === 'credit' ? 'credit' : 'debit', $direction === 'credit' ? 'manual_credit' : 'settlement', $desc ?: 'تراکنش دستی کیف پول', null, null, ['manual' => true]);
+36020: 				SN_Helpers::send_json(true, 'تراکنش کیف پول ثبت شد');
+36021: 			}
+36022: 

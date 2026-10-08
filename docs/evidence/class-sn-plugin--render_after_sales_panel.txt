@@ -1,0 +1,131 @@
+34194: 
+34195: 			public function render_after_sales_panel(): string
+34196: 			{
+34197: 				if (! is_user_logged_in()) {
+34198: 					return $this->render_unified_panel_login();
+34199: 				}
+34200: 				if (! $this->sn_can_access_after_sales_panel()) {
+34201: 					return '<div class="sn-panel" dir="rtl"><div class="sn-notice sn-error">دسترسی به پنل خدمات پس از فروش مجاز نیست.</div></div>';
+34202: 				}
+34203: 				if (class_exists('SN_Migration_Service')) {
+34204: 					(new SN_Migration_Service())->migrate();
+34205: 				}
+34206: 				if (! $this->sn_after_sales_tables_ready()) {
+34207: 					return '<div class="sn-panel" dir="rtl"><div class="sn-notice sn-error">جدول‌های خدمات پس از فروش آماده نیستند. یک بار صفحه مدیریت افزونه را باز کنید تا migration اجرا شود.</div></div>';
+34208: 				}
+34209: 				$filters = $this->sn_after_sales_filters();
+34210: 				$summary = $this->sn_after_sales_summary();
+34211: 				$cases = $this->sn_after_sales_case_rows($filters, 100);
+34212: 				$logs = $this->sn_after_sales_logs(100);
+34213: 				$candidates = $this->sn_after_sales_candidates(20);
+34214: 				$last_report = get_option('sn_after_sales_action_report', []);
+34215: 				$statuses = $this->sn_after_sales_statuses();
+34216: 				$priorities = $this->sn_after_sales_priorities();
+34217: 				$case_types = $this->sn_after_sales_case_types();
+34218: 				$after_users = $this->sn_after_sales_users();
+34219: 				ob_start(); ?>
+34220: 		<div class="sn-panel sn-portal sn-after-sales-panel" dir="rtl" id="sn-after-sales-panel">
+34221: 			<div class="sn-panel-header"><div><h2>پنل خدمات پس از فروش</h2><p>پیگیری، ثبت پرونده و لاگ خدمات پس از فروش. این پنل هیچ پرداخت، فاکتور، کیف پول یا پیامکی را تغییر نمی‌دهد.</p></div><?php echo $this->sn_panel_user_actions_markup(); ?></div>
+34222: 			<?php if (! empty($last_report)) : ?><details class="sn-card sn-technical-report"><summary><strong>آخرین گزارش فنی خدمات پس از فروش</strong></summary><pre><?php echo esc_html(wp_json_encode($last_report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre></details><?php endif; ?>
+34223: 			<?php $this->sn_render_panel_tabs([
+34224: 				'after-overview' => 'نمای کلی',
+34225: 				'after-create' => 'ثبت پرونده',
+34226: 				'after-cases' => 'پرونده‌ها',
+34227: 				'after-candidates' => 'کاندیدها',
+34228: 				'after-logs' => 'لاگ‌ها',
+34229: 			], 'after-overview'); ?>
+34230: 			<section id="after-overview" class="<?php echo esc_attr($this->sn_tab_panel_class('after-overview', 'after-overview')); ?>" data-sn-tab-panel="after-overview">
+34231: 			<div class="sn-dashboard-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+34232: 				<?php foreach ($summary as $label => $value) : ?><div class="sn-card"><small><?php echo esc_html($label); ?></small><strong><?php echo esc_html(number_format_i18n((int) $value)); ?></strong></div><?php endforeach; ?>
+34233: 			</div>
+34234: 			</section>
+34235: 			<section id="after-create" class="<?php echo esc_attr($this->sn_tab_panel_class('after-create', 'after-overview')); ?>" data-sn-tab-panel="after-create">
+34236: 			<div class="sn-card">
+34237: 				<h3>ثبت پرونده خدمات پس از فروش</h3>
+34238: 				<p class="sn-note">اگر کد فاکتور وارد شود، پرونده به همان فاکتور وصل می‌شود؛ خود فاکتور، پرداخت و پیامک تغییر نمی‌کند.</p>
+34239: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end">
+34240: 					<input type="hidden" name="action" value="sn_after_sales_create_case">
+34241: 					<?php wp_nonce_field('sn_after_sales_create_case'); ?>
+34242: 					<label>کد فاکتور<br><input type="text" name="invoice_code"></label>
+34243: 					<label>شناسه لید<br><input type="number" name="lead_id" min="0"></label>
+34244: 					<label>نام مشتری<br><input type="text" name="customer_name"></label>
+34245: 					<label>شماره مشتری<br><input type="text" name="customer_phone"></label>
+34246: 					<label>شناسه فروشنده<br><input type="number" name="seller_user_id" min="0"></label>
+34247: 					<label>مسئول خدمات<br><select name="assigned_after_sales_user_id"><option value="0">—</option><?php foreach ($after_users as $uid) : ?><option value="<?php echo esc_attr((string) $uid); ?>"><?php echo esc_html($this->sn_user_label($uid)); ?></option><?php endforeach; ?></select></label>
+34248: 					<label>نوع پرونده<br><select name="case_type"><?php foreach ($case_types as $key => $label) : ?><option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+34249: 					<label>اولویت<br><select name="priority"><?php foreach ($priorities as $key => $label) : ?><option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+34250: 					<label>سررسید<br><input type="text" class="sn-jalali-date" name="due_at" placeholder="1403/02/18"></label>
+34251: 					<label style="grid-column:1/-1">یادداشت<br><textarea name="notes" rows="2" placeholder="شرح کوتاه علت پیگیری یا درخواست مشتری"></textarea></label>
+34252: 					<button class="sn-btn sn-btn-primary">ثبت پرونده</button>
+34253: 				</form>
+34254: 			</div>
+34255: 			</section>
+34256: 			<section id="after-cases" class="<?php echo esc_attr($this->sn_tab_panel_class('after-cases', 'after-overview')); ?>" data-sn-tab-panel="after-cases">
+34257: 			<div class="sn-card">
+34258: 				<h3>فهرست پرونده‌ها</h3>
+34259: 				<p class="sn-note">برای هر پرونده می‌توانید وضعیت، اولویت، مسئول و یادداشت پیگیری را ثبت کنید. هر تغییر در لاگ خدمات پس از فروش ذخیره می‌شود.</p>
+34260: 				<form method="get" class="sn-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end">
+34261: 					<label>وضعیت<br><select name="as_status"><option value="">همه</option><?php foreach ($statuses as $key => $label) : ?><option value="<?php echo esc_attr($key); ?>" <?php selected($filters['status'], $key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+34262: 					<label>اولویت<br><select name="as_priority"><option value="">همه</option><?php foreach ($priorities as $key => $label) : ?><option value="<?php echo esc_attr($key); ?>" <?php selected($filters['priority'], $key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+34263: 					<label>مسئول<br><select name="as_assigned_user"><option value="0">همه</option><?php foreach ($after_users as $uid) : ?><option value="<?php echo esc_attr((string) $uid); ?>" <?php selected($filters['assigned_user'], $uid); ?>><?php echo esc_html($this->sn_user_label($uid)); ?></option><?php endforeach; ?></select></label>
+34264: 					<label>شناسه فروشنده<br><input type="number" name="as_seller" value="<?php echo esc_attr((string) $filters['seller']); ?>"></label>
+34265: 					<label>کد فاکتور<br><input type="search" name="as_invoice_code" value="<?php echo esc_attr($filters['invoice_code']); ?>"></label>
+34266: 					<label>شماره<br><input type="search" name="as_phone" value="<?php echo esc_attr($filters['phone']); ?>"></label>
+34267: 					<label>از تاریخ<br><input type="text" class="sn-jalali-date" name="as_date_from" value="<?php echo esc_attr($filter_date_from_value); ?>" placeholder="1403/02/18"></label>
+34268: 					<label>تا تاریخ<br><input type="text" class="sn-jalali-date" name="as_date_to" value="<?php echo esc_attr($filter_date_to_value); ?>" placeholder="1403/02/18"></label>
+34269: 					<button class="sn-btn">فیلتر</button>
+34270: 				</form>
+34271: 				<table class="sn-table"><thead><tr><th>کد</th><th>مشتری</th><th>شماره</th><th>فاکتور</th><th>فروشنده</th><th>مسئول</th><th>نوع</th><th>وضعیت</th><th>اولویت</th><th>سررسید</th><th>بروزرسانی</th><th>عملیات</th></tr></thead><tbody>
+34272: 					<?php if (empty($cases)) : ?><tr><td colspan="12"><div class="sn-empty-state">پرونده‌ای با این فیلترها پیدا نشد. فیلترها را پاک کنید یا پرونده جدید ثبت کنید.</div></td></tr><?php endif; ?>
+34273: 					<?php foreach ($cases as $case) : ?><tr>
+34274: 						<td><code><?php echo esc_html($case['case_code']); ?></code></td>
+34275: 						<td><?php echo esc_html($case['customer_name'] ?: '—'); ?></td>
+34276: 						<td><?php echo esc_html($this->sn_mask_phone((string) ($case['normalized_phone'] ?: $case['customer_phone']))); ?></td>
+34277: 						<td><?php $inv_url = $this->sn_admin_invoice_context_url((string) $case['invoice_code']); if ($inv_url) : ?><a class="sn-internal-context-link" href="<?php echo esc_url($inv_url); ?>"><code><?php echo esc_html((string) $case['invoice_code']); ?></code></a><?php else : ?><code><?php echo esc_html((string) $case['invoice_code']); ?></code><?php endif; ?><?php if (! empty($case['lead_id'])) : ?><br><small class="sn-muted">لید داخلی #<?php echo esc_html((string) (int) $case['lead_id']); ?></small><?php endif; ?></td>
+34278: 						<td><?php echo esc_html($case['seller_name'] ?: (! empty($case['seller_user_id']) ? $this->sn_user_label((int) $case['seller_user_id']) : '—')); ?></td>
+34279: 						<td><?php echo esc_html($case['assigned_name'] ?: (! empty($case['assigned_after_sales_user_id']) ? $this->sn_user_label((int) $case['assigned_after_sales_user_id']) : '—')); ?></td>
+34280: 						<td><?php echo esc_html($case_types[$case['case_type']] ?? (string) $case['case_type']); ?></td>
+34281: 						<td><?php echo esc_html($statuses[$case['case_status']] ?? (string) $case['case_status']); ?></td>
+34282: 						<td><?php echo esc_html($priorities[$case['priority']] ?? (string) $case['priority']); ?></td>
+34283: 						<td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $case['due_at'])); ?></td>
+34284: 						<td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $case['updated_at'])); ?></td>
+34285: 						<td>
+34286: 							<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:grid;gap:4px;min-width:220px">
+34287: 								<input type="hidden" name="action" value="sn_after_sales_update_case">
+34288: 								<input type="hidden" name="case_id" value="<?php echo esc_attr((string) (int) $case['id']); ?>">
+34289: 								<?php wp_nonce_field('sn_after_sales_update_case'); ?>
+34290: 								<select name="case_status"><?php foreach ($statuses as $key => $label) : ?><option value="<?php echo esc_attr($key); ?>" <?php selected($case['case_status'], $key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select>
+34291: 								<select name="priority"><?php foreach ($priorities as $key => $label) : ?><option value="<?php echo esc_attr($key); ?>" <?php selected($case['priority'], $key); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select>
+34292: 								<select name="assigned_after_sales_user_id"><option value="0">بدون مسئول</option><?php foreach ($after_users as $uid) : ?><option value="<?php echo esc_attr((string) $uid); ?>" <?php selected((int) $case['assigned_after_sales_user_id'], $uid); ?>><?php echo esc_html($this->sn_user_label($uid)); ?></option><?php endforeach; ?></select>
+34293: 								<textarea name="note" rows="2" placeholder="یادداشت پیگیری؛ مثلاً نتیجه تماس یا اقدام بعدی"></textarea>
+34294: 								<button class="sn-btn sn-btn-sm">ثبت تغییر/یادداشت</button>
+34295: 							</form>
+34296: 						</td>
+34297: 					</tr><?php endforeach; ?>
+34298: 				</tbody></table>
+34299: 			</div>
+34300: 			</section>
+34301: 			<section id="after-candidates" class="<?php echo esc_attr($this->sn_tab_panel_class('after-candidates', 'after-overview')); ?>" data-sn-tab-panel="after-candidates">
+34302: 			<div class="sn-card">
+34303: 				<h3>کاندیدهای پیگیری پس از فروش</h3>
+34304: 				<p class="sn-note">این‌ها فاکتورهای پرداخت/تأیید شده‌ای هستند که هنوز پرونده خدمات پس از فروش ندارند. ساخت پرونده فقط با کلیک کاربر انجام می‌شود.</p>
+34305: 				<table class="sn-table"><thead><tr><th>کد فاکتور</th><th>مشتری</th><th>شماره</th><th>وضعیت</th><th>مبلغ</th><th>فروشنده</th><th>عملیات</th></tr></thead><tbody>
+34306: 					<?php if (empty($candidates)) : ?><tr><td colspan="7"><div class="sn-empty-state">فعلاً فاکتور جدیدی برای ایجاد پرونده پیشنهاد نشده است.</div></td></tr><?php endif; ?>
+34307: 					<?php foreach ($candidates as $invoice) : ?><tr>
+34308: 						<td><code><?php echo esc_html((string) $invoice['invoice_code']); ?></code></td><td><?php echo esc_html((string) $invoice['customer_name']); ?></td><td><?php echo esc_html($this->sn_mask_phone((string) $invoice['customer_phone'])); ?></td><td><?php echo esc_html(SN_Helpers::status_label((string) $invoice['status'])); ?></td><td><?php echo esc_html(SN_Helpers::format_price((float) ($invoice['final_total'] ?: $invoice['product_price']))); ?></td><td><?php echo ! empty($invoice['seller_id']) ? esc_html($this->sn_user_label((int) $invoice['seller_id'])) : '—'; ?></td>
+34309: 						<td><form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"><input type="hidden" name="action" value="sn_after_sales_create_case"><input type="hidden" name="invoice_code" value="<?php echo esc_attr((string) $invoice['invoice_code']); ?>"><input type="hidden" name="case_type" value="delivery_followup"><input type="hidden" name="priority" value="normal"><?php wp_nonce_field('sn_after_sales_create_case'); ?><button class="sn-btn sn-btn-sm">ساخت پرونده از فاکتور</button></form></td>
+34310: 					</tr><?php endforeach; ?>
+34311: 				</tbody></table>
+34312: 			</div>
+34313: 			</section>
+34314: 			<section id="after-logs" class="<?php echo esc_attr($this->sn_tab_panel_class('after-logs', 'after-overview')); ?>" data-sn-tab-panel="after-logs">
+34315: 			<div class="sn-card">
+34316: 				<h3>لاگ خدمات پس از فروش</h3>
+34317: 				<table class="sn-table"><thead><tr><th>زمان</th><th>کاربر</th><th>پرونده</th><th>عملیات</th><th>قبل</th><th>بعد</th><th>یادداشت</th></tr></thead><tbody>
+34318: 					<?php foreach ($logs as $log) : ?><tr><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $log['created_at'])); ?></td><td><?php echo esc_html($log['actor_name'] ?: (! empty($log['actor_user_id']) ? $this->sn_user_label((int) $log['actor_user_id']) : '—')); ?></td><td><code><?php echo esc_html((string) $log['case_code']); ?></code></td><td><?php echo esc_html((string) $log['action']); ?></td><td><code><?php echo esc_html($this->sn_after_sales_safe_log_value($log['old_value'] ?? '')); ?></code></td><td><code><?php echo esc_html($this->sn_after_sales_safe_log_value($log['new_value'] ?? '')); ?></code></td><td><?php echo esc_html($this->sn_after_sales_mask_sensitive_text((string) ($log['note'] ?? ''))); ?></td></tr><?php endforeach; ?>
+34319: 				</tbody></table>
+34320: 			</div>
+34321: 			</section>
+34322: 		</div>
+34323: 	<?php return ob_get_clean();
+34324: 			}

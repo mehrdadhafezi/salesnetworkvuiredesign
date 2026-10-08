@@ -1,0 +1,13 @@
+6176: 
+6177: 	private function sn_user_can_request_extra_number(int $user_id): bool
+6178: 	{
+6179: 		if ($user_id < 1) { return false; }
+6180: 		if (user_can($user_id, 'manage_options')) { return true; }
+6181: 		$mode = $this->sn_extra_number_request_access_mode($user_id);
+6182: 		if ($mode === 'allow') { return true; }
+6183: 		if ($mode === 'deny') { return false; }
+6184: 		$user = get_user_by('id', $user_id);
+6185: 		if (! $user) { return false; }
+6186: 		return in_array('sn_seller', (array) $user->roles, true) || $this->sn_hr_position_for_user($user_id) === 'seller';
+6187: 	}
+6188: 

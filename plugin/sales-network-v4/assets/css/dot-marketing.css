@@ -1,0 +1,657 @@
+.dot-credit-form-wrap,
+.dot-credit-form-wrap * {
+    box-sizing: border-box;
+}
+
+.dot-credit-form-wrap {
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    direction: rtl;
+    text-align: right;
+}
+
+.dot-credit-form {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    padding: 42px;
+    overflow: hidden;
+    border: 1px solid rgba(16, 24, 40, .07);
+    border-radius: 30px;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(16, 24, 40, .09), 0 4px 18px rgba(16, 24, 40, .04);
+    color: #101828;
+}
+
+.dot-credit-header {
+    margin: 0 0 30px;
+    text-align: center;
+}
+
+.dot-credit-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    margin: 0 0 11px;
+    padding: 5px 13px;
+    border: 1px solid #dbe4ff;
+    border-radius: 999px;
+    background: #f5f7ff;
+    color: #0634ff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.5;
+}
+
+.dot-credit-header h3 {
+    margin: 0 0 10px !important;
+    padding: 0 !important;
+    color: #101828 !important;
+    font: inherit;
+    font-size: clamp(25px, 4vw, 34px) !important;
+    font-weight: 900 !important;
+    line-height: 1.45 !important;
+    letter-spacing: -.02em;
+}
+
+.dot-credit-header p {
+    max-width: 560px;
+    margin: 0 auto !important;
+    color: #667085 !important;
+    font-size: 14px !important;
+    font-weight: 500;
+    line-height: 2 !important;
+}
+
+.dot-credit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 19px 17px;
+}
+
+.dot-credit-field {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.dot-credit-field > span {
+    display: block;
+    margin: 0 3px;
+    color: #344054;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.6;
+}
+
+.dot-credit-form .dot-credit-input {
+    display: block;
+    width: 100%;
+    height: 56px;
+    min-height: 56px;
+    margin: 0;
+    padding: 0 16px;
+    border: 1px solid #d0d5dd;
+    border-radius: 15px;
+    outline: none;
+    background: #fff;
+    color: #101828;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .03);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: normal;
+    transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+    appearance: auto;
+}
+
+.dot-credit-form .dot-credit-input::placeholder {
+    color: #98a2b3;
+    opacity: 1;
+    font-weight: 500;
+}
+
+.dot-credit-form .dot-credit-input:hover:not(:disabled) {
+    border-color: #98a2b3;
+}
+
+.dot-credit-form .dot-credit-input:focus {
+    border-color: #0634ff;
+    box-shadow: 0 0 0 4px rgba(6, 52, 255, .10);
+}
+
+.dot-credit-form .dot-credit-input:disabled {
+    background: #f9fafb;
+    color: #98a2b3;
+    cursor: not-allowed;
+}
+
+.dot-credit-form input[name="customer_phone"] {
+    direction: ltr;
+    text-align: right;
+}
+
+.dot-credit-submit,
+.dot-credit-form .dot-credit-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 60px;
+    min-height: 60px;
+    margin: 27px 0 0;
+    padding: 0 24px;
+    border: 0 !important;
+    border-radius: 18px;
+    outline: none;
+    background: #0634ff !important;
+    color: #fff !important;
+    box-shadow: 0 13px 28px rgba(6, 52, 255, .22);
+    font: inherit;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease, background-color .18s ease;
+}
+
+.dot-credit-submit:hover,
+.dot-credit-form .dot-credit-submit:hover {
+    transform: translateY(-2px);
+    background: #052de0 !important;
+    box-shadow: 0 17px 34px rgba(6, 52, 255, .28);
+}
+
+.dot-credit-submit:focus-visible {
+    box-shadow: 0 0 0 4px #fff, 0 0 0 7px rgba(6, 52, 255, .35), 0 13px 28px rgba(6, 52, 255, .22);
+}
+
+.dot-credit-submit:disabled,
+.dot-credit-submit[aria-busy="true"] {
+    opacity: .68;
+    cursor: wait;
+    transform: none;
+}
+
+.dot-credit-privacy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 13px 0 0 !important;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.8;
+    text-align: center;
+}
+
+.dot-credit-alert,
+.sn-dot-marketing-unavailable {
+    direction: rtl;
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto 20px;
+    padding: 13px 15px;
+    border: 1px solid #fecdca;
+    border-radius: 14px;
+    background: #fffbfa;
+    color: #b42318;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.9;
+}
+
+.dot-credit-alert.is-success {
+    border-color: #abefc6;
+    background: #ecfdf3;
+    color: #067647;
+}
+
+.sn-dot-marketing-alert[hidden] {
+    display: none !important;
+}
+
+.sn-dot-marketing-hp {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+html.sn-dot-marketing-modal-open,
+html.sn-dot-marketing-modal-open body {
+    overflow: hidden !important;
+}
+
+.sn-dot-marketing-modal[hidden],
+.sn-dot-marketing-otp-step[hidden],
+.sn-dot-marketing-confirm-step[hidden] {
+    display: none !important;
+}
+
+.sn-dot-marketing-modal {
+    position: fixed;
+    z-index: 999999;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    direction: rtl;
+}
+
+.sn-dot-marketing-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(16, 24, 40, .58);
+    backdrop-filter: blur(5px);
+}
+
+.sn-dot-marketing-modal-card {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 440px);
+    max-height: calc(100vh - 36px);
+    padding: 30px;
+    overflow-y: auto;
+    border: 1px solid rgba(16, 24, 40, .08);
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 28px 80px rgba(16, 24, 40, .25);
+    color: #101828;
+    text-align: right;
+}
+
+.sn-dot-marketing-modal-close {
+    position: absolute;
+    top: 13px;
+    left: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 0;
+    border-radius: 11px;
+    background: #f2f4f7;
+    color: #475467;
+    font: inherit;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.sn-dot-marketing-modal-kicker {
+    display: inline-block;
+    margin: 0 0 7px;
+    color: #0634ff;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.sn-dot-marketing-modal-card h4 {
+    margin: 0 0 18px !important;
+    padding: 0 0 0 34px !important;
+    color: #101828 !important;
+    font-size: 21px !important;
+    font-weight: 900 !important;
+    line-height: 1.6 !important;
+}
+
+.sn-dot-marketing-confirm-step > p,
+.sn-dot-marketing-otp-caption {
+    margin: 7px 0 !important;
+    padding: 11px 13px;
+    border: 1px solid #eaecf0;
+    border-radius: 12px;
+    background: #f9fafb;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.sn-dot-marketing-confirm-step > p strong,
+.sn-dot-marketing-otp-caption strong {
+    color: #101828;
+}
+
+.sn-dot-marketing-modal-primary,
+.sn-dot-marketing-modal-secondary {
+    width: 100%;
+    min-height: 52px;
+    margin: 15px 0 0;
+    padding: 10px 16px;
+    border-radius: 14px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.sn-dot-marketing-modal-primary {
+    border: 0;
+    background: #0634ff;
+    color: #fff;
+}
+
+.sn-dot-marketing-modal-secondary {
+    margin-top: 8px;
+    border: 1px solid #d0d5dd;
+    background: #fff;
+    color: #475467;
+}
+
+.sn-dot-marketing-modal-primary:disabled,
+.sn-dot-marketing-modal-secondary:disabled {
+    opacity: .58;
+    cursor: wait;
+}
+
+.sn-dot-marketing-otp-input {
+    direction: ltr;
+    width: 100%;
+    min-height: 60px;
+    margin: 14px 0 0;
+    padding: 0 14px;
+    border: 1px solid #d0d5dd;
+    border-radius: 15px;
+    background: #fff;
+    color: #101828;
+    font: inherit;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: .25em;
+    text-align: center;
+    outline: none;
+}
+
+.sn-dot-marketing-otp-input:focus {
+    border-color: #0634ff;
+    box-shadow: 0 0 0 4px rgba(6, 52, 255, .10);
+}
+
+.sn-dot-marketing-otp-message {
+    min-height: 25px;
+    margin-top: 8px;
+    color: #067647;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.8;
+    text-align: center;
+}
+
+.sn-dot-marketing-otp-message.is-error {
+    color: #b42318;
+}
+
+@media (max-width: 640px) {
+    .dot-credit-form-wrap {
+        max-width: 100%;
+    }
+
+    .dot-credit-form {
+        padding: 25px 18px;
+        border-radius: 22px;
+    }
+
+    .dot-credit-header {
+        margin-bottom: 24px;
+    }
+
+    .dot-credit-header h3 {
+        font-size: 25px !important;
+    }
+
+    .dot-credit-header p {
+        font-size: 13px !important;
+    }
+
+    .dot-credit-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .dot-credit-form .dot-credit-input {
+        font-size: 16px;
+    }
+
+    .dot-credit-submit,
+    .dot-credit-form .dot-credit-submit {
+        width: 100%;
+        margin-top: 22px;
+        border-radius: 15px;
+        font-size: 16px;
+    }
+
+    .dot-credit-privacy {
+        align-items: flex-start;
+        font-size: 11px;
+    }
+
+    .sn-dot-marketing-modal {
+        align-items: flex-end;
+        padding: 10px;
+    }
+
+    .sn-dot-marketing-modal-card {
+        width: 100%;
+        max-height: calc(100vh - 20px);
+        padding: 25px 18px 18px;
+        border-radius: 22px 22px 16px 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dot-credit-form *,
+    .sn-dot-marketing-modal * {
+        scroll-behavior: auto !important;
+        transition: none !important;
+    }
+}
+
+/* Strong public overrides: keep the landing UI consistent across Elementor/themes. */
+.sn-dot-marketing-wrap.dot-credit-form-wrap {
+    max-width: 860px !important;
+}
+
+.sn-dot-marketing-wrap .dot-credit-form {
+    padding: 46px !important;
+    border: 1px solid #e7eaf0 !important;
+    border-radius: 28px !important;
+    background: linear-gradient(180deg, #fff 0%, #fdfdff 100%) !important;
+    box-shadow: 0 22px 64px rgba(15, 23, 42, .10) !important;
+}
+
+.sn-dot-marketing-wrap .dot-credit-field:last-child {
+    grid-column: 1 / -1;
+}
+
+.sn-dot-marketing-wrap .dot-credit-input {
+    background: #fff !important;
+    border: 1px solid #d8dee9 !important;
+    border-radius: 14px !important;
+    color: #111827 !important;
+    box-shadow: 0 2px 5px rgba(15, 23, 42, .025) !important;
+}
+
+.sn-dot-marketing-wrap .dot-credit-input:focus {
+    border-color: #1d4ed8 !important;
+    box-shadow: 0 0 0 4px rgba(29, 78, 216, .11) !important;
+}
+
+.sn-dot-marketing-wrap .dot-credit-submit {
+    border-radius: 14px !important;
+    background: linear-gradient(135deg, #1948e8, #1237c9) !important;
+    box-shadow: 0 13px 26px rgba(25, 72, 232, .24) !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal {
+    position: fixed !important;
+    z-index: 2147483000 !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 22px !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal[hidden] {
+    display: none !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    background: rgba(15, 23, 42, .62) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-card {
+    position: relative !important;
+    z-index: 2 !important;
+    width: min(100%, 500px) !important;
+    margin: 0 !important;
+    padding: 38px 34px 32px !important;
+    border: 1px solid rgba(255,255,255,.62) !important;
+    border-radius: 26px !important;
+    background: #fff !important;
+    box-shadow: 0 32px 90px rgba(15, 23, 42, .32) !important;
+    color: #111827 !important;
+    text-align: center !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-close {
+    position: absolute !important;
+    top: 16px !important;
+    left: 16px !important;
+    right: auto !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 50% !important;
+    background: #f8fafc !important;
+    color: #64748b !important;
+    box-shadow: none !important;
+    font-size: 20px !important;
+    line-height: 36px !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-kicker {
+    display: inline-flex !important;
+    margin: 0 auto 12px !important;
+    padding: 6px 12px !important;
+    border: 1px solid #dbeafe !important;
+    border-radius: 999px !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-card h4 {
+    margin: 0 0 20px !important;
+    padding: 0 34px !important;
+    color: #0f172a !important;
+    font-size: 24px !important;
+    font-weight: 900 !important;
+    line-height: 1.65 !important;
+    text-align: center !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-confirm-step > p,
+.sn-dot-marketing-wrap .sn-dot-marketing-otp-caption {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    margin: 0 0 22px !important;
+    padding: 17px 18px !important;
+    border: 1px solid #dbe4f0 !important;
+    border-radius: 16px !important;
+    background: #f8fafc !important;
+    color: #64748b !important;
+    font-size: 14px !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-confirm-step > p strong {
+    color: #0f172a !important;
+    font-size: 17px !important;
+    white-space: nowrap;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-actions {
+    display: grid !important;
+    grid-template-columns: 1.25fr .75fr !important;
+    gap: 10px !important;
+    margin-top: 6px !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-primary,
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-secondary {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 54px !important;
+    margin: 0 !important;
+    padding: 10px 18px !important;
+    border-radius: 14px !important;
+    font-size: 15px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-primary {
+    border: 1px solid #1746dc !important;
+    background: linear-gradient(135deg, #1948e8, #1237c9) !important;
+    color: #fff !important;
+    box-shadow: 0 11px 24px rgba(25, 72, 232, .22) !important;
+}
+
+.sn-dot-marketing-wrap .sn-dot-marketing-modal-secondary {
+    border: 1px solid #d8dee9 !important;
+    background: #fff !important;
+    color: #475569 !important;
+}
+
+@media (max-width: 640px) {
+    .sn-dot-marketing-wrap .dot-credit-form {
+        padding: 26px 18px !important;
+        border-radius: 20px !important;
+    }
+    .sn-dot-marketing-wrap .dot-credit-field:last-child {
+        grid-column: auto;
+    }
+    .sn-dot-marketing-wrap .sn-dot-marketing-modal {
+        align-items: flex-end !important;
+        padding: 10px !important;
+    }
+    .sn-dot-marketing-wrap .sn-dot-marketing-modal-card {
+        padding: 34px 18px 20px !important;
+        border-radius: 24px 24px 18px 18px !important;
+    }
+    .sn-dot-marketing-wrap .sn-dot-marketing-modal-card h4 {
+        padding: 0 30px !important;
+        font-size: 21px !important;
+    }
+    .sn-dot-marketing-wrap .sn-dot-marketing-confirm-step > p {
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+    .sn-dot-marketing-wrap .sn-dot-marketing-modal-actions {
+        grid-template-columns: 1fr !important;
+    }
+}

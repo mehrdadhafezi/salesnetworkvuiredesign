@@ -1,0 +1,324 @@
+10585: 
+10586: 	public function render_hr_panel(): string
+10587: 	{
+10588: 		if (! is_user_logged_in()) {
+10589: 			return $this->render_unified_panel_login();
+10590: 		}
+10591: 		if (! $this->sn_can_manage_hr_panel()) {
+10592: 			return '<div class="sn-panel" dir="rtl"><div class="sn-notice sn-error">دسترسی به پنل منابع انسانی مجاز نیست.</div></div>';
+10593: 		}
+10594: 		global $wpdb;
+10595: 		if (class_exists('SN_Migration_Service')) { (new SN_Migration_Service())->migrate(); }
+10596: 		$this->sn_ensure_hr_profile_schema_runtime();
+10597: 		$this->sn_hr_purge_builtin_lookup_rows_once();
+10598: 		$msg = sanitize_key(wp_unslash($_GET['sn_msg'] ?? ''));
+10599: 		$positions = $this->sn_hr_normalize_lookup_rows($wpdb->get_results("SELECT * FROM {$wpdb->prefix}sn_hr_positions WHERE slug NOT IN ('project_manager','project_expert') ORDER BY sort_order ASC, id ASC") ?: [], 'position');
+10600: 		$levels = $this->sn_hr_normalize_lookup_rows($wpdb->get_results("SELECT * FROM {$wpdb->prefix}sn_hr_levels ORDER BY sort_order ASC, id ASC") ?: [], 'level');
+10601: 		$departments = $this->sn_hr_normalize_lookup_rows($this->sn_hr_structure_rows('departments'), 'department');
+10602: 		$units = $this->sn_hr_normalize_lookup_rows($this->sn_hr_structure_rows('units'), 'unit');
+10603: 		$teams = $this->sn_hr_normalize_lookup_rows($this->sn_hr_structure_rows('teams'), 'team');
+10604: 		$mappings = $wpdb->get_results("SELECT m.*, p.slug position_slug, p.label position_label, l.slug level_slug, l.label level_label FROM {$wpdb->prefix}sn_hr_position_role_mappings m LEFT JOIN {$wpdb->prefix}sn_hr_positions p ON p.id=m.position_id LEFT JOIN {$wpdb->prefix}sn_hr_levels l ON l.id=m.default_level_id WHERE m.legacy_role NOT IN ('sn_project_manager','sn_project_expert') ORDER BY m.legacy_role ASC");
+10605: 		$summary = $this->sn_hr_panel_summary();
+10606: 		$profile_filters = $this->sn_hr_panel_profile_filters();
+10607: 		$profiles = $this->sn_hr_panel_profile_rows($profile_filters, 100);
+10608: 		$top_profiles = $this->sn_hr_panel_top_level_profiles(50);
+10609: 		$assignments = $this->sn_hr_panel_assignments(100);
+10610: 		$logs = $this->sn_hr_panel_logs(100);
+10611: 		$missing_users = $this->sn_hr_panel_missing_profile_users(50);
+10612: 		$commission_rules = $this->sn_commission_rules(false);
+10613: 		$last_report = get_option('sn_hr_panel_action_report', []);
+10614: 		$csv_report = get_option('sn_hr_csv_dry_run_report', []);
+10615: 		$bulk_assignment_report = get_option('sn_hr_bulk_assignment_report', []);
+10616: 		$hierarchy_audit = $this->sn_hr_hierarchy_audit_summary();
+10617: 		ob_start();
+10618: 		?>
+10619: 		<div id="sn-hr-panel" class="sn-panel sn-portal sn-hr-panel" dir="rtl">
+10620: 			<div class="sn-panel-header sn-hr-header">
+10621: 				<div>
+10622: 					<h2>پنل منابع انسانی</h2>
+10623: 				</div>
+10624: 				<?php echo $this->sn_panel_user_actions_markup(); ?>
+10625: 			</div>
+10626: 			<?php
+10627: 			$hr_panel_messages = [
+10628: 				'hr_position_saved' => ['sn-success', 'سمت HR ذخیره شد.'],
+10629: 				'hr_position_deleted' => ['sn-success', 'سمت HR حذف شد و نیروهای وابسته بدون سمت شدند.'],
+10630: 				'hr_position_delete_failed' => ['sn-error', 'حذف سمت HR انجام نشد.'],
+10631: 				'hr_level_saved' => ['sn-success', 'سطح HR ذخیره شد.'],
+10632: 				'hr_level_activated' => ['sn-success', 'سطح فعال شد.'],
+10633: 				'hr_level_deactivated' => ['sn-success', 'سطح غیرفعال شد.'],
+10634: 				'hr_level_deleted' => ['sn-success', 'سطح HR حذف شد و نیروهای وابسته بدون سطح شدند.'],
+10635: 				'hr_level_error' => ['sn-error', 'خطا در ذخیره وضعیت سطح.'],
+10636: 				'hr_level_update_failed' => ['sn-error', 'خطا در ذخیره وضعیت سطح.'],
+10637: 				'hr_level_delete_failed' => ['sn-error', 'حذف سطح HR انجام نشد.'],
+10638: 				'hr_bulk_assignment_done' => ['sn-success', 'عملیات مدیریت زیرمجموعه‌ها ثبت شد.'],
+10639: 			];
+10640: 			?>
+10641: 			<?php if (isset($hr_panel_messages[$msg])) : ?>
+10642: 				<div class="sn-notice <?php echo esc_attr($hr_panel_messages[$msg][0]); ?>"><?php echo esc_html($hr_panel_messages[$msg][1]); ?></div>
+10643: 			<?php endif; ?>
+10644: 			<?php $last_level_report = current_user_can('manage_options') ? get_option('sn_hr_last_level_action_report', []) : []; ?>
+10645: 			<?php if (! empty($last_level_report) && is_array($last_level_report) && current_user_can('manage_options')) : ?>
+10646: 				<details class="sn-card sn-hr-advanced"><summary>جزئیات فنی آخرین عملیات سطح HR</summary>
+10647: 					<table class="sn-table"><tbody>
+10648: 						<?php foreach (['level_id' => 'شناسه سطح', 'level_status_action' => 'عملیات', 'posted_is_active_values' => 'مقادیر is_active ارسال‌شده', 'expected_active' => 'مقدار مورد انتظار', 'actual_active' => 'مقدار ذخیره‌شده', 'rows_affected' => 'ردیف‌های تغییرکرده', 'verified' => 'تأیید نهایی', 'message' => 'پیام', 'db_error' => 'خطای دیتابیس'] as $key => $label) : ?>
+10649: 							<tr><th><?php echo esc_html($label); ?></th><td><?php echo esc_html(is_bool($last_level_report[$key] ?? null) ? (($last_level_report[$key] ?? false) ? 'بله' : 'خیر') : (is_array($last_level_report[$key] ?? null) ? implode('، ', array_map('strval', (array) $last_level_report[$key])) : (string) ($last_level_report[$key] ?? ''))); ?></td></tr>
+10650: 						<?php endforeach; ?>
+10651: 					</tbody></table>
+10652: 				</details>
+10653: 			<?php endif; ?>
+10654: 			<?php if (! empty($last_report) && is_array($last_report)) : ?>
+10655: 				<div class="sn-card">
+10656: 					<h3>آخرین گزارش عملیات HR</h3>
+10657: 					<?php
+10658: 					$hr_errors = (int) ($last_report['errors'] ?? 0);
+10659: 					$changed_bits = [];
+10660: 					foreach (['changed_position' => 'سمت', 'changed_level' => 'سطح', 'changed_active' => 'وضعیت فعال', 'changed_metadata' => 'اطلاعات نیرو', 'changed_compensation' => 'حقوق و پورسانت', 'changed_manager' => 'مدیر مستقیم'] as $key => $label) {
+10661: 						if (! empty($last_report[$key])) { $changed_bits[] = $label; }
+10662: 					}
+10663: 					?>
+10664: 					<div class="sn-notice <?php echo $hr_errors ? 'sn-error' : 'sn-success'; ?>">
+10665: 						<?php echo $hr_errors ? 'عملیات HR با خطا/هشدار ثبت شد.' : 'عملیات HR با موفقیت ثبت شد.'; ?>
+10666: 						<?php if ($changed_bits) : ?> تغییرات: <?php echo esc_html(implode('، ', $changed_bits)); ?>.<?php endif; ?>
+10667: 						<?php if (! empty($last_report['old_manager_label']) || ! empty($last_report['new_manager_label'])) : ?>
+10668: 							مدیر مستقیم: <?php echo esc_html((string) ($last_report['old_manager_label'] ?? '—')); ?> ← <?php echo esc_html((string) ($last_report['new_manager_label'] ?? '—')); ?>.
+10669: 						<?php endif; ?>
+10670: 						<?php if (! empty($last_report['warnings'])) : ?> پیام‌ها: <?php echo esc_html(implode('، ', array_map('strval', (array) $last_report['warnings']))); ?><?php endif; ?>
+10671: 					</div>
+10672: 					<details class="sn-hr-advanced"><summary>جزئیات فنی گزارش</summary><pre><?php echo esc_html(wp_json_encode($last_report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre></details>
+10673: 				</div>
+10674: 			<?php endif; ?>
+10675: 			<?php $this->sn_render_panel_tabs([
+10676: 				'hr-workforce' => 'مدیریت نیروها',
+10677: 				'hr-manual-add' => 'افزودن دستی نیرو',
+10678: 				'hr-csv' => 'ورودی/خروجی کاربران',
+10679: 				'hr-bulk' => 'تغییرات گروهی',
+10680: 				'hr-change-requests' => 'درخواست‌های جابجایی/قطع همکاری',
+10681: 				'hr-compensation' => 'تاریخچه حقوق و پورسانت',
+10682: 				'hr-positions' => 'سمت‌ها و سطح‌ها',
+10683: 				'hr-extra' => 'ابزارهای پیشرفته',
+10684: 				'hr-overview' => 'نمای کلی',
+10685: 				'hr-structure' => 'ساختار واحدی',
+10686: 				'hr-hierarchy' => 'سلسله‌مراتب',
+10687: 				'hr-logs' => 'لاگ‌ها',
+10688: 			], 'hr-workforce'); ?>
+10689: 			<section id="hr-overview" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-overview', 'hr-workforce')); ?>" data-sn-tab-panel="hr-overview">
+10690: 			<div class="sn-hr-dashboard">
+10691: 				<?php foreach ($summary as $label => $value) : ?>
+10692: 					<div class="sn-hr-stat"><strong><?php echo esc_html((string) $value); ?></strong><span><?php echo esc_html((string) $label); ?></span></div>
+10693: 				<?php endforeach; ?>
+10694: 			</div>
+10695: 
+10696: 			<details open class="sn-card sn-hr-section"><summary><strong>نمای کلی و آمادگی HR</strong></summary>
+10697: 				<div class="sn-hr-three-col">
+10698: 					<div><h4>پروفایل‌ها بر اساس سمت</h4><?php $this->sn_hr_panel_render_count_table($this->sn_hr_panel_counts_by('position')); ?></div>
+10699: 					<div><h4>پروفایل‌ها بر اساس سطح</h4><?php $this->sn_hr_panel_render_count_table($this->sn_hr_panel_counts_by('level')); ?></div>
+10700: 					<div><h4>آمادگی HR</h4><?php $this->sn_hr_panel_render_count_table($this->sn_hr_readiness_rows()); ?></div>
+10701: 				</div>
+10702: 			</details>
+10703: 			</section>
+10704: 			<section id="hr-change-requests" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-change-requests', 'hr-workforce')); ?>" data-sn-tab-panel="hr-change-requests">
+10705: 			<?php $this->sn_hr_change_request_render_section(get_current_user_id(), 'hr'); ?>
+10706: 			</section>
+10707: 
+10708: 			<section id="hr-compensation" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-compensation', 'hr-workforce')); ?>" data-sn-tab-panel="hr-compensation">
+10709: 			<?php $this->sn_hr_render_compensation_section($commission_rules); ?>
+10710: 			</section>
+10711: 
+10712: 			<section id="hr-positions" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-positions', 'hr-workforce')); ?>" data-sn-tab-panel="hr-positions">
+10713: 			<details class="sn-card sn-hr-section"><summary><strong>سمت‌ها</strong></summary>
+10714: 				<div class="sn-hr-edit-list">
+10715: 					<?php foreach ($positions as $p) : ?>
+10716: 						<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-hr-edit-card sn-hr-ajax-lookup-form">
+10717: 							<input type="hidden" name="position_id" value="<?php echo esc_attr((string) (int) $p->id); ?>">
+10718: 							<div class="sn-hr-edit-head">
+10719: 								<strong><?php echo esc_html((string) $p->label); ?></strong>
+10720: 								<span class="sn-hr-badge">#<?php echo esc_html((string) (int) $p->id); ?></span>
+10721: 								<span class="sn-hr-badge"><?php echo esc_html((string) $p->slug); ?></span>
+10722: 								<span class="sn-hr-muted"><?php echo ! empty($p->is_system) ? 'سمت سیستمی؛ عنوان و توضیح قابل ویرایش است' : 'سمت سفارشی'; ?></span>
+10723: 							</div>
+10724: 							<div class="sn-hr-form-grid">
+10725: 								<label>عنوان<input type="text" name="label" value="<?php echo esc_attr((string) $p->label); ?>"></label>
+10726: 								<label>توضیح<input type="text" name="description" value="<?php echo esc_attr((string) ($p->description ?? '')); ?>"></label>
+10727: 								<label class="sn-hr-check"><input type="checkbox" name="is_active" value="1" <?php checked((int) $p->is_active, 1); ?>> فعال</label>
+10728: 								<div class="sn-hr-actions"><input type="hidden" name="action" value="sn_hr_save_position"><?php wp_nonce_field('sn_hr_save_position'); ?><button class="sn-btn" type="submit" name="position_status_action" value="save">ذخیره</button><button class="sn-btn sn-btn-danger" type="submit" name="position_status_action" value="delete" onclick="return confirm('این سمت حذف شود؟ نیروهای وابسته بدون سمت می‌شوند.');">حذف</button></div>
+10729: 							</div>
+10730: 						</form>
+10731: 					<?php endforeach; ?>
+10732: 					<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-hr-edit-card sn-hr-new-card sn-hr-ajax-lookup-form">
+10733: 						<div class="sn-hr-edit-head"><strong>افزودن سمت سفارشی</strong><span class="sn-hr-muted">slug فقط برای سمت جدید وارد می‌شود.</span></div>
+10734: 						<div class="sn-hr-form-grid">
+10735: 							<label>عنوان<input type="text" name="label" placeholder="مثلاً کارشناس آموزش"></label>
+10736: 							<label>کد سیستمی<input type="text" name="slug" placeholder="مثلاً training_specialist"></label>
+10737: 							<label>توضیح<input type="text" name="description" placeholder="توضیح کوتاه"></label>
+10738: 							<label class="sn-hr-check"><input type="checkbox" name="is_active" value="1" checked> فعال</label>
+10739: 							<div class="sn-hr-actions"><input type="hidden" name="action" value="sn_hr_save_position"><?php wp_nonce_field('sn_hr_save_position'); ?><button class="sn-btn" type="submit">افزودن</button></div>
+10740: 						</div>
+10741: 					</form>
+10742: 				</div>
+10743: 				<p class="sn-note">سمت‌ها کاملاً سفارشی هستند. حذف سمت، نیروهای وابسته را بدون سمت می‌کند؛ slug سمت‌های موجود از این فرم تغییر نمی‌کند.</p>
+10744: 			</details>
+10745: 			<details class="sn-card sn-hr-section"><summary><strong>سطح‌ها</strong></summary>
+10746: 				<div class="sn-hr-edit-list">
+10747: 					<?php foreach ($levels as $l) : ?>
+10748: 						<div class="sn-hr-edit-card sn-hr-ajax-lookup-form">
+10749: 							<div class="sn-hr-edit-head">
+10750: 								<strong><?php echo esc_html((string) $l->label); ?></strong>
+10751: 								<span class="sn-hr-badge">#<?php echo esc_html((string) (int) $l->id); ?></span>
+10752: 								<span class="sn-hr-badge"><?php echo esc_html((string) $l->slug); ?></span>
+10753: 							</div>
+10754: 							<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-hr-inline-form sn-hr-ajax-lookup-form">
+10755: 								<input type="hidden" name="level_id" value="<?php echo esc_attr((string) (int) $l->id); ?>">
+10756: 								<div class="sn-hr-form-grid">
+10757: 									<label>عنوان<input type="text" name="label" value="<?php echo esc_attr((string) $l->label); ?>"></label>
+10758: 									<label>توضیح<input type="text" name="description" value="<?php echo esc_attr((string) ($l->description ?? '')); ?>"></label>
+10759: 									<label class="sn-hr-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" <?php checked((int) $l->is_active, 1); ?>> فعال</label>
+10760: 									<div class="sn-hr-actions">
+10761: 										<input type="hidden" name="action" value="sn_hr_save_level"><?php wp_nonce_field('sn_hr_save_level'); ?>
+10762: 										<input type="hidden" name="level_status_action" value="save">
+10763: 									<button class="sn-btn" type="submit" name="level_status_action" value="save">ذخیره</button>
+10764: 									</div>
+10765: 								</div>
+10766: 							</form>
+10767: 							<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-hr-inline-form sn-hr-toggle-form sn-hr-ajax-lookup-form">
+10768: 								<input type="hidden" name="action" value="sn_hr_save_level">
+10769: 								<input type="hidden" name="level_id" value="<?php echo esc_attr((string) (int) $l->id); ?>">
+10770: 								<?php wp_nonce_field('sn_hr_save_level'); ?>
+10771: 								<?php if ((int) $l->is_active) : ?>
+10772: 									<button class="sn-btn sn-btn-secondary" type="submit" name="level_status_action" value="deactivate">غیرفعال‌سازی</button>
+10773: 								<?php else : ?>
+10774: 									<button class="sn-btn sn-btn-secondary" type="submit" name="level_status_action" value="activate">فعال‌سازی</button>
+10775: 								<?php endif; ?>
+10776: 								<button class="sn-btn sn-btn-danger" type="submit" name="level_status_action" value="delete" onclick="return confirm('این سطح حذف شود؟ نیروهای وابسته بدون سطح می‌شوند.');">حذف</button>
+10777: 							</form>
+10778: 						</div>
+10779: 					<?php endforeach; ?>
+10780: 					<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-hr-edit-card sn-hr-new-card sn-hr-ajax-lookup-form">
+10781: 						<div class="sn-hr-edit-head"><strong>افزودن سطح سفارشی</strong><span class="sn-hr-muted">سطح‌ها فعلاً فقط metadata هستند.</span></div>
+10782: 						<div class="sn-hr-form-grid">
+10783: 							<label>عنوان<input type="text" name="label" placeholder="مثلاً سطح طلایی"></label>
+10784: 							<label>کد سیستمی<input type="text" name="slug" placeholder="مثلاً gold"></label>
+10785: 							<label>توضیح<input type="text" name="description" placeholder="توضیح کوتاه"></label>
+10786: 							<label class="sn-hr-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" checked> فعال</label>
+10787: 							<div class="sn-hr-actions"><input type="hidden" name="action" value="sn_hr_save_level"><?php wp_nonce_field('sn_hr_save_level'); ?><button class="sn-btn" type="submit">افزودن</button></div>
+10788: 						</div>
+10789: 					</form>
+10790: 				</div>
+10791: 				<p class="sn-note">سطح‌ها کاملاً سفارشی هستند؛ حذف سطح، نیروهای وابسته را بدون سطح می‌کند. موتور حقوق/پورسانت در این فاز اضافه نشده است.</p>
+10792: 			</details>
+10793: 			</section>
+10794: 
+10795: 			<section id="hr-workforce" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-workforce', 'hr-workforce')); ?>" data-sn-tab-panel="hr-workforce">
+10796: 			<?php $this->sn_hr_render_workforce_management_section($profile_filters, $positions, $levels, $departments, $units, $teams, $commission_rules); ?>
+10797: 			</section>
+10798: 
+10799: 			<section id="hr-bulk" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-bulk', 'hr-workforce')); ?>" data-sn-tab-panel="hr-bulk">
+10800: 			<?php $this->sn_hr_render_bulk_workforce_section($profile_filters, $positions, $levels, $commission_rules); ?>
+10801: 			</section>
+10802: 
+10803: 			<section id="hr-manual-add" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-manual-add', 'hr-workforce')); ?>" data-sn-tab-panel="hr-manual-add">
+10804: 			<details open class="sn-card sn-hr-section"><summary><strong>افزودن دستی نیرو</strong></summary>
+10805: 				<p class="sn-note">برای شروع CRM فقط نام، موبایل و سمت کافی است. مدیر مستقیم، سطح، حقوق و پورسانت بعداً از تب «مدیریت نیروها» تنظیم می‌شود.</p>
+10806: 				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="sn-compact-form-grid sn-hr-ajax-post-form" data-sn-ajax-message="نیرو اضافه شد." data-sn-ajax-reload="1" data-sn-ajax-reload-hash="hr-manual-add">
+10807: 					<input type="hidden" name="action" value="sn_hr_simple_add_person">
+10808: 					<?php wp_nonce_field('sn_hr_simple_add_person'); ?>
+10809: 					<label>نام<input type="text" name="first_name" required></label>
+10810: 					<label>نام خانوادگی<input type="text" name="last_name"></label>
+10811: 					<label>موبایل<input type="text" name="mobile" required placeholder="09123456789"></label>
+10812: 					<label>سمت<select name="position" required>
+10813: 						<option value="">انتخاب سمت</option>
+10814: 						<?php foreach ($positions as $p) : ?><option value="<?php echo esc_attr((string) $p->slug); ?>"><?php echo esc_html((string) $p->label); ?></option><?php endforeach; ?>
+10815: 					</select></label>
+10816: 					<label>سطح<select name="level_id"><option value="0">بدون سطح</option><?php foreach ($levels as $l) : ?><option value="<?php echo esc_attr((string) (int) $l->id); ?>"><?php echo esc_html((string) $l->label); ?></option><?php endforeach; ?></select></label>
+10817: 					<label>مدیر بالادستی<?php $this->sn_hr_render_hierarchy_manager_select('manager_user_id', 0, 'بدون مدیر مستقیم'); ?></label>
+10818: 					<label class="sn-full">توضیحات<textarea name="notes" rows="3"></textarea></label>
+10819: 					<label class="sn-hr-check sn-full"><input type="checkbox" name="allow_create_wp_user" value="1" checked> اگر کاربر با این موبایل وجود ندارد، کاربر وردپرس ساده ساخته شود</label>
+10820: 					<div class="sn-actions sn-full"><button class="sn-btn" type="submit">افزودن نیرو</button></div>
+10821: 				</form>
+10822: 			</details>
+10823: 			</section>
+10824: 
+10825: 			<section id="hr-extra-workforce-legacy" class="sn-tab-panel" hidden data-sn-tab-panel="hr-extra-workforce-legacy">
+10826: 			<details class="sn-card sn-hr-section"><summary><strong>پروفایل‌های منابع انسانی - نمای قدیمی</strong></summary>
+10827: 				<form method="get" class="sn-hr-filter-form">
+10828: 					<input type="hidden" name="page" value="<?php echo esc_attr(sanitize_text_field(wp_unslash($_GET['page'] ?? ''))); ?>">
+10829: 					<label>جستجو: نام، موبایل، ایمیل، کد پرسنلی<input type="search" name="sn_hr_q" value="<?php echo esc_attr($profile_filters['q']); ?>" placeholder="نام، موبایل، ایمیل، کد پرسنلی یا #ID"></label>
+10830: 					<label>سمت<select name="sn_hr_position"><option value="">همه سمت‌ها</option><?php foreach ($positions as $p) : ?><option value="<?php echo esc_attr((string) $p->slug); ?>" <?php selected($profile_filters['position'], (string) $p->slug); ?>><?php echo esc_html((string) $p->label); ?></option><?php endforeach; ?></select></label>
+10831: 					<label>سطح<select name="sn_hr_level"><option value="">همه سطح‌ها</option><?php foreach ($levels as $l) : ?><option value="<?php echo esc_attr((string) $l->slug); ?>" <?php selected($profile_filters['level'], (string) $l->slug); ?>><?php echo esc_html((string) $l->label); ?></option><?php endforeach; ?></select></label>
+10832: 					<label>وضعیت همکاری<select name="sn_hr_employment_status"><option value="">همه</option><?php foreach (['active' => 'فعال','inactive' => 'غیرفعال','suspended' => 'تعلیق','resigned' => 'استعفا','terminated' => 'قطع همکاری','probation' => 'آزمایشی'] as $status => $label) : ?><option value="<?php echo esc_attr($status); ?>" <?php selected($profile_filters['employment_status'], $status); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></label>
+10833: 					<label>دپارتمان<select name="sn_hr_department"><option value="0">همه</option><?php foreach ($departments as $d) : ?><option value="<?php echo esc_attr((string) (int) $d->id); ?>" <?php selected($profile_filters['department_id'], (int) $d->id); ?>><?php echo esc_html((string) $d->label); ?></option><?php endforeach; ?></select></label>
+10834: 					<label>واحد<select name="sn_hr_unit"><option value="0">همه</option><?php foreach ($units as $u) : ?><option value="<?php echo esc_attr((string) (int) $u->id); ?>" <?php selected($profile_filters['unit_id'], (int) $u->id); ?>><?php echo esc_html((string) $u->label); ?></option><?php endforeach; ?></select></label>
+10835: 					<label>تیم<select name="sn_hr_team"><option value="0">همه</option><?php foreach ($teams as $t) : ?><option value="<?php echo esc_attr((string) (int) $t->id); ?>" <?php selected($profile_filters['team_id'], (int) $t->id); ?>><?php echo esc_html((string) $t->label); ?></option><?php endforeach; ?></select></label>
+10836: 					<label>فعال/غیرفعال<select name="sn_hr_active"><option value="">همه</option><option value="1" <?php selected($profile_filters['active'], '1'); ?>>فعال</option><option value="0" <?php selected($profile_filters['active'], '0'); ?>>غیرفعال</option></select></label>
+10837: 					<label>نقش قدیمی<input type="text" name="sn_hr_legacy_role" value="<?php echo esc_attr($profile_filters['legacy_role']); ?>" placeholder="مثلاً sn_seller"></label>
+10838: 					<label>انتساب<select name="sn_hr_assignment"><option value="">همه</option><option value="has" <?php selected($profile_filters['assignment'], 'has'); ?>>دارای مدیر مستقیم</option><option value="none" <?php selected($profile_filters['assignment'], 'none'); ?>>بدون مدیر مستقیم</option></select></label>
+10839: 					<div class="sn-hr-actions"><button class="sn-btn" type="submit">اعمال فیلتر</button><a class="sn-btn sn-btn-secondary" href="<?php echo esc_url(remove_query_arg(['sn_hr_q','sn_hr_position','sn_hr_level','sn_hr_active','sn_hr_legacy_role','sn_hr_assignment','sn_hr_employment_status','sn_hr_department','sn_hr_unit','sn_hr_team'])); ?>">پاک کردن فیلتر</a></div>
+10840: 				</form>
+10841: 				<?php $this->sn_hr_panel_render_profile_action_form($positions, $levels); ?>
+10842: 				<p class="sn-note">برای تغییر مدیر مستقیم، سیستم از خودمدیری و چرخه مدیریتی جلوگیری می‌کند. اگر تغییر رد شود، پیام خطا علت را مشخص می‌کند.</p>
+10843: 				<div class="sn-table-wrap sn-hr-change-table"><table class="sn-table">
+10844: 					<thead><tr><th>شناسه کاربر</th><th>نام</th><th>نام کاربری</th><th>کد پرسنلی</th><th>نقش‌های وردپرس</th><th>نقش قدیمی</th><th>سمت</th><th>مسیر پنل</th><th>سطح</th><th>وضعیت همکاری</th><th>دپارتمان / واحد / تیم</th><th>مدیر مستقیم</th><th>حقوق پایه</th><th>تاریخ استخدام</th><th>وضعیت</th><th>بروزرسانی</th><th>عملیات</th></tr></thead>
+10845: 					<tbody><?php foreach ($profiles as $r) : ?><tr>
+10846: 						<td><?php echo esc_html((string) (int) $r->user_id); ?></td><td><?php echo esc_html((string) $r->display_name); ?></td><td><code><?php echo esc_html((string) $r->user_login); ?></code></td><td><code><?php echo esc_html((string) ($r->employee_code ?: '—')); ?></code></td>
+10847: 						<td><?php $u = get_user_by('id', (int) $r->user_id); echo esc_html($u instanceof WP_User ? implode(', ', (array) $u->roles) : ''); ?></td>
+10848: 						<td><span class="sn-hr-badge"><?php echo esc_html((string) $r->legacy_role); ?></span></td><td><?php echo esc_html((string) $r->position_label); ?> <span class="sn-hr-badge"><?php echo esc_html((string) $r->position_slug); ?></span></td><td><?php echo $this->sn_panel_route_badge((int) $r->user_id); ?></td><td><?php echo esc_html((string) ($r->level_label ?: '—')); ?></td>
+10849: 						<td><?php echo esc_html($this->sn_hr_persian_label((string) ($r->employment_status ?: 'active'))); ?></td><td><?php echo esc_html(trim((string) $r->department_label . ' / ' . (string) $r->unit_label . ' / ' . (string) $r->team_label, ' /') ?: '—'); ?></td>
+10850: 						<td><?php echo $r->manager_user_id ? esc_html($this->sn_user_label((int) $r->manager_user_id)) : '—'; ?> <small>(<?php echo esc_html((string) (int) $r->direct_children_count); ?>)</small></td><td><?php echo esc_html($this->sn_hr_mask_salary($r)); ?></td><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) ($r->hire_date ?: ''))); ?></td><td><?php echo (int) $r->is_active ? 'فعال' : 'غیرفعال'; ?></td>
+10851: 						<td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) ($r->updated_at ?? ''))); ?></td>
+10852: 						<td><a href="<?php echo esc_url(add_query_arg('sn_hr_q', (string) (int) $r->user_id)); ?>">انتخاب برای ویرایش</a></td>
+10853: 					</tr><?php endforeach; ?></tbody>
+10854: 				</table></div>
+10855: 			</details>
+10856: 			</section>
+10857: 
+10858: 			<section id="hr-structure" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-structure', 'hr-workforce')); ?>" data-sn-tab-panel="hr-structure">
+10859: 			<details class="sn-card sn-hr-section"><summary><strong>ساختار سازمانی: دپارتمان، واحد، تیم</strong></summary>
+10860: 				<?php $this->sn_hr_render_structure_section('departments', 'دپارتمان‌ها', $departments, []); ?>
+10861: 				<?php $this->sn_hr_render_structure_section('units', 'واحدها', $units, $departments); ?>
+10862: 				<?php $this->sn_hr_render_structure_section('teams', 'تیم‌ها', $teams, $units); ?>
+10863: 			</details>
+10864: 			</section>
+10865: 
+10866: 			<section id="hr-hierarchy" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-hierarchy', 'hr-workforce')); ?>" data-sn-tab-panel="hr-hierarchy">
+10867: 			<details class="sn-card sn-hr-section"><summary><strong>سلسله‌مراتب و مدیر مستقیم</strong></summary>
+10868: 				<?php $this->sn_hr_render_hierarchy_assignment_management($bulk_assignment_report, $hierarchy_audit); ?>
+10869: 				<h4>پروفایل‌های سطح بالا</h4><?php $this->sn_hr_panel_render_simple_profiles($top_profiles); ?>
+10870: 				<h4>ارتباط‌های مستقیم فعلی</h4>
+10871: 				<div class="sn-table-wrap sn-hr-change-table"><table class="sn-table"><thead><tr><th>نیرو</th><th>سمت</th><th>مدیر مستقیم</th><th>سمت مدیر</th><th>منبع</th><th>تاریخ ایجاد</th></tr></thead><tbody>
+10872: 					<?php foreach ($assignments as $a) : ?><tr><td><?php echo esc_html($this->sn_user_label((int) $a->child_user_id)); ?></td><td><span class="sn-hr-badge"><?php echo esc_html((string) $a->child_position); ?></span></td><td><?php echo esc_html($this->sn_user_label((int) $a->parent_user_id)); ?></td><td><span class="sn-hr-badge"><?php echo esc_html((string) $a->parent_position); ?></span></td><td><?php echo esc_html((string) $a->source); ?></td><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $a->created_at)); ?></td></tr><?php endforeach; ?>
+10873: 				</tbody></table></div>
+10874: 			</details>
+10875: 			</section>
+10876: 
+10877: 
+10878: 			<section id="hr-logs" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-logs', 'hr-workforce')); ?>" data-sn-tab-panel="hr-logs">
+10879: 			<details class="sn-card sn-hr-section"><summary><strong>لاگ منابع انسانی</strong></summary>
+10880: 				<div class="sn-table-wrap sn-hr-change-table"><table class="sn-table"><thead><tr><th>زمان</th><th>کاربر</th><th>عملیات</th><th>پروفایل / کاربر</th><th>قبل</th><th>بعد</th><th>توضیح</th></tr></thead><tbody>
+10881: 					<?php foreach ($logs as $log) : ?><tr><td><?php echo esc_html(SN_Helpers::gregorian_to_jalali_date((string) $log->created_at)); ?></td><td><?php echo $log->actor_user_id ? esc_html($this->sn_user_label((int) $log->actor_user_id)) : '—'; ?></td><td><span class="sn-hr-badge"><?php echo esc_html((string) $log->action); ?></span></td><td><?php echo esc_html((string) ($log->user_id ?: $log->profile_id)); ?></td><td><pre class="sn-hr-log-value"><?php echo esc_html($this->sn_hr_format_log_value($log->old_value)); ?></pre></td><td><pre class="sn-hr-log-value"><?php echo esc_html($this->sn_hr_format_log_value($log->new_value)); ?></pre></td><td><pre class="sn-hr-log-value"><?php echo esc_html($this->sn_hr_format_log_value($log->context)); ?></pre></td></tr><?php endforeach; ?>
+10882: 				</tbody></table></div>
+10883: 			</details>
+10884: 			</section>
+10885: 
+10886: 			<section id="hr-csv" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-csv', 'hr-workforce')); ?>" data-sn-tab-panel="hr-csv">
+10887: 				<?php if (class_exists('SN_HR_Transfer')) { echo SN_HR_Transfer::instance()->render_module(is_array($csv_report) ? $csv_report : [], 'front'); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+10888: 			</section>
+10889: 
+10890: 			<section id="hr-extra" class="<?php echo esc_attr($this->sn_tab_panel_class('hr-extra', 'hr-workforce')); ?>" data-sn-tab-panel="hr-extra">
+10891: 			<details class="sn-card sn-hr-section"><summary><strong>کاربران بدون پروفایل HR</strong></summary>
+10892: 				<?php $this->sn_hr_panel_render_profile_action_form($positions, $levels, true); ?>
+10893: 				<div class="sn-table-wrap sn-hr-change-table"><table class="sn-table"><thead><tr><th>شناسه کاربر</th><th>نام</th><th>نام کاربری</th><th>نقش‌ها</th></tr></thead><tbody>
+10894: 					<?php foreach ($missing_users as $u) : ?><tr><td><?php echo esc_html((string) (int) $u->ID); ?></td><td><?php echo esc_html((string) $u->display_name); ?></td><td><code><?php echo esc_html((string) $u->user_login); ?></code></td><td><?php echo esc_html(implode(', ', (array) $u->roles)); ?></td></tr><?php endforeach; ?>
+10895: 				</tbody></table></div>
+10896: 			</details>
+10897: 
+10898: 			<details class="sn-card sn-hr-section"><summary><strong>نگاشت نقش قدیمی به سمت HR</strong></summary>
+10899: 				<div class="sn-notice sn-info">تغییر mapping روی کاربران موجود به صورت خودکار اعمال نمی‌شود مگر sync جداگانه اجرا شود.</div>
+10900: 				<div class="sn-table-wrap sn-hr-change-table"><table class="sn-table"><thead><tr><th>نقش قدیمی</th><th>سمت HR</th><th>سطح پیش‌فرض</th><th>فعال</th></tr></thead><tbody>
+10901: 					<?php foreach ($mappings as $m) : ?><tr><td><span class="sn-hr-badge"><?php echo esc_html((string) $m->legacy_role); ?></span></td><td><?php echo esc_html((string) $m->position_label); ?> <span class="sn-hr-badge"><?php echo esc_html((string) $m->position_slug); ?></span></td><td><?php echo esc_html((string) ($m->level_label ?: '—')); ?></td><td><?php echo ! empty($m->is_active) ? 'فعال' : 'غیرفعال'; ?></td></tr><?php endforeach; ?>
+10902: 				</tbody></table></div>
+10903: 			</details>
+10904: 			</section>
+10905: 		</div>
+10906: 		<?php
+10907: 		return ob_get_clean();
+10908: 	}

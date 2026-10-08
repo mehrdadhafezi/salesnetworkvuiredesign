@@ -1,0 +1,24 @@
+479: 
+480: 	private function can_manage_hr(): bool {
+481: 		if ( current_user_can( 'manage_options' ) ) {
+482: 			return true;
+483: 		}
+484: 		if ( ! is_user_logged_in() ) {
+485: 			return false;
+486: 		}
+487: 		$user = wp_get_current_user();
+488: 		if ( in_array( 'sn_hr', (array) $user->roles, true ) ) {
+489: 			return true;
+490: 		}
+491: 		global $wpdb;
+492: 		$profiles = $wpdb->prefix . 'sn_hr_profiles';
+493: 		$positions = $wpdb->prefix . 'sn_hr_positions';
+494: 		if ( ! $this->table_exists( $profiles ) || ! $this->table_exists( $positions ) ) {
+495: 			return false;
+496: 		}
+497: 		return 'hr' === (string) $wpdb->get_var( $wpdb->prepare(
+498: 			"SELECT pos.slug FROM {$profiles} p INNER JOIN {$positions} pos ON pos.id=p.position_id WHERE p.user_id=%d AND p.is_active=1 LIMIT 1",
+499: 			get_current_user_id()
+500: 		) );
+501: 	}
+502: }

@@ -1,0 +1,57 @@
+/* php tools/test-biavin-callback-only.php DIR first; requires jsdom on NODE_PATH. */
+const fs = require('fs');
+const path = require('path');
+const assert = require('assert');
+const {JSDOM} = require('jsdom');
+const fixtures = path.resolve(process.argv[2]);
+let checks = 0;
+function check(value, message) { assert(value, message); checks++; }
+const dom = new JSDOM(fs.readFileSync(path.join(fixtures, 'callback-only.html'), 'utf8'), {runScripts:'outside-only',url:'https://crm.example/biawin/'});
+dom.window.eval(fs.readFileSync(path.join(__dirname, '../assets/js/operations-flow.js'), 'utf8'));
+const doc = dom.window.document;
+const input = doc.querySelector('[name="followup_date"]');
+const submit = doc.querySelector('[data-sn-ops-followup-submit]');
+const trigger = doc.querySelector('.sn-ops-jalali-trigger');
+const picker = doc.querySelector('.sn-ops-jalali-picker');
+check(doc.querySelectorAll('form').length === 1, 'only one date form');
+check(doc.querySelector('[name="choice"]').value === 'expert', 'form uses existing expert route');
+check(doc.querySelector('[name="_wpnonce"]').value === 'valid', 'nonce included');
+check(!doc.querySelector('a'), 'no destination anchors');
+check(input.required && input.readOnly, 'calendar input required and calendar attached');
+check(submit.disabled, 'empty date disables save');
+check(picker.hidden, 'calendar initially closed');
+trigger.click();
+check(!picker.hidden && picker.getAttribute('role') === 'dialog', 'calendar opens');
+picker.querySelector('[data-jalali-today]').click();
+check(/^[۰-۹]{4}\/[۰-۹]{2}\/[۰-۹]{2}$/.test(input.value), 'calendar supplies Persian date');
+check(!submit.disabled && picker.hidden, 'date enables save and closes picker');
+trigger.click();
+const month = picker.dataset.jm;
+picker.querySelector('[data-jalali-nav="next"]').click();
+check(picker.dataset.jm !== month, 'next month navigation works');
+picker.querySelector('[data-jalali-day="15"]').click();
+check(input.value.endsWith('/۱۵') && !submit.disabled, 'calendar day selection works');
+trigger.click(); picker.querySelector('[data-jalali-clear]').click();
+check(input.value === '' && submit.disabled, 'clear date disables save');
+input.value = '1405/13/40'; input.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+check(submit.disabled, 'invalid date cannot submit');
+dom.window.close();
+const saved = new JSDOM(fs.readFileSync(path.join(fixtures, 'callback-confirmation.html'), 'utf8'));
+check(saved.window.document.querySelector('[role="status"]'), 'persistent confirmation is accessible');
+check(saved.window.document.body.textContent.includes('کارشناس در این تاریخ با شما تماس خواهد گرفت.'), 'requested customer message');
+check(!saved.window.document.querySelector('form,a'), 'saved card contains confirmation only');
+saved.window.close();
+const settings = new JSDOM(fs.readFileSync(path.join(fixtures, 'callback-metabox.html'), 'utf8'),{runScripts:'dangerously'});
+const setting = settings.window.document.querySelector('[name="sn_execution_callback_only"]');
+check(setting.checked && setting.type === 'checkbox', 'product toggle shows saved state');
+const select = settings.window.document.querySelector('[data-sn-execution-type]');
+for (const type of ['wallet_charge','form','physical_invoice','']) {
+  select.value = type; select.dispatchEvent(new settings.window.Event('change'));
+  check(setting.closest('[hidden]') === null, 'callback toggle available for every execution type');
+}
+setting.checked = false;
+const values = [...new settings.window.FormData((()=>{const form=settings.window.document.createElement('form');form.appendChild(settings.window.document.querySelector('[data-sn-execution-product-meta]'));return form;})()).entries()];
+check(values.some(([key,value])=>key==='sn_execution_callback_only_present' && value==='1'), 'unchecked control still submits presence marker');
+check(!values.some(([key])=>key==='sn_execution_callback_only'), 'unchecked callback can be disabled');
+settings.window.close();
+console.log(`PASS ${checks} Biavin callback-only DOM checks`);

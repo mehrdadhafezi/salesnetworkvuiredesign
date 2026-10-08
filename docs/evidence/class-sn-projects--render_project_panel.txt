@@ -1,0 +1,15 @@
+2872: 
+2873: 	private function render_project_panel( string $required_role ): string {
+2874: 		if ( ! is_user_logged_in() ) { $login = (int) get_option( 'sn_login_page_id', 0 ); $url = $login ? get_permalink( $login ) : wp_login_url(); return '<script>window.location.href=' . wp_json_encode( $url ) . ';</script><div class="sn-notice">در حال انتقال به صفحه ورود...</div>'; }
+2875: 		$role = $this->current_role();
+2876: 		if ( $role !== 'admin' && $role !== $required_role ) { return '<div class="sn-notice sn-error" dir="rtl">این صفحه برای نقش ' . esc_html( $required_role === 'project_manager' ? 'مدیر پروژه' : 'کارشناس پروژه' ) . ' است.</div>'; }
+2877: 		$title = $required_role === 'project_manager' ? 'پنل مدیر پروژه' : 'پنل کارشناس پروژه';
+2878: 		ob_start(); ?>
+2879: 		<div class="sn-project-panel" data-sn-project-panel="<?php echo esc_attr( $required_role ); ?>" dir="rtl">
+2880: 			<header class="sn-project-panel-head"><div><h1><?php echo esc_html( $title ); ?></h1><p>مدیریت مشتریان اشتراک، محتواها، خریدهای تاییدشده و گفت‌وگوی بیاوین</p></div><button type="button" class="sn-project-refresh button">بروزرسانی</button></header>
+2881: 			<div class="sn-project-stats" aria-live="polite"></div>
+2882: 			<div class="sn-project-filters"><input type="search" class="sn-project-search" placeholder="جستجو نام، شماره، اشتراک یا محتوا"><select class="sn-project-status-filter"><option value="">همه وضعیت‌ها</option><option value="waiting">در انتظار</option><option value="no_answer">جواب نداده</option><option value="follow_up">تماس مجدد</option><option value="cancelled">انصراف</option><option value="normal">عادی</option><option value="upsell">افزایشی</option><option value="purchased">خرید کرده (قدیمی)</option><option value="regretted">پشیمان شده (قدیمی)</option></select></div>
+2883: 			<div class="sn-project-list"><div class="sn-project-loading">در حال دریافت پرونده‌ها...</div></div>
+2884: 		</div>
+2885: 		<?php return (string) ob_get_clean();
+2886: 	}

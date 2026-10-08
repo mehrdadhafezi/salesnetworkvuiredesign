@@ -1,0 +1,35 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل MIS" [level=1]
+  - heading "پنل MIS" [level=2]
+  - generic: کاربر
+  - strong: "MIS ماکسیمم #7"
+  - generic: "MIS | #7"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "باز کردن منوی پنل": ☰
+  - button "👥 کار امروز"
+  - button "🧾 آپلود فایل"
+  - button "📊 تخصیص / برگشت"
+  - button "💼 تحویل به فروش"
+  - button "💳 گزارش شماره‌ها"
+  - button "⚙️ پرونده‌ها"
+  - button "• ابزار سریع"
+  - button "• برنامه پخش"
+  - button "• ساخت لید"
+  - button "• لاگ و عیب‌یابی" [active]
+  - link "• گزارش‌های MIS":
+    - /url: /crm-mis/?sn_ui_active_tab=mis-report#mis-report
+  - generic "لاگ MIS":
+    - strong: لاگ MIS
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

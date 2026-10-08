@@ -1,0 +1,184 @@
+- link "رفتن به محتوا":
+  - /url: "#wp--skip-link--target"
+- main:
+  - heading "پنل سرپرست" [level=1]
+  - heading "پنل سرپرست" [level=2]
+  - link "گزارش جامع":
+    - /url: "#sn-reports-panel"
+  - generic: کاربر
+  - strong: "سرپرست ماکسیمم #5"
+  - generic: "سرپرست | #5"
+  - link "رمز من":
+    - /url: https://crm.maximumclub.ir/crm-my-password/
+  - button "بازگشت به پنل HR"
+  - button "خروج"
+  - button "🌙 حالت شب"
+  - button "اعلان‌های گفت‌وگو با بیاوین":
+    - generic: 🔔
+    - generic: ۰
+  - text: پنل سرپرست
+  - button "بستن منوی پنل" [expanded]: ×
+  - button "🧾 فروشندگان و آمار"
+  - button "📊 تبدیل‌کنندگان و آمار"
+  - button "💼 تبدیل‌های من"
+  - button "💳 تخصیص شماره"
+  - button "⚙️ آماده‌های تبدیل"
+  - button "• اشتراک‌های فروشنده"
+  - button "• لاگ و خطا"
+  - button "• جدا کردن سرنخ زنده/قدیمی"
+  - button "• فاکتورها" [active]
+  - button "• رفتار مشتریان"
+  - button "• درخواست HR"
+  - button "• کیف پول"
+  - heading "فاکتورهای محدوده سرپرست" [level=3]
+  - text: از تاریخ
+  - textbox "از تاریخ":
+    - /placeholder: 1403/02/18
+  - text: تا تاریخ
+  - textbox "تا تاریخ":
+    - /placeholder: 1403/02/18
+  - text: جستجو
+  - searchbox "جستجو"
+  - text: وضعیت
+  - combobox "وضعیت":
+    - option "همه وضعیت‌ها" [selected]
+    - option "پیش‌فاکتور"
+    - option "پرداخت آنلاین"
+    - option "فیش آپلود شده"
+    - option "نیاز به بررسی مالی"
+    - option "رد شده"
+  - button "اعمال فیلتر"
+  - strong: ۱
+  - text: کل فاکتورها
+  - strong: ۰
+  - text: تأیید/پرداخت شده
+  - strong: ۱۵٬۰۰۰ تومان
+  - text: جمع مبلغ فاکتورها
+  - strong: ۰ تومان
+  - text: جمع فروش تأییدشده
+  - button "همه"
+  - button "پیش‌فاکتور"
+  - button "مرحله‌ای تکمیل‌نشده"
+  - button "مرحله‌ای تکمیل‌شده"
+  - button "پرداخت آنلاین"
+  - button "فیش آپلود شده"
+  - button "رد شده"
+  - button "نیاز به اقدام مجدد"
+  - table:
+    - rowgroup:
+      - row "کد فروشنده مشتری مبلغ کل / پرداخت‌شده / مانده روش پرداخت وضعیت فیش پرداخت اقدام مجدد چت بیاوین تاریخ":
+        - columnheader "کد"
+        - columnheader "فروشنده"
+        - columnheader "مشتری"
+        - columnheader "مبلغ کل / پرداخت‌شده / مانده"
+        - columnheader "روش پرداخت"
+        - columnheader "وضعیت"
+        - columnheader "فیش پرداخت"
+        - columnheader "اقدام مجدد"
+        - columnheader "چت بیاوین"
+        - columnheader "تاریخ"
+    - rowgroup:
+      - 'row "89663612 فروشنده ماکسیمم بسی 09100766169 کل: ۱۵٬۰۰۰ تومان پرداخت‌شده: ۰ تومان مانده: ۱۵٬۰۰۰ تومان مرحله 1 · قابل پرداخت فعلی: ۱۵٬۰۰۰ تومان — — پیش‌فاکتور ثبت واریز و فیش ↥ بارگذاری فیش ارسال لینک انتخاب ارسال مجدد لینک پرداخت کپی لینک پرداخت ویرایش پیش از پرداخت وضعیت و تاریخچه مالی — 1405/07/08 12:31"':
+        - cell "89663612":
+          - code: "89663612"
+        - cell "فروشنده ماکسیمم"
+        - cell "بسی 09100766169":
+          - text: بسی
+          - text: "09100766169"
+        - 'cell "کل: ۱۵٬۰۰۰ تومان پرداخت‌شده: ۰ تومان مانده: ۱۵٬۰۰۰ تومان مرحله 1 · قابل پرداخت فعلی: ۱۵٬۰۰۰ تومان"':
+          - generic: "کل: ۱۵٬۰۰۰ تومان"
+          - generic: "پرداخت‌شده: ۰ تومان"
+          - strong: "مانده: ۱۵٬۰۰۰ تومان"
+          - generic: "مرحله 1 · قابل پرداخت فعلی: ۱۵٬۰۰۰ تومان"
+        - cell "— —":
+          - text: —
+          - text: —
+        - cell "پیش‌فاکتور":
+          - generic: پیش‌فاکتور
+        - cell "ثبت واریز و فیش ↥ بارگذاری فیش":
+          - button "ثبت واریز و فیش"
+          - button "↥ بارگذاری فیش"
+        - cell "ارسال لینک انتخاب ارسال مجدد لینک پرداخت کپی لینک پرداخت ویرایش پیش از پرداخت وضعیت و تاریخچه مالی":
+          - button "ارسال لینک انتخاب"
+          - button "ارسال مجدد لینک پرداخت"
+          - button "کپی لینک پرداخت"
+          - button "ویرایش پیش از پرداخت"
+          - button "وضعیت و تاریخچه مالی"
+        - cell "—"
+        - cell "1405/07/08 12:31"
+  - heading "مرکز گزارش‌گیری CRM" [level=2]
+  - paragraph: داده‌های محدودهٔ دسترسی شما؛ انتخاب هر شاخص، ردیف‌های همان گزارش را در این صفحه نشان می‌دهد.
+  - text: نوع گزارش
+  - combobox "نوع گزارش":
+    - option "کل دوره یا بازهٔ زمانی" [selected]
+    - option "وضعیت در لحظه"
+  - text: از تاریخ
+  - textbox "از تاریخ":
+    - /placeholder: 1405/07/01
+  - text: از ساعت
+  - textbox "از ساعت"
+  - text: تا تاریخ
+  - textbox "تا تاریخ":
+    - /placeholder: 1405/07/01
+  - text: تا ساعت
+  - textbox "تا ساعت"
+  - text: سمت
+  - combobox "سمت":
+    - option "همهٔ افراد مجاز" [selected]
+    - option "معاون فروش"
+    - option "مدیر فروش"
+    - option "سرپرست ارشد"
+    - option "سرپرست"
+    - option "فروشنده"
+  - text: فرد و زیرمجموعه
+  - combobox "فرد و زیرمجموعه":
+    - option "همهٔ افراد مجاز" [selected]
+  - button "نمایش گزارش"
+  - link "فاکتورها مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=invoices_register&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: فاکتورها
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "پروفایل مشتری‌ها مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=customer_profiles&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: پروفایل مشتری‌ها
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "جزئیات فاکتور مشتری مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=customer_invoice_details&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: جزئیات فاکتور مشتری
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "تخصیص دادهٔ MIS مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=mis_assignments&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: تخصیص دادهٔ MIS
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "پیش‌فاکتورهای صادرشده مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=pre_invoices&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: پیش‌فاکتورهای صادرشده
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "فروش‌های تکمیل‌شده مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=sales&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: فروش‌های تکمیل‌شده
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "فروش آنلاین مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=online_sales&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: فروش آنلاین
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "فروش کارت‌به‌کارت تأییدشده مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=card_sales&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: فروش کارت‌به‌کارت تأییدشده
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "پیش‌فاکتورهای در انتظار مالی مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=finance_pending&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: پیش‌فاکتورهای در انتظار مالی
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - link "پیش‌فاکتورهای ردشده مشاهدهٔ آمار و ریزداده ←":
+    - /url: https://crm.maximumclub.ir/supervisor-panel/?date_from&date_to&time_from&time_to&seller_id=0&status&province&city&pay_method&product_id=0&asof_date&asof_time&mode=period&report_search&report_status&sn_center_type=finance_rejected&sn_center_mode=period&sn_hierarchy_role&sn_hierarchy_user=0&sn_center_page=1
+    - generic: پیش‌فاکتورهای ردشده
+    - generic: مشاهدهٔ آمار و ریزداده ←
+  - paragraph: برای نمایش تعداد و جزئیات، یک گزارش را انتخاب کنید.
+- button:
+- paragraph:
+  - strong: سبد خریدتان در حال حاضر خالی است!
+- link:
+  - /url: https://crm.maximumclub.ir/shop/
+  - generic: شروع به خرید کنید
+- status

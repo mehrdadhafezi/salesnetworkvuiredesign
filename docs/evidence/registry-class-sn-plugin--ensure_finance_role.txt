@@ -1,0 +1,32 @@
+33801: 
+33802: 			public function ensure_finance_role(): void
+33803: 			{
+33804: 				if ((string) get_option('sn_finance_roles_version', '') === SN_VERSION) { return; }
+33805: 				if ($this->sn_defer_heavy_admin_runtime()) { return; }
+33806: 				if (! get_role('sn_financial_approval')) {
+33807: 					add_role('sn_financial_approval', 'تایید مالی', [
+33808: 						'read' => true,
+33809: 					]);
+33810: 				}
+33811: 				if (! get_role('sn_financial')) {
+33812: 					add_role('sn_financial', 'تایید مالی', [
+33813: 						'read' => true,
+33814: 					]);
+33815: 				}
+33816: 				if (! get_role('sn_finance')) {
+33817: 					add_role('sn_finance', 'مالی', ['read' => true]);
+33818: 				}
+33819: 				foreach (['sn_financial_approval', 'sn_financial', 'sn_finance'] as $role_key) {
+33820: 					$role = get_role($role_key);
+33821: 					if (! $role) {
+33822: 						continue;
+33823: 					}
+33824: 					$role->add_cap('read');
+33825: 					foreach (['sn_view_payments', 'sn_approve_payments', 'sn_reject_payments', 'sn_view_finance', 'sn_approve_payment', 'sn_reject_payment', 'sn_view_wallet_commission'] as $cap) {
+33826: 						$role->remove_cap($cap);
+33827: 					}
+33828: 				}
+33829: 				$this->sn_migrate_finance_user_caps();
+33830: 				update_option('sn_finance_roles_version', SN_VERSION, false);
+33831: 			}
+33832: 

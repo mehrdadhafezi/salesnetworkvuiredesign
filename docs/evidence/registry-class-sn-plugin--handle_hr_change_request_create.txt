@@ -1,0 +1,60 @@
+10337: 
+10338: 	public function handle_hr_change_request_create(): void
+10339: 	{
+10340: 		if (! is_user_logged_in()) { wp_die('دسترسی غیرمجاز'); }
+10341: 		check_admin_referer('sn_hr_change_request_create');
+10342: 		if (! $this->sn_hr_change_request_ensure_table()) { wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'table_missing')); exit; }
+10343: 		global $wpdb;
+10344: 		$actor_id = get_current_user_id();
+10345: 		if (! $this->sn_hr_change_request_can_create($actor_id)) { wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'permission')); exit; }
+10346: 		$request_type = sanitize_key(wp_unslash($_POST['request_type'] ?? ''));
+10347: 		$subject_user_id = absint($_POST['subject_user_id'] ?? 0);
+10348: 		$target_parent_user_id = absint($_POST['target_parent_user_id'] ?? 0);
+10349: 		$reason = sanitize_textarea_field(wp_unslash($_POST['reason'] ?? ''));
+10350: 		if (! in_array($request_type, ['transfer_seller', 'terminate_seller'], true) || $subject_user_id < 1 || $reason === '') {
+10351: 			wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'invalid_data')); exit;
+10352: 		}
+10353: 		if ($this->sn_hr_position_for_user($subject_user_id) !== 'seller' || ! $this->sn_hr_change_request_actor_can_touch_subject($actor_id, $subject_user_id)) {
+10354: 			wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'subject_scope')); exit;
+10355: 		}
+10356: 		$subject_profile = $this->sn_hr_change_request_profile_by_user($subject_user_id);
+10357: 		if (! $subject_profile) { wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'subject_profile')); exit; }
+10358: 		$target_profile_id = 0;
+10359: 		if ($request_type === 'transfer_seller') {
+10360: 			if ($target_parent_user_id < 1 || $this->sn_hr_position_for_user($target_parent_user_id) !== 'supervisor') {
+10361: 				wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'target_supervisor')); exit;
+10362: 			}
+10363: 			$target_profile = $this->sn_hr_change_request_profile_by_user($target_parent_user_id);
+10364: 			if (! $target_profile) { wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'target_profile')); exit; }
+10365: 			$target_profile_id = (int) $target_profile->id;
+10366: 		}
+10367: 		$table = $wpdb->prefix . 'sn_hr_change_requests';
+10368: 		$duplicate = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE subject_user_id=%d AND request_type=%s AND status IN ('pending_review','pending_hr') ORDER BY id DESC LIMIT 1", $subject_user_id, $request_type));
+10369: 		if ($duplicate) { wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_error', 'duplicate')); exit; }
+10370: 		$reviewer_user_id = $this->sn_hr_change_request_next_reviewer_user_id($actor_id);
+10371: 		$status = $reviewer_user_id > 0 ? 'pending_review' : 'pending_hr';
+10372: 		$approval_path = $this->sn_hr_change_request_append_path('', [
+10373: 			'action' => 'created',
+10374: 			'actor_user_id' => $actor_id,
+10375: 			'next_reviewer_user_id' => $reviewer_user_id,
+10376: 			'status' => $status,
+10377: 		]);
+10378: 		$wpdb->insert($table, [
+10379: 			'request_type' => $request_type,
+10380: 			'subject_user_id' => $subject_user_id,
+10381: 			'subject_profile_id' => (int) $subject_profile->id,
+10382: 			'current_parent_profile_id' => $this->sn_hr_change_request_current_parent_profile_id($subject_user_id) ?: null,
+10383: 			'target_parent_profile_id' => $target_profile_id ?: null,
+10384: 			'target_parent_user_id' => $target_parent_user_id ?: null,
+10385: 			'requested_by_user_id' => $actor_id,
+10386: 			'current_reviewer_user_id' => $reviewer_user_id ?: null,
+10387: 			'status' => $status,
+10388: 			'reason' => $reason,
+10389: 			'approval_path' => $approval_path,
+10390: 		], ['%s','%d','%d','%d','%d','%d','%d','%d','%s','%s','%s']);
+10391: 		$request_id = (int) $wpdb->insert_id;
+10392: 		$this->sn_hr_panel_log_profile((int) $subject_profile->id, $subject_user_id, 'hr_change_request_created', null, ['request_id' => $request_id, 'type' => $request_type, 'target_parent_user_id' => $target_parent_user_id], ['actor_user_id' => $actor_id, 'reason' => $reason]);
+10393: 		wp_safe_redirect($this->sn_hr_change_request_return_url('hr_change_request_created'));
+10394: 		exit;
+10395: 	}
+10396: 

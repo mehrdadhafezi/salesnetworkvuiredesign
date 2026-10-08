@@ -1,0 +1,23 @@
+9111: 
+9112: 	private function sn_can_manage_hr_panel(): bool
+9113: 	{
+9114: 		if (current_user_can('manage_options')) {
+9115: 			return true;
+9116: 		}
+9117: 		if (! is_user_logged_in()) {
+9118: 			return false;
+9119: 		}
+9120: 		$user_id = get_current_user_id();
+9121: 		$user = wp_get_current_user();
+9122: 		$roles = array_map('sanitize_key', (array) ($user->roles ?? []));
+9123: 		if (in_array('sn_hr', $roles, true)) {
+9124: 			return true;
+9125: 		}
+9126: 		// Fast direct HR check for admin-post/admin-ajax handlers.  Relying only on
+9127: 		// SN_Scope_Service made manual HR actions fail in some role-based panel loads.
+9128: 		if ($this->sn_hr_position_for_user($user_id) === 'hr') {
+9129: 			return true;
+9130: 		}
+9131: 		return class_exists('SN_Scope_Service') && (new SN_Scope_Service())->get_viewer_position_slug($user_id) === 'hr';
+9132: 	}
+9133: 

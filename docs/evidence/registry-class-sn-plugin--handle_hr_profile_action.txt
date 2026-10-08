@@ -1,0 +1,219 @@
+18450: 
+18451: 	public function handle_hr_profile_action(): void
+18452: 	{
+18453: 		if (! $this->sn_can_manage_hr_panel()) { wp_die('دسترسی غیرمجاز'); }
+18454: 		check_admin_referer('sn_hr_profile_action');
+18455: 		$redirect_base = $this->sn_hr_panel_return_url();
+18456: 		if (! class_exists('SN_HR_Service') || ! class_exists('SN_Hierarchy_Service')) {
+18457: 			wp_safe_redirect(add_query_arg(['sn_msg' => 'hr_profile_action_error'], $redirect_base));
+18458: 			exit;
+18459: 		}
+18460: 		$mode = sanitize_key(wp_unslash($_POST['hr_action_mode'] ?? 'dry_run'));
+18461: 		$dry_run = $mode !== 'apply';
+18462: 		$selected_user_id = absint($_POST['user_lookup_select'] ?? 0);
+18463: 		$user = $selected_user_id ? get_user_by('id', $selected_user_id) : $this->sn_find_user_by_lookup(sanitize_text_field(wp_unslash($_POST['user_lookup'] ?? '')));
+18464: 		if (! $user instanceof WP_User) {
+18465: 			update_option('sn_hr_panel_action_report', [
+18466: 				'tool' => 'hr_panel_profile_action',
+18467: 				'mode' => sanitize_key(wp_unslash($_POST['hr_action_mode'] ?? 'dry_run')),
+18468: 				'errors' => 1,
+18469: 				'warnings' => ['کاربر یا مدیر مستقیم معتبر نیست', 'user_not_found'],
+18470: 				'updated_at' => current_time('mysql'),
+18471: 			], false);
+18472: 			wp_safe_redirect(add_query_arg(['sn_msg' => 'hr_profile_action_error'], $redirect_base));
+18473: 			exit;
+18474: 		}
+18475: 		global $wpdb;
+18476: 		$hr = new SN_HR_Service();
+18477: 		$hierarchy = new SN_Hierarchy_Service();
+18478: 		$profile = $hr->get_profile_by_user_id((int) $user->ID);
+18479: 		$create_missing = ! empty($_POST['create_missing_profile']);
+18480: 		$target_position_id = absint($_POST['target_position_id'] ?? 0);
+18481: 		$target_level_raw = sanitize_text_field(wp_unslash($_POST['target_level_id'] ?? '-1'));
+18482: 		$change_level = $target_level_raw !== '-1';
+18483: 		$target_level_id = $change_level ? absint($target_level_raw) : ($profile ? (int) $profile->level_id : 0);
+18484: 		$manager_user_id = absint($_POST['manager_user_id'] ?? 0);
+18485: 		$manager_lookup = sanitize_text_field(wp_unslash($_POST['manager_lookup'] ?? ''));
+18486: 		$end_assignment = ! empty($_POST['end_assignment']);
+18487: 		$set_active = ! empty($_POST['is_active']) ? 1 : 0;
+18488: 		$reason = sanitize_textarea_field(wp_unslash($_POST['reason'] ?? ''));
+18489: 		$metadata = [
+18490: 			'employee_code' => sanitize_text_field(wp_unslash($_POST['employee_code'] ?? '')),
+18491: 			'employment_status' => sanitize_key(wp_unslash($_POST['employment_status'] ?? '')),
+18492: 			'employment_type' => sanitize_key(wp_unslash($_POST['employment_type'] ?? '')),
+18493: 				'manual_invoice_access' => isset($_POST['manual_invoice_access']) ? sanitize_key(wp_unslash($_POST['manual_invoice_access'])) : null,
+18494: 				'extra_number_request_access' => isset($_POST['extra_number_request_access']) ? sanitize_key(wp_unslash($_POST['extra_number_request_access'])) : null,
+18495: 				'team_invoice_source_mode' => isset($_POST['team_invoice_source_mode']) ? sanitize_key(wp_unslash($_POST['team_invoice_source_mode'])) : null,
+18496: 			'national_id' => sanitize_text_field(wp_unslash($_POST['national_id'] ?? '')),
+18497: 			'work_phone' => sanitize_text_field(wp_unslash($_POST['work_phone'] ?? '')),
+18498: 			'emergency_phone' => sanitize_text_field(wp_unslash($_POST['emergency_phone'] ?? '')),
+18499: 			'hire_date' => SN_Helpers::jalali_to_gregorian_date(sanitize_text_field(wp_unslash($_POST['hire_date'] ?? ''))),
+18500: 			'termination_date' => SN_Helpers::jalali_to_gregorian_date(sanitize_text_field(wp_unslash($_POST['termination_date'] ?? ''))),
+18501: 			'base_salary' => isset($_POST['base_salary']) && $_POST['base_salary'] !== '' ? absint($_POST['base_salary']) : null,
+18502: 			'salary_currency' => in_array((string) ($_POST['salary_currency'] ?? ''), ['IRT', 'IRR'], true) ? (string) $_POST['salary_currency'] : '',
+18503: 			'department_id' => intval($_POST['department_id'] ?? -1),
+18504: 			'unit_id' => intval($_POST['unit_id'] ?? -1),
+18505: 			'team_id' => intval($_POST['team_id'] ?? -1),
+18506: 			'notes' => sanitize_textarea_field(wp_unslash($_POST['notes'] ?? '')),
+18507: 		];
+18508: 		$commission_enabled_mode = sanitize_text_field(wp_unslash($_POST['commission_enabled_mode'] ?? ''));
+18509: 		$commission_override_mode_mode = sanitize_key(wp_unslash($_POST['commission_override_mode_mode'] ?? ''));
+18510: 		$default_commission_rule_raw = sanitize_text_field(wp_unslash($_POST['default_commission_rule_id'] ?? '-1'));
+18511: 		$comp_effective_from = SN_Helpers::jalali_to_gregorian_date(sanitize_text_field(wp_unslash($_POST['comp_effective_from'] ?? '')));
+18512: 		$comp_effective_to = SN_Helpers::jalali_to_gregorian_date(sanitize_text_field(wp_unslash($_POST['comp_effective_to'] ?? '')));
+18513: 		$comp_notes = sanitize_textarea_field(wp_unslash($_POST['comp_notes'] ?? ''));
+18514: 		$old_manager = $hierarchy->get_current_parent_user_id((int) $user->ID);
+18515: 		$report = [
+18516: 			'tool' => 'hr_panel_profile_action',
+18517: 			'mode' => $dry_run ? 'dry_run' : 'apply',
+18518: 			'user_id' => (int) $user->ID,
+18519: 			'display_name' => (string) $user->display_name,
+18520: 			'had_profile' => (bool) $profile,
+18521: 			'old_position' => $profile ? $this->sn_hr_position_slug_by_id((int) $profile->position_id) : '',
+18522: 			'old_level' => $profile ? $this->sn_hr_level_slug_by_id((int) $profile->level_id) : '',
+18523: 			'old_manager' => $old_manager,
+18524: 			'old_manager_label' => $old_manager ? $this->sn_user_label((int) $old_manager) : '—',
+18525: 			'would_create_profile' => ! $profile && $create_missing,
+18526: 			'would_change_position' => $profile && $target_position_id && (int) $profile->position_id !== $target_position_id,
+18527: 			'would_change_level' => $profile && $change_level && (int) $profile->level_id !== $target_level_id,
+18528: 			'would_change_active' => $profile && $set_active !== null && (int) $profile->is_active !== $set_active,
+18529: 			'would_change_metadata' => false,
+18530: 			'would_change_manager' => false,
+18531: 			'changed_position' => false,
+18532: 			'changed_level' => false,
+18533: 			'changed_active' => false,
+18534: 			'changed_metadata' => false,
+18535: 			'changed_compensation' => false,
+18536: 			'changed_manager' => false,
+18537: 			'errors' => 0,
+18538: 			'warnings' => [],
+18539: 			'reason' => $reason,
+18540: 			'updated_at' => current_time('mysql'),
+18541: 		];
+18542: 		$new_manager = $manager_user_id ? get_user_by('id', $manager_user_id) : ($manager_lookup !== '' ? $this->sn_find_user_by_lookup($manager_lookup) : null);
+18543: 		if ($new_manager instanceof WP_User) {
+18544: 			$report['new_manager'] = (int) $new_manager->ID;
+18545: 			$report['new_manager_label'] = $this->sn_user_label((int) $new_manager->ID);
+18546: 			$report['old_manager_label'] = $old_manager ? $this->sn_user_label((int) $old_manager) : '—';
+18547: 			$report['would_change_manager'] = (int) $new_manager->ID !== $old_manager;
+18548: 			if ((int) $new_manager->ID === (int) $user->ID) {
+18549: 				$report['errors']++;
+18550: 				$report['warnings'][] = 'self_manager_not_allowed';
+18551: 				$report['warnings'][] = 'کاربر نمی‌تواند مدیر مستقیم خودش باشد';
+18552: 			}
+18553: 			// A manually typed manager must still respect the HR chain. This was
+18554: 			// previously checked only by the bulk UI, allowing the regular profile
+18555: 			// editor to save invalid relationships and omit Operations leaders.
+18556: 			$child_position_slug = $target_position_id
+18557: 				? $this->sn_hr_position_slug_by_id($target_position_id)
+18558: 				: ($profile ? $this->sn_hr_position_slug_by_id((int) $profile->position_id) : '');
+18559: 			$parent_profile = class_exists('SN_HR_Service') ? (new SN_HR_Service())->get_profile_by_user_id((int) $new_manager->ID) : null;
+18560: 			$parent_position_slug = $parent_profile ? $this->sn_hr_position_slug_by_id((int) $parent_profile->position_id) : '';
+18561: 			if ($child_position_slug !== '' && $this->sn_hr_allowed_parent_positions($child_position_slug) && ! $this->sn_hr_manager_allowed_for_child($child_position_slug, $parent_position_slug)) {
+18562: 				$report['errors']++;
+18563: 				$report['warnings'][] = 'نیروی بالادستی با سمت این نیرو سازگار نیست';
+18564: 			}
+18565: 		} elseif ($manager_user_id || $manager_lookup !== '') {
+18566: 			$report['errors']++;
+18567: 			$report['warnings'][] = 'manager_not_found';
+18568: 			$report['warnings'][] = 'کاربر یا مدیر مستقیم معتبر نیست';
+18569: 		}
+18570: 		if (! $profile && ! $create_missing) {
+18571: 			$report['errors']++;
+18572: 			$report['warnings'][] = 'profile_missing';
+18573: 		}
+18574: 		if ($profile) {
+18575: 			foreach ($this->sn_hr_profile_metadata_update($profile, $metadata) as $k => $v) {
+18576: 				$current = $profile->{$k} ?? null;
+18577: 				if ((string) $current !== (string) $v) {
+18578: 					$report['would_change_metadata'] = true;
+18579: 					break;
+18580: 				}
+18581: 			}
+18582: 		}
+18583: 		if (! $dry_run && empty($report['errors'])) {
+18584: 			if (! $profile) {
+18585: 				$profile = $hr->get_or_create_profile_for_user((int) $user->ID);
+18586: 			}
+18587: 			if ($profile && ($target_position_id || $change_level)) {
+18588: 				$position_id = $target_position_id ?: (int) $profile->position_id;
+18589: 				$updated = $hr->update_profile_position_level((int) $user->ID, $position_id, $target_level_id, get_current_user_id());
+18590: 				$report['changed_position'] = $updated && (int) $profile->position_id !== $position_id;
+18591: 				$report['changed_level'] = $updated && $change_level && (int) $profile->level_id !== $target_level_id;
+18592: 				$profile = $hr->get_profile_by_user_id((int) $user->ID);
+18593: 				if ($report['changed_position'] && $profile) {
+18594: 					$this->sn_hr_apply_user_access_for_position((int) $user->ID, $this->sn_hr_position_slug_by_id((int) $profile->position_id));
+18595: 				}
+18596: 			}
+18597: 			if ($profile && $set_active !== null && (int) $profile->is_active !== $set_active) {
+18598: 				$old = ['is_active' => (int) $profile->is_active];
+18599: 				$wpdb->update($wpdb->prefix . 'sn_hr_profiles', ['is_active' => $set_active, 'updated_at' => current_time('mysql')], ['id' => (int) $profile->id]);
+18600: 				$this->sn_hr_panel_log_profile((int) $profile->id, (int) $user->ID, 'hr_panel_profile_activation_updated', $old, ['is_active' => $set_active], ['reason' => $reason]);
+18601: 				$report['changed_active'] = true;
+18602: 			}
+18603: 			if ($profile) {
+18604: 				$meta_update = $this->sn_hr_profile_metadata_update($profile, $metadata);
+18605: 				if (! empty($meta_update)) {
+18606: 					$old_meta = [];
+18607: 					foreach ($meta_update as $k => $v) { $old_meta[$k] = $profile->{$k} ?? null; }
+18608: 					$meta_update['updated_at'] = current_time('mysql');
+18609: 					$wpdb->update($wpdb->prefix . 'sn_hr_profiles', $this->sn_filter_existing_columns($wpdb->prefix . 'sn_hr_profiles', $meta_update), ['id' => (int) $profile->id]);
+18610: 					$this->sn_hr_panel_log_profile((int) $profile->id, (int) $user->ID, 'hr_panel_profile_metadata_updated', $old_meta, $meta_update, ['reason' => $reason]);
+18611: 					$report['changed_metadata'] = true;
+18612: 				}
+18613: 			}
+18614: 			$profile = $hr->get_profile_by_user_id((int) $user->ID);
+18615: 			if ($profile) {
+18616: 				$comp_payload = [];
+18617: 				if ($metadata['base_salary'] !== null) { $comp_payload['base_salary'] = (int) $metadata['base_salary']; }
+18618: 				if ($metadata['salary_currency'] !== '') { $comp_payload['salary_currency'] = $metadata['salary_currency']; }
+18619: 				if ($commission_override_mode_mode !== '') {
+18620: 					$mode = $this->sn_commission_normalize_override_mode($commission_override_mode_mode);
+18621: 					$comp_payload['commission_override_mode'] = $mode;
+18622: 					$comp_payload['commission_enabled'] = $mode === 'disabled' ? 0 : 1;
+18623: 				}
+18624: 				if (in_array($commission_enabled_mode, ['0', '1'], true) && $commission_override_mode_mode === '') { $comp_payload['commission_enabled'] = (int) $commission_enabled_mode; }
+18625: 				if ($default_commission_rule_raw !== '-1') { $comp_payload['default_commission_rule_id'] = absint($default_commission_rule_raw) ?: null; }
+18626: 				if ($comp_effective_from !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $comp_effective_from)) { $comp_payload['effective_from'] = $comp_effective_from; }
+18627: 				if ($comp_effective_to !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $comp_effective_to)) { $comp_payload['effective_to'] = $comp_effective_to; }
+18628: 				if ($comp_notes !== '') { $comp_payload['notes'] = $comp_notes; }
+18629: 				if ($comp_payload) {
+18630: 					$comp_payload['is_active'] = 1;
+18631: 					$comp_result = $this->sn_hr_compensation_update((int) $profile->id, (int) $user->ID, $comp_payload, $reason ?: 'HR compensation readiness update');
+18632: 					$report['changed_compensation'] = ! empty($comp_result['changed']);
+18633: 				}
+18634: 			}
+18635: 			$profile = $hr->get_profile_by_user_id((int) $user->ID);
+18636: 			if ($profile && $end_assignment) {
+18637: 				$report['changed_manager'] = $hierarchy->end_current_assignment((int) $profile->id, get_current_user_id(), $reason ?: 'HR panel end assignment');
+18638: 			} elseif ($profile && $new_manager instanceof WP_User && (int) $new_manager->ID !== $old_manager) {
+18639: 				$parent = $hr->get_profile_by_user_id((int) $new_manager->ID);
+18640: 				if ($parent) {
+18641: 					$result = $hierarchy->assign_parent((int) $profile->id, (int) $parent->id, get_current_user_id(), 'hr_panel', $reason ?: 'HR panel manager assignment');
+18642: 					$report['assignment_result'] = $result;
+18643: 					$report['changed_manager'] = ! empty($result['success']) && empty($result['skipped']);
+18644: 					if (empty($result['success'])) {
+18645: 						$report['errors']++;
+18646: 						$message = (string) ($result['message'] ?? 'assignment_failed');
+18647: 						$report['warnings'][] = $message;
+18648: 						if ($message === 'cycle_not_allowed') { $report['warnings'][] = 'این تغییر باعث چرخه در سلسله‌مراتب می‌شود و مسدود شد'; }
+18649: 						if ($message === 'self_parent_not_allowed') { $report['warnings'][] = 'کاربر نمی‌تواند مدیر مستقیم خودش باشد'; }
+18650: 					}
+18651: 				} else {
+18652: 					$report['errors']++;
+18653: 					$report['warnings'][] = 'manager_profile_missing';
+18654: 				}
+18655: 			}
+18656: 		}
+18657: 		update_option('sn_hr_panel_action_report', $report, false);
+18658: 		if (wp_doing_ajax()) {
+18659: 			wp_send_json(['success' => empty($report['errors']), 'message' => empty($report['errors']) ? 'پروفایل ذخیره شد.' : 'ذخیره پروفایل با خطا همراه بود.', 'report' => $report]);
+18660: 		}
+18661: 		wp_safe_redirect(add_query_arg([
+18662: 			'sn_msg' => empty($report['errors']) ? 'hr_profile_action_done' : 'hr_profile_action_error',
+18663: 			'hr_action_mode' => $dry_run ? 'dry_run' : 'apply',
+18664: 			'hr_action_errors' => (int) ($report['errors'] ?? 0),
+18665: 		], $redirect_base));
+18666: 		exit;
+18667: 	}
+18668: 

@@ -1,0 +1,12 @@
+33943: 
+33944: 			private function sn_after_sales_statuses(): array
+33945: 			{
+33946: 				return [
+33947: 					'open' => 'باز',
+33948: 					'in_progress' => 'در حال پیگیری',
+33949: 					'waiting_customer' => 'در انتظار مشتری',
+33950: 					'resolved' => 'حل‌شده',
+33951: 					'closed' => 'بسته',
+33952: 					'archived' => 'آرشیو',
+33953: 				];
+33954: 			}
