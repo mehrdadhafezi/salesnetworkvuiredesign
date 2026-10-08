@@ -297,3 +297,19 @@ button.cr-i:hover{background:var(--surface-3)}
 .scope-badge.view,.scope-badge{white-space:nowrap}
 @media (max-width:760px){.dim-switch{display:flex;width:100%;overflow-x:auto;scrollbar-width:none}.dim-switch button{flex:1 0 auto}}
 @media (forced-colors:active){.cov,.lc,.basis,.grain{border:1px solid CanvasText}}
+
+/* ---- SN-202: BulkOutcomeStrip (shared) — requested · eligible · applied · skipped · rejected · failed · unknown.
+   Additive presentation pattern for the Cross-Role bulk outcome language; no new colour/radius/spacing tokens. ---- */
+.outcome-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-top:12px}
+.outcome-strip .os{display:grid;gap:2px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2)}
+.outcome-strip .os span{color:var(--text-2);font-size:var(--t-micro)}
+.outcome-strip .os b{font-size:var(--t-h3,18px);font-weight:700}
+.outcome-strip .os.zero b{color:var(--muted);font-weight:500}
+.outcome-strip .os-applied:not(.zero){border-color:var(--green-dot);background:var(--green-bg)}
+.outcome-strip .os-skipped:not(.zero){border-color:var(--orange-dot);background:var(--orange-bg)}
+.outcome-strip .os-rejected:not(.zero),.outcome-strip .os-failed:not(.zero){border-color:var(--red-dot);background:var(--red-bg)}
+.outcome-strip .os-unknown:not(.zero){border-color:var(--amber-dot);background:var(--amber-bg)}
+.os-note{display:flex;align-items:center;gap:8px;margin:8px 0 0;color:var(--text-2);font-size:var(--t-micro)}
+.os-note .i{width:14px;height:14px;flex:none}
+@media (max-width:1100px){.outcome-strip{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:520px){.outcome-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
