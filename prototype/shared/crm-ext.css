@@ -358,3 +358,46 @@ button.cr-i:hover{background:var(--surface-3)}
 .zone-box-h span{color:var(--text-2);font-size:var(--t-meta)}
 .zone-box-h>.i{margin-top:4px;color:var(--red-fg)}
 @media (forced-colors:active){.zone{border:1px solid CanvasText}}
+
+/* ---- SN-205: HR shared patterns (additive presentation only; no new colour/radius/spacing tokens, no business capability).
+   IdentityLinkage (Person ↔ Profile ↔ User, each link has its own state), EffectiveIntervalTimeline (effective_from/to, applied time,
+   event actor; missing history = UNKNOWN/INCOMPLETE), RequestedVsApplied (requested change ≠ actually applied change),
+   AccessStateMatrix delta row, SensitiveActionConfirmation (what changes · what does not · affected · effective time · audit reason). ---- */
+.idl{display:flex;align-items:stretch;flex-wrap:wrap;gap:8px}
+.idl .idn{display:grid;gap:2px;flex:1 1 150px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--raised);min-width:0}
+.idl .idn small{color:var(--text-2);font-size:var(--t-micro)}
+.idl .idn b{font-weight:600;overflow-wrap:anywhere;white-space:normal}
+.idl .idn-missing{border-style:dashed;background:var(--surface-2)}
+.idl .idn-person{border-style:dashed}
+.idl .idk{display:grid;place-items:center}
+.eit{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.eit .ei{position:relative;display:flex;gap:12px;padding:0 0 4px}
+.eit .ei:not(:last-child)::before{content:"";position:absolute;inset-block:16px -8px;inset-inline-start:4px;width:2px;background:var(--border)}
+.eit .ei-dot{flex:none;width:10px;height:10px;margin-top:6px;border-radius:99px;background:var(--border-strong)}
+.eit .ei-cur .ei-dot{background:var(--primary)}
+.eit .ei-inc .ei-dot{background:var(--amber-dot)}
+.eit .ei-unknown .ei-dot{background:transparent;border:2px dashed var(--slate-dot)}
+.eit .ei-b{display:grid;gap:4px;flex:1;min-width:0}
+.eit .ei-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.eit .ei-dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0}
+.eit .ei-dl>div{display:grid;gap:2px}
+.eit .ei-dl dt{color:var(--text-2);font-size:var(--t-micro)}
+.eit .ei-dl dd{margin:0;overflow-wrap:anywhere}
+.rva{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:var(--gap);align-items:stretch}
+.rva .rv-c{display:grid;gap:4px;align-content:start;padding:12px;border:1px solid var(--border);border-radius:var(--r);background:var(--raised)}
+.rva .rv-act{border-style:dashed;background:var(--surface-2)}
+.rva .rv-vs{display:grid;place-items:center;color:var(--text-2)}
+.rva .rv-vs .i{width:24px;height:24px}
+.rva b{font-weight:600;line-height:1.7}
+@media (max-width:760px){.rva{grid-template-columns:minmax(0,1fr)}.rva .rv-vs{display:none}}
+.asm-delta td{background:var(--amber-bg)}
+.sens-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sens-c{display:grid;gap:4px;align-content:start;padding:12px;border:1px solid var(--border);border-radius:var(--r);background:var(--raised)}
+.sens-c h4{display:flex;align-items:center;gap:4px;margin:0;font-size:var(--fs-sm);font-weight:600}
+.sens-c h4 .i{width:14px;height:14px}
+.sens-c ul{margin:0;padding:0 16px 0 0;display:grid;gap:4px;color:var(--text-2);font-size:var(--t-meta);line-height:1.8}
+.sens-c p{margin:0;color:var(--text-2);font-size:var(--t-meta);line-height:1.8}
+.sens-chg{border-color:var(--amber-dot)}
+.sens-keep{border-style:dashed}
+.sens-form{display:grid;gap:8px;margin-top:12px}
+@media (max-width:760px){.sens-grid{grid-template-columns:minmax(0,1fr)}}
