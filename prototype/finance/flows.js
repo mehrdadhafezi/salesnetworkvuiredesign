@@ -246,10 +246,15 @@
     setRun(id, { items: r.items.map(function (it) {
       if (!test(it)) return it; var c = it.slice(), tx = (txByKey || {})[it[1]];
       if (!tx) return it;   // lookup gave no transaction id → cannot claim a link; stays Unknown
-      var row = M.ledger.filter(function (t) { return t.key === it[1]; })[0];
-      if (row && row.st === 'committed' && row.id !== tx) { conflict++; var k = it.slice(); k[6] = 'تعارض (CONFLICT): کلید کسب‌وکار قبلاً با تراکنش ' + row.id + ' ثبت شده ولی جستجو ' + tx + ' را برگرداند؛ پیوند نمی‌خورد و نتیجه نامعلوم می‌ماند'; return k; }
-      if (row) { if (row.st !== 'committed') { row.id = tx; row.st = 'committed'; row.posted = 'یافت‌شده در تطبیق'; delete row.note; } }
-      else M.ledger.push({ id: tx, key: it[1], dom: 'wallet', acct: 'کیف پول کمیسیون · گیرنده (یافت‌شده در تطبیق)', dir: 'C', amt: it[2], unit: it[3], rel: ['اجرا', r.id + ' · ' + it[0].split(' · ')[0]], actor: 'ثبت‌شده پیش از تطبیق', eff: '—', posted: 'یافت‌شده در تطبیق', st: 'committed' });
+      // Validate ALL committed rows on BOTH sides (business key and native tx id) before mutating or linking: one key ↔ one tx.
+      var byKey = M.ledger.filter(function (t) { return t.key === it[1]; }), comKey = byKey.filter(function (t) { return t.st === 'committed'; });
+      var txOther = M.ledger.filter(function (t) { return t.st === 'committed' && t.id === tx && t.key !== it[1]; });
+      if (comKey.some(function (t) { return t.id !== tx; }) || comKey.length > 1 || txOther.length) { conflict++; var k = it.slice(); k[6] = 'تعارض (CONFLICT): هویت کلید/تراکنش یک‌به‌یک نیست (' + (txOther.length ? 'شناسهٔ ' + tx + ' قبلاً با کلید دیگری ثبت شده' : comKey.length > 1 ? 'چند تراکنش ثبت‌شده برای همین کلید' : 'کلید با ' + comKey[0].id + ' ثبت شده ولی جستجو ' + tx + ' را برگرداند') + ')؛ پیوند نمی‌خورد و نتیجه نامعلوم می‌ماند'; return k; }
+      if (!comKey.length) {
+        var intent = byKey.filter(function (t) { return t.st !== 'committed'; })[0];
+        if (intent) { intent.id = tx; intent.st = 'committed'; intent.posted = 'یافت‌شده در تطبیق'; delete intent.note; }
+        else M.ledger.push({ id: tx, key: it[1], dom: 'wallet', acct: 'کیف پول کمیسیون · گیرنده (یافت‌شده در تطبیق)', dir: 'C', amt: it[2], unit: it[3], rel: ['اجرا', r.id + ' · ' + it[0].split(' · ')[0]], actor: 'ثبت‌شده پیش از تطبیق', eff: '—', posted: 'یافت‌شده در تطبیق', st: 'committed' });
+      }
       c[4] = 'existing'; c[5] = tx; c[6] = 'تراکنش موجود یافت شد و پیوند شد؛ اعتبار جدید ساخته نشد'; n++; return c;
     }) });
     return { n: n, conflict: conflict };
