@@ -27,6 +27,8 @@ Codex review round 8 (head 7b08bc9) — two findings fixed and regression-tested
 
 Codex review round 9 (head b42d0a6) — one P1 fixed and regression-tested: linking validates ALL committed rows on both the business-key and native-tx-id side (one key ↔ one tx) before mutating or linking; any contradiction is a CONFLICT that leaves the item Unknown and the ledger untouched.
 
+Codex review round 10 (head de3cc69) — one P1 fixed and regression-tested: reconcile linking is two-phase and all-or-nothing — the whole lookup candidate set (ledger on key and tx-id sides, duplicate tx ids inside the lookup) is preflighted before any ledger/item mutation, and a contradictory lookup classifies nothing and leaves ledger and items untouched.
+
 Fixed during QA: queue table overflowed 1366 (11 columns, action column off-screen) → issue chips merged into the evidence cell, customer/reviewer columns demoted to ≥1500, total/paid/remaining to ≥1100 (priority columns); confirmation summary list lacked its grid class; QA assertions on Persian numerals and lifecycle-ribbon text.
 
 Screenshots (`qa/*.png`): 01 queue · 02 evidence + state layers · 03 approve confirmation · 04 stale conflict · 05 bulk approve result (partial/unknown) · 06 refund (conditional) · 07 ledger correction chain · 08 run partial coverage · 09 run outcome unknown · 10 reconciliation issue · 11 view-only permission contract · 12 dark/compact/focus · d01 1920 ledger · t01 768 runs · m01/m02 390.

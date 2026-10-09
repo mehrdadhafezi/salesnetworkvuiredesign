@@ -242,14 +242,28 @@
   // Keep per-item truth and the mock ledger consistent with the aggregate outcome shown on the run.
   // Reconcile LINKS the transaction the lookup found (existing); it never mints. The found tx is mirrored/converted in the mock ledger without creating a new credit.
   var linkItems = function (id, test, txByKey) {
-    var r = X.runView(X.run(id)), n = 0, conflict = 0;
-    setRun(id, { items: r.items.map(function (it) {
-      if (!test(it)) return it; var c = it.slice(), tx = (txByKey || {})[it[1]];
-      if (!tx) return it;   // lookup gave no transaction id → cannot claim a link; stays Unknown
-      // Validate ALL committed rows on BOTH sides (business key and native tx id) before mutating or linking: one key ↔ one tx.
-      var byKey = M.ledger.filter(function (t) { return t.key === it[1]; }), comKey = byKey.filter(function (t) { return t.st === 'committed'; });
+    var r = X.runView(X.run(id)), n = 0, conflict = 0, tb = txByKey || {};
+    var cands = r.items.filter(function (it) { return test(it) && tb[it[1]]; });
+    // PHASE 1 — preflight the COMPLETE candidate set (ledger on both key and tx-id sides + duplicate tx ids inside the lookup). Nothing is mutated here.
+    var seen = {}; cands.forEach(function (it) { (seen[tb[it[1]]] = seen[tb[it[1]]] || []).push(it[1]); });
+    var bad = {};
+    cands.forEach(function (it) {
+      var tx = tb[it[1]], comKey = M.ledger.filter(function (t) { return t.key === it[1] && t.st === 'committed'; });
       var txOther = M.ledger.filter(function (t) { return t.st === 'committed' && t.id === tx && t.key !== it[1]; });
-      if (comKey.some(function (t) { return t.id !== tx; }) || comKey.length > 1 || txOther.length) { conflict++; var k = it.slice(); k[6] = 'تعارض (CONFLICT): هویت کلید/تراکنش یک‌به‌یک نیست (' + (txOther.length ? 'شناسهٔ ' + tx + ' قبلاً با کلید دیگری ثبت شده' : comKey.length > 1 ? 'چند تراکنش ثبت‌شده برای همین کلید' : 'کلید با ' + comKey[0].id + ' ثبت شده ولی جستجو ' + tx + ' را برگرداند') + ')؛ پیوند نمی‌خورد و نتیجه نامعلوم می‌ماند'; return k; }
+      if (comKey.some(function (t) { return t.id !== tx; }) || comKey.length > 1 || txOther.length || seen[tx].length > 1)
+        bad[it[1]] = 'هویت کلید/تراکنش یک‌به‌یک نیست (' + (seen[tx].length > 1 ? 'جستجو یک شناسهٔ تراکنش را به چند کلید نسبت داده' : txOther.length ? 'شناسهٔ ' + tx + ' قبلاً با کلید دیگری ثبت شده' : comKey.length > 1 ? 'چند تراکنش ثبت‌شده برای همین کلید' : 'کلید با ' + comKey[0].id + ' ثبت شده ولی جستجو ' + tx + ' را برگرداند') + ')';
+    });
+    var anyBad = Object.keys(bad).length > 0;
+    if (anyBad) {   // all-or-nothing: a contradictory lookup leaves ledger AND items untouched
+      conflict = Object.keys(bad).length;
+      setRun(id, { items: r.items.map(function (it) { if (!test(it) || !tb[it[1]]) return it; var k = it.slice(); k[6] = 'تعارض (CONFLICT): ' + (bad[it[1]] || 'مجموعهٔ نتیجهٔ جستجو متناقض است؛ هیچ پیوندی انجام نشد') + '؛ نتیجه نامعلوم می‌ماند'; return k; }) });
+      return { n: 0, conflict: conflict };
+    }
+    // PHASE 2 — apply (validated, so safe).
+    setRun(id, { items: r.items.map(function (it) {
+      if (!test(it)) return it; var c = it.slice(), tx = tb[it[1]];
+      if (!tx) return it;   // lookup gave no transaction id → cannot claim a link; stays Unknown
+      var byKey = M.ledger.filter(function (t) { return t.key === it[1]; }), comKey = byKey.filter(function (t) { return t.st === 'committed'; });
       if (!comKey.length) {
         var intent = byKey.filter(function (t) { return t.st !== 'committed'; })[0];
         if (intent) { intent.id = tx; intent.st = 'committed'; intent.posted = 'یافت‌شده در تطبیق'; delete intent.note; }
@@ -257,7 +271,7 @@
       }
       c[4] = 'existing'; c[5] = tx; c[6] = 'تراکنش موجود یافت شد و پیوند شد؛ اعتبار جدید ساخته نشد'; n++; return c;
     }) });
-    return { n: n, conflict: conflict };
+    return { n: n, conflict: 0 };
   };
   var setItems = function (id, test, res, note) {
     var r = X.runView(X.run(id)), cnt = { posted: 0, existing: 0 };
@@ -286,7 +300,7 @@
       // Classify FIRST by the BUSINESS KEY returned by the lookup (never by row order); mint only for keys found committed. Keys the lookup did not resolve stay Unknown.
       var by = lk.byKey || {};
       var lr = linkItems(r.id, function (it) { return it[4] === 'unknown' && by[it[1]] === 'committed'; }, lk.txByKey);
-      setItems(r.id, function (it) { return it[4] === 'unknown' && by[it[1]] === 'notCommitted'; }, 'unprocessed', 'ثبت‌نشدن اثبات شد');
+      if (!lr.conflict) setItems(r.id, function (it) { return it[4] === 'unknown' && by[it[1]] === 'notCommitted'; }, 'unprocessed', 'ثبت‌نشدن اثبات شد');   // a contradictory lookup classifies nothing
       var still = X.runView(X.run(r.id)).items.filter(function (it) { return it[4] === 'unknown'; }).length;
       if (still) { setRun(r.id, { note: 'جستجو برای ' + fa(still) + ' آیتم نمونه نتیجهٔ قطعی نداد' + (lr.conflict ? ' (تعارض شناسهٔ تراکنش با دفتر کل: ' + fa(lr.conflict) + ' مورد)' : '') + '؛ اجرا «نتیجه نامعلوم» می‌ماند و تطبیق کامل نشده است.' }); delete st.lookups[r.id]; op = X.newOp({ title: 'تطبیق ناقص ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'برخی کلیدها حل نشد' + (lr.conflict ? ' (تعارض شناسهٔ تراکنش با دفتر کل: ' + fa(lr.conflict) + ' مورد)' : '') + '؛ نتیجهٔ اجرا نامعلوم می‌ماند و تکرار کور مسدود است.' }); return op; }
       setRun(r.id, { st: 'reconciled', tail: lk.notCommitted > 0, cov: { intended: r.intended, processed: lk.committed, posted: 0, existing: lk.committed, failed: 0, unprocessed: lk.notCommitted, unknown: 0 }, note: 'با جستجوی تراکنش/کلید تطبیق شد: ' + fa(lk.committed) + ' آیتم ثبت‌شده بود و ثبت‌نشدن ' + fa(lk.notCommitted) + ' آیتم اثبات شد.' });
