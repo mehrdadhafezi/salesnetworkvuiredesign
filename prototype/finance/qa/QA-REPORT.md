@@ -1,5 +1,5 @@
 # SN-206 QA report (Finance design)
-Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **147 PASS, FAILS 0**.
+Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **148 PASS, FAILS 0**.
 **FINANCE ROLE RUNTIME IS NOT LIVE VERIFIED.** This QA exercises the design prototype on mock data only; no real non-Admin Finance account, no real evidence, bank, gateway or posting.
 
 | Pass | Scope | Result |
@@ -12,6 +12,8 @@ Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777
 Codex review round 1 (head 6149b83) — six findings fixed and regression-tested: commit-time conflict now derived from the live stage/evidence version (no scripted flag); retry/reconcile re-validate each item and approvals are idempotent; invoice paid/remaining derived across all approved stages of the invoice; posting persists per-item results + transaction IDs + committed ledger rows; run lookup is a pure read (reconciliation is a separate authorised step, unavailable in view-only); `sens-aff/eff` tones moved out of shared CSS into Finance CSS (HR dialogs untouched).
 
 Codex review round 2 (head 6eabdf4) — three findings fixed and regression-tested: reconcile classifies items before minting transactions (no duplicate credits on tail); bulk retry/reconcile store evidence identity per operation item and conflict when it changed; reloaded external approvals count in invoice totals. No shared file changed this round.
+
+Codex review round 3 (head 807f856) — two findings fixed and regression-tested: reconcile classifies/mints by the business keys the lookup returns (not row order; unresolved keys stay Unknown); an evidence-changed Unknown item stays Unknown with the reconcile action kept. No shared file changed.
 
 Fixed during QA: queue table overflowed 1366 (11 columns, action column off-screen) → issue chips merged into the evidence cell, customer/reviewer columns demoted to ≥1500, total/paid/remaining to ≥1100 (priority columns); confirmation summary list lacked its grid class; QA assertions on Persian numerals and lifecycle-ribbon text.
 
