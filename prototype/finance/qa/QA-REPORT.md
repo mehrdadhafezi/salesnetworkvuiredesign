@@ -1,5 +1,5 @@
 # SN-206 QA report (Finance design)
-Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **162 PASS, FAILS 0**.
+Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **164 PASS, FAILS 0**.
 **FINANCE ROLE RUNTIME IS NOT LIVE VERIFIED.** This QA exercises the design prototype on mock data only; no real non-Admin Finance account, no real evidence, bank, gateway or posting.
 
 | Pass | Scope | Result |
@@ -30,6 +30,8 @@ Codex review round 9 (head b42d0a6) — one P1 fixed and regression-tested: link
 Codex review round 10 (head de3cc69) — one P1 fixed and regression-tested: reconcile linking is two-phase and all-or-nothing — the whole lookup candidate set (ledger on key and tx-id sides, duplicate tx ids inside the lookup) is preflighted before any ledger/item mutation, and a contradictory lookup classifies nothing and leaves ledger and items untouched.
 
 Codex review round 11 (head 72f714b) — three findings fixed and regression-tested by consolidating reconcile into a pure planner (`planReconcile`) that preflights the complete lookup against the ledger in every state and for both committed and not-committed claims; conflicts are reported only at operation/run level and nothing (ledger, items, classification) is mutated.
+
+Codex review round 12 (head 8bbb569) — two P1 fixed and regression-tested: the reconcile planner validates every key the lookup mentions (not only displayed sample rows) and treats a same-key row of any state that already carries a different native tx id as a conflict, so no provenance is overwritten.
 
 Fixed during QA: queue table overflowed 1366 (11 columns, action column off-screen) → issue chips merged into the evidence cell, customer/reviewer columns demoted to ≥1500, total/paid/remaining to ≥1100 (priority columns); confirmation summary list lacked its grid class; QA assertions on Persian numerals and lifecycle-ribbon text.
 

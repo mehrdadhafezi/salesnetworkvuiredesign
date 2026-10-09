@@ -244,20 +244,22 @@
   // PLAN (pure — mutates nothing): preflight the COMPLETE lookup against the ledger in EVERY state, for BOTH committed and not-committed claims.
   X.planReconcile = function (r, lk) {
     var by = lk.byKey || {}, tb = lk.txByKey || {}, conflicts = [];
-    var cands = r.items.filter(function (it) { return it[4] === 'unknown' && by[it[1]]; });
-    var committed = cands.filter(function (it) { return by[it[1]] === 'committed'; }), notC = cands.filter(function (it) { return by[it[1]] === 'notCommitted'; });
-    var seen = {}; committed.forEach(function (it) { if (tb[it[1]]) (seen[tb[it[1]]] = seen[tb[it[1]]] || []).push(it[1]); });
-    committed.forEach(function (it) {
-      var tx = tb[it[1]]; if (!tx) return;   // no tx id → cannot link; stays Unknown (not a conflict)
-      var comKey = M.ledger.filter(function (t) { return t.key === it[1] && t.st === 'committed'; });
-      var anyTx = M.ledger.filter(function (t) { return t.id === tx && t.key !== it[1]; });   // ANY ledger state
+    // The validation set is EVERY key the lookup mentions (not only the displayed sample rows).
+    var keys = Object.keys(by), committed = keys.filter(function (k) { return by[k] === 'committed'; }), notC = keys.filter(function (k) { return by[k] === 'notCommitted'; });
+    var seen = {}; committed.forEach(function (k) { if (tb[k]) (seen[tb[k]] = seen[tb[k]] || []).push(k); });
+    committed.forEach(function (k) {
+      var tx = tb[k]; if (!tx) return;   // no tx id → cannot link; stays Unknown (not a conflict)
+      var rows = M.ledger.filter(function (t) { return t.key === k; });                          // same key, ANY ledger state
+      var native = rows.filter(function (t) { return t.id !== '—'; });                          // rows that already carry a native tx id
+      var comKey = rows.filter(function (t) { return t.st === 'committed'; });
+      var anyTx = M.ledger.filter(function (t) { return t.id === tx && t.key !== k; });          // same tx id under ANOTHER key, ANY state
       if (seen[tx].length > 1) conflicts.push('جستجو شناسهٔ ' + tx + ' را به چند کلید نسبت داده');
       else if (anyTx.length) conflicts.push('شناسهٔ ' + tx + ' در دفتر کل با کلید دیگری آمده است');
-      else if (comKey.length > 1) conflicts.push('چند تراکنش ثبت‌شده برای کلید ' + it[1]);
-      else if (comKey.length && comKey[0].id !== tx) conflicts.push('کلید ' + it[1] + ' با ' + comKey[0].id + ' ثبت شده ولی جستجو ' + tx + ' را برگرداند');
+      else if (native.some(function (t) { return t.id !== tx; })) conflicts.push('کلید ' + k + ' در دفتر کل (هر وضعیتی) با شناسهٔ ' + native.filter(function (t) { return t.id !== tx; })[0].id + ' آمده ولی جستجو ' + tx + ' را برگرداند');
+      else if (comKey.length > 1) conflicts.push('چند تراکنش ثبت‌شده برای کلید ' + k);
     });
-    notC.forEach(function (it) { if (M.ledger.some(function (t) { return t.key === it[1] && t.st === 'committed'; })) conflicts.push('جستجو کلید ' + it[1] + ' را ثبت‌نشده گزارش کرد ولی در دفتر کل ثبت‌شده است'); });
-    return { conflicts: conflicts, committed: committed, notC: notC };
+    notC.forEach(function (k) { if (M.ledger.some(function (t) { return t.key === k && t.st === 'committed'; })) conflicts.push('جستجو کلید ' + k + ' را ثبت‌نشده گزارش کرد ولی در دفتر کل ثبت‌شده است'); });
+    return { conflicts: conflicts };
   };
   // APPLY (only after a conflict-free plan): link the found transactions; never mint.
   var linkItems = function (id, test, tb) {
