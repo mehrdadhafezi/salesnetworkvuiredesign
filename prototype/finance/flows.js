@@ -248,7 +248,8 @@
     var keys = Object.keys(by), committed = keys.filter(function (k) { return by[k] === 'committed'; }), notC = keys.filter(function (k) { return by[k] === 'notCommitted'; });
     var seen = {}; committed.forEach(function (k) { if (tb[k]) (seen[tb[k]] = seen[tb[k]] || []).push(k); });
     committed.forEach(function (k) {
-      var tx = tb[k]; if (!tx) return;   // no tx id → cannot link; stays Unknown (not a conflict)
+      var tx = tb[k];
+      if (!tx) { conflicts.push('کلید ' + k + ' ثبت‌شده گزارش شد ولی شناسهٔ تراکنش بومی ندارد (نتیجهٔ جستجو ناقص است)'); return; }   // committed claim without a native tx identity = incomplete whole-lookup plan
       var rows = M.ledger.filter(function (t) { return t.key === k; });                          // same key, ANY ledger state
       var native = rows.filter(function (t) { return t.id !== '—'; });                          // rows that already carry a native tx id
       var comKey = rows.filter(function (t) { return t.st === 'committed'; });
