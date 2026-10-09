@@ -8,6 +8,15 @@
   var keepOf = function () { return C.state.drawer ? C.state.drawer.keep : {}; };
   var PURPOSES = ['بررسی مشکل پشتیبانی گزارش‌شده', 'تأیید پیکربندی دسترسی پس از تغییر سمت'];
   function refocus(sel) { var n = $(sel); if (n) { n.focus({ preventScroll: true }); try { var l = n.value.length; n.setSelectionRange(l, l); } catch (e) {} } }
+  // Persistent impersonation boundary: lives in the shell (outside #ws and the drawer), so it survives navigation, drawers and page-state simulations.
+  X.syncImp = function () {
+    var n = $('#imp-shell'); if (!n) return; var html = st.imp ? X.impBar() : '';
+    if (n.getAttribute('data-h') !== html) { n.innerHTML = html; n.setAttribute('data-h', html); }
+    document.body.classList.toggle('imp-on', !!st.imp);
+    document.body.style.setProperty('--imp-h', st.imp ? Math.max(0, Math.ceil(n.getBoundingClientRect().bottom)) + 'px' : '0px');
+  };
+  window.addEventListener('resize', function () { if (st.imp) X.syncImp(); });
+  window.addEventListener('scroll', function () { if (st.imp) X.syncImp(); }, { passive: true });
   function result(op) { C.closeDrawer(); C.render(); C.openDrawer('result', op.id); }
 
   function onClick(t, e) {
@@ -41,9 +50,9 @@
       case 'commit-sens':
         sp = st.spec; if (!(ok3(k.reason) && k.ack)) { k.err = true; C.rerenderDrawer(); return true; } sp.reasonText = k.reason;
         if (sp.kind === 'xfer') op = X.commitXfer(sp); else if (sp.kind === 'term') op = X.commitTerm(sp); else if (sp.kind === 'reqapply') op = X.commitReqApply(sp); else if (sp.kind === 'access') op = X.commitAccess(sp); else if (sp.kind === 'comp') op = X.commitComp(sp); else if (sp.kind === 'cred') op = X.commitCred(sp);
-        else if (sp.kind === 'imp') { st.imp = { target: sp.p, purpose: sp.purpose, at: 'همین الان' }; C.closeDrawer(); C.go('cred'); C.toast('جلسه نمایش آغاز شد (نمایشی). این جلسه فقط‌خواندنی نیست؛ بازگشت لازم است.', 'warning'); return true; }
+        else if (sp.kind === 'imp') { st.imp = { target: sp.p, purpose: sp.purpose, at: 'همین الان' }; X.syncImp(); C.closeDrawer(); C.go('cred'); C.toast('جلسه نمایش آغاز شد (نمایشی). این جلسه فقط‌خواندنی نیست؛ بازگشت لازم است.', 'warning'); return true; }
         if (op) result(op); return true;
-      case 'imp-end': st.imp = null; C.render(); C.toast('به حساب منابع انسانی بازگشتید (نمایشی). پایان جلسه ثبت شد؛ ممیزی ماندگار تأیید نشده است.', 'info'); return true;
+      case 'imp-end': st.imp = null; X.syncImp(); C.render(); C.toast('به حساب منابع انسانی بازگشتید (نمایشی). پایان جلسه ثبت شد؛ ممیزی ماندگار تأیید نشده است.', 'info'); return true;
       case 'commit-bulkwf': X.runBulkWf(); return true;
       case 'commit-bulkcred': X.runBulkCred(); return true;
       case 'retry-op': op = X.opOf(arg); X.retryFailed(op); C.render(); C.openDrawer('result', arg); C.toast('تکرار فقط برای موارد ناموفق معلوم و پس از بررسی تازه انجام شد (نمایشی).', 'success'); return true;
@@ -126,7 +135,8 @@
     },
     onClick: onClick, palette: palette,
     init: function (state, qs) { ['wq', 'oq', 'rq', 'aq', 'xq', 'dq', 'compAuth'].forEach(function (k) { if (qs.get(k)) st[k] = qs.get(k); }); if (qs.get('imp')) st.imp = { target: 'HP-302', purpose: PURPOSES[0], at: 'همین الان' }; },
-    afterBoot: function (qs) { setTimeout(function () { if (qs.get('flow')) HRAPI.flow(qs.get('flow')); }, 0); }
+    afterRender: function () { X.syncImp(); },
+    afterBoot: function (qs) { X.syncImp(); setTimeout(function () { if (qs.get('flow')) HRAPI.flow(qs.get('flow')); }, 0); }
   });
 
   var HRAPI = window.HRAPI = {
@@ -158,7 +168,7 @@
       if (f === 'credpartial') { st.flow = 'credpartial'; return O('cred', 'credreset', 'HP-302'); }
       if (f === 'imp') return O('cred', 'impstart', 'HP-302');
       if (f === 'implead') return O('cred', 'impstart', 'HP-110');
-      if (f === 'impactive') { st.imp = { target: 'HP-302', purpose: PURPOSES[0], at: 'همین الان' }; return C.go('cred'); }
+      if (f === 'impactive') { st.imp = { target: 'HP-302', purpose: PURPOSES[0], at: 'همین الان' }; X.syncImp(); return C.go('cred'); }
       if (f === 'onb') return C.openDrawer('onbwiz', 'x', { step: 0 });
       if (f === 'staff') return O('work', 'staff', 'HP-303');
       if (f === 'dup') return O('work', 'staff', 'HP-305');
