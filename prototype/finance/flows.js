@@ -57,7 +57,7 @@
   var tgt = function (r) { return r.inv + ' · مرحله ' + r.id + ' (' + r.purpose + ' ' + r.stage[0] + '/' + r.stage[1] + ')'; };
   X.approveSpec = function (r0) {
     var r = X.eff(r0), im = X.impact(r);
-    return { kind: 'approve', id: r.id, title: 'تأیید مرحلهٔ پرداخت', subject: r.inv, zone: 'cond', needsReason: false, reasonLabel: 'مبنای تصمیم / مرجع', target: tgt(r), current: X.REV.pending.label + ' · مدرک ' + (r.ev ? r.ev.ref + ' ' + r.ev.ver : '—'), amount: X.amt(r.claimed, r.unit), resulting: 'تأیید مالی این مرحله (وصول کامل فاکتور جدا سنجیده می‌شود)',
+    return { kind: 'approve', id: r.id, evKey: r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '', title: 'تأیید مرحلهٔ پرداخت', subject: r.inv, zone: 'cond', needsReason: false, reasonLabel: 'مبنای تصمیم / مرجع', target: tgt(r), current: X.REV.pending.label + ' · مدرک ' + (r.ev ? r.ev.ref + ' ' + r.ev.ver : '—'), amount: X.amt(r.claimed, r.unit), resulting: 'تأیید مالی این مرحله (وصول کامل فاکتور جدا سنجیده می‌شود)',
       changes: ['وضعیت بررسی مالی مرحله: در انتظار ← تأیید شد', 'وصول‌شدهٔ معتبر از ' + X.amtT(r.paid, r.unit) + ' به ' + X.amtT(im.np, r.unit) + ' (محاسبهٔ نمایشی)', 'مسئول بعدی: ' + (im.last ? 'قرارداد تکمیل فروش' : 'فروشنده (ادامهٔ فروش)')],
       unchanged: ['مدرک و نسخهٔ ثبت‌شده', 'تصمیم‌های قبلی (' + fa(r.prior.length) + ' مورد)', 'مالک اولیه و انتساب تاریخی', 'هیچ اعتبار کیف پول از این صفحه ثبت نمی‌شود'],
       affected: ['مرحله ' + r.id, 'فاکتور ' + r.inv, 'تاریخچهٔ ممیزی مرحله'],
@@ -66,7 +66,7 @@
   };
   X.rejectSpec = function (r0) {
     var r = X.eff(r0);
-    return { kind: 'reject', id: r.id, title: 'رد مرحلهٔ پرداخت با دلیل', subject: r.inv, zone: 'cond', needsReason: true, reasonLabel: 'دلیل رد (برای فروشنده و ممیزی)', target: tgt(r), current: X.REV.pending.label, amount: X.amt(r.claimed, r.unit), resulting: 'رد شد؛ بازگشت به فروشنده برای اصلاح',
+    return { kind: 'reject', id: r.id, evKey: r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '', title: 'رد مرحلهٔ پرداخت با دلیل', subject: r.inv, zone: 'cond', needsReason: true, reasonLabel: 'دلیل رد (برای فروشنده و ممیزی)', target: tgt(r), current: X.REV.pending.label, amount: X.amt(r.claimed, r.unit), resulting: 'رد شد؛ بازگشت به فروشنده برای اصلاح',
       changes: ['وضعیت بررسی مالی مرحله: در انتظار ← رد شد', 'مسئول بعدی: فروشنده (اصلاح و ارسال دوباره)'],
       unchanged: ['مدرک و نسخه‌های قبلی', 'تأییدهای قبلی (بازنشانی نمی‌شود)', 'فاکتور حذف یا لغو نمی‌شود', 'هیچ استردادی ثبت نمی‌شود', 'تاریخچه پاک نمی‌شود'],
       affected: ['مرحله ' + r.id, 'فاکتور ' + r.inv, 'اعلان اصلاح به فروشنده'],
@@ -77,14 +77,17 @@
   /* ---------- Commit: Review decisions (prototype-local overlay; per-item truth) ---------- */
   X.commitDecision = function (sp) {
     var r0 = X.q(sp.id), r = X.eff(r0);
-    if (st.flow === 'stalecommit') {
-      var op0 = X.newOp({ title: (sp.kind === 'approve' ? 'تأیید' : 'رد') + ' مرحله ' + r.id + ' — تعارض هنگام ثبت', kind: 'decision', requested: 1, conflict: true, items: [[r.inv + ' · ' + r.id, 'skipped', 'در بررسی نزدیک ثبت، مرحله دیگر در انتظار نبود (بازبین دیگر قبلاً تصمیم گرفته)؛ هیچ تغییری ثبت نشد']], note: 'ثبت انجام نشد و چیزی تغییر نکرد. تصمیم باید روی وضعیت فعلی دوباره بررسی شود.' });
-      st.local[r.id] = { review: 'approved', reloaded: true, prior: r.prior.concat([{ res: 'approved', who: 'امیر صادقی', at: '۱۰ دقیقه پیش', note: 'تصمیم همزمان بازبین دیگر' }]) };
-      st.flow = null; return op0;
+    if (st.flow === 'stalecommit') {   // scripted demo trigger: simulates ANOTHER reviewer deciding after the confirmation opened; the conflict itself is derived below from live state
+      st.local[r.id] = { review: 'approved', reloaded: true, approvedClaimed: r.claimed, prior: r.prior.concat([{ res: 'approved', who: 'امیر صادقی', at: '۱۰ دقیقه پیش', note: 'تصمیم همزمان بازبین دیگر' }]), rev: 'امیر صادقی' };
+      st.flow = null;
     }
+    // Commit-time recheck of the LIVE stage (state, eligibility, evidence version) — never trusts the state the dialog was opened on.
+    var cur = X.localOf(r0), live = X.elig(r0), evNow = r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '';
+    var why = cur.review !== 'pending' ? 'مرحله دیگر در انتظار نیست (' + X.REV[cur.review].label + ')' : (sp.kind === 'approve' ? live.blocked : !live.reject) ? 'مرحله اکنون واجد شرایط این تصمیم نیست' : (sp.evKey != null && sp.evKey !== evNow) ? 'نسخهٔ مدرک پس از باز شدن تأیید تغییر کرده است' : null;
+    if (why) return X.newOp({ title: (sp.kind === 'approve' ? 'تأیید' : 'رد') + ' مرحله ' + r.id + ' — تعارض هنگام ثبت', kind: 'decision', requested: 1, conflict: true, items: [[r.inv + ' · ' + r.id, 'skipped', 'در بررسی نزدیک ثبت: ' + why + '؛ هیچ تغییری ثبت نشد', null, r.id]], note: 'ثبت انجام نشد و چیزی تغییر نکرد. تصمیم باید روی وضعیت فعلی دوباره بررسی شود.' });
     var pr = { res: sp.kind === 'approve' ? 'approved' : 'rejected', who: M.user.name, at: NOW, note: sp.reasonText || (sp.kind === 'approve' ? 'تأیید مرحله' : '') };
     var l = { review: pr.res, prior: r.prior.concat([pr]), rev: M.user.name, reloaded: true };
-    if (sp.kind === 'approve') { l.paid = r.paid + r.claimed; l.rem = Math.max(0, r.total - l.paid); l.valid = r.claimed; l.next = X.impact(r).last ? 'قرارداد تکمیل فروش (جدا)' : 'فروشنده (ادامهٔ فروش)'; }
+    if (sp.kind === 'approve') { l.approvedClaimed = r.claimed; l.valid = r.claimed; l.next = X.impact(r).last ? 'قرارداد تکمیل فروش (جدا)' : 'فروشنده (ادامهٔ فروش)'; }
     else { l.next = 'فروشنده (اصلاح و ارسال دوباره)'; l.retSeller = true; }
     st.local[r.id] = l;
     pushAudit({ kind: sp.kind === 'approve' ? 'تأیید مرحلهٔ پرداخت' : 'رد مرحلهٔ پرداخت', inv: r.inv, cs: r.cs || '—', ev: r.ev ? r.ev.ref + ' ' + r.ev.ver : '—', amt: X.amtT(r.claimed, r.unit), ba: 'در انتظار ← ' + X.REV[pr.res].label + (sp.kind === 'reject' ? ' (تأییدهای قبلی حفظ)' : ''), reason: sp.reasonText || '—', rev: X.REV[pr.res].label, tx: 'ثبت نشده', key: '—', run: '—', res: 'موفق (نمایشی)', corr: 'C-' + (7700 + M.audit.length) });
@@ -123,8 +126,10 @@
     return X.newOp({ title: 'تأیید گروهی مراحل پرداخت', kind: 'bulkapp', requested: rows.length, items: items, retry: true, note: 'نتیجهٔ هر مرحله جدا از ارسال درخواست است. ثبت دفتر کل / اعتبار / تسویه انجام نشد.' });
   };
   X.applyApprove = function (r0, note) {
-    var r = X.eff(r0), l = { review: 'approved', prior: r.prior.concat([{ res: 'approved', who: M.user.name, at: NOW, note: note }]), rev: M.user.name, reloaded: true, paid: r.paid + r.claimed, valid: r.claimed, next: X.impact(r).last ? 'قرارداد تکمیل فروش (جدا)' : 'فروشنده (ادامهٔ فروش)' };
-    l.rem = Math.max(0, r.total - l.paid); st.local[r.id] = l;
+    if (X.localOf(r0).review === 'approved') return false;   // idempotent: a stage already approved is never counted twice
+    var r = X.eff(r0);
+    st.local[r.id] = { review: 'approved', prior: r.prior.concat([{ res: 'approved', who: M.user.name, at: NOW, note: note }]), rev: M.user.name, reloaded: true, approvedClaimed: r.claimed, valid: r.claimed, next: X.impact(r).last ? 'قرارداد تکمیل فروش (جدا)' : 'فروشنده (ادامهٔ فروش)' };
+    return true;
   };
   D.res = function (id) {
     var op = X.opOf(id) || st.ops[0]; if (!op) return top('نتیجه عملیات') + '<div class="dr-body">' + h.stateBlock('empty', 'نتیجه‌ای نیست', '') + '</div>';
@@ -140,8 +145,25 @@
     return top('نتیجه عملیات') + head(esc(op.title), pill(s[0], s[1], s[2]), '<span class="mono">' + op.id + '</span><span>' + esc(op.ts) + '</span>') + '<div class="dr-body"><section class="sec primary"><p class="result-line">' + ic(c.ok + c.existing === c.requested ? 'checkCircle' : 'alert') + (c.ok + c.existing === c.requested ? 'همهٔ ' + fa(num(c.requested)) + ' مورد با نتیجهٔ مشخص ثبت شد.' : fa(num(c.ok + c.existing)) + ' از ' + fa(num(c.requested)) + ' مورد ثبت شد؛ بقیه به‌تفکیک زیر آمده‌اند.') + '</p>' + X.outcomeStrip(op) +
       (c.unknown ? '<div class="note warn inset">' + ic('question') + '<span><b>نتیجه نامعلوم است.</b> ممکن است ثبت شده باشد؛ ابتدا وضعیت واقعی را بخوانید و تکرار کور انجام ندهید.</span></div>' : '') + (op.conflict ? '<div class="note warn inset">' + ic('swap') + '<span><b>تعارض:</b> وضعیت واقعی عوض شده بود؛ هیچ تغییری ثبت نشد.</span></div>' : '') + (op.note ? ctxLine(esc(op.note)) : '') + '</section>' + gl + '</div>' + foot(acts, null, 'شماره ارجاع ' + op.id + ' · نمایشی');
   };
-  X.retryFailed = function (op) { op.items.forEach(function (x) { if (x[1] === 'failed') { var r = X.q(x[4]); if (r) X.applyApprove(r, 'تکرار پس از بازخوانی تازه'); x[1] = 'ok'; x[2] = 'تکرار پس از بازخوانی تازه؛ ثبت شد (نمایشی)'; } }); };
-  X.reconcileOp = function (op) { var n = 0; op.items.forEach(function (x) { if (x[1] === 'unknown') { var r = X.q(x[4]); if (n++ % 2 === 0 && r) { X.applyApprove(r, 'تطبیق: ثبت شده بود'); x[1] = 'ok'; x[2] = 'تطبیق: تصمیم قبلاً ثبت شده بود'; } else { x[1] = 'failed'; x[2] = 'تطبیق: ثبت نشده بود؛ اکنون قابل تکرار پس از بررسی تازه'; } } }); op.note = (op.note || '') + ' نتیجهٔ نامعلوم با خواندن وضعیت واقعی تطبیق شد.'; };
+  // Each retry/reconcile item is re-checked against the LIVE stage; an item that is no longer eligible keeps a conflict/skipped result and is never re-applied.
+  var live = function (x) { var r = X.q(x[4]); return r ? { r: r, cur: X.localOf(r), e: X.elig(r) } : null; };
+  X.retryFailed = function (op) {
+    op.items.forEach(function (x) {
+      if (x[1] !== 'failed') return; var L = live(x);
+      if (!L || L.cur.review !== 'pending' || L.e.blocked) { x[1] = 'skipped'; x[2] = 'تعارض در بازخوانی تازه: مرحله دیگر قابل تصمیم نیست (' + (L ? X.REV[L.cur.review].label : 'نامعلوم') + ')؛ تغییری ثبت نشد'; return; }
+      X.applyApprove(L.r, 'تکرار پس از بازخوانی تازه'); x[1] = 'ok'; x[2] = 'بازخوانی تازه انجام شد و مرحله هنوز واجد شرایط بود؛ ثبت شد (نمایشی)';
+    });
+  };
+  X.reconcileOp = function (op) {
+    var n = 0;
+    op.items.forEach(function (x) {
+      if (x[1] !== 'unknown') return; var L = live(x);
+      if (L && L.cur.review === 'approved') { x[1] = 'ok'; x[2] = 'تطبیق: تصمیم قبلاً ثبت شده بود (دوباره اعمال نشد)'; return; }
+      if (n++ % 2 === 0 && L && L.cur.review === 'pending' && !L.e.blocked) { X.applyApprove(L.r, 'تطبیق: ثبت شده بود'); x[1] = 'ok'; x[2] = 'تطبیق: تصمیم قبلاً ثبت شده بود'; }
+      else { x[1] = 'failed'; x[2] = 'تطبیق: ثبت نشده بود؛ اکنون قابل تکرار پس از بازخوانی تازه'; }
+    });
+    op.note = (op.note || '') + ' نتیجهٔ نامعلوم با خواندن وضعیت واقعی تطبیق شد.';
+  };
 
   /* ---------- Refund review (CONDITIONAL — OPD-04): concepts are separate; nothing is executed here ---------- */
   D.ref = function (id) {
@@ -182,10 +204,10 @@
     else if (r.st === 'preview') acts = X.guardBtn('runapprove', 'btn-primary btn-lg', 'run-approve:' + r.id, 'ادامه: تأیید اجرا', 'check');
     else if (r.st === 'approved') acts = X.guardBtn('post', 'btn-primary btn-lg', 'run-post:' + r.id, 'ادامه: اجرای ثبت', 'send');
     else if ((r.st === 'partial' || (r.st === 'reconciled' && r.tail)) && c && c.unprocessed) acts = X.guardBtn('post', 'btn-primary btn-lg', 'run-tail:' + r.id, 'ادامه: فقط دنبالهٔ پردازش‌نشدهٔ اثبات‌شده (' + fa(num(c.unprocessed)) + ')', 'send');
-    else if (r.st === 'unknown') { acts = btn('btn-primary btn-lg', 'run-lookup:' + r.id, 'خواندن وضعیت واقعی (جستجوی تراکنش/کلید · فقط‌خواندنی)', 'search') + '<button type="button" class="btn btn-lg tip" aria-disabled="true" data-tip="تکرار ثبت تا تطبیق نتیجهٔ قبلی مسدود است؛ خطا یا قطع پاسخ مجوز ثبت مجدد نیست.">' + ic('ban') + 'تکرار ثبت (مسدود تا تطبیق)</button>'; hintT = 'تکرار کور وجود ندارد'; }
+    else if (r.st === 'unknown') { acts = (st.lookups[r.id] ? X.guardBtn('reconcile', 'btn-primary btn-lg', 'run-recon:' + r.id, 'ادامه: ثبت نتیجهٔ تطبیق', 'checkCircle') : '') + btn(st.lookups[r.id] ? 'btn-soft btn-lg' : 'btn-primary btn-lg', 'run-lookup:' + r.id, 'خواندن وضعیت واقعی (جستجوی تراکنش/کلید · فقط‌خواندنی)', 'search') + '<button type="button" class="btn btn-lg tip" aria-disabled="true" data-tip="تکرار ثبت تا تطبیق نتیجهٔ قبلی مسدود است؛ خطا یا قطع پاسخ مجوز ثبت مجدد نیست.">' + ic('ban') + 'تکرار ثبت (مسدود تا تطبیق)</button>'; hintT = 'تکرار کور وجود ندارد'; }
     else hintT = 'برای این وضعیت اقدام روزانه‌ای تعریف نشده است';
     return top('کنسول اجرا') + head(esc(r.name), X.runPill(r.st) + pill(r.engL, 'slate', 'layers'), '<span class="mono">' + r.id + '</span><span>' + esc(r.at) + '</span>') + '<div class="dr-body">' + sec('چرخهٔ عمر', '', life + (r.st === 'preview' || r.st === 'draft' ? '' : '') + ctxLine(esc(r.note)), 'primary') +
-      (c ? sec('پوشش', X.cov(c.processed == null ? 'partial' : c.unprocessed ? 'bounded' : 'ok'), X.covRow(c, 'پوشش اجرا') + X.covNote(c)) : '') + (oux ? sec('نتیجهٔ نامعلوم و تکرارپذیری', '', oux) : '') + reconciledNote +
+      (c ? sec('پوشش', X.cov(c.processed == null ? 'partial' : c.unprocessed ? 'bounded' : 'ok'), X.covRow(c, 'پوشش اجرا') + X.covNote(c)) : '') + (oux ? sec('نتیجهٔ نامعلوم و تکرارپذیری', '', oux) : '') + (r.st === 'unknown' && st.lookups[r.id] ? sec('نتیجهٔ جستجو (فقط‌خواندنی؛ هنوز ثبت نشده)', pill('نمایش، نه ثبت', 'teal', 'eye'), X.dl([['ثبت‌شده یافت شد', fa(num(st.lookups[r.id].committed)) + ' آیتم'], ['ثبت‌نشدن اثبات شد', fa(num(st.lookups[r.id].notCommitted)) + ' آیتم']]) + ctxLine('این نتیجه فقط خوانده شده است؛ اجرا هنوز «نتیجه نامعلوم» است. ثبت تطبیق گام جدا با اختیار مجاز است.')) : '') + reconciledNote +
       sec('Snapshot و موتور', '', snap) + sec('زنجیرهٔ ایجاد · تأیید · ثبت', '', chain) + sec('آیتم‌ها', '', items) + '</div>' + foot(acts, null, hintT);
   };
   var runSpec = function (kind, r, o) {
@@ -201,25 +223,49 @@
       irrev: ['ثبت اعتبار کیف پول با رویداد جبرانی قابل اصلاح است، نه حذف', 'اگر پاسخ نرسد، نتیجه «نامعلوم» می‌ماند و تکرار کور مسدود است', 'اعتبار کیف پول ≠ تسویه'], ack: 'کلید کسب‌وکار، نتیجهٔ هر آیتم و اینکه ok یک فراخوانی محدود کل اجرا نیست را فهمیدم.', commit: tail ? 'ثبت دنباله (نمایشی)' : 'اجرای ثبت (نمایشی)' });
   };
   var setRun = function (id, patch) { st.runLocal[id] = Object.assign(st.runLocal[id] || {}, patch); };
+  var txSeq = 9100;
+  var mint = function (r, it) {
+    var id = 'T-' + (++txSeq), row = M.ledger.filter(function (t) { return t.key === it[1] && t.st !== 'committed'; })[0];
+    if (row) { row.id = id; row.st = 'committed'; row.posted = NOW; row.eff = NOW; row.actor = M.user.name + ' (ثبت اجرا، نمایشی)'; delete row.note; }
+    else M.ledger.push({ id: id, key: it[1], dom: 'wallet', acct: 'کیف پول کمیسیون · گیرنده (نمایشی)', dir: 'C', amt: it[2], unit: it[3], rel: ['اجرا', r.id + ' · ' + it[0].split(' · ')[0]], actor: M.user.name + ' (ثبت اجرا، نمایشی)', eff: NOW, posted: NOW, st: 'committed' });
+    return id;
+  };
+  // Keep per-item truth and the mock ledger consistent with the aggregate outcome shown on the run.
+  var setItems = function (id, test, res, note) {
+    var r = X.runView(X.run(id));
+    setRun(id, { items: r.items.map(function (it) { if (!test(it)) return it; var c = it.slice(); c[4] = res; c[5] = res === 'posted' ? mint(r, it) : null; c[6] = note; return c; }) });
+  };
   X.commitRun = function (sp) {
     var r = X.runView(X.run(sp.id)), op;
     if (sp.kind === 'rungen') { setRun(r.id, { st: 'preview', intended: 31, cov: { intended: 31, processed: 0, posted: 0, existing: 0, failed: 0, unprocessed: 31, unknown: 0 }, sim: 'ok', items: [['INV-48230 · مرحله ۱ · فروشنده', 'RUN-312|INV-48230|S1|rec:HP-301', 900000, 'toman', 'notposted', null, '']], note: 'پیش‌نمایش تولید شد (فراداده نوشته شد). تأیید و ثبت هنوز انجام نشده است.' }); op = X.newOp({ title: 'تولید پیش‌نمایش ' + r.id, kind: 'run', run: r.id, c: { requested: 31, eligible: 31, ok: 31, existing: 0, skipped: 0, failed: 0, unknown: 0 }, note: 'فقط فراداده نوشته شد؛ هیچ تراکنش مالی ثبت نشد.' }); }
     else if (sp.kind === 'runapprove') { setRun(r.id, { st: 'approved', appr: { by: M.user.name, at: NOW, locked: NOW } }); op = X.newOp({ title: 'تأیید اجرا ' + r.id, kind: 'run', run: r.id, c: { requested: 1, eligible: 1, ok: 1, existing: 0, skipped: 0, failed: 0, unknown: 0 }, note: 'اجرا تأیید و قفل شد؛ هیچ اعتباری در کیف پول ثبت نشد.' }); }
     else if (sp.kind === 'runpost') {
-      if (r.sim === 'unknown') { setRun(r.id, { st: 'unknown', cov: { intended: r.intended, processed: null, posted: null, existing: null, failed: null, unprocessed: null, unknown: r.intended }, lookup: { committed: 51, notCommitted: 35 } }); op = X.newOp({ title: 'اجرای ثبت ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'اتصال پیش از دریافت پاسخ قطع شد؛ ممکن است بخشی یا همه ثبت شده باشد. تکرار کور مسدود است.' }); }
-      else { var ex = Math.round(r.intended * 0.04), po = r.intended - ex; setRun(r.id, { st: 'posted', cov: { intended: r.intended, processed: r.intended, posted: po, existing: ex, failed: 0, unprocessed: 0, unknown: 0 } }); op = X.newOp({ title: 'اجرای ثبت ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: po, existing: ex, skipped: 0, failed: 0, unknown: 0 }, note: 'تراکنش موجود دوباره نوشته نشد؛ پوشش با شناسهٔ تراکنش هر آیتم اثبات می‌شود.' }); }
+      if (r.sim === 'unknown') { setItems(r.id, function () { return true; }, 'unknown', 'پاسخ نرسید؛ ممکن است ثبت شده باشد'); setRun(r.id, { st: 'unknown', cov: { intended: r.intended, processed: null, posted: null, existing: null, failed: null, unprocessed: null, unknown: r.intended }, lookup: { committed: 51, notCommitted: 35 } }); op = X.newOp({ title: 'اجرای ثبت ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'اتصال پیش از دریافت پاسخ قطع شد؛ ممکن است بخشی یا همه ثبت شده باشد. تکرار کور مسدود است.' }); }
+      else { var ex = Math.round(r.intended * 0.04), po = r.intended - ex; setItems(r.id, function () { return true; }, 'posted', 'ثبت‌شد (نمایشی)'); setRun(r.id, { st: 'posted', cov: { intended: r.intended, processed: r.intended, posted: po, existing: ex, failed: 0, unprocessed: 0, unknown: 0 } }); op = X.newOp({ title: 'اجرای ثبت ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: po, existing: ex, skipped: 0, failed: 0, unknown: 0 }, note: 'تراکنش موجود دوباره نوشته نشد؛ پوشش با شناسهٔ تراکنش هر آیتم اثبات می‌شود.' }); }
     } else if (sp.kind === 'runtail') {
       var cc = r.cov, n = cc.unprocessed, ex2 = r.id === 'RUN-307' ? 8 : 0, po2 = n - ex2, nc = { intended: cc.intended, processed: cc.intended, posted: cc.posted + po2, existing: cc.existing + ex2, failed: cc.failed, unprocessed: 0, unknown: 0 };
-      setRun(r.id, { st: nc.failed ? 'partial' : 'posted', cov: nc, tail: false }); op = X.newOp({ title: 'ثبت دنبالهٔ ' + r.id, kind: 'run', run: r.id, c: { requested: n, eligible: n, ok: po2, existing: ex2, skipped: 0, failed: 0, unknown: 0 }, note: nc.failed ? 'دنباله ثبت شد؛ ' + fa(nc.failed) + ' آیتم ناموفق قبلی باقی است و تصمیم جدا می‌خواهد (تکرار خودکار نیست).' : 'همهٔ آیتم‌ها اکنون با نتیجهٔ مشخص ثبت‌شده‌اند.' });
+      setItems(r.id, function (it) { return it[4] === 'unprocessed'; }, 'posted', 'دنباله ثبت شد (نمایشی)'); setRun(r.id, { st: nc.failed ? 'partial' : 'posted', cov: nc, tail: false }); op = X.newOp({ title: 'ثبت دنبالهٔ ' + r.id, kind: 'run', run: r.id, c: { requested: n, eligible: n, ok: po2, existing: ex2, skipped: 0, failed: 0, unknown: 0 }, note: nc.failed ? 'دنباله ثبت شد؛ ' + fa(nc.failed) + ' آیتم ناموفق قبلی باقی است و تصمیم جدا می‌خواهد (تکرار خودکار نیست).' : 'همهٔ آیتم‌ها اکنون با نتیجهٔ مشخص ثبت‌شده‌اند.' });
+    }
+    else if (sp.kind === 'runrecon') {
+      var lk = st.lookups[r.id] || { committed: 0, notCommitted: r.intended }, first = true;
+      setItems(r.id, function (it) { return it[4] === 'unknown'; }, 'posted', 'در تطبیق: ثبت‌شده بود');
+      if (lk.committed === 0) setItems(r.id, function (it) { return it[4] === 'posted'; }, 'unprocessed', 'ثبت‌نشدن اثبات شد');
+      else if (X.runView(X.run(r.id)).items.length > 1) { var seen = 0; setItems(r.id, function (it) { return it[4] === 'posted' && it[5] && seen++ > 0; }, 'unprocessed', 'ثبت‌نشدن اثبات شد'); }
+      setRun(r.id, { st: 'reconciled', tail: lk.notCommitted > 0, cov: { intended: r.intended, processed: lk.committed, posted: lk.committed, existing: 0, failed: 0, unprocessed: lk.notCommitted, unknown: 0 }, note: 'با جستجوی تراکنش/کلید تطبیق شد: ' + fa(lk.committed) + ' آیتم ثبت‌شده بود و ثبت‌نشدن ' + fa(lk.notCommitted) + ' آیتم اثبات شد.' });
+      delete st.lookups[r.id];
+      pushAudit({ kind: 'ثبت نتیجهٔ تطبیق نامعلوم', inv: '—', cs: '—', ev: '—', amt: '—', ba: 'نامعلوم ← تطبیق‌شده', reason: sp.reasonText || '—', rev: '—', tx: 'کلیدها بررسی شد', key: r.id + '|…', run: r.id, res: 'موفق (نمایشی)', corr: 'C-' + (7800 + M.audit.length) });
+      op = X.newOp({ title: 'ثبت تطبیق ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: lk.committed, existing: 0, skipped: lk.notCommitted, failed: 0, unknown: 0 }, note: 'فقط تطبیق ثبت شد؛ هیچ اعتبار جدیدی نوشته نشد. ' + fa(lk.notCommitted) + ' آیتم ثبت‌نشدهٔ اثبات‌شده برای ادامهٔ جدا می‌ماند.' });
     }
     return op;
   };
-  X.runLookup = function (id) {
-    var r = X.runView(X.run(id)), lk = r.lookup || { committed: 0, notCommitted: r.intended };
-    setRun(id, { st: 'reconciled', tail: lk.notCommitted > 0, cov: { intended: r.intended, processed: lk.committed, posted: lk.committed, existing: 0, failed: 0, unprocessed: lk.notCommitted, unknown: 0 }, note: 'با جستجوی تراکنش/کلید تطبیق شد: ' + fa(lk.committed) + ' آیتم ثبت‌شده بود و ثبت‌نشدن ' + fa(lk.notCommitted) + ' آیتم اثبات شد.' });
-    pushAudit({ kind: 'تطبیق نتیجهٔ نامعلوم (جستجوی خواندنی)', inv: '—', cs: '—', ev: '—', amt: '—', ba: 'نامعلوم ← تطبیق‌شده', reason: 'جستجوی کلید/تراکنش', rev: '—', tx: 'کلیدها بررسی شد', key: id + '|…', run: id, res: 'موفق (نمایشی)', corr: 'C-' + (7800 + M.audit.length) });
+  // Read-only lookup: result is DERIVED view state (st.lookups) — it changes no run, ledger or audit record. Recording the reconciliation is a separate authorised step.
+  X.runLookup = function (id) { var r = X.runView(X.run(id)); st.lookups[id] = r.lookup || { committed: 0, notCommitted: r.intended }; };
+  X.runReconSpec = function (r) {
+    var lk = st.lookups[r.id];
+    return runSpec('runrecon', r, { title: 'ثبت نتیجهٔ تطبیق', needsReason: true, reasonLabel: 'مبنای تطبیق (نتیجهٔ جستجو)', target: r.id + ' · ' + r.name, current: 'نتیجه نامعلوم', resulting: 'تطبیق‌شده: ' + fa(num(lk.committed)) + ' آیتم ثبت‌شده، ' + fa(num(lk.notCommitted)) + ' آیتم ثبت‌نشدهٔ اثبات‌شده',
+      changes: ['وضعیت اجرا: نتیجه نامعلوم ← تطبیق‌شده', 'نتیجهٔ هر آیتم از جستجوی تراکنش/کلید ثبت می‌شود', 'آیتم‌هایی که ثبت‌شده یافت شدند به تراکنش واقعی‌شان وصل می‌شوند'], unchanged: ['هیچ اعتبار جدیدی ثبت نمی‌شود', 'تراکنش‌های موجود دوباره نوشته نمی‌شوند', 'تکرار ثبت انجام نمی‌شود'], affected: ['اجرا ' + r.id, 'آیتم‌های نامعلوم', 'ممیزی'],
+      irrev: ['نتیجهٔ تطبیق در ممیزی ثبت می‌شود', 'تکرار پس از آن فقط برای دنبالهٔ اثبات‌شدهٔ ثبت‌نشده و با تأیید جدا است'], ack: 'نتیجهٔ جستجو را بررسی کردم؛ می‌دانم این گام فقط تطبیق را ثبت می‌کند و ثبت جدیدی نیست.', commit: 'ثبت نتیجهٔ تطبیق (نمایشی)' });
   };
-
   /* ---------- Reconciliation issue / diagnosis ---------- */
   D.iss = function (id) {
     var i = X.iss(id), c = X.ISS[i.cls], s = X.ISST[i.state];

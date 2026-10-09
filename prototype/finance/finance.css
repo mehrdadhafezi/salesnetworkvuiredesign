@@ -65,6 +65,8 @@ textarea.input{height:auto;min-height:64px;padding:8px 12px;resize:vertical}
 .lc-rib li.on{outline:2px solid var(--primary);outline-offset:2px;border-radius:999px}
 .rf-lad{list-style:none;margin:0;padding:8px 0;display:flex;flex-wrap:wrap;gap:8px}
 .rf-lad li{opacity:.75}.rf-lad li.on{opacity:1;outline:2px solid var(--primary);outline-offset:2px;border-radius:999px}
+.sens-aff{border-color:var(--blue-dot)}
+.sens-eff{border-color:var(--red-dot);border-style:dashed}
 .hcp{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 .fin-dl{margin-bottom:12px}
 .mnt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--gap)}

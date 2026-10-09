@@ -38,7 +38,8 @@
       case 'run-approve': X.openSens(X.runApproveSpec(X.runView(X.run(arg)))); return true;
       case 'run-post': X.openSens(X.runPostSpec(X.runView(X.run(arg)), false)); return true;
       case 'run-tail': X.openSens(X.runPostSpec(X.runView(X.run(arg)), true)); return true;
-      case 'run-lookup': X.runLookup(arg); C.render(); C.openDrawer('run', arg); C.toast('وضعیت واقعی خوانده شد (فقط‌خواندنی، نمایشی). نتیجهٔ هر آیتم تطبیق شد؛ تکرار کور انجام نشد.', 'info'); return true;
+      case 'run-lookup': X.runLookup(arg); C.rerenderDrawer(); C.toast('وضعیت واقعی خوانده شد (فقط‌خواندنی). هیچ چیز ثبت نشد؛ ثبت تطبیق گام جدا با اختیار مجاز است.', 'info'); return true;
+      case 'run-recon': X.openSens(X.runReconSpec(X.runView(X.run(arg)))); return true;
       case 'commit-sens':
         sp = st.spec; if (!((!sp.needsReason || ok3(k.reason)) && k.ack)) { k.err = true; C.rerenderDrawer(); return true; } sp.reasonText = k.reason || '';
         if (sp.kind === 'approve' || sp.kind === 'reject') op = X.commitDecision(sp); else op = X.commitRun(sp);

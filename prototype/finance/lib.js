@@ -7,7 +7,7 @@
   var esc = h.esc, fa = h.fa, ic = h.ic, pill = h.pill, hint = h.hint, num = h.num;
   var X = window.FINX = { C: C, M: M, h: h, V: {}, D: {} };
 
-  X.st = { rq: 'needs', sel: {}, lq: 'all', ldom: 'all', runq: 'runs', recq: 'issues', isel: {}, perm: 'full', ops: [], flow: null, local: {}, runLocal: {}, auditSeen: 0, rep: null, spec: null };
+  X.st = { rq: 'needs', sel: {}, lq: 'all', ldom: 'all', runq: 'runs', recq: 'issues', isel: {}, perm: 'full', ops: [], flow: null, local: {}, runLocal: {}, lookups: {}, auditSeen: 0, rep: null, spec: null };
 
   /* ---------- Namespaced dictionaries (label + tone + icon; never colour alone) ---------- */
   X.REV = { pending: { label: 'در انتظار بررسی مالی', tone: 'orange', icon: 'hourglass' }, approved: { label: 'تأیید مالی شد', tone: 'green', icon: 'checkCircle' }, rejected: { label: 'رد شد (بازگشت برای اصلاح)', tone: 'red', icon: 'xCircle' } };
@@ -148,8 +148,10 @@
   // Local (prototype-only) decision overlay; never written back to mock data used by other roles.
   X.localOf = function (r) { var l = X.st.local[r.id]; return l ? l : { review: r.review, reloaded: false }; };
   X.eff = function (r) {
-    var l = X.st.local[r.id]; if (!l) return r;
-    var o = {}; for (var k in r) o[k] = r[k]; for (k in l) o[k] = l[k]; return o;
+    var l = X.st.local[r.id], o = {}; for (var k in r) o[k] = r[k]; if (l) for (k in l) o[k] = l[k];
+    // Invoice-level paid/remaining = loaded paid + every stage of the SAME invoice approved in this session (stage review state stays per stage).
+    var add = 0; M.queue.forEach(function (s) { var sl = X.st.local[s.id]; if (s.inv === r.inv && sl && sl.approvedClaimed) add += sl.approvedClaimed; });
+    o.paid = r.paid + add; o.rem = Math.max(0, r.total - o.paid); return o;
   };
   X.impact = function (r) {
     var v = r.claimed, np = r.paid + v, nr = Math.max(0, r.total - np), last = r.stage[0] === r.stage[1];

@@ -426,5 +426,3 @@ button.cr-i:hover{background:var(--surface-3)}
 @media (max-width:760px){.oux-dl>div{grid-template-columns:minmax(0,1fr)}}
 .outcome-strip .os-posted:not(.zero),.outcome-strip .os-existing:not(.zero){border-color:var(--green-dot);background:var(--green-bg)}
 .outcome-strip .os-unprocessed:not(.zero){border-color:var(--orange-dot);background:var(--orange-bg)}
-.sens-aff{border-color:var(--blue-dot)}
-.sens-eff{border-color:var(--red-dot);border-style:dashed}
