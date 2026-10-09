@@ -137,9 +137,9 @@
   // Current-manager text. A confirmed interval closure with an unconfirmed insert leaves the assignment UNKNOWN — never the previous manager.
   X.mgrText = function (p) { return p.parentUnknown ? 'نامعلوم (UNKNOWN)' : p.parent ? X.name(p.parent) : 'ثبت نشده'; };
   // Jalali date parser for temporal validation: returns y*10000+m*100+d or null (Persian/Arabic digits accepted; any non-date prefix such as «ماقبل» is ignored).
-  X.dateKey = function (s) {
+  X.dateKey = function (s, internal) {
     var t = String(s == null ? '' : s).replace(/[۰-۹]/g, function (c) { return c.charCodeAt(0) - 1776; }).replace(/[٠-٩]/g, function (c) { return c.charCodeAt(0) - 1632; });
-    var m = t.trim().replace(/^ماقبل\s+/, '').match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/); if (!m) return null;
+    var m = (internal ? t.trim().replace(/^ماقبل\s+/, '') : t.trim()).match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/); if (!m) return null;
     var y = +m[1], mo = +m[2], d = +m[3]; if (y < 1300 || y > 1500 || mo < 1 || mo > 12 || d < 1 || d > (mo <= 6 ? 31 : mo <= 11 ? 30 : 29)) return null;
     return y * 10000 + mo * 100 + d;
   };
@@ -149,7 +149,7 @@
     if (k == null) return { ok: false, msg: 'تاریخ اثر نامعتبر است؛ قالب ۱۴۰۵/۰۸/۰۱ را به‌کار ببرید.' };
     if (c && c.unresolved) return { ok: false, msg: 'نتیجه ثبت دوره پیشین نامعلوم است؛ ابتدا تطبیق کنید (نوشتن جدید مسدود است).' };
     var per = (c && c.periods) || [], cur = per[0], hit = null;
-    per.forEach(function (e) { var f = X.dateKey(e.from), t = e.to ? X.dateKey(e.to) : null; if (f != null && k <= f) hit = hit || ['backdate', e.from]; else if (f != null && t != null && k <= t) hit = hit || ['overlap', e.from + ' — ' + e.to]; });
+    per.forEach(function (e) { var f = X.dateKey(e.from), t = e.to ? X.dateKey(e.to, true) : null; if (f != null && k <= f) hit = hit || ['backdate', e.from]; else if (f != null && t != null && k <= t) hit = hit || ['overlap', e.from + ' — ' + e.to]; });
     if (hit) return { ok: false, msg: hit[0] === 'backdate' ? 'تاریخ اثر باید پس از شروع دوره موجود (' + hit[1] + ') باشد؛ ثبت با تاریخ گذشته یا برابر ممنوع است.' : 'تاریخ اثر با بازه موجود (' + hit[1] + ') همپوشانی دارد.' };
     return { ok: true, msg: '' };
   };

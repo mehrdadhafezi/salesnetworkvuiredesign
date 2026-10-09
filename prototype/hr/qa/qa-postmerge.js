@@ -124,7 +124,7 @@ await ev(()=>{HRX.C.closeDrawer();HRX.C.go('onb');HRX.C.openDrawer('xfer','HP-30
 r=await ev(()=>{const X=HRX,p=X.s('HP-302');X.st.flow='xunknown';X.commitXfer(X.xferSpec(p,X.s('HP-120')));X.st.flow=null;HRX.C.closeDrawer();HRX.C.openDrawer('xfer','HP-302',{target:'HP-110'});return 1});await p.waitForTimeout(250);
 ok(await p.locator('#drawer [data-act^="xfer-review:"]').isDisabled(),'R2: transfer preview continue disabled while manager Unknown');
 r=await ev(()=>{const X=HRX;return ['abc۱۴۰۵/۰۸/۰۱','۱۴۰۵/۰۸/۰۱-extra','x1405/08/01','۱۴۰۵/۰۸/۰۱','ماقبل ۱۴۰۵/۰۸/۰۱'].map(d=>X.dateKey(d)!=null)});
-ok(JSON.stringify(r)==='[false,false,false,true,true]','R2: date must match the whole string (internal «ماقبل …» form still parsed)');
+ok(JSON.stringify(r)==='[false,false,false,true,false]','R2: user date must match the whole string (no prefix/suffix, no internal marker)');
 await fresh('view=comp');
 r=await ev(()=>{const X=HRX,c=HR.comp['HP-301'];X.st.flow='compunknown';const sp=X.compSpec(X.s('HP-301'),{base:'۳۴٬۰۰۰٬۰۰۰',from:'۱۴۰۵/۰۸/۰۱'});sp.reasonText='x';const op=X.commitComp(sp);const a={mark:c.unresolved===op.id,st:X.opState(op)};X.st.flow=null;const sp2=X.compSpec(X.s('HP-301'),{base:'۱',from:'۱۴۰۶/۰۱/۰۱'});sp2.reasonText='x';const n=c.periods.length;const op2=X.commitComp(sp2);Object.assign(a,{blocked:!!op2.blocked,aud:HR.audit[0].res,same:c.periods.length===n,valid:X.compTemporal(c,'۱۴۰۶/۰۱/۰۱').ok});X.reconcileOp(op);return Object.assign(a,{clear:c.unresolved===undefined,n2:c.periods.length-n,okNow:X.compTemporal(c,'۱۴۰۶/۰۱/۰۱').ok})});
 ok(r.mark&&r.st==='unknown'&&r.blocked&&r.same&&!r.valid&&r.aud==='blocked','R2: compensation Unknown marks domain; any further write (even later date) blocked, outcome=blocked');
@@ -135,6 +135,24 @@ ok((await p.innerText('#drawer')).includes('مسدود'),'R2: result drawer labe
 for(const w of [390,360]){await fresh('view=work&imp=1',w,700);await p.evaluate(()=>HRX.C.openDrawer('staff','HP-303'));await p.waitForTimeout(350);
  const g=await p.evaluate(()=>{const d=document.querySelector('#drawer').getBoundingClientRect();const b=document.querySelector('#imp-shell').getBoundingClientRect();return {bottom:d.bottom,vh:innerHeight,top:d.top,barBottom:b.bottom}});
  ok(g.bottom<=g.vh+1&&g.top>=g.barBottom-1,'R2: mobile drawer ('+w+') fits below impersonation bar and above viewport bottom');}
+
+// ===== Codex round 3 (head 32d45a6)
+await fresh('view=comp');
+r=await ev(()=>{const X=HRX,c=HR.comp['HP-303'];return {user:X.compTemporal(c,'ماقبل ۱۴۰۵/۰۸/۰۱').ok,plain:X.compTemporal(c,'۱۴۰۵/۰۸/۰۱').ok,internal:X.dateKey('ماقبل ۱۴۰۵/۰۸/۰۱',true)!=null,strict:X.dateKey('ماقبل ۱۴۰۵/۰۸/۰۱')==null}});
+ok(!r.user&&r.plain&&r.internal&&r.strict,'R3: user input «ماقبل …» rejected; internal end-date form parsed only on the internal path');
+await ev(()=>{HRX.st.flow='compunknown';const sp=HRX.compSpec(HRX.s('HP-301'),{base:'۳۴٬۰۰۰٬۰۰۰',from:'۱۴۰۵/۰۸/۰۱'});sp.reasonText='x';window.__cop=HRX.commitComp(sp);HRX.st.flow=null;HRX.C.openDrawer('comp','HP-301',{})});await p.waitForTimeout(300);
+ok(await p.locator('#drawer [data-act^="open-op:"]').count()===1,'R3: compensation Unknown banner has a control to reopen the operation');
+await p.click('#drawer [data-act^="open-op:"]');await p.waitForTimeout(300);
+ok(await p.locator('#drawer [data-act^="reconcile-op:"]').count()===1,'R3: control opens the result drawer with reconcile action');
+await p.click('#drawer [data-act^="reconcile-op:"]');await p.waitForTimeout(300);
+ok(await ev(()=>HR.comp['HP-301'].unresolved===undefined),'R3: reconciling from the reopened result clears the compensation marker');
+await fresh('view=work');
+await ev(()=>{HRX.st.flow='xunknown';HRX.commitXfer(HRX.xferSpec(HRX.s('HP-301'),HRX.s('HP-120')));HRX.st.flow=null;HRX.C.openDrawer('staff','HP-301')});await p.waitForTimeout(300);
+ok(await p.locator('#drawer [data-act^="open-op:"]').count()===1,'R3: profile with Unknown manager has a control to reopen the operation');
+await p.click('#drawer [data-act^="open-op:"]');await p.waitForTimeout(300);await p.click('#drawer [data-act^="reconcile-op:"]');await p.waitForTimeout(300);
+ok(await ev(()=>HRX.s('HP-301').parentUnknown===false&&HRX.s('HP-301').parent==='HP-120'&&HRX.s('HP-301').unkOp===undefined),'R3: reconcile from profile path settles the hierarchy');
+await ev(()=>{HRX.st.flow='xunknown';HRX.commitXfer(HRX.xferSpec(HRX.s('HP-302'),HRX.s('HP-120')));HRX.st.flow=null;HRX.C.closeDrawer();HRX.C.openDrawer('xfer','HP-302',{target:'HP-110'})});await p.waitForTimeout(300);
+ok(await p.locator('#drawer [data-act^="open-op:"]').count()===1,'R3: transfer preview offers the same path back to reconciliation');
 // ===== cross-cutting
 ok(p.errs.length===0,'no JS errors in post-merge pass ('+p.errs.slice(0,2).join('|')+')');
 console.log('FAILS',fail.length);await b.close();process.exit(fail.length?1:0)})();
