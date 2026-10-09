@@ -240,6 +240,19 @@
     return { id: id, existing: false };
   };
   // Keep per-item truth and the mock ledger consistent with the aggregate outcome shown on the run.
+  // Reconcile LINKS the transaction the lookup found (existing); it never mints. The found tx is mirrored/converted in the mock ledger without creating a new credit.
+  var linkItems = function (id, test, txByKey) {
+    var r = X.runView(X.run(id)), n = 0;
+    setRun(id, { items: r.items.map(function (it) {
+      if (!test(it)) return it; var c = it.slice(), tx = (txByKey || {})[it[1]];
+      if (!tx) return it;   // lookup gave no transaction id → cannot claim a link; stays Unknown
+      var row = M.ledger.filter(function (t) { return t.key === it[1]; })[0];
+      if (row) { if (row.st !== 'committed') { row.id = tx; row.st = 'committed'; row.posted = 'یافت‌شده در تطبیق'; delete row.note; } }
+      else M.ledger.push({ id: tx, key: it[1], dom: 'wallet', acct: 'کیف پول کمیسیون · گیرنده (یافت‌شده در تطبیق)', dir: 'C', amt: it[2], unit: it[3], rel: ['اجرا', r.id + ' · ' + it[0].split(' · ')[0]], actor: 'ثبت‌شده پیش از تطبیق', eff: '—', posted: 'یافت‌شده در تطبیق', st: 'committed' });
+      c[4] = 'existing'; c[5] = tx; c[6] = 'تراکنش موجود یافت شد و پیوند شد؛ اعتبار جدید ساخته نشد'; n++; return c;
+    }) });
+    return n;
+  };
   var setItems = function (id, test, res, note) {
     var r = X.runView(X.run(id)), cnt = { posted: 0, existing: 0 };
     setRun(id, { items: r.items.map(function (it) {
@@ -257,7 +270,7 @@
     if (sp.kind === 'rungen') { setRun(r.id, { st: 'preview', intended: 31, cov: { intended: 31, processed: 0, posted: 0, existing: 0, failed: 0, unprocessed: 31, unknown: 0 }, sim: 'ok', items: [['INV-48230 · مرحله ۱ · فروشنده', 'RUN-312|INV-48230|S1|rec:HP-301', 900000, 'toman', 'notposted', null, '']], note: 'پیش‌نمایش تولید شد (فراداده نوشته شد). تأیید و ثبت هنوز انجام نشده است.' }); op = X.newOp({ title: 'تولید پیش‌نمایش ' + r.id, kind: 'run', run: r.id, c: { requested: 31, eligible: 31, ok: 31, existing: 0, skipped: 0, failed: 0, unknown: 0 }, note: 'فقط فراداده نوشته شد؛ هیچ تراکنش مالی ثبت نشد.' }); }
     else if (sp.kind === 'runapprove') { setRun(r.id, { st: 'approved', appr: { by: M.user.name, at: NOW, locked: NOW } }); op = X.newOp({ title: 'تأیید اجرا ' + r.id, kind: 'run', run: r.id, c: { requested: 1, eligible: 1, ok: 1, existing: 0, skipped: 0, failed: 0, unknown: 0 }, note: 'اجرا تأیید و قفل شد؛ هیچ اعتباری در کیف پول ثبت نشد.' }); }
     else if (sp.kind === 'runpost') {
-      if (r.sim === 'unknown') { setItems(r.id, function () { return true; }, 'unknown', 'پاسخ نرسید؛ ممکن است ثبت شده باشد'); setRun(r.id, { st: 'unknown', cov: { intended: r.intended, processed: null, posted: null, existing: null, failed: null, unprocessed: null, unknown: r.intended }, lookup: { committed: 51, notCommitted: 35, byKey: { 'RUN-309|INV-48180|S1|rec:HP-301': 'notCommitted', 'RUN-309|INV-48180|S1|rec:HP-210': 'committed' } } }); op = X.newOp({ title: 'اجرای ثبت ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'اتصال پیش از دریافت پاسخ قطع شد؛ ممکن است بخشی یا همه ثبت شده باشد. تکرار کور مسدود است.' }); }
+      if (r.sim === 'unknown') { setItems(r.id, function () { return true; }, 'unknown', 'پاسخ نرسید؛ ممکن است ثبت شده باشد'); setRun(r.id, { st: 'unknown', cov: { intended: r.intended, processed: null, posted: null, existing: null, failed: null, unprocessed: null, unknown: r.intended }, lookup: { committed: 51, notCommitted: 35, byKey: { 'RUN-309|INV-48180|S1|rec:HP-301': 'notCommitted', 'RUN-309|INV-48180|S1|rec:HP-210': 'committed' }, txByKey: { 'RUN-309|INV-48180|S1|rec:HP-210': 'T-8802' } } }); op = X.newOp({ title: 'اجرای ثبت ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'اتصال پیش از دریافت پاسخ قطع شد؛ ممکن است بخشی یا همه ثبت شده باشد. تکرار کور مسدود است.' }); }
       else { var ex = Math.round(r.intended * 0.04), po = r.intended - ex, sr = setItems(r.id, function () { return true; }, 'posted', 'ثبت‌شد (نمایشی)'); po -= sr.existing; ex += sr.existing; setRun(r.id, { st: 'posted', cov: { intended: r.intended, processed: r.intended, posted: po, existing: ex, failed: 0, unprocessed: 0, unknown: 0 } }); op = X.newOp({ title: 'اجرای ثبت ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: po, existing: ex, skipped: 0, failed: 0, unknown: 0 }, note: 'تراکنش موجود دوباره نوشته نشد؛ پوشش با شناسهٔ تراکنش هر آیتم اثبات می‌شود.' }); }
     } else if (sp.kind === 'runtail') {
       var cc = r.cov, n = cc.unprocessed, st2 = setItems(r.id, function (it) { return it[4] === 'unprocessed'; }, 'posted', 'دنباله ثبت شد (نمایشی)'), ex2 = (r.id === 'RUN-307' ? 8 : 0) + st2.existing, po2 = n - ex2, nc = { intended: cc.intended, processed: cc.intended, posted: cc.posted + po2, existing: cc.existing + ex2, failed: cc.failed, unprocessed: 0, unknown: 0 }; setRun(r.id, { st: nc.failed ? 'partial' : 'posted', cov: nc, tail: false }); op = X.newOp({ title: 'ثبت دنبالهٔ ' + r.id, kind: 'run', run: r.id, c: { requested: n, eligible: n, ok: po2, existing: ex2, skipped: 0, failed: 0, unknown: 0 }, note: nc.failed ? 'دنباله ثبت شد؛ ' + fa(nc.failed) + ' آیتم ناموفق قبلی باقی است و تصمیم جدا می‌خواهد (تکرار خودکار نیست).' : 'همهٔ آیتم‌ها اکنون با نتیجهٔ مشخص ثبت‌شده‌اند.' });
@@ -266,7 +279,7 @@
       var lk = st.lookups[r.id] || { committed: 0, notCommitted: r.intended }, first = true;
       // Classify FIRST by the BUSINESS KEY returned by the lookup (never by row order); mint only for keys found committed. Keys the lookup did not resolve stay Unknown.
       var by = lk.byKey || {};
-      var rc = setItems(r.id, function (it) { return it[4] === 'unknown' && by[it[1]] === 'committed'; }, 'posted', 'در تطبیق: ثبت‌شده بود');
+      var rc = { existing: linkItems(r.id, function (it) { return it[4] === 'unknown' && by[it[1]] === 'committed'; }, lk.txByKey) };
       setItems(r.id, function (it) { return it[4] === 'unknown' && by[it[1]] === 'notCommitted'; }, 'unprocessed', 'ثبت‌نشدن اثبات شد');
       var still = X.runView(X.run(r.id)).items.filter(function (it) { return it[4] === 'unknown'; }).length;
       if (still) { setRun(r.id, { note: 'جستجو برای ' + fa(still) + ' آیتم نمونه نتیجهٔ قطعی نداد؛ اجرا «نتیجه نامعلوم» می‌ماند و تطبیق کامل نشده است.' }); delete st.lookups[r.id]; op = X.newOp({ title: 'تطبیق ناقص ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'برخی کلیدها حل نشد؛ نتیجهٔ اجرا نامعلوم می‌ماند و تکرار کور مسدود است.' }); return op; }
