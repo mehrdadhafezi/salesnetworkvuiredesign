@@ -22,3 +22,7 @@ Limitations: prototype/mock only; HR runtime still NOT LIVE VERIFIED; comp date 
 ### Codex re-review round (head 06011df → 8b5a4eb)
 Fixed: incomplete/invalid open-work counts fail closed; unreconstructable access op reports partial in state+audit; no hierarchy write while manager Unknown; whole-string date validation; compensation Unknown marker blocks further writes until reconciled; guarded no-ops report BLOCKED (not FAILED); mobile drawer height accounts for the impersonation bar.
 Results on 8b5a4eb: `qa-postmerge.js` 57 PASS / 0 fail; full HR `qa-automated.js` 141 PASS / 0 fail; Senior, Manager, Deputy, MIS 0 fails.
+
+### Codex round 3 (head 32d45a6 → bbaf23f)
+Fixed: strict user date parser (internal «ماقبل …» end-date form parsed only on the internal path); Unknown compensation / Unknown manager now expose «open operation and reconcile» (banner, profile drawer, transfer preview) so the block is never a dead end.
+Results on bbaf23f: `qa-postmerge.js` 64 PASS / 0 fail; full HR `qa-automated.js` 141 PASS / 0 fail; Senior, Manager, Deputy, MIS 0 fails.
