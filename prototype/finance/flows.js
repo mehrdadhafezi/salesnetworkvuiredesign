@@ -96,6 +96,7 @@
   };
 
   /* ---------- Bulk review (read-only triage) and bulk approve (conditional; per-item eligibility + per-item result) ---------- */
+  var evk = function (r0) { return r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : ''; };
   var selRows = function () { return X.keys(st.sel).map(X.q).filter(function (r) { return r && X.eff(r).review === 'pending'; }); };
   D.bulkrev = function () {
     var rows = selRows().map(function (r0) { var r = X.eff(r0), e = X.elig(r0); return '<tr><td><b class="mono">' + r.inv + '</b><span class="cell-sub mono">' + r.id + '</span></td><td>' + X.amt(r.claimed, r.unit) + '</td><td class="wrap">' + (e.blocked ? '<span class="neg">' + ic('xCircle') + ' ' + esc(e.checks.filter(function (c) { return c[0] === 'no'; })[0][1]) + '</span>' : '<span class="chk-ok">' + ic('checkCircle') + ' بدون مانع شناخته‌شده</span>') + '</td><td class="col-actions">' + open('rs', r.id, 'باز کردن') + '</td></tr>'; }).join('');
@@ -117,10 +118,10 @@
     var rows = selRows(), items = [];
     rows.forEach(function (r0) {
       var r = X.eff(r0), e = X.elig(r0), lbl = r.inv + ' · ' + r.id;
-      if (e.blocked) return items.push([lbl, 'skipped', e.checks.filter(function (c) { return c[0] === 'no'; })[0][1], null, r.id]);
-      if (r0.bulkOutcome === 'failed') return items.push([lbl, 'failed', 'خطای گذرا؛ تصمیم ثبت نشد (اثر صفر مشخص). تکرار فقط پس از بازخوانی تازه', null, r.id]);
-      if (r0.bulkOutcome === 'unknown') return items.push([lbl, 'unknown', 'پاسخ نرسید؛ ممکن است ثبت شده باشد. تکرار کور ممنوع', null, r.id]);
-      X.applyApprove(r0, 'تأیید گروهی'); items.push([lbl, 'ok', 'تأیید ثبت شد (نمایشی)', null, r.id]);
+      if (e.blocked) return items.push([lbl, 'skipped', e.checks.filter(function (c) { return c[0] === 'no'; })[0][1], null, r.id, evk(r0)]);
+      if (r0.bulkOutcome === 'failed') return items.push([lbl, 'failed', 'خطای گذرا؛ تصمیم ثبت نشد (اثر صفر مشخص). تکرار فقط پس از بازخوانی تازه', null, r.id, evk(r0)]);
+      if (r0.bulkOutcome === 'unknown') return items.push([lbl, 'unknown', 'پاسخ نرسید؛ ممکن است ثبت شده باشد. تکرار کور ممنوع', null, r.id, evk(r0)]);
+      X.applyApprove(r0, 'تأیید گروهی'); items.push([lbl, 'ok', 'تأیید ثبت شد (نمایشی)', null, r.id, evk(r0)]);
     });
     st.sel = {};
     return X.newOp({ title: 'تأیید گروهی مراحل پرداخت', kind: 'bulkapp', requested: rows.length, items: items, retry: true, note: 'نتیجهٔ هر مرحله جدا از ارسال درخواست است. ثبت دفتر کل / اعتبار / تسویه انجام نشد.' });
@@ -146,10 +147,11 @@
       (c.unknown ? '<div class="note warn inset">' + ic('question') + '<span><b>نتیجه نامعلوم است.</b> ممکن است ثبت شده باشد؛ ابتدا وضعیت واقعی را بخوانید و تکرار کور انجام ندهید.</span></div>' : '') + (op.conflict ? '<div class="note warn inset">' + ic('swap') + '<span><b>تعارض:</b> وضعیت واقعی عوض شده بود؛ هیچ تغییری ثبت نشد.</span></div>' : '') + (op.note ? ctxLine(esc(op.note)) : '') + '</section>' + gl + '</div>' + foot(acts, null, 'شماره ارجاع ' + op.id + ' · نمایشی');
   };
   // Each retry/reconcile item is re-checked against the LIVE stage; an item that is no longer eligible keeps a conflict/skipped result and is never re-applied.
-  var live = function (x) { var r = X.q(x[4]); return r ? { r: r, cur: X.localOf(r), e: X.elig(r) } : null; };
+  var live = function (x) { var r = X.q(x[4]); return r ? { r: r, cur: X.localOf(r), e: X.elig(r), evChanged: x[5] != null && x[5] !== evk(r) } : null; };
   X.retryFailed = function (op) {
     op.items.forEach(function (x) {
       if (x[1] !== 'failed') return; var L = live(x);
+      if (L && L.evChanged) { x[1] = 'skipped'; x[2] = 'تعارض: نسخهٔ مدرک پس از عملیات اصلی تغییر کرده است؛ نیازمند تأیید جدید با بررسی اثر، تغییری ثبت نشد'; return; }
       if (!L || L.cur.review !== 'pending' || L.e.blocked) { x[1] = 'skipped'; x[2] = 'تعارض در بازخوانی تازه: مرحله دیگر قابل تصمیم نیست (' + (L ? X.REV[L.cur.review].label : 'نامعلوم') + ')؛ تغییری ثبت نشد'; return; }
       X.applyApprove(L.r, 'تکرار پس از بازخوانی تازه'); x[1] = 'ok'; x[2] = 'بازخوانی تازه انجام شد و مرحله هنوز واجد شرایط بود؛ ثبت شد (نمایشی)';
     });
@@ -158,6 +160,7 @@
     var n = 0;
     op.items.forEach(function (x) {
       if (x[1] !== 'unknown') return; var L = live(x);
+      if (L && L.evChanged) { x[1] = 'skipped'; x[2] = 'تعارض: نسخهٔ مدرک پس از عملیات اصلی تغییر کرده است؛ نتیجهٔ قبلی به آن مدرک وابسته نیست و تغییری ثبت نشد'; return; }
       if (L && L.cur.review === 'approved') { x[1] = 'ok'; x[2] = 'تطبیق: تصمیم قبلاً ثبت شده بود (دوباره اعمال نشد)'; return; }
       if (n++ % 2 === 0 && L && L.cur.review === 'pending' && !L.e.blocked) { X.applyApprove(L.r, 'تطبیق: ثبت شده بود'); x[1] = 'ok'; x[2] = 'تطبیق: تصمیم قبلاً ثبت شده بود'; }
       else { x[1] = 'failed'; x[2] = 'تطبیق: ثبت نشده بود؛ اکنون قابل تکرار پس از بازخوانی تازه'; }
@@ -248,9 +251,10 @@
     }
     else if (sp.kind === 'runrecon') {
       var lk = st.lookups[r.id] || { committed: 0, notCommitted: r.intended }, first = true;
-      setItems(r.id, function (it) { return it[4] === 'unknown'; }, 'posted', 'در تطبیق: ثبت‌شده بود');
-      if (lk.committed === 0) setItems(r.id, function (it) { return it[4] === 'posted'; }, 'unprocessed', 'ثبت‌نشدن اثبات شد');
-      else if (X.runView(X.run(r.id)).items.length > 1) { var seen = 0; setItems(r.id, function (it) { return it[4] === 'posted' && it[5] && seen++ > 0; }, 'unprocessed', 'ثبت‌نشدن اثبات شد'); }
+      // Classify FIRST (which unknown items the lookup found committed), mint transactions only for those — never provisionally.
+      var idx = 0;
+      setItems(r.id, function (it) { return it[4] === 'unknown' && lk.committed > 0 && idx++ === 0; }, 'posted', 'در تطبیق: ثبت‌شده بود');
+      setItems(r.id, function (it) { return it[4] === 'unknown'; }, 'unprocessed', 'ثبت‌نشدن اثبات شد');
       setRun(r.id, { st: 'reconciled', tail: lk.notCommitted > 0, cov: { intended: r.intended, processed: lk.committed, posted: lk.committed, existing: 0, failed: 0, unprocessed: lk.notCommitted, unknown: 0 }, note: 'با جستجوی تراکنش/کلید تطبیق شد: ' + fa(lk.committed) + ' آیتم ثبت‌شده بود و ثبت‌نشدن ' + fa(lk.notCommitted) + ' آیتم اثبات شد.' });
       delete st.lookups[r.id];
       pushAudit({ kind: 'ثبت نتیجهٔ تطبیق نامعلوم', inv: '—', cs: '—', ev: '—', amt: '—', ba: 'نامعلوم ← تطبیق‌شده', reason: sp.reasonText || '—', rev: '—', tx: 'کلیدها بررسی شد', key: r.id + '|…', run: r.id, res: 'موفق (نمایشی)', corr: 'C-' + (7800 + M.audit.length) });

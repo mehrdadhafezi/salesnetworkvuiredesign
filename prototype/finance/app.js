@@ -31,7 +31,7 @@
       case 'clear-sel': st.sel = {}; C.render(); return true;
       case 'clear-isel': st.isel = {}; C.render(); return true;
       case 'view-evidence': C.toast('مشاهدهٔ مدرک تابع اختیار و محافظت جدا است؛ در نمونه فایل واقعی وجود ندارد.', 'info'); return true;
-      case 'reload-stage': r = X.q(arg); st.local[arg] = { review: r.stale.res, reloaded: true, rev: r.stale.by, prior: r.prior.concat([{ res: r.stale.res, who: r.stale.by, at: r.stale.at, note: 'تصمیم همزمان بازبین دیگر' }]), next: 'گام بعد طبق تصمیم بازبین دیگر' }; C.render(); C.openDrawer('rs', arg); C.toast('وضعیت فعلی خوانده شد: مرحله قبلاً توسط بازبین دیگر ' + X.REV[r.stale.res].label + ' شده است. تصمیم جدیدی ثبت نشد.', 'warning'); return true;
+      case 'reload-stage': r = X.q(arg); st.local[arg] = { review: r.stale.res, reloaded: true, approvedClaimed: r.stale.res === 'approved' ? r.claimed : 0, rev: r.stale.by, prior: r.prior.concat([{ res: r.stale.res, who: r.stale.by, at: r.stale.at, note: 'تصمیم همزمان بازبین دیگر' }]), next: 'گام بعد طبق تصمیم بازبین دیگر' }; C.render(); C.openDrawer('rs', arg); C.toast('وضعیت فعلی خوانده شد: مرحله قبلاً توسط بازبین دیگر ' + X.REV[r.stale.res].label + ' شده است. تصمیم جدیدی ثبت نشد.', 'warning'); return true;
       case 'rs-approve': X.openSens(X.approveSpec(X.q(arg))); return true;
       case 'rs-reject': X.openSens(X.rejectSpec(X.q(arg))); return true;
       case 'run-gen': X.openSens(X.runGenSpec(X.runView(X.run(arg)))); return true;
