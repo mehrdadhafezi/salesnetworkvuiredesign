@@ -401,3 +401,30 @@ button.cr-i:hover{background:var(--surface-3)}
 .sens-keep{border-style:dashed}
 .sens-form{display:grid;gap:8px;margin-top:12px}
 @media (max-width:760px){.sens-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ---- SN-206 Finance (additive; presentation patterns only — no new business capability) ----
+   FinancialStateLayers (.fsl): independent dimensions, each naming what it must NOT be inferred from.
+   OutcomeUnknownContext (.oux): intent · key · possible state · lookup requirement · retry eligibility · next safe action (never a blind Retry).
+   Coverage/outcome cells reuse .outcome-strip; this block only adds the cells Finance needs (existing, unprocessed, posted). */
+.fsl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fsl-c{display:grid;gap:4px;align-content:start;padding:12px;border:1px solid var(--border);border-radius:var(--r);background:var(--raised);min-width:0}
+.fsl-l{color:var(--text-2);font-size:var(--t-micro)}
+.fsl-v{font-weight:600;line-height:1.7;overflow-wrap:anywhere}
+.fsl-x{color:var(--text-2);font-size:var(--t-micro)}
+.fsl-n{display:flex;align-items:flex-start;gap:4px;margin-top:2px;color:var(--text-2);font-size:var(--t-micro);line-height:1.7;white-space:normal}
+.fsl-n .i{flex:none;width:12px;height:12px;margin-top:5px}
+@media (max-width:1100px){.fsl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.oux{display:grid;gap:12px;padding:12px 16px;border:2px solid var(--amber-dot);border-radius:var(--r);background:var(--amber-bg)}
+.oux-h{display:flex;align-items:center;gap:8px;color:var(--text)}
+.oux-h .i{flex:none;width:20px;height:20px;color:var(--amber-fg)}
+.oux-dl{display:grid;gap:8px;margin:0}
+.oux-dl>div{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr);gap:8px;align-items:start}
+.oux-dl dt{color:var(--text-2);font-size:var(--t-micro)}
+.oux-dl dd{margin:0;line-height:1.8;overflow-wrap:anywhere}
+.oux-next{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:var(--r-sm);background:var(--raised);border:1px solid var(--border);line-height:1.8}
+.oux-next .i{flex:none;width:16px;height:16px;margin-top:6px}
+@media (max-width:760px){.oux-dl>div{grid-template-columns:minmax(0,1fr)}}
+.outcome-strip .os-posted:not(.zero),.outcome-strip .os-existing:not(.zero){border-color:var(--green-dot);background:var(--green-bg)}
+.outcome-strip .os-unprocessed:not(.zero){border-color:var(--orange-dot);background:var(--orange-bg)}
+.sens-aff{border-color:var(--blue-dot)}
+.sens-eff{border-color:var(--red-dot);border-style:dashed}
