@@ -242,16 +242,17 @@
   // Keep per-item truth and the mock ledger consistent with the aggregate outcome shown on the run.
   // Reconcile LINKS the transaction the lookup found (existing); it never mints. The found tx is mirrored/converted in the mock ledger without creating a new credit.
   var linkItems = function (id, test, txByKey) {
-    var r = X.runView(X.run(id)), n = 0;
+    var r = X.runView(X.run(id)), n = 0, conflict = 0;
     setRun(id, { items: r.items.map(function (it) {
       if (!test(it)) return it; var c = it.slice(), tx = (txByKey || {})[it[1]];
       if (!tx) return it;   // lookup gave no transaction id → cannot claim a link; stays Unknown
       var row = M.ledger.filter(function (t) { return t.key === it[1]; })[0];
+      if (row && row.st === 'committed' && row.id !== tx) { conflict++; var k = it.slice(); k[6] = 'تعارض (CONFLICT): کلید کسب‌وکار قبلاً با تراکنش ' + row.id + ' ثبت شده ولی جستجو ' + tx + ' را برگرداند؛ پیوند نمی‌خورد و نتیجه نامعلوم می‌ماند'; return k; }
       if (row) { if (row.st !== 'committed') { row.id = tx; row.st = 'committed'; row.posted = 'یافت‌شده در تطبیق'; delete row.note; } }
       else M.ledger.push({ id: tx, key: it[1], dom: 'wallet', acct: 'کیف پول کمیسیون · گیرنده (یافت‌شده در تطبیق)', dir: 'C', amt: it[2], unit: it[3], rel: ['اجرا', r.id + ' · ' + it[0].split(' · ')[0]], actor: 'ثبت‌شده پیش از تطبیق', eff: '—', posted: 'یافت‌شده در تطبیق', st: 'committed' });
       c[4] = 'existing'; c[5] = tx; c[6] = 'تراکنش موجود یافت شد و پیوند شد؛ اعتبار جدید ساخته نشد'; n++; return c;
     }) });
-    return n;
+    return { n: n, conflict: conflict };
   };
   var setItems = function (id, test, res, note) {
     var r = X.runView(X.run(id)), cnt = { posted: 0, existing: 0 };
@@ -279,14 +280,14 @@
       var lk = st.lookups[r.id] || { committed: 0, notCommitted: r.intended }, first = true;
       // Classify FIRST by the BUSINESS KEY returned by the lookup (never by row order); mint only for keys found committed. Keys the lookup did not resolve stay Unknown.
       var by = lk.byKey || {};
-      var rc = { existing: linkItems(r.id, function (it) { return it[4] === 'unknown' && by[it[1]] === 'committed'; }, lk.txByKey) };
+      var lr = linkItems(r.id, function (it) { return it[4] === 'unknown' && by[it[1]] === 'committed'; }, lk.txByKey);
       setItems(r.id, function (it) { return it[4] === 'unknown' && by[it[1]] === 'notCommitted'; }, 'unprocessed', 'ثبت‌نشدن اثبات شد');
       var still = X.runView(X.run(r.id)).items.filter(function (it) { return it[4] === 'unknown'; }).length;
-      if (still) { setRun(r.id, { note: 'جستجو برای ' + fa(still) + ' آیتم نمونه نتیجهٔ قطعی نداد؛ اجرا «نتیجه نامعلوم» می‌ماند و تطبیق کامل نشده است.' }); delete st.lookups[r.id]; op = X.newOp({ title: 'تطبیق ناقص ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'برخی کلیدها حل نشد؛ نتیجهٔ اجرا نامعلوم می‌ماند و تکرار کور مسدود است.' }); return op; }
-      setRun(r.id, { st: 'reconciled', tail: lk.notCommitted > 0, cov: { intended: r.intended, processed: lk.committed, posted: lk.committed - rc.existing, existing: rc.existing, failed: 0, unprocessed: lk.notCommitted, unknown: 0 }, note: 'با جستجوی تراکنش/کلید تطبیق شد: ' + fa(lk.committed) + ' آیتم ثبت‌شده بود و ثبت‌نشدن ' + fa(lk.notCommitted) + ' آیتم اثبات شد.' });
+      if (still) { setRun(r.id, { note: 'جستجو برای ' + fa(still) + ' آیتم نمونه نتیجهٔ قطعی نداد' + (lr.conflict ? ' (تعارض شناسهٔ تراکنش با دفتر کل: ' + fa(lr.conflict) + ' مورد)' : '') + '؛ اجرا «نتیجه نامعلوم» می‌ماند و تطبیق کامل نشده است.' }); delete st.lookups[r.id]; op = X.newOp({ title: 'تطبیق ناقص ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'برخی کلیدها حل نشد' + (lr.conflict ? ' (تعارض شناسهٔ تراکنش با دفتر کل: ' + fa(lr.conflict) + ' مورد)' : '') + '؛ نتیجهٔ اجرا نامعلوم می‌ماند و تکرار کور مسدود است.' }); return op; }
+      setRun(r.id, { st: 'reconciled', tail: lk.notCommitted > 0, cov: { intended: r.intended, processed: lk.committed, posted: 0, existing: lk.committed, failed: 0, unprocessed: lk.notCommitted, unknown: 0 }, note: 'با جستجوی تراکنش/کلید تطبیق شد: ' + fa(lk.committed) + ' آیتم ثبت‌شده بود و ثبت‌نشدن ' + fa(lk.notCommitted) + ' آیتم اثبات شد.' });
       delete st.lookups[r.id];
       pushAudit({ kind: 'ثبت نتیجهٔ تطبیق نامعلوم', inv: '—', cs: '—', ev: '—', amt: '—', ba: 'نامعلوم ← تطبیق‌شده', reason: sp.reasonText || '—', rev: '—', tx: 'کلیدها بررسی شد', key: r.id + '|…', run: r.id, res: 'موفق (نمایشی)', corr: 'C-' + (7800 + M.audit.length) });
-      op = X.newOp({ title: 'ثبت تطبیق ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: lk.committed - rc.existing, existing: rc.existing, skipped: lk.notCommitted, failed: 0, unknown: 0 }, note: 'فقط تطبیق ثبت شد؛ هیچ اعتبار جدیدی نوشته نشد. ' + fa(lk.notCommitted) + ' آیتم ثبت‌نشدهٔ اثبات‌شده برای ادامهٔ جدا می‌ماند.' });
+      op = X.newOp({ title: 'ثبت تطبیق ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: lk.committed, skipped: lk.notCommitted, failed: 0, unknown: 0 }, note: 'فقط تطبیق ثبت شد؛ هیچ اعتبار جدیدی نوشته نشد. ' + fa(lk.notCommitted) + ' آیتم ثبت‌نشدهٔ اثبات‌شده برای ادامهٔ جدا می‌ماند.' });
     }
     return op;
   };

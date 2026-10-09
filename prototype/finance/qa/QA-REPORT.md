@@ -23,6 +23,8 @@ Codex review round 6 (head ae47069) — two P1 fixed and regression-tested: the 
 
 Codex review round 7 (head 86b3e4a) — one P1 fixed and regression-tested: reconcile now LINKS the transaction the lookup found (carried as txByKey) and records the item as EXISTING; it mints nothing and fabricates no replacement tx ID.
 
+Codex review round 8 (head 7b08bc9) — two findings fixed and regression-tested: all lookup-confirmed commits count as existing in reconcile coverage/result (posted reserved for transactions the tail actually creates: RUN-309 → 35 posted / 51 existing); a lookup tx id that contradicts the committed ledger id for the key is a CONFLICT (stays Unknown, not linked).
+
 Fixed during QA: queue table overflowed 1366 (11 columns, action column off-screen) → issue chips merged into the evidence cell, customer/reviewer columns demoted to ≥1500, total/paid/remaining to ≥1100 (priority columns); confirmation summary list lacked its grid class; QA assertions on Persian numerals and lifecycle-ribbon text.
 
 Screenshots (`qa/*.png`): 01 queue · 02 evidence + state layers · 03 approve confirmation · 04 stale conflict · 05 bulk approve result (partial/unknown) · 06 refund (conditional) · 07 ledger correction chain · 08 run partial coverage · 09 run outcome unknown · 10 reconciliation issue · 11 view-only permission contract · 12 dark/compact/focus · d01 1920 ledger · t01 768 runs · m01/m02 390.
