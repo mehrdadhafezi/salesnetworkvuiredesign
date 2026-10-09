@@ -46,7 +46,7 @@
         if (op) result(op); return true;
       case 'commit-bulkapp': if (!k.ack) { return true; } op = X.runBulkApp(); result(op); return true;
       case 'retry-op': op = X.opOf(arg); X.retryFailed(op); C.render(); C.openDrawer('res', arg); C.toast('تکرار فقط برای موارد ناموفق معلوم و پس از بازخوانی تازه انجام شد (نمایشی).', 'success'); return true;
-      case 'reconcile-op': op = X.opOf(arg); X.reconcileOp(op); C.render(); C.openDrawer('res', arg); C.toast('تطبیق انجام شد؛ نتیجهٔ واقعی هر مورد مشخص شد (نمایشی).', 'info'); return true;
+      case 'reconcile-op': op = X.opOf(arg); var unres = X.reconcileOp(op); C.render(); C.openDrawer('res', arg); if (unres) C.toast('تطبیق کامل نشد: نتیجهٔ ' + fa(unres) + ' مورد همچنان نامعلوم است (مدرک تغییر کرده).', 'warning'); else C.toast('تطبیق انجام شد؛ نتیجهٔ واقعی هر مورد مشخص شد (نمایشی).', 'info'); return true;
       case 'issue-handoff': C.closeDrawer(); C.toast('ارجاع با مالک، زمان و مسئول ثبت شد (نمایشی). مسئله هنوز حل‌شده نیست؛ مدرک حل لازم است.', 'info'); return true;
       case 'diag-ro': C.toast('تشخیص خواندنی انجام شد (نمایشی): هیچ داده یا مانده‌ای تغییر نکرد.', 'info'); return true;
       case 'perm': st.perm = arg; C.render(); C.toast(arg === 'view' ? 'شبیه‌سازی «فقط مشاهده»: اقدام‌های نوشتنی اکنون غیرفعال‌اند.' : 'شبیه‌سازی طرح هدف با اختیار فرضی؛ اجرای واقعی تأیید نشده است.', 'info'); return true;

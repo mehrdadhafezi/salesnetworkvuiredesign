@@ -157,15 +157,16 @@
     });
   };
   X.reconcileOp = function (op) {
-    var n = 0;
+    var n = 0, unres = 0;
     op.items.forEach(function (x) {
       if (x[1] !== 'unknown') return; var L = live(x);
-      if (L && L.evChanged) { x[2] = 'نسخهٔ مدرک پس از عملیات اصلی تغییر کرده است؛ نتیجهٔ اصلی با مدرک ذخیره‌شده باید تطبیق شود و نامعلوم می‌ماند (مدرک جدید تأیید نمی‌شود)'; return; }
+      if (L && L.evChanged) { unres++; x[2] = 'نسخهٔ مدرک پس از عملیات اصلی تغییر کرده است؛ نتیجهٔ اصلی با مدرک ذخیره‌شده باید تطبیق شود و نامعلوم می‌ماند (مدرک جدید تأیید نمی‌شود)'; return; }
       if (L && L.cur.review === 'approved') { x[1] = 'ok'; x[2] = 'تطبیق: تصمیم قبلاً ثبت شده بود (دوباره اعمال نشد)'; return; }
       if (n++ % 2 === 0 && L && L.cur.review === 'pending' && !L.e.blocked) { X.applyApprove(L.r, 'تطبیق: ثبت شده بود'); x[1] = 'ok'; x[2] = 'تطبیق: تصمیم قبلاً ثبت شده بود'; }
       else { x[1] = 'failed'; x[2] = 'تطبیق: ثبت نشده بود؛ اکنون قابل تکرار پس از بازخوانی تازه'; }
     });
-    op.note = (op.note || '') + ' نتیجهٔ نامعلوم با خواندن وضعیت واقعی تطبیق شد.';
+    op.note = (op.note || '') + (unres ? ' تطبیق کامل نشد: نتیجهٔ ' + fa(unres) + ' مورد به‌دلیل تغییر مدرک همچنان نامعلوم است.' : ' نتیجهٔ نامعلوم با خواندن وضعیت واقعی تطبیق شد.');
+    return unres;
   };
 
   /* ---------- Refund review (CONDITIONAL — OPD-04): concepts are separate; nothing is executed here ---------- */
