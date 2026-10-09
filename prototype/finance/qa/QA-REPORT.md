@@ -1,5 +1,5 @@
 # SN-206 QA report (Finance design)
-Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **149 PASS, FAILS 0**.
+Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **151 PASS, FAILS 0**.
 **FINANCE ROLE RUNTIME IS NOT LIVE VERIFIED.** This QA exercises the design prototype on mock data only; no real non-Admin Finance account, no real evidence, bank, gateway or posting.
 
 | Pass | Scope | Result |
@@ -16,6 +16,8 @@ Codex review round 2 (head 6eabdf4) — three findings fixed and regression-test
 Codex review round 3 (head 807f856) — two findings fixed and regression-tested: reconcile classifies/mints by the business keys the lookup returns (not row order; unresolved keys stay Unknown); an evidence-changed Unknown item stays Unknown with the reconcile action kept. No shared file changed.
 
 Codex review round 4 (head ce9f5ab) — one P2 fixed and regression-tested: an unresolved (evidence-changed) reconcile now says «تطبیق کامل نشد» in the drawer note and toast instead of claiming reconciliation completed.
+
+Codex review round 5 (head 1f5354c) — two findings fixed and regression-tested: run confirmations are revalidated against the live run (state/coverage/items) at commit, and a committed business key is never minted twice; retry toast/tone derived from post-retry counts (all-conflict = warning, not success).
 
 Fixed during QA: queue table overflowed 1366 (11 columns, action column off-screen) → issue chips merged into the evidence cell, customer/reviewer columns demoted to ≥1500, total/paid/remaining to ≥1100 (priority columns); confirmation summary list lacked its grid class; QA assertions on Persian numerals and lifecycle-ribbon text.
 

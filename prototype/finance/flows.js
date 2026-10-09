@@ -149,12 +149,14 @@
   // Each retry/reconcile item is re-checked against the LIVE stage; an item that is no longer eligible keeps a conflict/skipped result and is never re-applied.
   var live = function (x) { var r = X.q(x[4]); return r ? { r: r, cur: X.localOf(r), e: X.elig(r), evChanged: x[5] != null && x[5] !== evk(r) } : null; };
   X.retryFailed = function (op) {
+    var res = { ok: 0, conflict: 0 };
     op.items.forEach(function (x) {
       if (x[1] !== 'failed') return; var L = live(x);
-      if (L && L.evChanged) { x[1] = 'skipped'; x[2] = 'تعارض: نسخهٔ مدرک پس از عملیات اصلی تغییر کرده است؛ نیازمند تأیید جدید با بررسی اثر، تغییری ثبت نشد'; return; }
-      if (!L || L.cur.review !== 'pending' || L.e.blocked) { x[1] = 'skipped'; x[2] = 'تعارض در بازخوانی تازه: مرحله دیگر قابل تصمیم نیست (' + (L ? X.REV[L.cur.review].label : 'نامعلوم') + ')؛ تغییری ثبت نشد'; return; }
-      X.applyApprove(L.r, 'تکرار پس از بازخوانی تازه'); x[1] = 'ok'; x[2] = 'بازخوانی تازه انجام شد و مرحله هنوز واجد شرایط بود؛ ثبت شد (نمایشی)';
+      if (L && L.evChanged) { res.conflict++; x[1] = 'skipped'; x[2] = 'تعارض: نسخهٔ مدرک پس از عملیات اصلی تغییر کرده است؛ نیازمند تأیید جدید با بررسی اثر، تغییری ثبت نشد'; return; }
+      if (!L || L.cur.review !== 'pending' || L.e.blocked) { res.conflict++; x[1] = 'skipped'; x[2] = 'تعارض در بازخوانی تازه: مرحله دیگر قابل تصمیم نیست (' + (L ? X.REV[L.cur.review].label : 'نامعلوم') + ')؛ تغییری ثبت نشد'; return; }
+      X.applyApprove(L.r, 'تکرار پس از بازخوانی تازه'); x[1] = 'ok'; x[2] = 'بازخوانی تازه انجام شد و مرحله هنوز واجد شرایط بود؛ ثبت شد (نمایشی)'; res.ok++;
     });
+    return res;
   };
   X.reconcileOp = function (op) {
     var n = 0, unres = 0;
@@ -216,7 +218,7 @@
   };
   var runSpec = function (kind, r, o) {
     var c = r.cov || {};
-    return Object.assign({ kind: kind, id: r.id, subject: r.id + ' · ' + r.name, zone: 'cond', amount: '<span class="muted">مجموع ' + (c.intended ? fa(num(c.intended)) + ' آیتم' : 'آیتم‌ها') + ' — مبلغ هر آیتم در کنسول؛ واحدها جمع نمی‌شوند</span>' }, o);
+    return Object.assign({ kind: kind, id: r.id, srcSig: X.runSig(r), srcSt: r.st, subject: r.id + ' · ' + r.name, zone: 'cond', amount: '<span class="muted">مجموع ' + (c.intended ? fa(num(c.intended)) + ' آیتم' : 'آیتم‌ها') + ' — مبلغ هر آیتم در کنسول؛ واحدها جمع نمی‌شوند</span>' }, o);
   };
   X.runGenSpec = function (r) { return runSpec('rungen', r, { title: 'تولید پیش‌نمایش اجرا', needsReason: false, reasonLabel: 'یادداشت (اختیاری)', target: r.id + ' · ' + r.name, current: 'پیش‌نویس — بدون ردیف مالی', resulting: 'پیش‌نمایش با ردیف‌های محاسبه‌شده', changes: ['ایجاد اجرا و آیتم‌های پیش‌نمایش (فراداده)'], unchanged: ['هیچ تراکنش یا اعتبار کیف پول', 'قوانین و نرخ‌ها'], affected: ['اجرا ' + r.id, 'آیتم‌های پیش‌نمایش'], irrev: ['تولید پیش‌نمایش یک نوشتن است نه خواندن خالص؛ فراداده باقی می‌ماند'], ack: 'می‌دانم تولید پیش‌نمایش فراداده می‌نویسد و تأیید یا ثبت نیست.', commit: 'تولید پیش‌نمایش (نمایشی)' }); };
   X.runApproveSpec = function (r) { return runSpec('runapprove', r, { title: 'تأیید اجرا', needsReason: true, reasonLabel: 'مبنای تأیید اجرا', target: r.id + ' · ' + r.name + ' — ' + fa(r.intended) + ' آیتم', current: 'پیش‌نمایش', resulting: 'تأییدشده (ثبت‌نشده) و snapshot قفل‌شده', changes: ['وضعیت اجرا: پیش‌نمایش ← تأییدشده', 'ثبت تأییدکننده و زمان قفل'], unchanged: ['هیچ تراکنش یا اعتبار کیف پول ایجاد نمی‌شود', 'ثبت (APPLY) جدا و بعدی است'], affected: ['اجرا ' + r.id, 'آیتم‌های snapshot'], irrev: ['قفل ثبت می‌شود؛ تغییرناپذیری در همهٔ مسیرها اثبات نشده (FIN-LOCK)', 'تفکیک تأییدکننده/ثبت‌کننده تعریف نشده (OPD-08)'], ack: 'می‌دانم تأیید اجرا ≠ ثبت در کیف پول است.', commit: 'ثبت تأیید اجرا (نمایشی)' }); };
@@ -226,9 +228,12 @@
       resulting: 'نتیجهٔ هر آیتم جدا: ثبت‌شده، تراکنش موجود، ناموفق یا نامعلوم', changes: ['ثبت اعتبار کیف پول برای آیتم‌های واجد شرایط (کلید کسب‌وکار یکتا)'], unchanged: ['snapshot تأییدشده', 'آیتم‌های قبلاً ثبت‌شده (تراکنش موجود دوباره نوشته نمی‌شود)', 'تاریخچهٔ تراکنش‌ها'], affected: [fa(num(n)) + ' آیتم', 'کیف پول گیرنده‌ها', 'دفتر کل'],
       irrev: ['ثبت اعتبار کیف پول با رویداد جبرانی قابل اصلاح است، نه حذف', 'اگر پاسخ نرسد، نتیجه «نامعلوم» می‌ماند و تکرار کور مسدود است', 'اعتبار کیف پول ≠ تسویه'], ack: 'کلید کسب‌وکار، نتیجهٔ هر آیتم و اینکه ok یک فراخوانی محدود کل اجرا نیست را فهمیدم.', commit: tail ? 'ثبت دنباله (نمایشی)' : 'اجرای ثبت (نمایشی)' });
   };
+  X.runSig = function (r) { return r.st + '|' + JSON.stringify(r.cov || null) + '|' + (r.items || []).map(function (x) { return x[4]; }).join(','); };
   var setRun = function (id, patch) { st.runLocal[id] = Object.assign(st.runLocal[id] || {}, patch); };
   var txSeq = 9100;
   var mint = function (r, it) {
+    var have = M.ledger.filter(function (t) { return t.key === it[1] && t.st === 'committed'; })[0];
+    if (have) return have.id;   // unique business key: an already-committed key is never minted twice
     var id = 'T-' + (++txSeq), row = M.ledger.filter(function (t) { return t.key === it[1] && t.st !== 'committed'; })[0];
     if (row) { row.id = id; row.st = 'committed'; row.posted = NOW; row.eff = NOW; row.actor = M.user.name + ' (ثبت اجرا، نمایشی)'; delete row.note; }
     else M.ledger.push({ id: id, key: it[1], dom: 'wallet', acct: 'کیف پول کمیسیون · گیرنده (نمایشی)', dir: 'C', amt: it[2], unit: it[3], rel: ['اجرا', r.id + ' · ' + it[0].split(' · ')[0]], actor: M.user.name + ' (ثبت اجرا، نمایشی)', eff: NOW, posted: NOW, st: 'committed' });
@@ -241,6 +246,8 @@
   };
   X.commitRun = function (sp) {
     var r = X.runView(X.run(sp.id)), op;
+    // Commit-time recheck of the LIVE run: state, coverage and item results must still match what the confirmation showed.
+    if (sp.srcSig !== X.runSig(r)) return X.newOp({ title: sp.title + ' ' + r.id + ' — تعارض هنگام ثبت', kind: 'run', run: r.id, conflict: true, c: { requested: 1, eligible: 0, ok: 0, existing: 0, skipped: 1, failed: 0, unknown: 0 }, note: 'اجرا پس از باز شدن تأیید تغییر کرده است (از «' + X.RUN[sp.srcSt].label + '» به «' + X.RUN[r.st].label + '» یا پوشش/آیتم‌ها عوض شده)؛ هیچ تغییری ثبت نشد و باید روی وضعیت فعلی دوباره بررسی شود.' });
     if (sp.kind === 'rungen') { setRun(r.id, { st: 'preview', intended: 31, cov: { intended: 31, processed: 0, posted: 0, existing: 0, failed: 0, unprocessed: 31, unknown: 0 }, sim: 'ok', items: [['INV-48230 · مرحله ۱ · فروشنده', 'RUN-312|INV-48230|S1|rec:HP-301', 900000, 'toman', 'notposted', null, '']], note: 'پیش‌نمایش تولید شد (فراداده نوشته شد). تأیید و ثبت هنوز انجام نشده است.' }); op = X.newOp({ title: 'تولید پیش‌نمایش ' + r.id, kind: 'run', run: r.id, c: { requested: 31, eligible: 31, ok: 31, existing: 0, skipped: 0, failed: 0, unknown: 0 }, note: 'فقط فراداده نوشته شد؛ هیچ تراکنش مالی ثبت نشد.' }); }
     else if (sp.kind === 'runapprove') { setRun(r.id, { st: 'approved', appr: { by: M.user.name, at: NOW, locked: NOW } }); op = X.newOp({ title: 'تأیید اجرا ' + r.id, kind: 'run', run: r.id, c: { requested: 1, eligible: 1, ok: 1, existing: 0, skipped: 0, failed: 0, unknown: 0 }, note: 'اجرا تأیید و قفل شد؛ هیچ اعتباری در کیف پول ثبت نشد.' }); }
     else if (sp.kind === 'runpost') {
