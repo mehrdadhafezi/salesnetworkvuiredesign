@@ -228,7 +228,7 @@
       resulting: 'نتیجهٔ هر آیتم جدا: ثبت‌شده، تراکنش موجود، ناموفق یا نامعلوم', changes: ['ثبت اعتبار کیف پول برای آیتم‌های واجد شرایط (کلید کسب‌وکار یکتا)'], unchanged: ['snapshot تأییدشده', 'آیتم‌های قبلاً ثبت‌شده (تراکنش موجود دوباره نوشته نمی‌شود)', 'تاریخچهٔ تراکنش‌ها'], affected: [fa(num(n)) + ' آیتم', 'کیف پول گیرنده‌ها', 'دفتر کل'],
       irrev: ['ثبت اعتبار کیف پول با رویداد جبرانی قابل اصلاح است، نه حذف', 'اگر پاسخ نرسد، نتیجه «نامعلوم» می‌ماند و تکرار کور مسدود است', 'اعتبار کیف پول ≠ تسویه'], ack: 'کلید کسب‌وکار، نتیجهٔ هر آیتم و اینکه ok یک فراخوانی محدود کل اجرا نیست را فهمیدم.', commit: tail ? 'ثبت دنباله (نمایشی)' : 'اجرای ثبت (نمایشی)' });
   };
-  X.runSig = function (r) { return [r.st, r.intended, JSON.stringify(r.cov || null), JSON.stringify(r.appr || null)].join('|') + '|' + (r.items || []).map(function (x) { return x.map(function (v) { return String(v); }).join('~'); }).join('||'); };   // state + coverage + approval + FULL item identity (label, business key, amount, unit, result, tx, note)
+  X.runSig = function (r) { return [r.st, r.intended, JSON.stringify(r.cov || null), JSON.stringify(r.appr || null), (r.keys || []).join(',')].join('|') + '|' + (r.items || []).map(function (x) { return x.map(function (v) { return String(v); }).join('~'); }).join('||'); };   // state + coverage + approval + snapshot key set + FULL item identity (label, business key, amount, unit, result, tx, note)
   var setRun = function (id, patch) { st.runLocal[id] = Object.assign(st.runLocal[id] || {}, patch); };
   var txSeq = 9100;
   var mint = function (r, it) {
