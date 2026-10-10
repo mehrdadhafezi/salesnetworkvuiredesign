@@ -340,11 +340,11 @@
     var before = X.runView(X.run(sp.id)).st, op = X.commitRunCore(sp), after = X.runView(X.run(sp.id)), c = op ? X.counts(op) : null;
     if (op) {   // EVERY run action (success, partial, unknown, conflict, incomplete) leaves actor/reason/before→after/outcome/correlation
       var meta = sp.kind === 'rungen' || sp.kind === 'runapprove', unk = after.st === 'unknown' || (c && c.unknown), tx;
-      if (op.conflict) tx = 'هیچ (تعارض؛ بدون تغییر)';
-      else if (meta) tx = 'هیچ (' + (sp.kind === 'rungen' ? 'فقط فراداده' : 'تأیید ≠ ثبت') + ')';
-      else if (unk) tx = 'نامعلوم (ممکن است ثبت شده باشد)';
+      if (meta) tx = 'هیچ (' + (sp.kind === 'rungen' ? 'فقط فراداده' : 'تأیید ≠ ثبت') + ')';
+      else if (unk) tx = 'نامعلوم (ممکن است ثبت شده باشد)' + (op.conflict ? ' — این تلاش بدون تغییر بود' : '');
+      else if (op.conflict) tx = 'هیچ (تعارض؛ بدون تغییر)';
       else tx = (c.ok ? fa(num(c.ok)) + ' جدید' : '') + (c.ok && c.existing ? ' · ' : '') + (c.existing ? fa(num(c.existing)) + ' موجود' : '') || 'هیچ';
-      pushAudit({ kind: RUNACT[sp.kind] || sp.kind, inv: '—', cs: '—', ev: '—', amt: c ? fa(num(c.requested)) + ' آیتم' : '—', ba: X.RUN[before].label + ' ← ' + X.RUN[after.st].label + (op.conflict ? ' (تعارض؛ بدون تغییر)' : ''), reason: sp.reasonText || '—', rev: '—', tx: tx, key: sp.id + '|…', run: sp.id, res: X.OPS_S(X.opState(op))[0], corr: 'C-' + (7900 + M.audit.length) });
+      pushAudit({ kind: RUNACT[sp.kind] || sp.kind, inv: '—', cs: '—', ev: '—', amt: c ? fa(num(c.requested)) + ' آیتم' : '—', ba: X.RUN[before].label + ' ← ' + X.RUN[after.st].label + (op.conflict ? ' (تعارض؛ بدون تغییر)' : ''), reason: sp.reasonText || '—', rev: '—', tx: tx, key: sp.id + '|…', run: sp.id, res: (sp.kind === 'runrecon' && !op.conflict) ? (after.st === 'reconciled' ? 'تطبیق کامل شد (موفق)' : 'تطبیق ناقص — نتیجه نامعلوم') : X.OPS_S(X.opState(op))[0], corr: 'C-' + (7900 + M.audit.length) });   // reconciliation outcome is judged on reconciliation, not posting-oriented counts
     }
     return op;
   };
