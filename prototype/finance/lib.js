@@ -26,7 +26,7 @@
   X.ISST = { open: ['باز', 'orange', 'inbox'], awaiting: ['منتظر مالک', 'slate', 'hourglass'] };
   X.ZONES = { normal: ['روزانه', 'z-normal', 'eye'], cond: ['مشروط', 'z-adv', 'alert'], restr: ['پیشرفته · محدود', 'z-maint', 'lock'] };
   X.OUT = { ok: { label: 'ثبت شد', tone: 'green', icon: 'checkCircle' }, existing: { label: 'تراکنش موجود', tone: 'teal', icon: 'link' }, skipped: { label: 'ارسال نشد (واجد شرایط نبود)', tone: 'orange', icon: 'swap' }, failed: { label: 'ناموفق', tone: 'red', icon: 'xCircle' }, unknown: { label: 'نامعلوم', tone: 'amber', icon: 'question' } };
-  X.OPS_S = function (k) { return { complete: ['کامل (با مدرک هر مورد)', 'green', 'checkCircle'], partial: ['ناقص (موفقیت جزئی)', 'orange', 'split'], failed: ['ناموفق (بدون اثر)', 'red', 'xCircle'], blocked: ['مسدود (بدون تغییر)', 'slate', 'ban'], unknown: ['نتیجه نامعلوم', 'amber', 'question'], conflict: ['تعارض (بدون تغییر)', 'red', 'swap'] }[k]; };
+  X.OPS_S = function (k) { return { complete: ['کامل (با مدرک هر مورد)', 'green', 'checkCircle'], partial: ['ناقص (موفقیت جزئی)', 'orange', 'split'], failed: ['ناموفق (بدون اثر)', 'red', 'xCircle'], blocked: ['مسدود (بدون تغییر)', 'slate', 'ban'], unknown: ['نتیجه نامعلوم', 'amber', 'question'], conflict: ['تعارض (بدون تغییر)', 'red', 'swap'], unauthorized: ['غیرمجاز — UNAUTHORIZED (بدون تغییر)', 'red', 'lock'] }[k]; };
 
   /* ---------- Entity helpers ---------- */
   X.q = function (id) { return M.queue.filter(function (r) { return r.id === id; })[0]; };
@@ -49,6 +49,13 @@
     if (p.cond === 'OPD-04') return { ok: false, why: 'مشروط: سیاست مدرک بانکی و تأییدکنندهٔ مجاز استرداد (OPD-04) تعریف نشده است؛ اجرای استرداد از این رابط وجود ندارد.' };
     if (p.cond === 'export') return { ok: false, why: 'خروجی گرفتن اختیار جدا با محدودهٔ ستون و ممیزی دارد و در این طرح فعال نیست.' };
     return { ok: true, why: '' };
+  };
+  // The COMMAND HANDLER is the action boundary: every commit re-checks authority, whatever opened the dialog (buttons, deep links, flow helpers).
+  X.PKIND = { approve: 'approve', reject: 'reject', rungen: 'runapprove', runapprove: 'runapprove', runpost: 'post', runtail: 'post', runrecon: 'reconcile', bulkapp: 'approve', retry: 'approve', reconcileop: 'approve', handoff: 'reconcile' };
+  X.denied = function (kind, title, quiet) {
+    var g = X.can(X.PKIND[kind]); if (g.ok) return null;
+    if (quiet) return { why: g.why };
+    return X.newOp({ title: (title || 'اقدام') + ' — رد شد (UNAUTHORIZED)', kind: 'unauthorized', unauthorized: true, requested: 1, c: { requested: 1, eligible: 0, ok: 0, existing: 0, skipped: 1, failed: 0, unknown: 0 }, note: g.why + ' هیچ تغییری ثبت نشد.' });
   };
   X.guardBtn = function (k, cls, act, label, iconName, extraDis) {
     var g = X.can(k), dis = !g.ok || extraDis;
@@ -166,7 +173,7 @@
     var n = function (k) { return o.items.filter(function (x) { return x[1] === k; }).length; };
     return { requested: o.requested, eligible: o.requested - n('skipped'), ok: n('ok'), existing: n('existing'), skipped: n('skipped'), failed: n('failed'), unknown: n('unknown') };
   };
-  X.opState = function (op) { if (op.conflict) return 'conflict'; if (op.blocked) return 'blocked'; var c = X.counts(op); if (c.unknown) return 'unknown'; var good = c.ok + c.existing; return good === c.requested ? 'complete' : good === 0 ? 'failed' : 'partial'; };
+  X.opState = function (op) { if (op.unauthorized) return 'unauthorized'; if (op.conflict) return 'conflict'; if (op.blocked) return 'blocked'; var c = X.counts(op); if (c.unknown) return 'unknown'; var good = c.ok + c.existing; return good === c.requested ? 'complete' : good === 0 ? 'failed' : 'partial'; };
   X.outcomeStrip = function (o) {
     var c = X.counts(o), cells = [['requested', 'درخواست‌شده', c.requested], ['eligible', 'واجد شرایط', c.eligible], ['applied', 'ثبت‌شده', c.ok], ['existing', 'تراکنش/تصمیم موجود', c.existing], ['skipped', 'ارسال‌نشده', c.skipped], ['failed', 'ناموفق', c.failed], ['unknown', 'نامعلوم', c.unknown]];
     var sum = c.ok + c.existing + c.skipped + c.failed + c.unknown === c.requested;

@@ -1,5 +1,5 @@
 # SN-206 QA report (Finance design)
-Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **171 PASS, FAILS 0**.
+Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **178 PASS, FAILS 0**.
 **FINANCE ROLE RUNTIME IS NOT LIVE VERIFIED.** This QA exercises the design prototype on mock data only; no real non-Admin Finance account, no real evidence, bank, gateway or posting.
 
 | Pass | Scope | Result |
@@ -42,6 +42,8 @@ Codex review round 15 (head 9940ffc) — one P1 fixed and regression-tested: the
 Codex review round 16 (head ac8437f) — one P1 fixed and regression-tested: runs carry their complete intended key set in the snapshot, and the planner requires set equality between the lookup's keys and that snapshot (no omitted and no unrelated key), in addition to count agreement.
 
 Codex review round 17 (head 9c7fe2d) — one P1 fixed and regression-tested: the run signature now includes the snapshot key set, so altering it while a confirmation is open conflicts at commit.
+
+Codex review round 18 (head 1cdd508) — four findings fixed and regression-tested: authority is re-checked in the command handler at commit (UNAUTHORIZED result, deep links/flow helpers cannot bypass view-only; also bulk, retry, reconcile, handoff); approve/reject and bulk confirmations sign and recheck the complete payment/evidence snapshot; same-key ledger multiplicity (any state) is a reconcile conflict; run approve/post/tail/generate write audit events with actor, reason, before→after, run, outcome and correlation.
 
 Fixed during QA: queue table overflowed 1366 (11 columns, action column off-screen) → issue chips merged into the evidence cell, customer/reviewer columns demoted to ≥1500, total/paid/remaining to ≥1100 (priority columns); confirmation summary list lacked its grid class; QA assertions on Persian numerals and lifecycle-ribbon text.
 

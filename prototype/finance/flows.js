@@ -55,9 +55,11 @@
   };
   X.openSens = function (sp) { st.spec = sp; C.openDrawer('sens', sp.kind + ':' + (sp.id || 'x'), {}); };
   var tgt = function (r) { return r.inv + ' · مرحله ' + r.id + ' (' + r.purpose + ' ' + r.stage[0] + '/' + r.stage[1] + ')'; };
+  // Complete payment/evidence snapshot the reviewer confirmed (financial inputs + evidence identity + relationships + current decision state).
+  X.stageSig = function (r0) { var r = X.eff(r0), e = r.ev || {}; return JSON.stringify([r.inv, r.cs, r.lk, r.stage, r.purpose, r.claimed, r.valid, r.unit, r.total, r.paid, r.review, r.prior.length, e.k, e.ref, e.ver, e.amt, e.by, e.at, e.src, r.flags, r.dupOf || null, !!(r.stale && !X.localOf(r0).reloaded)]); };
   X.approveSpec = function (r0) {
     var r = X.eff(r0), im = X.impact(r);
-    return { kind: 'approve', id: r.id, evKey: r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '', title: 'تأیید مرحلهٔ پرداخت', subject: r.inv, zone: 'cond', needsReason: false, reasonLabel: 'مبنای تصمیم / مرجع', target: tgt(r), current: X.REV.pending.label + ' · مدرک ' + (r.ev ? r.ev.ref + ' ' + r.ev.ver : '—'), amount: X.amt(r.claimed, r.unit), resulting: 'تأیید مالی این مرحله (وصول کامل فاکتور جدا سنجیده می‌شود)',
+    return { kind: 'approve', id: r.id, snap: X.stageSig(r0), evKey: r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '', title: 'تأیید مرحلهٔ پرداخت', subject: r.inv, zone: 'cond', needsReason: false, reasonLabel: 'مبنای تصمیم / مرجع', target: tgt(r), current: X.REV.pending.label + ' · مدرک ' + (r.ev ? r.ev.ref + ' ' + r.ev.ver : '—'), amount: X.amt(r.claimed, r.unit), resulting: 'تأیید مالی این مرحله (وصول کامل فاکتور جدا سنجیده می‌شود)',
       changes: ['وضعیت بررسی مالی مرحله: در انتظار ← تأیید شد', 'وصول‌شدهٔ معتبر از ' + X.amtT(r.paid, r.unit) + ' به ' + X.amtT(im.np, r.unit) + ' (محاسبهٔ نمایشی)', 'مسئول بعدی: ' + (im.last ? 'قرارداد تکمیل فروش' : 'فروشنده (ادامهٔ فروش)')],
       unchanged: ['مدرک و نسخهٔ ثبت‌شده', 'تصمیم‌های قبلی (' + fa(r.prior.length) + ' مورد)', 'مالک اولیه و انتساب تاریخی', 'هیچ اعتبار کیف پول از این صفحه ثبت نمی‌شود'],
       affected: ['مرحله ' + r.id, 'فاکتور ' + r.inv, 'تاریخچهٔ ممیزی مرحله'],
@@ -66,7 +68,7 @@
   };
   X.rejectSpec = function (r0) {
     var r = X.eff(r0);
-    return { kind: 'reject', id: r.id, evKey: r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '', title: 'رد مرحلهٔ پرداخت با دلیل', subject: r.inv, zone: 'cond', needsReason: true, reasonLabel: 'دلیل رد (برای فروشنده و ممیزی)', target: tgt(r), current: X.REV.pending.label, amount: X.amt(r.claimed, r.unit), resulting: 'رد شد؛ بازگشت به فروشنده برای اصلاح',
+    return { kind: 'reject', id: r.id, snap: X.stageSig(r0), evKey: r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '', title: 'رد مرحلهٔ پرداخت با دلیل', subject: r.inv, zone: 'cond', needsReason: true, reasonLabel: 'دلیل رد (برای فروشنده و ممیزی)', target: tgt(r), current: X.REV.pending.label, amount: X.amt(r.claimed, r.unit), resulting: 'رد شد؛ بازگشت به فروشنده برای اصلاح',
       changes: ['وضعیت بررسی مالی مرحله: در انتظار ← رد شد', 'مسئول بعدی: فروشنده (اصلاح و ارسال دوباره)'],
       unchanged: ['مدرک و نسخه‌های قبلی', 'تأییدهای قبلی (بازنشانی نمی‌شود)', 'فاکتور حذف یا لغو نمی‌شود', 'هیچ استردادی ثبت نمی‌شود', 'تاریخچه پاک نمی‌شود'],
       affected: ['مرحله ' + r.id, 'فاکتور ' + r.inv, 'اعلان اصلاح به فروشنده'],
@@ -83,7 +85,7 @@
     }
     // Commit-time recheck of the LIVE stage (state, eligibility, evidence version) — never trusts the state the dialog was opened on.
     var cur = X.localOf(r0), live = X.elig(r0), evNow = r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '';
-    var why = cur.review !== 'pending' ? 'مرحله دیگر در انتظار نیست (' + X.REV[cur.review].label + ')' : (sp.kind === 'approve' ? live.blocked : !live.reject) ? 'مرحله اکنون واجد شرایط این تصمیم نیست' : (sp.evKey != null && sp.evKey !== evNow) ? 'نسخهٔ مدرک پس از باز شدن تأیید تغییر کرده است' : null;
+    var why = cur.review !== 'pending' ? 'مرحله دیگر در انتظار نیست (' + X.REV[cur.review].label + ')' : (sp.kind === 'approve' ? live.blocked : !live.reject) ? 'مرحله اکنون واجد شرایط این تصمیم نیست' : (sp.evKey != null && sp.evKey !== evNow) ? 'نسخهٔ مدرک پس از باز شدن تأیید تغییر کرده است' : (sp.snap != null && sp.snap !== X.stageSig(r0)) ? 'مبلغ، واحد، مدرک یا رابطهٔ فاکتور پس از باز شدن تأیید تغییر کرده است' : null;
     if (why) return X.newOp({ title: (sp.kind === 'approve' ? 'تأیید' : 'رد') + ' مرحله ' + r.id + ' — تعارض هنگام ثبت', kind: 'decision', requested: 1, conflict: true, items: [[r.inv + ' · ' + r.id, 'skipped', 'در بررسی نزدیک ثبت: ' + why + '؛ هیچ تغییری ثبت نشد', null, r.id]], note: 'ثبت انجام نشد و چیزی تغییر نکرد. تصمیم باید روی وضعیت فعلی دوباره بررسی شود.' });
     var pr = { res: sp.kind === 'approve' ? 'approved' : 'rejected', who: M.user.name, at: NOW, note: sp.reasonText || (sp.kind === 'approve' ? 'تأیید مرحله' : '') };
     var l = { review: pr.res, prior: r.prior.concat([pr]), rev: M.user.name, reloaded: true };
@@ -102,8 +104,10 @@
     var rows = selRows().map(function (r0) { var r = X.eff(r0), e = X.elig(r0); return '<tr><td><b class="mono">' + r.inv + '</b><span class="cell-sub mono">' + r.id + '</span></td><td>' + X.amt(r.claimed, r.unit) + '</td><td class="wrap">' + (e.blocked ? '<span class="neg">' + ic('xCircle') + ' ' + esc(e.checks.filter(function (c) { return c[0] === 'no'; })[0][1]) + '</span>' : '<span class="chk-ok">' + ic('checkCircle') + ' بدون مانع شناخته‌شده</span>') + '</td><td class="col-actions">' + open('rs', r.id, 'باز کردن') + '</td></tr>'; }).join('');
     return top('بررسی گروهی (فقط‌خواندنی)') + head('بررسی گروهی ' + fa(selRows().length) + ' مرحله', pill('فقط‌خواندنی', 'teal', 'eye'), '') + '<div class="dr-body"><section class="sec primary">' + ctxLine('این نما برای تریاژ است و هیچ تصمیمی ثبت نمی‌کند. هر ردیف جداگانه باز و بررسی می‌شود؛ تصمیم مالی بدون بررسی هر ردیف نیست.') + '<div class="tbl-wrap"><table class="tbl no-cursor" aria-label="بررسی گروهی"><caption class="sr">هر مرحله با مبلغ و واحد و مانع شناخته‌شده</caption><thead><tr><th>مرحله</th><th>مبلغ</th><th>مانع / آمادگی</th><th class="col-actions"><span class="sr">اقدام</span></th></tr></thead><tbody>' + rows + '</tbody></table></div></section></div>' + foot('', null, 'هیچ تغییری ثبت نشد');
   };
+  X.bulkSig = function () { return selRows().map(function (r0) { return r0.id + ':' + X.stageSig(r0); }).join('|'); };
   D.bulkapp = function () {
-    var keep = keepOf(), rows = selRows(), el = rows.map(function (r) { return [r, X.elig(r)]; }), ok = el.filter(function (x) { return !x[1].blocked; }), no = el.filter(function (x) { return x[1].blocked; });
+    var keep = keepOf(); if (keep.sig == null) keep.sig = X.bulkSig();
+    var rows = selRows(), el = rows.map(function (r) { return [r, X.elig(r)]; }), ok = el.filter(function (x) { return !x[1].blocked; }), no = el.filter(function (x) { return x[1].blocked; });
     var by = {}; ok.forEach(function (x) { var u = X.unitL(x[0].unit); by[u] = (by[u] || 0) + x[0].claimed; });
     var imp = Object.keys(by).map(function (u) { return fa(num(by[u])) + ' ' + u; }).join(' · ') || '—';
     var over = ok.length > 100;
@@ -254,7 +258,8 @@
       var native = rows.filter(function (t) { return t.id !== '—'; });                          // rows that already carry a native tx id
       var comKey = rows.filter(function (t) { return t.st === 'committed'; });
       var anyTx = M.ledger.filter(function (t) { return t.id === tx && t.key !== k; });          // same tx id under ANOTHER key, ANY state
-      if (seen[tx].length > 1) conflicts.push('جستجو شناسهٔ ' + tx + ' را به چند کلید نسبت داده');
+      if (rows.length > 1) conflicts.push('چند ردیف دفتر کل (هر وضعیتی) برای کلید ' + k + ' وجود دارد (' + fa(rows.length) + ')');
+      else if (seen[tx].length > 1) conflicts.push('جستجو شناسهٔ ' + tx + ' را به چند کلید نسبت داده');
       else if (anyTx.length) conflicts.push('شناسهٔ ' + tx + ' در دفتر کل با کلید دیگری آمده است');
       else if (native.some(function (t) { return t.id !== tx; })) conflicts.push('کلید ' + k + ' در دفتر کل (هر وضعیتی) با شناسهٔ ' + native.filter(function (t) { return t.id !== tx; })[0].id + ' آمده ولی جستجو ' + tx + ' را برگرداند');
       else if (comKey.length > 1) conflicts.push('چند تراکنش ثبت‌شده برای کلید ' + k);
@@ -298,7 +303,7 @@
     }) });
     return cnt;   // actual mint results — aggregate coverage is derived from these, not from precomputed totals
   };
-  X.commitRun = function (sp) {
+  X.commitRunCore = function (sp) {
     var r = X.runView(X.run(sp.id)), op;
     // Commit-time recheck of the LIVE run: state, coverage and item results must still match what the confirmation showed.
     if (sp.srcSig !== X.runSig(r)) return X.newOp({ title: sp.title + ' ' + r.id + ' — تعارض هنگام ثبت', kind: 'run', run: r.id, conflict: true, c: { requested: 1, eligible: 0, ok: 0, existing: 0, skipped: 1, failed: 0, unknown: 0 }, note: 'اجرا پس از باز شدن تأیید تغییر کرده است (از «' + X.RUN[sp.srcSt].label + '» به «' + X.RUN[r.st].label + '» یا پوشش/آیتم‌ها عوض شده)؛ هیچ تغییری ثبت نشد و باید روی وضعیت فعلی دوباره بررسی شود.' });
@@ -326,6 +331,14 @@
       delete st.lookups[r.id];
       pushAudit({ kind: 'ثبت نتیجهٔ تطبیق نامعلوم', inv: '—', cs: '—', ev: '—', amt: '—', ba: 'نامعلوم ← تطبیق‌شده', reason: sp.reasonText || '—', rev: '—', tx: 'کلیدها بررسی شد', key: r.id + '|…', run: r.id, res: 'موفق (نمایشی)', corr: 'C-' + (7800 + M.audit.length) });
       op = X.newOp({ title: 'ثبت تطبیق ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: lk.committed, skipped: lk.notCommitted, failed: 0, unknown: 0 }, note: 'فقط تطبیق ثبت شد؛ هیچ اعتبار جدیدی نوشته نشد. ' + fa(lk.notCommitted) + ' آیتم ثبت‌نشدهٔ اثبات‌شده برای ادامهٔ جدا می‌ماند.' });
+    }
+    return op;
+  };
+  var RUNACT = { rungen: 'تولید پیش‌نمایش اجرا', runapprove: 'تأیید اجرا', runpost: 'ثبت اجرا (APPLY)', runtail: 'ثبت دنبالهٔ اجرا', runrecon: 'ثبت نتیجهٔ تطبیق نامعلوم' };
+  X.commitRun = function (sp) {
+    var before = X.runView(X.run(sp.id)).st, op = X.commitRunCore(sp), after = X.runView(X.run(sp.id)), c = op ? X.counts(op) : null;
+    if (op && sp.kind !== 'runrecon') {   // runrecon already audits itself; every other run action leaves actor/reason/before→after/outcome/correlation
+      pushAudit({ kind: RUNACT[sp.kind] || sp.kind, inv: '—', cs: '—', ev: '—', amt: c ? fa(num(c.requested)) + ' آیتم' : '—', ba: X.RUN[before].label + ' ← ' + X.RUN[after.st].label + (op.conflict ? ' (تعارض؛ بدون تغییر)' : ''), reason: sp.reasonText || '—', rev: '—', tx: c && (c.ok || c.existing) ? fa(num(c.ok + c.existing)) + ' تراکنش (جزئیات در کنسول)' : 'ثبت نشده', key: sp.id + '|…', run: sp.id, res: X.OPS_S(X.opState(op))[0], corr: 'C-' + (7900 + M.audit.length) });
     }
     return op;
   };

@@ -42,15 +42,19 @@
       case 'run-recon': X.openSens(X.runReconSpec(X.runView(X.run(arg)))); return true;
       case 'commit-sens':
         sp = st.spec; if (!((!sp.needsReason || ok3(k.reason)) && k.ack)) { k.err = true; C.rerenderDrawer(); return true; } sp.reasonText = k.reason || '';
+        op = X.denied(sp.kind, sp.title); if (op) { result(op); return true; }   // action boundary: authority re-checked at commit, not only on buttons
         if (sp.kind === 'approve' || sp.kind === 'reject') op = X.commitDecision(sp); else op = X.commitRun(sp);
         if (op) result(op); return true;
-      case 'commit-bulkapp': if (!k.ack) { return true; } op = X.runBulkApp(); result(op); return true;
-      case 'retry-op': op = X.opOf(arg); var rr = X.retryFailed(op); C.render(); C.openDrawer('res', arg);
+      case 'commit-bulkapp': if (!k.ack) { return true; }
+        op = X.denied('bulkapp', 'تأیید گروهی'); if (op) { result(op); return true; }
+        if (k.sig != null && k.sig !== X.bulkSig()) { op = X.newOp({ title: 'تأیید گروهی — تعارض هنگام ثبت', kind: 'bulkapp', conflict: true, requested: 1, c: { requested: 1, eligible: 0, ok: 0, existing: 0, skipped: 1, failed: 0, unknown: 0 }, note: 'مرحله‌ها یا مبلغ/واحد/مدرک آن‌ها پس از باز شدن تأیید گروهی تغییر کرده است؛ هیچ تغییری ثبت نشد.' }); result(op); return true; }
+        op = X.runBulkApp(); result(op); return true;
+      case 'retry-op': if (X.denied('retry', 'تکرار', true)) { C.toast(X.can('approve').why, 'warning'); return true; } op = X.opOf(arg); var rr = X.retryFailed(op); C.render(); C.openDrawer('res', arg);
         if (!rr.ok) C.toast('تکرار انجام نشد: ' + fa(rr.conflict) + ' مورد با تعارض روبه‌رو شد و هیچ تغییری ثبت نشد.', 'warning');
         else if (rr.conflict) C.toast(fa(rr.ok) + ' مورد پس از بازخوانی تازه ثبت شد؛ ' + fa(rr.conflict) + ' مورد با تعارض ثبت نشد.', 'warning');
         else C.toast('تکرار فقط برای موارد ناموفق معلوم و پس از بازخوانی تازه انجام شد (نمایشی).', 'success'); return true;
-      case 'reconcile-op': op = X.opOf(arg); var unres = X.reconcileOp(op); C.render(); C.openDrawer('res', arg); if (unres) C.toast('تطبیق کامل نشد: نتیجهٔ ' + fa(unres) + ' مورد همچنان نامعلوم است (مدرک تغییر کرده).', 'warning'); else C.toast('تطبیق انجام شد؛ نتیجهٔ واقعی هر مورد مشخص شد (نمایشی).', 'info'); return true;
-      case 'issue-handoff': C.closeDrawer(); C.toast('ارجاع با مالک، زمان و مسئول ثبت شد (نمایشی). مسئله هنوز حل‌شده نیست؛ مدرک حل لازم است.', 'info'); return true;
+      case 'reconcile-op': if (X.denied('reconcileop', 'تطبیق', true)) { C.toast(X.can('approve').why, 'warning'); return true; } op = X.opOf(arg); var unres = X.reconcileOp(op); C.render(); C.openDrawer('res', arg); if (unres) C.toast('تطبیق کامل نشد: نتیجهٔ ' + fa(unres) + ' مورد همچنان نامعلوم است (مدرک تغییر کرده).', 'warning'); else C.toast('تطبیق انجام شد؛ نتیجهٔ واقعی هر مورد مشخص شد (نمایشی).', 'info'); return true;
+      case 'issue-handoff': if (X.denied('handoff', 'ارجاع', true)) { C.toast(X.can('reconcile').why, 'warning'); return true; } C.closeDrawer(); C.toast('ارجاع با مالک، زمان و مسئول ثبت شد (نمایشی). مسئله هنوز حل‌شده نیست؛ مدرک حل لازم است.', 'info'); return true;
       case 'diag-ro': C.toast('تشخیص خواندنی انجام شد (نمایشی): هیچ داده یا مانده‌ای تغییر نکرد.', 'info'); return true;
       case 'perm': st.perm = arg; C.render(); C.toast(arg === 'view' ? 'شبیه‌سازی «فقط مشاهده»: اقدام‌های نوشتنی اکنون غیرفعال‌اند.' : 'شبیه‌سازی طرح هدف با اختیار فرضی؛ اجرای واقعی تأیید نشده است.', 'info'); return true;
       case 'x': return true;
