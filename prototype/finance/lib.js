@@ -51,7 +51,7 @@
     return { ok: true, why: '' };
   };
   // The COMMAND HANDLER is the action boundary: every commit re-checks authority, whatever opened the dialog (buttons, deep links, flow helpers).
-  X.PKIND = { approve: 'approve', reject: 'reject', rungen: 'runapprove', runapprove: 'runapprove', runpost: 'post', runtail: 'post', runrecon: 'reconcile', bulkapp: 'approve', retry: 'approve', reconcileop: 'approve', handoff: 'reconcile' };
+  X.PKIND = { approve: 'approve', reject: 'reject', rungen: 'runapprove', runapprove: 'runapprove', runpost: 'post', runtail: 'post', runrecon: 'reconcile', bulkapp: 'approve', retry: 'approve', reconcileop: 'reconcile', handoff: 'reconcile' };
   X.denied = function (kind, title, quiet) {
     var g = X.can(X.PKIND[kind]); if (g.ok) return null;
     if (quiet) return { why: g.why };

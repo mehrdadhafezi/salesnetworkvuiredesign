@@ -56,7 +56,7 @@
   X.openSens = function (sp) { st.spec = sp; C.openDrawer('sens', sp.kind + ':' + (sp.id || 'x'), {}); };
   var tgt = function (r) { return r.inv + ' · مرحله ' + r.id + ' (' + r.purpose + ' ' + r.stage[0] + '/' + r.stage[1] + ')'; };
   // Complete payment/evidence snapshot the reviewer confirmed (financial inputs + evidence identity + relationships + current decision state).
-  X.stageSig = function (r0) { var r = X.eff(r0), e = r.ev || {}; return JSON.stringify([r.inv, r.cs, r.lk, r.stage, r.purpose, r.claimed, r.valid, r.unit, r.total, r.paid, r.review, r.prior.length, e.k, e.ref, e.ver, e.amt, e.by, e.at, e.src, r.flags, r.dupOf || null, !!(r.stale && !X.localOf(r0).reloaded)]); };
+  X.stageSig = function (r0) { var r = X.eff(r0), e = r.ev || {}; return JSON.stringify([r.inv, r.cs, r.lk, r.src, r.cust, r.seller, r.team, r.stage, r.purpose, r.claimed, r.valid, r.unit, r.total, r.paid, r.review, r.prior.length, e.k, e.ref, e.ver, e.amt, e.by, e.at, e.src, r.flags, r.dupOf || null, !!(r.stale && !X.localOf(r0).reloaded)]); };
   X.approveSpec = function (r0) {
     var r = X.eff(r0), im = X.impact(r);
     return { kind: 'approve', id: r.id, snap: X.stageSig(r0), evKey: r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '', title: 'تأیید مرحلهٔ پرداخت', subject: r.inv, zone: 'cond', needsReason: false, reasonLabel: 'مبنای تصمیم / مرجع', target: tgt(r), current: X.REV.pending.label + ' · مدرک ' + (r.ev ? r.ev.ref + ' ' + r.ev.ver : '—'), amount: X.amt(r.claimed, r.unit), resulting: 'تأیید مالی این مرحله (وصول کامل فاکتور جدا سنجیده می‌شود)',
@@ -251,6 +251,8 @@
     // The validation set is EVERY key the lookup mentions (not only the displayed sample rows).
     var keys = Object.keys(by), committed = keys.filter(function (k) { return by[k] === 'committed'; }), notC = keys.filter(function (k) { return by[k] === 'notCommitted'; });
     var seen = {}; committed.forEach(function (k) { if (tb[k]) (seen[tb[k]] = seen[tb[k]] || []).push(k); });
+    // Same-key ledger multiplicity (ANY state) for EVERY key the lookup mentions, committed or not.
+    keys.forEach(function (k) { var n = M.ledger.filter(function (t) { return t.key === k; }).length; if (n > 1) conflicts.push('چند ردیف دفتر کل (هر وضعیتی) برای کلید ' + k + ' وجود دارد (' + fa(n) + ')'); });
     committed.forEach(function (k) {
       var tx = tb[k];
       if (!tx) { conflicts.push('کلید ' + k + ' ثبت‌شده گزارش شد ولی شناسهٔ تراکنش بومی ندارد (نتیجهٔ جستجو ناقص است)'); return; }   // committed claim without a native tx identity = incomplete whole-lookup plan
@@ -258,8 +260,8 @@
       var native = rows.filter(function (t) { return t.id !== '—'; });                          // rows that already carry a native tx id
       var comKey = rows.filter(function (t) { return t.st === 'committed'; });
       var anyTx = M.ledger.filter(function (t) { return t.id === tx && t.key !== k; });          // same tx id under ANOTHER key, ANY state
-      if (rows.length > 1) conflicts.push('چند ردیف دفتر کل (هر وضعیتی) برای کلید ' + k + ' وجود دارد (' + fa(rows.length) + ')');
-      else if (seen[tx].length > 1) conflicts.push('جستجو شناسهٔ ' + tx + ' را به چند کلید نسبت داده');
+      if (rows.length > 1) return;   // already reported above
+      if (seen[tx].length > 1) conflicts.push('جستجو شناسهٔ ' + tx + ' را به چند کلید نسبت داده');
       else if (anyTx.length) conflicts.push('شناسهٔ ' + tx + ' در دفتر کل با کلید دیگری آمده است');
       else if (native.some(function (t) { return t.id !== tx; })) conflicts.push('کلید ' + k + ' در دفتر کل (هر وضعیتی) با شناسهٔ ' + native.filter(function (t) { return t.id !== tx; })[0].id + ' آمده ولی جستجو ' + tx + ' را برگرداند');
       else if (comKey.length > 1) conflicts.push('چند تراکنش ثبت‌شده برای کلید ' + k);
@@ -329,7 +331,6 @@
       if (still) { setRun(r.id, { note: 'جستجو برای ' + fa(still) + ' آیتم نمونه نتیجهٔ قطعی نداد؛ اجرا «نتیجه نامعلوم» می‌ماند و تطبیق کامل نشده است.' }); delete st.lookups[r.id]; op = X.newOp({ title: 'تطبیق ناقص ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'برخی کلیدها حل نشد؛ نتیجهٔ اجرا نامعلوم می‌ماند و تکرار کور مسدود است.' }); return op; }
       setRun(r.id, { st: 'reconciled', tail: lk.notCommitted > 0, cov: { intended: r.intended, processed: lk.committed, posted: 0, existing: lk.committed, failed: 0, unprocessed: lk.notCommitted, unknown: 0 }, note: 'با جستجوی تراکنش/کلید تطبیق شد: ' + fa(lk.committed) + ' آیتم ثبت‌شده بود و ثبت‌نشدن ' + fa(lk.notCommitted) + ' آیتم اثبات شد.' });
       delete st.lookups[r.id];
-      pushAudit({ kind: 'ثبت نتیجهٔ تطبیق نامعلوم', inv: '—', cs: '—', ev: '—', amt: '—', ba: 'نامعلوم ← تطبیق‌شده', reason: sp.reasonText || '—', rev: '—', tx: 'کلیدها بررسی شد', key: r.id + '|…', run: r.id, res: 'موفق (نمایشی)', corr: 'C-' + (7800 + M.audit.length) });
       op = X.newOp({ title: 'ثبت تطبیق ' + r.id, kind: 'run', run: r.id, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: lk.committed, skipped: lk.notCommitted, failed: 0, unknown: 0 }, note: 'فقط تطبیق ثبت شد؛ هیچ اعتبار جدیدی نوشته نشد. ' + fa(lk.notCommitted) + ' آیتم ثبت‌نشدهٔ اثبات‌شده برای ادامهٔ جدا می‌ماند.' });
     }
     return op;
@@ -337,8 +338,13 @@
   var RUNACT = { rungen: 'تولید پیش‌نمایش اجرا', runapprove: 'تأیید اجرا', runpost: 'ثبت اجرا (APPLY)', runtail: 'ثبت دنبالهٔ اجرا', runrecon: 'ثبت نتیجهٔ تطبیق نامعلوم' };
   X.commitRun = function (sp) {
     var before = X.runView(X.run(sp.id)).st, op = X.commitRunCore(sp), after = X.runView(X.run(sp.id)), c = op ? X.counts(op) : null;
-    if (op && sp.kind !== 'runrecon') {   // runrecon already audits itself; every other run action leaves actor/reason/before→after/outcome/correlation
-      pushAudit({ kind: RUNACT[sp.kind] || sp.kind, inv: '—', cs: '—', ev: '—', amt: c ? fa(num(c.requested)) + ' آیتم' : '—', ba: X.RUN[before].label + ' ← ' + X.RUN[after.st].label + (op.conflict ? ' (تعارض؛ بدون تغییر)' : ''), reason: sp.reasonText || '—', rev: '—', tx: c && (c.ok || c.existing) ? fa(num(c.ok + c.existing)) + ' تراکنش (جزئیات در کنسول)' : 'ثبت نشده', key: sp.id + '|…', run: sp.id, res: X.OPS_S(X.opState(op))[0], corr: 'C-' + (7900 + M.audit.length) });
+    if (op) {   // EVERY run action (success, partial, unknown, conflict, incomplete) leaves actor/reason/before→after/outcome/correlation
+      var meta = sp.kind === 'rungen' || sp.kind === 'runapprove', unk = after.st === 'unknown' || (c && c.unknown), tx;
+      if (op.conflict) tx = 'هیچ (تعارض؛ بدون تغییر)';
+      else if (meta) tx = 'هیچ (' + (sp.kind === 'rungen' ? 'فقط فراداده' : 'تأیید ≠ ثبت') + ')';
+      else if (unk) tx = 'نامعلوم (ممکن است ثبت شده باشد)';
+      else tx = (c.ok ? fa(num(c.ok)) + ' جدید' : '') + (c.ok && c.existing ? ' · ' : '') + (c.existing ? fa(num(c.existing)) + ' موجود' : '') || 'هیچ';
+      pushAudit({ kind: RUNACT[sp.kind] || sp.kind, inv: '—', cs: '—', ev: '—', amt: c ? fa(num(c.requested)) + ' آیتم' : '—', ba: X.RUN[before].label + ' ← ' + X.RUN[after.st].label + (op.conflict ? ' (تعارض؛ بدون تغییر)' : ''), reason: sp.reasonText || '—', rev: '—', tx: tx, key: sp.id + '|…', run: sp.id, res: X.OPS_S(X.opState(op))[0], corr: 'C-' + (7900 + M.audit.length) });
     }
     return op;
   };
