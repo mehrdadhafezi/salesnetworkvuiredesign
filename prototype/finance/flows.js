@@ -263,6 +263,8 @@
     // Completeness: every displayed Unknown item must be resolved by the lookup, and key-level results must cover and agree with the aggregate counts.
     r.items.forEach(function (it) { if (it[4] === 'unknown' && !by[it[1]]) conflicts.push('آیتم ' + it[1] + ' در نتیجهٔ جستجو نیست (نتیجهٔ جستجو ناقص است)'); });
     if (committed.length !== lk.committed || notC.length !== lk.notCommitted) conflicts.push('نتیجهٔ جستجو در سطح کلید (' + fa(committed.length) + ' ثبت‌شده / ' + fa(notC.length) + ' ثبت‌نشده) با شمارش‌های تجمیعی (' + fa(lk.committed) + ' / ' + fa(lk.notCommitted) + ') نمی‌خواند');
+    // The complete key set AND the aggregate total must both equal the run intent — no outcome may be silently dropped.
+    if (committed.length + notC.length !== r.intended || lk.committed + lk.notCommitted !== r.intended) conflicts.push('نتیجهٔ جستجو همهٔ آیتم‌های اجرا را پوشش نمی‌دهد (کلیدها ' + fa(committed.length + notC.length) + '، مجموع تجمیعی ' + fa(lk.committed + lk.notCommitted) + '، نیت اجرا ' + fa(r.intended) + ')');
     return { conflicts: conflicts };
   };
   // APPLY (only after a conflict-free plan): link the found transactions; never mint.

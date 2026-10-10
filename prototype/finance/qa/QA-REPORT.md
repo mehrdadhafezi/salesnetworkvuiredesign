@@ -1,5 +1,5 @@
 # SN-206 QA report (Finance design)
-Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **168 PASS, FAILS 0**.
+Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **169 PASS, FAILS 0**.
 **FINANCE ROLE RUNTIME IS NOT LIVE VERIFIED.** This QA exercises the design prototype on mock data only; no real non-Admin Finance account, no real evidence, bank, gateway or posting.
 
 | Pass | Scope | Result |
@@ -36,6 +36,8 @@ Codex review round 12 (head 8bbb569) — two P1 fixed and regression-tested: the
 Codex review round 13 (head ce388e2) — one P1 fixed and regression-tested: a lookup key reported committed without a native tx id makes the whole lookup an incomplete/conflicting plan (nothing applied; run stays Unknown).
 
 Codex review round 14 (head 5feaa1e) — two P1 fixed and regression-tested: displayed-item completeness is validated in the pure planning phase (before any ledger/item mutation), and a lookup's key-level results must cover and agree with its aggregate counts (mock lookups now enumerate every key with native tx ids). The planner's 12 contradiction/incompleteness cases each assert a specific reason with ledger and items byte-identical.
+
+Codex review round 15 (head 9940ffc) — one P1 fixed and regression-tested: the planner requires the lookup's complete key set AND its aggregate total to equal the run intent, so a consistently-short lookup cannot silently drop an unresolved item.
 
 Fixed during QA: queue table overflowed 1366 (11 columns, action column off-screen) → issue chips merged into the evidence cell, customer/reviewer columns demoted to ≥1500, total/paid/remaining to ≥1100 (priority columns); confirmation summary list lacked its grid class; QA assertions on Persian numerals and lifecycle-ribbon text.
 
