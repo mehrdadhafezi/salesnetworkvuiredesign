@@ -21,6 +21,7 @@ class SN_HR_Service {
 		'sn_financial',
 		'sn_financial_approval',
 		'sn_finance',
+		'sn_invoice_reviewer',
 		'sn_after_sales',
 		'sn_project_manager',
 		'sn_project_expert',
@@ -522,6 +523,7 @@ class SN_HR_Service {
 			'senior_supervisor' => [ 'panel_key' => 'senior_supervisor_panel', 'panel_label' => 'پنل سرپرست ارشد', 'shortcode' => 'sn_senior_supervisor_panel', 'route_type' => 'real_shortcode' ],
 			'sales_manager' => [ 'panel_key' => 'sales_manager_panel', 'panel_label' => 'پنل مدیر فروش', 'shortcode' => 'sn_sales_manager_panel', 'route_type' => 'existing_shortcode' ],
 			'sales_deputy' => [ 'panel_key' => 'sales_deputy_panel', 'panel_label' => 'پنل معاون فروش', 'shortcode' => 'sn_sales_deputy_panel', 'route_type' => 'real_shortcode' ],
+			'invoice_reviewer' => [ 'panel_key' => 'invoice_review_panel', 'panel_label' => 'پنل بررسی فاکتور', 'shortcode' => 'sn_invoice_review_panel', 'route_type' => 'real_shortcode' ],
 			'finance' => [ 'panel_key' => 'finance_panel', 'panel_label' => 'پنل مالی', 'shortcode' => 'sn_financial_panel', 'route_type' => 'existing_shortcode' ],
 			'hr' => [ 'panel_key' => 'hr_panel', 'panel_label' => 'پنل منابع انسانی', 'shortcode' => 'sn_hr_panel', 'route_type' => 'real_shortcode' ],
 			'mis' => [ 'panel_key' => 'mis_panel', 'panel_label' => 'پنل MIS', 'shortcode' => 'sn_mis_panel', 'route_type' => 'real_shortcode' ],
@@ -549,6 +551,7 @@ class SN_HR_Service {
 		if ( in_array( $legacy_role, [ 'sn_sales_manager', 'sas_sales_manager' ], true ) ) { return 'sales_manager'; }
 		if ( $legacy_role === 'sn_sales_deputy' ) { return 'sales_deputy'; }
 		if ( in_array( $legacy_role, [ 'sn_financial', 'sn_financial_approval', 'sn_finance' ], true ) ) { return 'finance'; }
+		if ( $legacy_role === 'sn_invoice_reviewer' ) { return 'invoice_reviewer'; }
 		if ( $legacy_role === 'sn_hr' ) { return 'hr'; }
 		if ( $legacy_role === 'sn_mis' ) { return 'mis'; }
 		if ( $legacy_role === 'sn_after_sales' ) { return 'after_sales'; }

@@ -3,7 +3,7 @@
  * Plugin Name: Sales Network (شبکه فروش)
  * Plugin URI:  https://example.com
  * Description: مدیریت فروشندگان، تخصیص شماره و صدور فاکتور با پرداخت آنلاین یا کارت به کارت
- * Version: 2.0.156
+ * Version: 2.0.160
  * Author:      M.Hafezi & A.Nazari
  * Text Domain: sn
  * Domain Path: /languages
@@ -15,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SN_VERSION', '2.0.156' );
-define( 'SN_BUILD', '2026-10-07-product-card-sync' );
+define( 'SN_VERSION', '2.0.160' );
+define( 'SN_BUILD', '2026-10-10-finance-dialog-layout' );
 define( 'SN_PERF_INDEX_VERSION', '2026-07-21-invoice-hierarchy-export-v1' );
 define( 'SN_PLUGIN_FILE', __FILE__ );
 define( 'SN_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
@@ -58,6 +58,8 @@ add_filter( 'logout_redirect', 'sn_biavin_logout_redirect', 20, 3 );
 require_once SN_PLUGIN_DIR . 'includes/class-sn-activator.php';
 require_once SN_PLUGIN_DIR . 'includes/class-sn-helpers.php';
 require_once SN_PLUGIN_DIR . 'includes/class-sn-payment-transactions.php';
+require_once SN_PLUGIN_DIR . 'includes/class-sn-invoice-review.php';
+SN_Invoice_Review::register_hooks();
 require_once SN_PLUGIN_DIR . 'includes/class-sn-sales-catalog.php';
 SN_Sales_Catalog::instance()->register_hooks();
 require_once SN_PLUGIN_DIR . 'includes/class-sn-dot-flow.php';
@@ -172,6 +174,7 @@ function sn_bootstrap_shortcodes(): array {
 		'sn_after_sales_panel' => 'render_after_sales_panel',
 		'sn_financial_auth' => 'render_financial_auth',
 		'sn_financial_panel' => 'render_financial_panel',
+		'sn_invoice_review_panel' => 'render_invoice_review_panel',
 		'sn_hr_panel' => 'render_hr_panel',
 		'sn_mis_panel' => 'render_mis_panel',
 		'sn_customer_profile' => 'render_customer_profile',
@@ -251,7 +254,7 @@ function sn_bootstrap_hide_admin_bar_for_front_roles(): void {
 	if ( ! is_user_logged_in() || current_user_can( 'manage_options' ) ) { return; }
 	$user = wp_get_current_user();
 	$roles = (array) ( $user->roles ?? [] );
-	if ( array_intersect( $roles, [ 'sn_supervisor', 'sn_senior_supervisor', 'sn_sales_deputy', 'sn_seller', 'sn_converter', 'sn_hr', 'sn_mis', 'sn_finance', 'sn_after_sales', 'sn_sales_manager', 'sn_financial', 'sn_financial_approval', 'sn_campaign_partner', 'sn_shipping_expert', 'sn_operations_sales_manager', 'sn_operations_sales_supervisor', 'sn_operations_sales_expert', 'sn_operations_executive_manager', 'sn_operations_execution_expert' ] ) ) {
+	if ( array_intersect( $roles, [ 'sn_supervisor', 'sn_senior_supervisor', 'sn_sales_deputy', 'sn_seller', 'sn_converter', 'sn_hr', 'sn_mis', 'sn_finance', 'sn_invoice_reviewer', 'sn_after_sales', 'sn_sales_manager', 'sn_financial', 'sn_financial_approval', 'sn_campaign_partner', 'sn_shipping_expert', 'sn_operations_sales_manager', 'sn_operations_sales_supervisor', 'sn_operations_sales_expert', 'sn_operations_executive_manager', 'sn_operations_execution_expert' ] ) ) {
 		show_admin_bar( false );
 	}
 }

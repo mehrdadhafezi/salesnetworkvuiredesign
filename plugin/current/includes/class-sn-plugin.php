@@ -336,6 +336,7 @@ class SN_Plugin
 		add_shortcode('sn_after_sales_panel', [$this, 'render_after_sales_panel']);
 		add_shortcode('sn_financial_auth', [$this, 'render_financial_auth']);
 		add_shortcode('sn_financial_panel', [$this, 'render_financial_panel']);
+		add_shortcode('sn_invoice_review_panel', [$this, 'render_invoice_review_panel']);
 		add_shortcode('sn_hr_panel',        [$this, 'render_hr_panel']);
 		add_shortcode('sn_mis_panel',       [$this, 'render_mis_panel']);
 		add_shortcode('sn_customer_profile', [$this, 'render_customer_profile']);
@@ -361,6 +362,11 @@ class SN_Plugin
 		add_shortcode('sn_operations_sales_expert_panel', [$this, 'render_operations_sales_expert_panel']);
 		add_shortcode('sn_operations_executive_manager_panel', [$this, 'render_operations_executive_manager_panel']);
 		add_shortcode('sn_operations_execution_expert_panel', [$this, 'render_operations_execution_expert_panel']);
+	}
+
+	public function render_invoice_review_panel(): string
+	{
+		return SN_Invoice_Review::render();
 	}
 
 	public function render_dot_customer_flow(): string
@@ -402,7 +408,7 @@ class SN_Plugin
 
 	private function sn_front_shortcodes_for_assets(): array
 	{
-		return ['sn_seller_panel','sn_supervisor_panel','sn_senior_supervisor_panel','sn_sales_manager_auth','sn_sales_manager_panel','sn_after_sales_panel','sn_financial_auth','sn_financial_panel','sn_hr_panel','sn_mis_panel','sn_customer_profile','sn_reports_panel','sn_portal_nav','sn_invoice_page','sn_login','sn_unified_login','sn_auth','sn_supervisor_auth','sn_my_panel','sn_my_password','sn_admin_front_dashboard','sn_sales_deputy_panel','sn_dot_customer_flow','sn_dot_converter_panel','sn_project_manager_panel','sn_project_expert_panel','sn_shipping_panel','sn_operations_sales_manager_panel','sn_operations_sales_supervisor_panel','sn_operations_sales_expert_panel','sn_operations_executive_manager_panel','sn_operations_execution_expert_panel'];
+		return ['sn_seller_panel','sn_supervisor_panel','sn_senior_supervisor_panel','sn_sales_manager_auth','sn_sales_manager_panel','sn_after_sales_panel','sn_financial_auth','sn_financial_panel','sn_invoice_review_panel','sn_hr_panel','sn_mis_panel','sn_customer_profile','sn_reports_panel','sn_portal_nav','sn_invoice_page','sn_login','sn_unified_login','sn_auth','sn_supervisor_auth','sn_my_panel','sn_my_password','sn_admin_front_dashboard','sn_sales_deputy_panel','sn_dot_customer_flow','sn_dot_converter_panel','sn_project_manager_panel','sn_project_expert_panel','sn_shipping_panel','sn_operations_sales_manager_panel','sn_operations_sales_supervisor_panel','sn_operations_sales_expert_panel','sn_operations_executive_manager_panel','sn_operations_execution_expert_panel'];
 	}
 
 	private function sn_current_front_request_has_shortcode_reference(string $shortcode): bool
@@ -1782,6 +1788,7 @@ class SN_Plugin
 			'sales_manager' => 'sales_manager',
 			'sales_deputy' => 'sales_deputy',
 			'finance' => 'finance',
+			'invoice_reviewer' => 'invoice_review',
 			'hr' => 'hr',
 			'mis' => 'mis',
 			'after_sales' => 'after_sales',
@@ -1828,8 +1835,8 @@ class SN_Plugin
 		if (user_can($user_id, 'manage_options')) { return true; }
 		if (user_can($user_id, 'sn_view_campaign_reports')) { return true; }
 		$position = $this->sn_fast_hr_position_for_user($user_id);
-		if (in_array($position, ['seller','supervisor','converter','senior_supervisor','sales_manager','sales_deputy','finance','hr','mis','after_sales','project_manager','project_expert','shipping_expert','operations_sales_manager','operations_sales_supervisor','operations_sales_expert','operations_executive_manager','operations_execution_expert'], true)) { return true; }
-		$crm_roles = ['sn_seller','sas_employee','sn_supervisor','sas_supervisor','sn_converter','sn_senior_supervisor','sas_senior_supervisor','sn_sales_manager','sas_sales_manager','sn_sales_deputy','sn_financial','sn_financial_approval','sn_finance','sn_hr','sn_mis','sn_after_sales','sn_project_manager','sn_project_expert','sn_shipping_expert','sn_operations_sales_manager','sn_operations_sales_supervisor','sn_operations_sales_expert','sn_operations_executive_manager','sn_operations_execution_expert'];
+		if (in_array($position, ['seller','supervisor','converter','senior_supervisor','sales_manager','sales_deputy','finance','invoice_reviewer','hr','mis','after_sales','project_manager','project_expert','shipping_expert','operations_sales_manager','operations_sales_supervisor','operations_sales_expert','operations_executive_manager','operations_execution_expert'], true)) { return true; }
+		$crm_roles = ['sn_seller','sas_employee','sn_supervisor','sas_supervisor','sn_converter','sn_senior_supervisor','sas_senior_supervisor','sn_sales_manager','sas_sales_manager','sn_sales_deputy','sn_financial','sn_financial_approval','sn_finance','sn_invoice_reviewer','sn_hr','sn_mis','sn_after_sales','sn_project_manager','sn_project_expert','sn_shipping_expert','sn_operations_sales_manager','sn_operations_sales_supervisor','sn_operations_sales_expert','sn_operations_executive_manager','sn_operations_execution_expert'];
 		return (bool) array_intersect(array_map('sanitize_key', (array) $user->roles), $crm_roles);
 	}
 
@@ -2032,7 +2039,7 @@ class SN_Plugin
 		if (current_user_can('manage_options')) {
 			return;
 		}
-		if (array_intersect($roles, ['sn_supervisor','sn_senior_supervisor','sn_sales_deputy','sn_seller','sn_converter','sn_hr','sn_mis','sn_finance','sn_financial','sn_financial_approval','sn_after_sales','sn_sales_manager','sn_campaign_partner','sn_project_manager','sn_project_expert','sn_shipping_expert','sn_operations_sales_manager','sn_operations_sales_supervisor','sn_operations_sales_expert','sn_operations_executive_manager','sn_operations_execution_expert'])) {
+		if (array_intersect($roles, ['sn_supervisor','sn_senior_supervisor','sn_sales_deputy','sn_seller','sn_converter','sn_hr','sn_mis','sn_finance','sn_invoice_reviewer','sn_financial','sn_financial_approval','sn_after_sales','sn_sales_manager','sn_campaign_partner','sn_project_manager','sn_project_expert','sn_shipping_expert','sn_operations_sales_manager','sn_operations_sales_supervisor','sn_operations_sales_expert','sn_operations_executive_manager','sn_operations_execution_expert'])) {
 			show_admin_bar(false);
 		}
 	}
@@ -2048,6 +2055,7 @@ class SN_Plugin
 			'sn_supervisor' => ['سرپرست فروش', []], 'sn_senior_supervisor' => ['سرپرست ارشد فروش', []],
 			'sn_sales_deputy' => ['معاون فروش', []], 'sn_seller' => ['فروشنده', []],
 			'sn_converter' => ['تبدیل‌کننده', ['sn_manage_dot_conversion']],
+			'sn_invoice_reviewer' => ['بررسی فاکتور', ['sn_review_invoices']],
 			'sn_hr' => ['منابع انسانی', []], 'sn_mis' => ['MIS', []], 'sn_finance' => ['مالی', []],
 			'sn_after_sales' => ['خدمات پس از فروش', ['sn_view_customer_profiles']],
 			'sn_sales_manager' => ['مدیر فروش', ['sn_view_sales_reports', 'sn_manage_supervisor_leads', 'sn_export_sales_reports']],
@@ -7501,6 +7509,7 @@ class SN_Plugin
 			'sales_manager_panel' => 'sales_manager',
 			'sales_deputy_panel' => 'sales_deputy',
 			'finance_panel' => 'finance',
+			'invoice_review_panel' => 'invoice_review',
 			'hr_panel' => 'hr',
 			'mis_panel' => 'mis',
 			'after_sales_panel' => 'after_sales',
@@ -7535,6 +7544,7 @@ class SN_Plugin
 			'senior_supervisor' => ['title' => 'پنل سرپرست ارشد', 'slug' => 'crm-senior-supervisor', 'shortcode' => 'sn_senior_supervisor_panel', 'option' => 'sn_senior_supervisor_panel_page_id', 'include_nav' => true, 'nav_label' => 'سرپرست ارشد'],
 			'sales_manager' => ['title' => 'پنل مدیر فروش', 'slug' => 'crm-sales-manager', 'shortcode' => 'sn_sales_manager_panel', 'option' => 'sn_sales_manager_panel_page_id', 'include_nav' => true, 'nav_label' => 'مدیر فروش'],
 			'sales_deputy' => ['title' => 'پنل معاون فروش', 'slug' => 'crm-sales-deputy', 'shortcode' => 'sn_sales_deputy_panel', 'option' => 'sn_sales_deputy_panel_page_id', 'include_nav' => true, 'nav_label' => 'معاون فروش'],
+			'invoice_review' => ['title' => 'پنل بررسی فاکتور', 'slug' => 'crm-invoice-review', 'shortcode' => 'sn_invoice_review_panel', 'option' => 'sn_invoice_review_panel_page_id', 'include_nav' => true, 'nav_label' => 'بررسی فاکتور'],
 			'finance' => ['title' => 'پنل مالی', 'slug' => 'crm-finance', 'shortcode' => 'sn_financial_panel', 'option' => 'sn_financial_panel_page_id', 'include_nav' => true, 'nav_label' => 'مالی'],
 			'hr' => ['title' => 'پنل منابع انسانی', 'slug' => 'crm-hr', 'shortcode' => 'sn_hr_panel', 'option' => 'sn_hr_panel_page_id', 'include_nav' => true, 'nav_label' => 'منابع انسانی'],
 			'mis' => ['title' => 'پنل MIS', 'slug' => 'crm-mis', 'shortcode' => 'sn_mis_panel', 'option' => 'sn_mis_panel_page_id', 'include_nav' => true, 'nav_label' => 'MIS'],
@@ -7910,6 +7920,7 @@ class SN_Plugin
 		if ($key === 'sales_deputy') {
 			return $this->sn_user_has_hr_position($user_id, 'sales_deputy') || in_array('sn_sales_deputy', (array) wp_get_current_user()->roles, true);
 		}
+		if ($key === 'invoice_review') { return SN_Invoice_Review::allowed(); }
 		if ($key === 'finance') {
 			return $this->sn_can_view_finance();
 		}
@@ -8134,6 +8145,7 @@ class SN_Plugin
 			'senior_supervisor_panel' => ['implemented' => true, 'uses_existing_shortcode' => false, 'existing_shortcode' => 'sn_senior_supervisor_panel', 'needs_new_panel' => false, 'notes' => 'dedicated read-only phase-one panel'],
 			'sales_manager_panel' => ['implemented' => true, 'uses_existing_shortcode' => true, 'existing_shortcode' => 'sn_sales_manager_panel', 'needs_new_panel' => false, 'notes' => 'existing sales manager panel'],
 			'sales_deputy_panel' => ['implemented' => true, 'uses_existing_shortcode' => false, 'existing_shortcode' => 'sn_sales_deputy_panel', 'needs_new_panel' => false, 'notes' => 'scope dashboard plus safe V4 number allocation workflow'],
+			'invoice_review_panel' => ['implemented' => true, 'uses_existing_shortcode' => false, 'existing_shortcode' => 'sn_invoice_review_panel', 'needs_new_panel' => false, 'notes' => 'read-only cross-team invoice review'],
 			'finance_panel' => ['implemented' => true, 'uses_existing_shortcode' => true, 'existing_shortcode' => 'sn_financial_panel', 'needs_new_panel' => false, 'notes' => 'existing finance panel'],
 			'hr_panel' => ['implemented' => true, 'uses_existing_shortcode' => false, 'existing_shortcode' => 'sn_hr_panel', 'needs_new_panel' => false, 'notes' => 'base HR structure panel'],
 			'mis_panel' => ['implemented' => true, 'uses_existing_shortcode' => false, 'existing_shortcode' => 'sn_mis_panel', 'needs_new_panel' => false, 'notes' => 'base MIS import/staging panel'],
@@ -8162,6 +8174,7 @@ class SN_Plugin
 			'sales_manager' => 'sales_manager',
 			'sales_deputy' => 'sales_deputy',
 			'finance' => 'finance',
+			'invoice_reviewer' => 'invoice_review',
 			'hr' => 'hr',
 			'mis' => 'mis',
 			'after_sales' => 'after_sales',
@@ -8191,6 +8204,7 @@ class SN_Plugin
 			'sn_financial' => 'sn_financial_panel_page_id',
 			'sn_financial_approval' => 'sn_financial_panel_page_id',
 			'sn_finance' => 'sn_financial_panel_page_id',
+			'sn_invoice_reviewer' => 'sn_invoice_review_panel_page_id',
 			'sn_hr' => 'sn_hr_panel_page_id',
 			'sn_mis' => 'sn_mis_panel_page_id',
 			'sn_project_manager' => 'sn_operations_sales_manager_panel_page_id',
@@ -9161,6 +9175,7 @@ class SN_Plugin
 			'sales_deputy' => 'sn_sales_deputy',
 			'hr' => 'sn_hr',
 			'finance' => 'sn_financial',
+			'invoice_reviewer' => 'sn_invoice_reviewer',
 			'after_sales' => 'sn_after_sales',
 			'mis' => 'sn_mis',
 			'shipping_expert' => 'sn_shipping_expert',
@@ -9184,6 +9199,7 @@ class SN_Plugin
 			return;
 		}
 		$role_caps = ['read' => true];
+		if ($role === 'sn_invoice_reviewer') { $role_caps['sn_review_invoices'] = true; }
 		if ($role === 'sn_converter') { $role_caps['sn_manage_dot_conversion'] = true; }
 		if ($role === 'sn_after_sales') { $role_caps['sn_view_customer_profiles'] = true; }
 		if ($role === 'sn_sales_manager') {
@@ -9211,7 +9227,7 @@ class SN_Plugin
 		$managed_roles = [
 			'sn_seller', 'sn_supervisor', 'sn_senior_supervisor', 'sn_sales_manager',
 			'sn_sales_deputy', 'sn_converter', 'sn_financial', 'sn_financial_approval',
-			'sn_finance', 'sn_hr', 'sn_mis', 'sn_after_sales', 'sn_shipping_expert', 'sn_operations_sales_manager',
+			'sn_finance', 'sn_invoice_reviewer', 'sn_hr', 'sn_mis', 'sn_after_sales', 'sn_shipping_expert', 'sn_operations_sales_manager',
 			'sn_operations_sales_supervisor', 'sn_operations_sales_expert', 'sn_operations_executive_manager',
 			'sn_operations_execution_expert',
 		];
@@ -9353,6 +9369,7 @@ class SN_Plugin
 			'sales_manager' => 'مدیر فروش',
 			'sales_deputy' => 'معاون فروش',
 			'finance' => 'مالی',
+			'invoice_reviewer' => 'بررسی فاکتور',
 			'hr' => 'منابع انسانی',
 			'mis' => 'MIS',
 			'after_sales' => 'خدمات پس از فروش',
@@ -12064,7 +12081,7 @@ class SN_Plugin
 
 	private function sn_hr_panel_missing_profile_users(int $limit): array
 	{
-		$roles = ['sn_seller','sn_supervisor','sn_senior_supervisor','sn_converter','sn_sales_manager','sn_sales_deputy','sn_financial','sn_financial_approval','sn_finance','sn_hr','sn_mis','sn_after_sales','sn_shipping_expert','sn_operations_sales_manager','sn_operations_sales_supervisor','sn_operations_sales_expert','sn_operations_executive_manager','sn_operations_execution_expert','sas_employee','sas_supervisor','sas_senior_supervisor','sas_sales_manager'];
+		$roles = ['sn_seller','sn_supervisor','sn_senior_supervisor','sn_converter','sn_sales_manager','sn_sales_deputy','sn_financial','sn_financial_approval','sn_finance','sn_invoice_reviewer','sn_hr','sn_mis','sn_after_sales','sn_shipping_expert','sn_operations_sales_manager','sn_operations_sales_supervisor','sn_operations_sales_expert','sn_operations_executive_manager','sn_operations_execution_expert','sas_employee','sas_supervisor','sas_senior_supervisor','sas_sales_manager'];
 		$users = get_users(['role__in' => $roles, 'number' => max(1, min(1000, $limit)), 'orderby' => 'ID', 'order' => 'ASC']);
 		$hr = class_exists('SN_HR_Service') ? new SN_HR_Service() : null;
 		return array_values(array_filter($users, static function($user) use ($hr) {
@@ -14716,6 +14733,7 @@ class SN_Plugin
 			elseif (in_array('sn_supervisor', $roles, true) || in_array('sas_supervisor', $roles, true)) { $position = 'supervisor'; }
 			elseif (in_array('sn_converter', $roles, true)) { $position = 'converter'; }
 			elseif (in_array('sn_financial', $roles, true) || in_array('sn_financial_approval', $roles, true) || in_array('sn_finance', $roles, true)) { $position = 'finance'; }
+			elseif (in_array('sn_invoice_reviewer', $roles, true)) { $position = 'invoice_reviewer'; }
 			elseif (in_array('sn_after_sales', $roles, true)) { $position = 'after_sales'; }
 			elseif (in_array('sn_project_manager', $roles, true)) { $position = 'operations_sales_manager'; }
 			elseif (in_array('sn_project_expert', $roles, true)) { $position = 'operations_sales_expert'; }
@@ -16721,7 +16739,7 @@ class SN_Plugin
 	public function sn_hr_purge_builtin_lookup_rows_once(): void
 	{
 		if ($this->sn_defer_heavy_admin_runtime()) { return; }
-		$version = '2026-10-07-hr-lookups-v1';
+		$version = '2026-10-08-hr-invoice-review-v1';
 		if (get_option('sn_hr_builtin_lookup_version', '') === $version) { return; }
 		$this->sn_hr_ensure_builtin_lookup_rows();
 		$report = get_option('sn_hr_builtin_lookup_repair_report', []);
@@ -16737,6 +16755,7 @@ class SN_Plugin
 			'supervisor' => ['label' => 'سرپرست', 'panel_key' => 'supervisor', 'sort_order' => 40],
 			'converter' => ['label' => 'تبدیل‌کننده', 'panel_key' => 'converter', 'sort_order' => 45],
 			'seller' => ['label' => 'فروشنده', 'panel_key' => 'seller', 'sort_order' => 50],
+			'invoice_reviewer' => ['label' => 'بررسی فاکتور', 'panel_key' => 'invoice_review', 'sort_order' => 65],
 			'finance' => ['label' => 'مالی', 'panel_key' => 'finance', 'sort_order' => 60],
 			'hr' => ['label' => 'منابع انسانی', 'panel_key' => 'hr', 'sort_order' => 70],
 			'mis' => ['label' => 'MIS', 'panel_key' => 'mis', 'sort_order' => 80],
@@ -23313,7 +23332,8 @@ class SN_Plugin
 			foreach ($this->sn_hr_normalize_lookup_rows($rows, 'position') as $row) { $out[(string) $row->slug] = (string) ($row->label ?: $row->slug); }
 			if ($out) { return $out; }
 		}
-		return ['sales_deputy' => 'معاون فروش','sales_manager' => 'مدیر فروش','senior_supervisor' => 'سرپرست ارشد','supervisor' => 'سرپرست','converter' => 'تبدیل‌کننده','seller' => 'فروشنده','finance' => 'مالی','hr' => 'منابع انسانی','mis' => 'MIS','after_sales' => 'خدمات پس از فروش'];
+		return ['sales_deputy' => 'معاون فروش','sales_manager' => 'مدیر فروش','senior_supervisor' => 'سرپرست ارشد','supervisor' => 'سرپرست','converter' => 'تبدیل‌کننده','seller' => 'فروشنده','finance' => 'مالی',
+			'invoice_reviewer' => 'بررسی فاکتور','hr' => 'منابع انسانی','mis' => 'MIS','after_sales' => 'خدمات پس از فروش'];
 	}
 
 	private function sn_distribution_position_label(string $slug): string

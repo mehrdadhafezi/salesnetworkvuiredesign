@@ -9,6 +9,7 @@ class WP_User { public int $ID = 42; public string $user_login = 'customer'; }
 class SN_Helpers {
     public static function normalize_mobile($value) { return $value; }
     public static function is_valid_mobile($value) { return false; }
+    public static function format_price($value) { return number_format($value,0).' تومان'; }
 }
 function absint($value) { return abs((int)$value); }
 function sanitize_key($value) { return preg_replace('/[^a-z0-9_-]/', '', strtolower($value)); }
@@ -35,6 +36,7 @@ function number_format_i18n($value) { return (string)$value; }
 function admin_url($value) { return 'https://crm.example/'.$value; }
 function get_post_thumbnail_id($id) { return 0; }
 function get_the_post_thumbnail_url($id, $size) { return ''; }
+function wp_get_attachment_image_url($id, $size) { return 'https://crm.example/image-'.$id.'.jpg'; }
 function get_post_field($field, $id) { return $GLOBALS['fields'][$id][$field] ?? ''; }
 function do_blocks($value) { return $value; }
 function wpautop($value) { return '<p>'.$value.'</p>'; }
@@ -43,7 +45,8 @@ function wc_get_product($id) {
     if (!isset($GLOBALS['products'][$id])) { return null; }
     return new class($id) {
         public function __construct(private int $id) {}
-        public function get_image_id() { return 0; }
+        public function get_image_id() { return $GLOBALS['products'][$this->id]['image_id'] ?? 0; }
+        public function get_name() { return $GLOBALS['products'][$this->id]['name'] ?? ''; }
         public function get_description() { return $GLOBALS['products'][$this->id]['full']; }
         public function get_short_description() { return $GLOBALS['products'][$this->id]['short']; }
     };
@@ -117,7 +120,7 @@ $execution->save_product_meta($id, $post); check($execution->product_destination
 foreach ([100,101,102] as $index => $id) {
     $wpdb->items[] = ['id'=>500+$index,'content_product_id'=>$id,'content_name_snapshot'=>'Original card','base_credit_snapshot'=>100000,'upgrade_options_snapshot_json'=>'[]','operations_stage'=>$index===0?'customer_code_issued':'completed','operations_current_credit'=>200000];
     $GLOBALS['meta'][$id][$key] = 'https://old.example/'.$id;
-    $GLOBALS['products'][$id] = ['full'=>'Old description '.$id,'short'=>'Short '.$id];
+    $GLOBALS['products'][$id] = ['name'=>'Old product '.$id,'full'=>'Old description '.$id,'short'=>'Short '.$id];
 }
 $items_before = $wpdb->items; $writes_before = $wpdb->writes;
 $memberships = new ReflectionMethod($portal, 'customer_memberships');
@@ -125,8 +128,10 @@ $user = new WP_User();
 $before = $memberships->invoke($portal, $user)[0]['items'];
 foreach ([100,101,102] as $index => $id) {
     check($before[$index]['destination_url'] === 'https://old.example/'.$id, 'initial live link');
+    check($before[$index]['display_name'] === 'Old product '.$id, 'initial live card title');
     $GLOBALS['meta'][$id][$key] = 'https://updated.example/'.$id.'?a=1&b=2';
     $GLOBALS['products'][$id]['full'] = '<strong>New description '.$id.'</strong><script>alert(1)</script>';
+    $GLOBALS['products'][$id]['name'] = 'نام جدید کارت '.$id;
 }
 $after = $memberships->invoke($portal, $user)[0]['items'];
 foreach ([100,101,102] as $index => $id) {
@@ -135,6 +140,7 @@ foreach ([100,101,102] as $index => $id) {
     check(!str_contains($after[$index]['description_html'], '<script'), 'description sanitized');
     check($after[$index]['base_credit'] === 100000.0 && $after[$index]['credit'] === 200000.0, 'financial snapshot intact');
     check($after[$index]['content_name_snapshot'] === 'Original card', 'card identity intact');
+    check($after[$index]['display_name'] === 'نام جدید کارت '.$id, 'renamed product updates old card title at every stage');
     check($execution->customer_wallet_destination(500+$index) === $GLOBALS['meta'][$id][$key], 'compatibility accessor live without assigned code');
 }
 $GLOBALS['meta'][100][$key] = '';
@@ -165,4 +171,31 @@ check(substr_count($html, 'href="https://updated.example/102?a=1&amp;b=2"') === 
 check(str_contains($html, 'rel="noopener noreferrer"'), 'safe new tab link');
 check($destination->invoke($portal, '') === '', 'empty URL produces no destination block');
 if (!empty($argv[1])) { file_put_contents($argv[1].'/card-destination.html', $html); }
+// Product-less/legacy cards keep the purchased title; no database update required.
+$GLOBALS['fields'][102]['post_title'] = 'عنوان فعلی بدون شیء ووکامرس';
+check($memberships->invoke($portal,$user)[0]['items'][2]['display_name']==='عنوان فعلی بدون شیء ووکامرس','post-title fallback when WooCommerce product unavailable');
+unset($GLOBALS['fields'][102]['post_title']);
+check($memberships->invoke($portal,$user)[0]['items'][2]['display_name']==='Original card','missing product retains historic title');
+$GLOBALS['products'][101]['name']='  ';
+check($memberships->invoke($portal,$user)[0]['items'][1]['display_name']==='Original card','blank current title retains historic name');
+$GLOBALS['products'][101]['name']='0';
+check($memberships->invoke($portal,$user)[0]['items'][1]['display_name']==='0','zero is a valid nonblank product title');
+// Render the actual card template, including list heading, dialog and both alt texts.
+$GLOBALS['products'][100]['name']='کارت جدید <script>alert("x")</script> & "عنوان"';
+$GLOBALS['products'][100]['image_id']=42;
+$membership=$memberships->invoke($portal,$user)[0];
+$source=file_get_contents(dirname(__DIR__).'/includes/class-sn-customer-portal.php');
+$start=strpos($source,'<?php foreach ( (array) $membership[\'items\'] as $item ) :');
+check($start!==false,'actual card template located');
+$end=strpos($source,'<?php endforeach; ?>',$start)+strlen('<?php endforeach; ?>');
+$markup=substr($source,$start,$end-$start);
+$render=function($membership,$user)use($markup){ob_start();eval('?>'.$markup);return ob_get_clean();};
+$html=$render->call($portal,$membership,$user);
+$safe=esc_html($GLOBALS['products'][100]['name']);
+check(str_contains($html,'<h4>'.$safe.'</h4>'),'list heading renders latest escaped name');
+check(str_contains($html,'id="sn-customer-card-modal-500-title">'.$safe.'</h3>'),'dialog heading renders latest escaped name');
+check(substr_count($html,'alt="'.esc_attr($GLOBALS['products'][100]['name']).'"')===2,'both image alt texts follow current name');
+check(!str_contains($html,'<script>'),'title cannot inject HTML');
+check($wpdb->items===$items_before&&$wpdb->writes===$writes_before,'renaming never mutates purchase or financial snapshots');
+if (!empty($argv[1])) { file_put_contents($argv[1].'/live-card-title.html', $html); }
 echo "PASS $checks Biavin live-product regression checks\n";
