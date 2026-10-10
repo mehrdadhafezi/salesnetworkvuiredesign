@@ -1,5 +1,5 @@
 # SN-206 QA report (Finance design)
-Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **165 PASS, FAILS 0**.
+Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **168 PASS, FAILS 0**.
 **FINANCE ROLE RUNTIME IS NOT LIVE VERIFIED.** This QA exercises the design prototype on mock data only; no real non-Admin Finance account, no real evidence, bank, gateway or posting.
 
 | Pass | Scope | Result |
@@ -34,6 +34,8 @@ Codex review round 11 (head 72f714b) — three findings fixed and regression-tes
 Codex review round 12 (head 8bbb569) — two P1 fixed and regression-tested: the reconcile planner validates every key the lookup mentions (not only displayed sample rows) and treats a same-key row of any state that already carries a different native tx id as a conflict, so no provenance is overwritten.
 
 Codex review round 13 (head ce388e2) — one P1 fixed and regression-tested: a lookup key reported committed without a native tx id makes the whole lookup an incomplete/conflicting plan (nothing applied; run stays Unknown).
+
+Codex review round 14 (head 5feaa1e) — two P1 fixed and regression-tested: displayed-item completeness is validated in the pure planning phase (before any ledger/item mutation), and a lookup's key-level results must cover and agree with its aggregate counts (mock lookups now enumerate every key with native tx ids). The planner's 12 contradiction/incompleteness cases each assert a specific reason with ledger and items byte-identical.
 
 Fixed during QA: queue table overflowed 1366 (11 columns, action column off-screen) → issue chips merged into the evidence cell, customer/reviewer columns demoted to ≥1500, total/paid/remaining to ≥1100 (priority columns); confirmation summary list lacked its grid class; QA assertions on Persian numerals and lifecycle-ribbon text.
 

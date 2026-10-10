@@ -120,4 +120,14 @@
       { id: 'M-5', name: 'تشخیص آمادگی/یتیم (فقط خواندنی)', fx: 'بدون اثر؛ فقط گزارش', auth: 'مشاهده', why: 'تشخیص خواندنی است و چیزی را اصلاح نمی‌کند.', readOnly: true }
     ]
   };
+  /* Key-level lookup builder (mock): a lookup that reports aggregate counts must enumerate EVERY key with its native tx id for committed ones. */
+  D.mkLookup = function (runId, sampleBy, sampleTx, nC, nN, txBase) {
+    var by = {}, tx = {}, k, i;
+    Object.keys(sampleBy).forEach(function (x) { by[x] = sampleBy[x]; if (sampleTx[x]) tx[x] = sampleTx[x]; });
+    var c = Object.keys(by).filter(function (x) { return by[x] === 'committed'; }).length, n = Object.keys(by).filter(function (x) { return by[x] === 'notCommitted'; }).length;
+    for (i = 0; c < nC; c++) { k = runId + '|HID-C' + (++i); by[k] = 'committed'; tx[k] = 'T-' + (txBase + i); }
+    for (i = 0; n < nN; n++) { k = runId + '|HID-N' + (++i); by[k] = 'notCommitted'; }
+    return { committed: nC, notCommitted: nN, byKey: by, txByKey: tx };
+  };
+  D.runs.filter(function (r) { return r.id === 'RUN-305'; })[0].lookup = D.mkLookup('RUN-305', { 'RUN-305|INV-48012|S1|rec:HP-301': 'committed' }, { 'RUN-305|INV-48012|S1|rec:HP-301': 'T-8801' }, 70, 50, 8810);
 })();
