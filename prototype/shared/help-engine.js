@@ -6,6 +6,17 @@
   if (!B || !R) return;
   var h = B.h, $ = h.$, fa = h.fa, esc = h.esc, ic = h.ic, store = h.store;
   var kbd = function (k) { return '<span class="kbd">' + k + '</span>'; };
+  /* SN-207: core cross-role terms (wording reused verbatim from the frozen role glossaries). A role's own entry always wins; a core term is
+     appended only when the role glossary has no entry containing that title. Presentation terminology only. */
+  var CORE_TERMS = [
+    ['مسئول فعلی', 'پرونده الان نزد کیست (Current Custody).'],
+    ['مالک اولیه', 'نخستین دریافت‌کننده پرونده؛ با تغییر مسئول عوض نمی‌شود.'],
+    ['اقدام بعدی با', 'چه کسی باید کار بعدی را انجام دهد: سرپرست، فروشنده، مشتری، واحد مالی یا MIS.'],
+    ['عامل رویداد', 'کسی که رویداد (مثلاً انتقال یا صدور) را انجام داده؛ مالک فعلی یا مالک اعتبار نیست.'],
+    ['مالک اعتبار', 'طبق قوانین مالی فعلی تعیین می‌شود؛ تخصیص، برگشت یا تغییر والد آن را عوض نمی‌کند.'],
+    ['نامعلوم', 'پاسخ نرسید و ممکن است ثبت شده باشد؛ پیش از تکرار باید تطبیق شود.']
+  ];
+  var GLOSS = (R.glossary || []).concat(CORE_TERMS.filter(function (c) { return !(R.glossary || []).some(function (g) { return g[0].indexOf(c[0]) > -1; }); }));
   var TOURS = R.tours;
   var isDone = function (id) { return store.get(TOURS[id].key + '_completed') === '1'; };
 
@@ -120,7 +131,7 @@
   }
   function termsHtml() {
     return '<div class="hc-head"><button type="button" class="hc-back" data-hc="home">' + ic('arrowL') + 'بازگشت</button><h2 id="hc-title">واژه‌ها و مفاهیم</h2><button type="button" class="icon-btn" data-hc-close aria-label="بستن راهنما">' + ic('x') + '</button></div>' +
-      '<dl class="terms">' + R.glossary.map(function (g) { return '<dt>' + esc(g[0]) + '</dt><dd>' + esc(g[1]) + '</dd>'; }).join('') + '</dl>';
+      '<dl class="terms">' + GLOSS.map(function (g) { return '<dt>' + esc(g[0]) + '</dt><dd>' + esc(g[1]) + '</dd>'; }).join('') + '</dl>';
   }
   function openHelp(view) {
     closeDemo(); B.closeMenu();

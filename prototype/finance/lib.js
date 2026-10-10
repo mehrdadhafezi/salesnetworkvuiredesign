@@ -128,13 +128,13 @@
       '<div class="oux-next">' + ic('shield') + '<span><b>گام امن بعدی:</b> ' + o.next + '</span></div></div>';
   };
 
-  X.top = function (title, extra) { return '<div class="sheet-grip" aria-hidden="true"></div><div class="dr-top"><span>' + esc(title) + '</span><span class="grow"></span>' + (extra || '') + '<button type="button" class="btn btn-ghost btn-icon btn-sm tip" data-tip="بستن (Esc)" data-close aria-label="بستن">' + ic('x') + '</button></div>'; };
-  X.foot = function (primary, secondary, hintTxt) { return '<div class="dr-foot">' + (primary || '') + (secondary || '<button type="button" class="btn btn-lg btn-ghost" data-close>بستن</button>') + '<span class="grow"></span>' + (hintTxt ? '<span class="hint">' + hintTxt + '</span>' : '') + '</div>'; };
+  X.top = h.dtop;
+  X.foot = h.dfoot;
   X.sec = function (title, aside, inner, cls) { return '<section class="sec' + (cls ? ' ' + cls : '') + '"><div class="sec-h"><h3>' + title + '</h3>' + (aside ? '<span class="aside">' + aside + '</span>' : '') + '</div>' + inner + '</section>'; };
   X.checks = function (list) { return '<ul class="elig">' + list.map(function (c) { var i = { ok: 'checkCircle', no: 'xCircle', warn: 'alert', q: 'question', info: 'info' }[c[0]]; return '<li class="e-' + c[0] + '">' + ic(i) + '<span><b>' + esc(c[1]) + '</b>' + (c[2] ? '<span>' + esc(c[2]) + '</span>' : '') + '</span></li>'; }).join('') + '</ul>'; };
-  X.tl = function (items) { return '<ul class="timeline">' + items.map(function (x) { return '<li>' + esc(x[0]) + '<span>' + esc(x[1]) + (x[2] ? ' · ' + esc(x[2]) : '') + '</span></li>'; }).join('') + '</ul>'; };
-  X.steps = function (list, cur) { return '<ol class="steps" aria-label="مراحل">' + list.map(function (s, i) { var c = i < cur ? 'done' : i === cur ? 'cur' : ''; return '<li class="' + c + '"' + (i === cur ? ' aria-current="step"' : '') + '><span class="sn">' + (i < cur ? ic('check') : fa(i + 1)) + '</span><span class="st-l">' + esc(s) + '</span></li>'; }).join('') + '</ol>'; };
-  X.bulkbar = function (text, sub, actions) { return '<div class="bulkbar" role="region" aria-label="انتخاب گروهی"><div class="bb-txt"><b>' + text + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div><span class="grow"></span>' + actions + '</div>'; };
+  X.tl = h.timeline;
+  X.steps = h.steps;
+  X.bulkbar = h.bulkbar;
   X.dl = function (rows, cls) { return '<dl class="exc-dl ' + (cls || 'hcp') + '">' + rows.map(function (e) { return '<div><dt>' + e[0] + '</dt><dd>' + e[1] + '</dd></div>'; }).join('') + '</dl>'; };
 
   /* ---------- Review eligibility: pure derivation from mock facts. Unknown/ambiguous inputs fail closed. ---------- */
@@ -174,10 +174,9 @@
     return { requested: o.requested, eligible: o.requested - n('skipped'), ok: n('ok'), existing: n('existing'), skipped: n('skipped'), failed: n('failed'), unknown: n('unknown') };
   };
   X.opState = function (op) { if (op.unauthorized) return 'unauthorized'; if (op.conflict) return 'conflict'; if (op.blocked) return 'blocked'; var c = X.counts(op); if (c.unknown) return 'unknown'; var good = c.ok + c.existing; return good === c.requested ? 'complete' : good === 0 ? 'failed' : 'partial'; };
-  X.outcomeStrip = function (o) {
-    var c = X.counts(o), cells = [['requested', 'درخواست‌شده', c.requested], ['eligible', 'واجد شرایط', c.eligible], ['applied', 'ثبت‌شده', c.ok], ['existing', 'تراکنش/تصمیم موجود', c.existing], ['skipped', 'ارسال‌نشده', c.skipped], ['failed', 'ناموفق', c.failed], ['unknown', 'نامعلوم', c.unknown]];
-    var sum = c.ok + c.existing + c.skipped + c.failed + c.unknown === c.requested;
-    return '<div class="outcome-strip" role="group" aria-label="خلاصه نتیجه گروهی">' + cells.map(function (x) { return '<div class="os os-' + x[0] + (x[2] ? '' : ' zero') + '"><span>' + x[1] + '</span><b>' + fa(x[2]) + '</b></div>'; }).join('') + '</div><p class="os-note">' + (sum ? ic('checkCircle') + 'ثبت‌شده + موجود + ارسال‌نشده + ناموفق + نامعلوم = درخواست‌شده.' : ic('alert') + 'جمع‌ها با هم نمی‌خوانند؛ پیش از هر اقدام بازخوانی کنید.') + '</p>';
+  X.outcomeStrip = function (o) { // Finance vocabulary: applied = ثبت‌شده (ruled posting), plus «موجود»; no bulk «ردشده» cell
+    var c = X.counts(o);
+    return h.outcomeStrip(c, { cells: [['requested', 'درخواست‌شده', c.requested], ['eligible', 'واجد شرایط', c.eligible], ['applied', 'ثبت‌شده', c.ok], ['existing', 'تراکنش/تصمیم موجود', c.existing], ['skipped', 'ارسال‌نشده', c.skipped], ['failed', 'ناموفق', c.failed], ['unknown', 'نامعلوم', c.unknown]], sumText: 'ثبت‌شده + موجود + ارسال‌نشده + ناموفق + نامعلوم = درخواست‌شده.' });
   };
 
   /* ---------- Page banners for simulated shared states ---------- */

@@ -123,7 +123,6 @@ tr.grp th .i{width:16px;height:16px}
 .a-manager{color:var(--blue-fg)}
 .mt-v{font-size:var(--t-h3,18px);font-weight:700}
 .mt-why{max-width:520px;color:var(--text-2);font-size:var(--t-meta);line-height:1.9}
-.linklike{display:inline;padding:0;border:0;background:none;color:var(--primary-text,var(--primary));text-decoration:underline;font:inherit;cursor:pointer}
 .four-concepts{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin:0;padding:12px 16px;border-bottom:1px solid var(--border);color:var(--text-2);font-size:var(--t-meta);line-height:2.1}
 .four-concepts>.i{flex:none;width:16px;height:16px;margin-top:6px}
 .four-concepts>span{display:flex;align-items:center;gap:8px;flex-wrap:wrap}

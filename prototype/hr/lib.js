@@ -83,11 +83,11 @@
     if (s === 'credpartial' && view === 'cred') return b('incomplete', '<b>بازنشانی انجام شد ولی اعلان ناموفق بود.</b> نتیجه بازنشانی و نتیجه پیامک دو نتیجه جدا هستند؛ شکست پیامک به معنی شکست بازنشانی نیست.', '');
     return '';
   };
-  X.steps = function (list, cur) { return '<ol class="steps" aria-label="مراحل">' + list.map(function (s, i) { var c = i < cur ? 'done' : i === cur ? 'cur' : ''; return '<li class="' + c + '"' + (i === cur ? ' aria-current="step"' : '') + '><span class="sn">' + (i < cur ? ic('check') : fa(i + 1)) + '</span><span class="st-l">' + esc(s) + '</span></li>'; }).join('') + '</ol>'; };
-  X.bulkbar = function (text, sub, actions) { return '<div class="bulkbar" role="region" aria-label="انتخاب گروهی"><div class="bb-txt"><b>' + text + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div><span class="grow"></span>' + actions + '</div>'; };
-  X.top = function (title, extra) { return '<div class="sheet-grip" aria-hidden="true"></div><div class="dr-top"><span>' + esc(title) + '</span><span class="grow"></span>' + (extra || '') + '<button type="button" class="btn btn-ghost btn-icon btn-sm tip" data-tip="بستن (Esc)" data-close aria-label="بستن">' + ic('x') + '</button></div>'; };
-  X.foot = function (primary, secondary, hintTxt) { return '<div class="dr-foot">' + (primary || '') + (secondary || '<button type="button" class="btn btn-lg btn-ghost" data-close>بستن</button>') + '<span class="grow"></span>' + (hintTxt ? '<span class="hint">' + hintTxt + '</span>' : '') + '</div>'; };
-  X.tl = function (items) { return '<ul class="timeline">' + items.map(function (x) { return '<li>' + esc(x[0]) + '<span>' + esc(x[1]) + (x[2] ? ' · ' + esc(x[2]) : '') + '</span></li>'; }).join('') + '</ul>'; };
+  X.steps = h.steps;
+  X.bulkbar = h.bulkbar;
+  X.top = h.dtop;
+  X.foot = h.dfoot;
+  X.tl = h.timeline;
   X.checks = function (list) { return '<ul class="elig">' + list.map(function (c) { var i = { ok: 'checkCircle', no: 'xCircle', warn: 'alert', q: 'question', info: 'info' }[c[0]]; return '<li class="e-' + c[0] + '">' + ic(i) + '<span><b>' + esc(c[1]) + '</b>' + (c[2] ? '<span>' + esc(c[2]) + '</span>' : '') + '</span></li>'; }).join('') + '</ul>'; };
   X.chain = function (arr) { return '<ol class="chain">' + arr.map(function (s) { var t = { done: 'check', cur: 'hourglass', rejected: 'xCircle', skip: 'dashed' }[s[1]]; return '<li class="c-' + s[1] + '"><span class="c-dot">' + ic(t) + '</span><span class="c-t"><b>' + esc(s[0]) + '</b><span>' + esc(s[2]) + '</span></span></li>'; }).join('') + '</ol>'; };
   X.sec = function (title, aside, inner, cls) { return '<section class="sec' + (cls ? ' ' + cls : '') + '"><div class="sec-h"><h3>' + title + '</h3>' + (aside ? '<span class="aside">' + aside + '</span>' : '') + '</div>' + inner + '</section>'; };
@@ -97,11 +97,7 @@
     var n = function (k) { return o.items.filter(function (x) { return x[1] === k; }).length; };
     return { requested: o.requested, eligible: o.requested - n('skipped') - n('rejected'), ok: n('ok'), skipped: n('skipped'), rejected: n('rejected'), failed: n('failed'), unknown: n('unknown') };
   };
-  X.outcomeStrip = function (o) {
-    var c = X.counts(o), cells = [['requested', 'درخواست‌شده', c.requested], ['eligible', 'واجد شرایط', c.eligible], ['applied', 'اعمال‌شده', c.ok], ['skipped', 'ارسال‌نشده', c.skipped], ['rejected', 'ردشده', c.rejected], ['failed', 'ناموفق', c.failed], ['unknown', 'نامعلوم', c.unknown]];
-    return '<div class="outcome-strip" role="group" aria-label="خلاصه نتیجه گروهی">' + cells.map(function (x) { return '<div class="os os-' + x[0] + (x[2] ? '' : ' zero') + '"><span>' + x[1] + '</span><b>' + fa(x[2]) + '</b></div>'; }).join('') + '</div>' +
-      '<p class="os-note">' + (c.ok + c.skipped + c.rejected + c.failed + c.unknown === c.requested ? ic('checkCircle') + 'مجموع «اعمال‌شده + ارسال‌نشده + ردشده + ناموفق + نامعلوم» برابر «درخواست‌شده» است.' : ic('alert') + 'جمع‌ها با هم نمی‌خوانند؛ پیش از هر اقدام بازخوانی کنید.') + '</p>';
-  };
+  X.outcomeStrip = function (o) { return h.outcomeStrip(X.counts(o)); };
   // EffectiveIntervalTimeline — effective_from/to, applied time, event actor, source; missing history = UNKNOWN / INCOMPLETE (never inferred from today's hierarchy).
   X.eit = function (p) {
     return '<ol class="eit" aria-label="بازه‌های اثر ساختار و سمت">' + p.hist.map(function (e, i) {
