@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="light" data-density="comfortable">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>پنل منابع انسانی — نمونه طراحی</title>
+<script>
+  /* Same pre-paint preference contract as Seller V1 (shared snproto.* keys, URL params win and are not saved). */
+  (function () {
+    var d = document.documentElement, q = new URLSearchParams(location.search), get = function (k) { try { return localStorage.getItem('snproto.' + k); } catch (e) { return null; } };
+    var theme = q.get('theme') || get('theme'), density = q.get('density') || get('density'), focus = q.get('focus') || get('focus');
+    if (/^(light|dim|dark)$/.test(theme || '')) d.setAttribute('data-theme', theme);
+    if (/^(comfortable|compact)$/.test(density || '')) d.setAttribute('data-density', density);
+    if (focus === '1') d.setAttribute('data-focus', '1');
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Shared CRM Design System (Seller V1 frozen foundation) + shared extensions + role layer -->
+<link rel="stylesheet" href="../styles.css?v=8">
+<link rel="stylesheet" href="../help.css?v=6">
+<link rel="stylesheet" href="../shared/crm-ext.css?v=13">
+<link rel="stylesheet" href="hr.css?v=1">
+</head>
+<body>
+<div class="demo-switch" role="navigation" aria-label="نقش‌ها (فقط دمو)">
+  <span class="lbl">نقش:</span>
+  <span class="seg"><a href="../index.html" title="فروشنده (Frozen V1)">فروشنده</a><a href="../supervisor/index.html" title="سرپرست (Frozen V1)">سرپرست</a><a href="../senior/index.html" title="سرپرست ارشد (Frozen V1)">ارشد</a><a href="../manager/index.html" title="مدیر (V1)">مدیر</a><a href="../deputy/index.html" title="معاون (V1)">معاون</a><a href="../mis/index.html" title="MIS (V1)">MIS</a><a href="index.html" aria-current="page">HR</a></span>
+</div>
+
+<div class="imp-shell" id="imp-shell" aria-label="مرز جلسه نمایش به‌جای کاربر"></div>
+
+<header class="hdr">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">ع</div>
+    <b>سامانه فروش</b>
+    <span class="crumb" id="crumb">نیروها</span>
+    <span class="demo-tag">نمونه نمایشی · داده ساختگی · نقش HR در محیط واقعی تأیید نشده (NOT LIVE VERIFIED)</span>
+  </div>
+  <div class="m-title" id="m-title">نیروها</div>
+  <button type="button" class="search" id="search-trigger" data-palette aria-label="جستجو و فرمان‌ها (Ctrl+K)" aria-haspopup="dialog">
+    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <span class="ph">جستجوی نیرو، پروفایل، درخواست، استثنا یا رفتن به…</span>
+    <span class="kbd">Ctrl K</span>
+  </button>
+  <div class="hdr-actions">
+    <button type="button" class="net-chip" id="net-chip" hidden aria-live="polite"><span class="dot"></span><span>آفلاین</span><span class="retry">تلاش مجدد…</span></button>
+    <div class="workload" id="workload"></div>
+    <button class="icon-btn search-btn" type="button" data-palette aria-label="جستجو"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button class="icon-btn tip" type="button" aria-label="اعلان‌ها — ۳ مورد جدید" data-tip="اعلان‌ها" data-demo="اعلان‌ها: ۱ اعمال ناموفق، ۱ پایان همکاری با تحویل ناتمام، ۱ پروفایل تکراری">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      <span class="dot-badge">۳</span>
+    </button>
+    <button class="icon-btn tip" type="button" id="help-btn" data-tip="راهنما" aria-label="راهنما" aria-haspopup="dialog" aria-expanded="false">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.3-2.4 3.8"/><path d="M12 17h.01"/></svg>
+    </button>
+    <button class="user" type="button" id="user-btn" aria-haspopup="menu" aria-expanded="false" aria-label="منوی کاربر، پوسته و تراکم">
+      <span class="avatar">اب</span>
+      <span class="user-meta"><b>الهام بهرامی</b><span>منابع انسانی · #۱۷۰۰۳</span></span>
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+  </div>
+</header>
+
+<nav class="nav" id="nav" aria-label="بخش‌های پنل منابع انسانی"></nav>
+<div class="offline-bar" id="offline-bar" hidden role="status"></div>
+
+<main class="ws" id="ws"></main>
+
+<nav class="bottom-nav" id="bottom-nav" aria-label="ناوبری موبایل"></nav>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="dr-name" aria-hidden="true"></aside>
+<div class="palette-wrap" id="palette" hidden><div class="palette-bd" data-palette-close></div><div class="palette" role="dialog" aria-modal="true" aria-label="جستجو و فرمان‌ها"></div></div>
+<div class="toasts" id="toasts" aria-live="polite" aria-relevant="additions"></div>
+
+<script src="data.js?v=1"></script>
+<script src="../shared/crm-core.js?v=6"></script>
+<script src="lib.js?v=1"></script>
+<script src="views.js?v=1"></script>
+<script src="flows.js?v=1"></script>
+<script src="app.js?v=1"></script>
+<script src="../shared/a11y.js?v=1"></script>
+<script src="help-content.js?v=1"></script>
+<script src="../shared/help-engine.js?v=8"></script>
+</body>
+</html>

@@ -58,11 +58,11 @@
 .warn-n{color:var(--amber-fg);font-weight:600}
 .tag.legacy{border-style:dashed;color:var(--muted)}
 .facet-line{display:flex;flex-direction:column;line-height:1.5}
-.linkish{border:0;background:none;padding:0;color:var(--primary);text-decoration:underline;font-weight:500}
+.linkish{border:0;background:none;padding:3px 0;color:var(--primary);text-decoration:underline;font:inherit;font-weight:500;cursor:pointer}
 .chip-btn.on{border-style:solid;border-color:var(--primary-line);color:var(--primary);background:var(--primary-soft)}
 
 /* ---------- SelectableDataTable + BulkActionBar ---------- */
-.cbx{width:20px;height:20px;margin:0;accent-color:var(--primary);cursor:pointer;vertical-align:middle}
+.cbx{flex:none;width:24px;height:24px;min-width:24px;margin:0;accent-color:var(--primary);cursor:pointer;vertical-align:middle}
 .cbx:disabled{cursor:not-allowed;opacity:.45}
 .tbl .col-sel{width:44px;padding-left:4px}
 .tbl tbody tr.picked{background:var(--primary-soft)}
@@ -259,3 +259,170 @@
   .sum-grid:not(.four)>.sum:nth-child(3):last-child{grid-column:1/-1}
   .tbl.stackable td.col-sel::before{display:none}
 }
+
+/* ---------- Multi-team extensions (added for Senior Supervisor; reusable by Manager / Deputy / MIS) ----------
+   Presentation only. Built from the same frozen tokens; every foreground/background pair reuses an existing tone pair. */
+/* ScopeBreadcrumb — which subset of the authorised subtree is being shown */
+.scope-crumb{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0;color:var(--muted);font-size:var(--t-meta)}
+.scope-crumb .i{width:14px;height:14px;flex:none}
+.scope-crumb .cr-i{padding:2px 8px;border:0;border-radius:var(--r-sm);background:none;color:var(--text-2);font:inherit;font-weight:500}
+button.cr-i:hover{background:var(--surface-3)}
+.scope-crumb .cr-i.cur{color:var(--text);font-weight:600}
+.scope-crumb .cr-sep{color:var(--muted)}
+/* DimensionSwitcher — one analysis grain at a time (never mixes grains) */
+.dim-switch{display:inline-flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:var(--r);background:var(--surface-3)}
+.dim-switch button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:0;border-radius:6px;background:none;color:var(--muted);font-weight:500;white-space:nowrap}
+.dim-switch button .i{width:16px;height:16px}
+.dim-switch button[aria-pressed="true"]{background:var(--raised);color:var(--text);box-shadow:var(--shadow-1)}
+.dim-switch button:hover:not([aria-pressed="true"]){color:var(--text)}
+/* AttributionBasis + grain label — Current Hierarchy / Historical Attribution / Event Actor stay visibly distinct */
+.basis,.grain,.cov,.lc{display:inline-flex;align-items:center;gap:4px;min-height:22px;padding:0 8px;border-radius:99px;font-size:var(--t-micro);font-weight:500;white-space:nowrap;cursor:help}
+.basis .i,.cov .i,.lc .i{width:14px;height:14px;flex:none}
+.basis.b-current{background:var(--blue-bg);color:var(--blue-fg)}
+.basis.b-hist{background:var(--violet-bg);color:var(--violet-fg)}
+.basis.b-event{background:var(--slate-bg);color:var(--slate-fg)}
+.grain{background:var(--surface-3);color:var(--text-2)}
+.grain b{font-weight:600;color:var(--text)}
+/* MetricCoverage (cov) + LinkConfidence (lc) — icon + text, never colour alone */
+.cov.c-ok,.lc.c-ok{background:var(--green-bg);color:var(--green-fg)}
+.cov.c-partial,.lc.c-partial{background:var(--orange-bg);color:var(--orange-fg)}
+.cov.c-stale{background:var(--amber-bg);color:var(--amber-fg)}
+.cov.c-recon,.lc.c-recon{background:var(--orange-bg);color:var(--orange-fg)}
+.cov.c-undef,.lc.c-undef{background:var(--slate-bg);color:var(--slate-fg)}
+.cov.c-failed{background:var(--red-bg);color:var(--red-fg)}
+.cov:focus-visible,.lc:focus-visible,.basis:focus-visible,.grain:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.tag.src{cursor:help}
+/* Destructive-looking but non-destructive review action (e.g. reject with reason) */
+.btn-danger{border-color:var(--red-dot);background:var(--red-bg);color:var(--red-fg)}
+.scope-badge.view,.scope-badge{white-space:nowrap}
+@media (max-width:760px){.dim-switch{display:flex;width:100%;overflow-x:auto;scrollbar-width:none}.dim-switch button{flex:1 0 auto}}
+@media (forced-colors:active){.cov,.lc,.basis,.grain{border:1px solid CanvasText}}
+
+/* ---- SN-202: BulkOutcomeStrip (shared) — requested · eligible · applied · skipped · rejected · failed · unknown.
+   Additive presentation pattern for the Cross-Role bulk outcome language; no new colour/radius/spacing tokens. ---- */
+.outcome-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-top:12px}
+.outcome-strip .os{display:grid;gap:2px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2)}
+.outcome-strip .os span{color:var(--text-2);font-size:var(--t-micro)}
+.outcome-strip .os b{font-size:var(--t-h3,18px);font-weight:700}
+.outcome-strip .os.zero b{color:var(--muted);font-weight:500}
+.outcome-strip .os-applied:not(.zero){border-color:var(--green-dot);background:var(--green-bg)}
+.outcome-strip .os-skipped:not(.zero){border-color:var(--orange-dot);background:var(--orange-bg)}
+.outcome-strip .os-rejected:not(.zero),.outcome-strip .os-failed:not(.zero){border-color:var(--red-dot);background:var(--red-bg)}
+.outcome-strip .os-unknown:not(.zero){border-color:var(--amber-dot);background:var(--amber-bg)}
+.os-note{display:flex;align-items:center;gap:8px;margin:8px 0 0;color:var(--text-2);font-size:var(--t-micro)}
+.os-note .i{width:14px;height:14px;flex:none}
+@media (max-width:1100px){.outcome-strip{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:520px){.outcome-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ---- SN-203: BranchCoverage / source-coverage matrix (shared) — which sources are actually counted. Additive presentation only;
+   state is always icon + text (never colour alone); not-counted / unknown is never rendered as zero. No new tokens. ---- */
+.cov-matrix{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;padding:12px 16px}
+.cov-matrix .cm{display:grid;gap:4px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2)}
+.cov-matrix .cm-n{font-weight:600}
+.cov-matrix .cm-s{display:inline-flex;align-items:center;gap:4px;font-size:var(--t-meta)}
+.cov-matrix .cm-s .i{width:14px;height:14px}
+.cov-matrix .cm-t{color:var(--text-2);font-size:var(--t-micro);line-height:1.8}
+.cov-matrix .cm-ok{border-color:var(--green-dot)}.cov-matrix .cm-ok .cm-s{color:var(--green-fg)}
+.cov-matrix .cm-recon{border-style:dashed;border-color:var(--orange-dot)}.cov-matrix .cm-recon .cm-s{color:var(--orange-fg)}
+.cov-matrix .cm-undef{border-style:dashed}.cov-matrix .cm-undef .cm-s{color:var(--text-2)}
+.cov-matrix .cm-failed{border-color:var(--red-dot);background:var(--red-bg)}.cov-matrix .cm-failed .cm-s{color:var(--red-fg)}
+
+/* ---- SN-204: MIS shared patterns (additive presentation only; no new colour/radius/spacing tokens, no business capability).
+   SourceRunContext (File › Batch › Run › Source Row — four different things), LineageLadder (identity nodes with per-node confidence),
+   ActionZone (Normal · Advanced/Conditional · Maintenance — icon + text, never colour alone), MaintenanceBoundary header. ---- */
+.sc{display:inline-flex;align-items:baseline;gap:4px;padding:2px 8px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);font-size:var(--t-meta);line-height:1.6;max-width:100%}
+.sc small{color:var(--text-2);font-size:var(--t-micro)}
+.sc b,.sc .linkish{font-weight:600;font-size:var(--t-meta)}
+.sc-run{border-style:dashed}.sc-row{border-color:var(--teal-dot)}
+.src-ctx{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:0}
+.src-ctx .sc-sep{color:var(--muted)}
+.lin-ladder{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.lin-ladder .ln{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--raised)}
+.ln-k{display:grid;font-weight:600}
+.ln-k small{color:var(--text-2);font-weight:400;font-size:var(--t-micro)}
+.ln-n{grid-column:1/-1;color:var(--text-2);font-size:var(--t-meta);line-height:1.8}
+.lin-ladder .ln-partial{border-style:dashed;border-color:var(--orange-dot)}
+.lin-ladder .ln-unknown{border-style:dashed}
+.lin-ladder .ln-conflict{border-color:var(--orange-dot);background:var(--orange-bg)}
+.lin-ladder .ln-k-case{border-inline-start:3px solid var(--slate-dot)}
+@media (max-width:640px){.lin-ladder .ln{grid-template-columns:minmax(0,1fr) auto}.ln-k{grid-column:1/-1}}
+.zone{display:inline-flex;align-items:center;gap:4px;min-height:22px;padding:0 8px;border-radius:var(--r-sm);border:1px solid transparent;font-size:var(--t-micro);font-weight:600;white-space:nowrap}
+.zone .i{width:14px;height:14px;flex:none}
+.zone.z-normal{background:var(--teal-bg);color:var(--teal-fg)}
+.zone.z-adv{background:var(--amber-bg);color:var(--amber-fg);border:1px dashed var(--amber-dot)}
+.zone.z-maint{background:var(--red-bg);color:var(--red-fg);border-color:var(--red-dot)}
+.zone-box{border-color:var(--red-dot)}
+.zone-box-h{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:repeating-linear-gradient(135deg,var(--red-bg) 0 10px,transparent 10px 20px);border-bottom:1px solid var(--red-dot)}
+.zone-box-h>div{flex:1;display:grid;gap:2px}
+.zone-box-h h2{margin:0;font-size:var(--t-lg);font-weight:600}
+.zone-box-h span{color:var(--text-2);font-size:var(--t-meta)}
+.zone-box-h>.i{margin-top:4px;color:var(--red-fg)}
+@media (forced-colors:active){.zone{border:1px solid CanvasText}}
+
+/* ---- SN-205: HR shared patterns (additive presentation only; no new colour/radius/spacing tokens, no business capability).
+   IdentityLinkage (Person ↔ Profile ↔ User, each link has its own state), EffectiveIntervalTimeline (effective_from/to, applied time,
+   event actor; missing history = UNKNOWN/INCOMPLETE), RequestedVsApplied (requested change ≠ actually applied change),
+   AccessStateMatrix delta row, SensitiveActionConfirmation (what changes · what does not · affected · effective time · audit reason). ---- */
+.idl{display:flex;align-items:stretch;flex-wrap:wrap;gap:8px}
+.idl .idn{display:grid;gap:2px;flex:1 1 150px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--raised);min-width:0}
+.idl .idn small{color:var(--text-2);font-size:var(--t-micro)}
+.idl .idn b{font-weight:600;overflow-wrap:anywhere;white-space:normal}
+.idl .idn-missing{border-style:dashed;background:var(--surface-2)}
+.idl .idn-person{border-style:dashed}
+.idl .idk{display:grid;place-items:center}
+.eit{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.eit .ei{position:relative;display:flex;gap:12px;padding:0 0 4px}
+.eit .ei:not(:last-child)::before{content:"";position:absolute;inset-block:16px -8px;inset-inline-start:4px;width:2px;background:var(--border)}
+.eit .ei-dot{flex:none;width:10px;height:10px;margin-top:6px;border-radius:99px;background:var(--border-strong)}
+.eit .ei-cur .ei-dot{background:var(--primary)}
+.eit .ei-inc .ei-dot{background:var(--amber-dot)}
+.eit .ei-unknown .ei-dot{background:transparent;border:2px dashed var(--slate-dot)}
+.eit .ei-b{display:grid;gap:4px;flex:1;min-width:0}
+.eit .ei-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.eit .ei-dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0}
+.eit .ei-dl>div{display:grid;gap:2px}
+.eit .ei-dl dt{color:var(--text-2);font-size:var(--t-micro)}
+.eit .ei-dl dd{margin:0;overflow-wrap:anywhere}
+.rva{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:var(--gap);align-items:stretch}
+.rva .rv-c{display:grid;gap:4px;align-content:start;padding:12px;border:1px solid var(--border);border-radius:var(--r);background:var(--raised)}
+.rva .rv-act{border-style:dashed;background:var(--surface-2)}
+.rva .rv-vs{display:grid;place-items:center;color:var(--text-2)}
+.rva .rv-vs .i{width:24px;height:24px}
+.rva b{font-weight:600;line-height:1.7}
+@media (max-width:760px){.rva{grid-template-columns:minmax(0,1fr)}.rva .rv-vs{display:none}}
+.asm-delta td{background:var(--amber-bg)}
+.sens-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sens-c{display:grid;gap:4px;align-content:start;padding:12px;border:1px solid var(--border);border-radius:var(--r);background:var(--raised)}
+.sens-c h4{display:flex;align-items:center;gap:4px;margin:0;font-size:var(--fs-sm);font-weight:600}
+.sens-c h4 .i{width:14px;height:14px}
+.sens-c ul{margin:0;padding:0 16px 0 0;display:grid;gap:4px;color:var(--text-2);font-size:var(--t-meta);line-height:1.8}
+.sens-c p{margin:0;color:var(--text-2);font-size:var(--t-meta);line-height:1.8}
+.sens-chg{border-color:var(--amber-dot)}
+.sens-keep{border-style:dashed}
+.sens-form{display:grid;gap:8px;margin-top:12px}
+@media (max-width:760px){.sens-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ---- SN-206 Finance (additive; presentation patterns only — no new business capability) ----
+   FinancialStateLayers (.fsl): independent dimensions, each naming what it must NOT be inferred from.
+   OutcomeUnknownContext (.oux): intent · key · possible state · lookup requirement · retry eligibility · next safe action (never a blind Retry).
+   Coverage/outcome cells reuse .outcome-strip; this block only adds the cells Finance needs (existing, unprocessed, posted). */
+.fsl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fsl-c{display:grid;gap:4px;align-content:start;padding:12px;border:1px solid var(--border);border-radius:var(--r);background:var(--raised);min-width:0}
+.fsl-l{color:var(--text-2);font-size:var(--t-micro)}
+.fsl-v{font-weight:600;line-height:1.7;overflow-wrap:anywhere}
+.fsl-x{color:var(--text-2);font-size:var(--t-micro)}
+.fsl-n{display:flex;align-items:flex-start;gap:4px;margin-top:2px;color:var(--text-2);font-size:var(--t-micro);line-height:1.7;white-space:normal}
+.fsl-n .i{flex:none;width:12px;height:12px;margin-top:5px}
+@media (max-width:1100px){.fsl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.oux{display:grid;gap:12px;padding:12px 16px;border:2px solid var(--amber-dot);border-radius:var(--r);background:var(--amber-bg)}
+.oux-h{display:flex;align-items:center;gap:8px;color:var(--text)}
+.oux-h .i{flex:none;width:20px;height:20px;color:var(--amber-fg)}
+.oux-dl{display:grid;gap:8px;margin:0}
+.oux-dl>div{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr);gap:8px;align-items:start}
+.oux-dl dt{color:var(--text-2);font-size:var(--t-micro)}
+.oux-dl dd{margin:0;line-height:1.8;overflow-wrap:anywhere}
+.oux-next{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:var(--r-sm);background:var(--raised);border:1px solid var(--border);line-height:1.8}
+.oux-next .i{flex:none;width:16px;height:16px;margin-top:6px}
+@media (max-width:760px){.oux-dl>div{grid-template-columns:minmax(0,1fr)}}
+.outcome-strip .os-posted:not(.zero),.outcome-strip .os-existing:not(.zero){border-color:var(--green-dot);background:var(--green-bg)}
+.outcome-strip .os-unprocessed:not(.zero){border-color:var(--orange-dot);background:var(--orange-bg)}
