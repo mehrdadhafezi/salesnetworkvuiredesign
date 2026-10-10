@@ -119,8 +119,8 @@
     if (s === 'unknownhist' && X.st.pm !== 'x') return h.banner('incomplete', '<b>سابقه تیم هنگام صدور برای بخشی از فاکتورها ثبت نشده است.</b> این موارد در «انتساب تاریخی» ناشناخته می‌مانند و به تیم امروز نسبت داده نمی‌شوند.', '');
     return '';
   };
-  X.steps = function (list, cur) { return '<ol class="steps" aria-label="مراحل">' + list.map(function (s, i) { var c = i < cur ? 'done' : i === cur ? 'cur' : ''; return '<li class="' + c + '"' + (i === cur ? ' aria-current="step"' : '') + '><span class="sn">' + (i < cur ? ic('check') : fa(i + 1)) + '</span><span class="st-l">' + esc(s) + '</span></li>'; }).join('') + '</ol>'; };
-  X.bulkbar = function (text, sub, actions) { return '<div class="bulkbar" role="region" aria-label="انتخاب گروهی"><div class="bb-txt"><b>' + text + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div><span class="grow"></span>' + actions + '</div>'; };
+  X.steps = h.steps;
+  X.bulkbar = h.bulkbar;
   // ScopeBreadcrumb — shows exactly which subset of the authorised subtree a table is filtered to.
   X.crumb = function () {
     var p = X.st.pscope, parts = ['<button type="button" class="cr-i' + (p ? '' : ' cur') + '" data-act="pscope:all"' + (p ? '' : ' aria-current="true"') + '>همه تیم‌ها (محدوده مجاز شما)</button>'];
@@ -131,9 +131,9 @@
     }
     return '<nav class="scope-crumb" aria-label="محدوده فعلی">' + ic('compass') + parts.join('<span class="cr-sep" aria-hidden="true">‹</span>') + '</nav>';
   };
-  X.top = function (title, extra) { return '<div class="sheet-grip" aria-hidden="true"></div><div class="dr-top"><span>' + esc(title) + '</span><span class="grow"></span>' + (extra || '') + '<button type="button" class="btn btn-ghost btn-icon btn-sm tip" data-tip="بستن (Esc)" data-close aria-label="بستن">' + ic('x') + '</button></div>'; };
-  X.foot = function (primary, secondary, hintTxt) { return '<div class="dr-foot">' + (primary || '') + (secondary || '<button type="button" class="btn btn-lg btn-ghost" data-close>بستن</button>') + '<span class="grow"></span>' + (hintTxt ? '<span class="hint">' + hintTxt + '</span>' : '') + '</div>'; };
-  X.tl = function (items) { return '<ul class="timeline">' + items.map(function (x) { return '<li>' + esc(x[0]) + '<span>' + esc(x[1]) + '</span></li>'; }).join('') + '</ul>'; };
+  X.top = h.dtop;
+  X.foot = h.dfoot;
+  X.tl = h.timeline;
   // OwnershipGrid — five independent concepts; never collapsed into one "owner".
   X.own = function (o) {
     return '<div class="own-grid">' + [['مسئول فعلی', 'پرونده الان نزد کیست (Current Custody)', o.custody, 'user'], ['مالک اولیه', 'نخستین دریافت‌کننده پرونده (Original Owner)', o.original, 'history'], ['اقدام بعدی با', 'چه کسی باید کار بعدی را انجام دهد (Next Actor)', o.next, 'arrowL'], ['عامل رویداد', 'کسی که آخرین انتقال/رویداد را انجام داده (Event Actor)', o.event, 'activity'], ['مالک اعتبار', 'طبق قوانین مالی فعلی؛ با تغییر مسئول عوض نمی‌شود (Credit Owner)', o.credit, 'wallet']].map(function (x) {

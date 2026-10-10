@@ -441,7 +441,25 @@
     if (qs.get('palette')) openPalette(qs.get('palette') === '1' ? '' : qs.get('palette'));
     if (cfg.afterBoot) cfg.afterBoot(qs);
   }
-  C.h = { $: $, $$: $$, esc: esc, fa: fa, num: num, money: money, ic: ic, hint: hint, pill: pill, kpi: kpiHtml, freshness: freshness, pageHead: pageHead, queues: queues, toolbar: toolbar, tfoot: tfoot, stateBlock: stateBlock, banner: banner, cbx: cbx, store: store };
+
+  /* ---------- SN-207 shared presentation helpers (promoted from six byte-identical per-role copies; markup unchanged) ---------- */
+  var steps = function (list, cur) { return '<ol class="steps" aria-label="مراحل">' + list.map(function (s, i) { var c = i < cur ? 'done' : i === cur ? 'cur' : ''; return '<li class="' + c + '"' + (i === cur ? ' aria-current="step"' : '') + '><span class="sn">' + (i < cur ? ic('check') : fa(i + 1)) + '</span><span class="st-l">' + esc(s) + '</span></li>'; }).join('') + '</ol>'; };
+  var bulkbar = function (text, sub, actions) { return '<div class="bulkbar" role="region" aria-label="انتخاب گروهی"><div class="bb-txt"><b>' + text + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div><span class="grow"></span>' + actions + '</div>'; };
+  var dtop = function (title, extra) { return '<div class="sheet-grip" aria-hidden="true"></div><div class="dr-top"><span>' + esc(title) + '</span><span class="grow"></span>' + (extra || '') + '<button type="button" class="btn btn-ghost btn-icon btn-sm tip" data-tip="بستن (Esc)" data-close aria-label="بستن">' + ic('x') + '</button></div>'; };
+  var dfoot = function (primary, secondary, hintTxt) { return '<div class="dr-foot">' + (primary || '') + (secondary || '<button type="button" class="btn btn-lg btn-ghost" data-close>بستن</button>') + '<span class="grow"></span>' + (hintTxt ? '<span class="hint">' + hintTxt + '</span>' : '') + '</div>'; };
+  var timeline = function (items) { return '<ul class="timeline">' + items.map(function (x) { return '<li>' + esc(x[0]) + '<span>' + esc(x[1]) + (x[2] ? ' · ' + esc(x[2]) : '') + '</span></li>'; }).join('') + '</ul>'; };
+  // BulkResult strip: requested · eligible · applied · skipped · rejected · failed · unknown. Domain vocabulary may relabel/replace a cell (opt.cells: [key, label, count]);
+  // the note only asserts the sum over the cells after «eligible»; a mismatch never reads as success.
+  var outcomeStrip = function (c, opt) {
+    opt = opt || {};
+    var cells = opt.cells || [['requested', 'درخواست‌شده', c.requested], ['eligible', 'واجد شرایط', c.eligible], ['applied', 'اعمال‌شده', c.ok], ['skipped', 'ارسال‌نشده', c.skipped], ['rejected', 'ردشده', c.rejected], ['failed', 'ناموفق', c.failed], ['unknown', 'نامعلوم', c.unknown]];
+    var sum = cells.reduce(function (a, x) { return x[0] === 'requested' || x[0] === 'eligible' ? a : a + x[2]; }, 0) === c.requested;
+    var eq = opt.sumText || 'مجموع «اعمال‌شده + ارسال‌نشده + ردشده + ناموفق + نامعلوم» برابر «درخواست‌شده» است.';
+    return '<div class="outcome-strip" role="group" aria-label="خلاصه نتیجه گروهی">' + cells.map(function (x) { return '<div class="os os-' + x[0] + (x[2] ? '' : ' zero') + '"><span>' + x[1] + '</span><b>' + fa(x[2]) + '</b></div>'; }).join('') + '</div>' +
+      '<p class="os-note">' + (sum ? ic('checkCircle') + eq : ic('alert') + 'جمع‌ها با هم نمی‌خوانند؛ پیش از هر اقدام بازخوانی کنید.') + '</p>';
+  };
+
+  C.h = { $: $, $$: $$, esc: esc, fa: fa, num: num, money: money, ic: ic, hint: hint, pill: pill, kpi: kpiHtml, freshness: freshness, pageHead: pageHead, queues: queues, toolbar: toolbar, tfoot: tfoot, stateBlock: stateBlock, banner: banner, cbx: cbx, store: store, steps: steps, bulkbar: bulkbar, dtop: dtop, dfoot: dfoot, timeline: timeline, outcomeStrip: outcomeStrip };
   C.boot = boot; C.render = render; C.go = go; C.toast = toast; C.openDrawer = openDrawer; C.closeDrawer = closeDrawer; C.rerenderDrawer = rerenderDrawer;
   C.openMenu = openMenu; C.closeMenu = closeMenu; C.openPalette = openPalette; C.setPref = setPref; C.setCursor = setCursor; C.fitNav = fitNav;
   C.setSim = function (sim) { state.sim = sim; state.offline = sim === 'offline'; if (state.drawer && sim !== 'drawerError') closeDrawer(); render(); };
