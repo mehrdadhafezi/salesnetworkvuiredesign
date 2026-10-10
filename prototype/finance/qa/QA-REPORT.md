@@ -1,5 +1,5 @@
 # SN-206 QA report (Finance design)
-Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **184 PASS, FAILS 0**.
+Runner: `qa/qa-automated.js` (Playwright, Chromium). Serve `prototype/` on :8777 (`python3 -m http.server 8777`), then `NODE_PATH=<playwright> node finance/qa/qa-automated.js`. Final run: **188 PASS, FAILS 0**.
 **FINANCE ROLE RUNTIME IS NOT LIVE VERIFIED.** This QA exercises the design prototype on mock data only; no real non-Admin Finance account, no real evidence, bank, gateway or posting.
 
 | Pass | Scope | Result |
@@ -48,6 +48,8 @@ Codex review round 18 (head 1cdd508) — four findings fixed and regression-test
 Codex review round 19 (head 0616b86) — five findings fixed and regression-tested: stage signature signs source provenance (and customer/seller/team); reconcile commands map to the reconcile capability; same-key multiplicity is checked for every lookup key (committed or not); the audit transaction field is derived from the action and actual outcome (metadata-only = none, Unknown stays Unknown); failed/conflicting reconciliation attempts are audited.
 
 Codex review round 20 (head 67f1e2a) — two P1 fixed and regression-tested: a completed reconciliation is audited as a successful reconciliation (judged on reconciliation, not posting-oriented counts); a conflicting reconciliation attempt on an Unknown run keeps the transaction outcome Unknown while recording the attempt itself as CONFLICT.
+
+Codex review round 21 (head 1f33749) — three P1 fixed and regression-tested: the lookup's tx-id key set must equal its committed-key set exactly (ids on not-committed/unrelated keys conflict); the reconciliation confirmation signs the exact lookup shown and conflicts if it is replaced/refreshed; the payment signature covers the full content of prior events.
 
 Fixed during QA: queue table overflowed 1366 (11 columns, action column off-screen) → issue chips merged into the evidence cell, customer/reviewer columns demoted to ≥1500, total/paid/remaining to ≥1100 (priority columns); confirmation summary list lacked its grid class; QA assertions on Persian numerals and lifecycle-ribbon text.
 

@@ -56,7 +56,7 @@
   X.openSens = function (sp) { st.spec = sp; C.openDrawer('sens', sp.kind + ':' + (sp.id || 'x'), {}); };
   var tgt = function (r) { return r.inv + ' · مرحله ' + r.id + ' (' + r.purpose + ' ' + r.stage[0] + '/' + r.stage[1] + ')'; };
   // Complete payment/evidence snapshot the reviewer confirmed (financial inputs + evidence identity + relationships + current decision state).
-  X.stageSig = function (r0) { var r = X.eff(r0), e = r.ev || {}; return JSON.stringify([r.inv, r.cs, r.lk, r.src, r.cust, r.seller, r.team, r.stage, r.purpose, r.claimed, r.valid, r.unit, r.total, r.paid, r.review, r.prior.length, e.k, e.ref, e.ver, e.amt, e.by, e.at, e.src, r.flags, r.dupOf || null, !!(r.stale && !X.localOf(r0).reloaded)]); };
+  X.stageSig = function (r0) { var r = X.eff(r0), e = r.ev || {}; return JSON.stringify([r.inv, r.cs, r.lk, r.src, r.cust, r.seller, r.team, r.stage, r.purpose, r.claimed, r.valid, r.unit, r.total, r.paid, r.review, JSON.stringify(r.prior), e.k, e.ref, e.ver, e.amt, e.by, e.at, e.src, r.flags, r.dupOf || null, !!(r.stale && !X.localOf(r0).reloaded)]); };
   X.approveSpec = function (r0) {
     var r = X.eff(r0), im = X.impact(r);
     return { kind: 'approve', id: r.id, snap: X.stageSig(r0), evKey: r0.ev ? r0.ev.ref + ' ' + r0.ev.ver : '', title: 'تأیید مرحلهٔ پرداخت', subject: r.inv, zone: 'cond', needsReason: false, reasonLabel: 'مبنای تصمیم / مرجع', target: tgt(r), current: X.REV.pending.label + ' · مدرک ' + (r.ev ? r.ev.ref + ' ' + r.ev.ver : '—'), amount: X.amt(r.claimed, r.unit), resulting: 'تأیید مالی این مرحله (وصول کامل فاکتور جدا سنجیده می‌شود)',
@@ -266,6 +266,8 @@
       else if (native.some(function (t) { return t.id !== tx; })) conflicts.push('کلید ' + k + ' در دفتر کل (هر وضعیتی) با شناسهٔ ' + native.filter(function (t) { return t.id !== tx; })[0].id + ' آمده ولی جستجو ' + tx + ' را برگرداند');
       else if (comKey.length > 1) conflicts.push('چند تراکنش ثبت‌شده برای کلید ' + k);
     });
+    // txByKey must carry EXACTLY the committed keys: an id on a not-committed or unrelated key contradicts the lookup itself.
+    Object.keys(tb).forEach(function (k) { if (by[k] !== 'committed') conflicts.push('جستجو برای کلید ' + k + ' شناسهٔ تراکنش داده ولی آن را ثبت‌شده گزارش نکرده است' + (k in by ? '' : ' (کلید ناشناس)')); });
     notC.forEach(function (k) { if (M.ledger.some(function (t) { return t.key === k && t.st === 'committed'; })) conflicts.push('جستجو کلید ' + k + ' را ثبت‌نشده گزارش کرد ولی در دفتر کل ثبت‌شده است'); });
     // Completeness: every displayed Unknown item must be resolved by the lookup, and key-level results must cover and agree with the aggregate counts.
     r.items.forEach(function (it) { if (it[4] === 'unknown' && !by[it[1]]) conflicts.push('آیتم ' + it[1] + ' در نتیجهٔ جستجو نیست (نتیجهٔ جستجو ناقص است)'); });
@@ -319,6 +321,7 @@
     }
     else if (sp.kind === 'runrecon') {
       var lk = st.lookups[r.id] || { committed: 0, notCommitted: r.intended }, first = true;
+      if (sp.lkSig != null && (!st.lookups[r.id] || sp.lkSig !== X.lookupSig(st.lookups[r.id]))) return X.newOp({ title: 'تطبیق — تعارض هنگام ثبت', kind: 'run', run: r.id, conflict: true, c: { requested: r.intended, eligible: r.intended, ok: 0, existing: 0, skipped: 0, failed: 0, unknown: r.intended }, note: 'نتیجهٔ جستجویی که تأیید شد با نتیجهٔ فعلی یکی نیست (جایگزین یا بازخوانی شده)؛ هیچ چیز تغییر نکرد و نتیجهٔ اجرا نامعلوم می‌ماند.' });
       // PLAN first (pure). A contradictory lookup is reported at operation/run level only: ledger, items and classification stay untouched.
       var by = lk.byKey || {}, plan = X.planReconcile(r, lk);
       if (plan.conflicts.length) {
@@ -350,9 +353,10 @@
   };
   // Read-only lookup: result is DERIVED view state (st.lookups) — it changes no run, ledger or audit record. Recording the reconciliation is a separate authorised step.
   X.runLookup = function (id) { var r = X.runView(X.run(id)); st.lookups[id] = r.lookup || { committed: 0, notCommitted: r.intended }; };
+  X.lookupSig = function (lk) { var st2 = function (o) { return JSON.stringify(Object.keys(o || {}).sort().map(function (k) { return [k, o[k]]; })); }; return [lk.committed, lk.notCommitted, st2(lk.byKey), st2(lk.txByKey)].join('|'); };
   X.runReconSpec = function (r) {
     var lk = st.lookups[r.id];
-    return runSpec('runrecon', r, { title: 'ثبت نتیجهٔ تطبیق', needsReason: true, reasonLabel: 'مبنای تطبیق (نتیجهٔ جستجو)', target: r.id + ' · ' + r.name, current: 'نتیجه نامعلوم', resulting: 'تطبیق‌شده: ' + fa(num(lk.committed)) + ' آیتم ثبت‌شده، ' + fa(num(lk.notCommitted)) + ' آیتم ثبت‌نشدهٔ اثبات‌شده',
+    return runSpec('runrecon', r, { lkSig: X.lookupSig(lk), title: 'ثبت نتیجهٔ تطبیق', needsReason: true, reasonLabel: 'مبنای تطبیق (نتیجهٔ جستجو)', target: r.id + ' · ' + r.name, current: 'نتیجه نامعلوم', resulting: 'تطبیق‌شده: ' + fa(num(lk.committed)) + ' آیتم ثبت‌شده، ' + fa(num(lk.notCommitted)) + ' آیتم ثبت‌نشدهٔ اثبات‌شده',
       changes: ['وضعیت اجرا: نتیجه نامعلوم ← تطبیق‌شده', 'نتیجهٔ هر آیتم از جستجوی تراکنش/کلید ثبت می‌شود', 'آیتم‌هایی که ثبت‌شده یافت شدند به تراکنش واقعی‌شان وصل می‌شوند'], unchanged: ['هیچ اعتبار جدیدی ثبت نمی‌شود', 'تراکنش‌های موجود دوباره نوشته نمی‌شوند', 'تکرار ثبت انجام نمی‌شود'], affected: ['اجرا ' + r.id, 'آیتم‌های نامعلوم', 'ممیزی'],
       irrev: ['نتیجهٔ تطبیق در ممیزی ثبت می‌شود', 'تکرار پس از آن فقط برای دنبالهٔ اثبات‌شدهٔ ثبت‌نشده و با تأیید جدا است'], ack: 'نتیجهٔ جستجو را بررسی کردم؛ می‌دانم این گام فقط تطبیق را ثبت می‌کند و ثبت جدیدی نیست.', commit: 'ثبت نتیجهٔ تطبیق (نمایشی)' });
   };
