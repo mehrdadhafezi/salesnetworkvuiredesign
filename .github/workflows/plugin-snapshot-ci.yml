@@ -1,0 +1,93 @@
+name: Plugin Snapshot CI
+
+on:
+  pull_request:
+    paths:
+      - 'plugin/current/**'
+      - '.github/workflows/plugin-snapshot-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plugin-snapshot:
+    name: Plugin snapshot sanity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find plugin/current -type f -name '*.php' -print0)
+          if ((${#files[@]} == 0)); then
+            echo "No PHP files found."
+            exit 1
+          fi
+          for file in "${files[@]}"; do
+            php -l "$file" >/dev/null
+          done
+          echo "PHP syntax OK: ${#files[@]} files"
+
+      - name: JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+            count=$((count + 1))
+          done < <(find plugin/current -type f -name '*.js' -print0)
+          echo "JavaScript syntax OK: $count files"
+
+      - name: Python syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find plugin/current -type f -name '*.py' -print -quit | grep -q .; then
+            python -m compileall -q plugin/current
+            echo "Python syntax OK"
+          else
+            echo "No Python files found; skipping."
+          fi
+
+      - name: Snapshot package sanity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f plugin/current/sales-network.php
+
+          if find plugin/current -type f \( -iname '*.zip' -o -iname '*.rar' -o -iname '*.7z' -o -iname '*.tmp' -o -iname '*.bak' -o -iname '*.orig' -o -iname '*.rej' \) -print -quit | grep -q .; then
+            echo "Unexpected archive/temp/backup artifact found under plugin/current"
+            find plugin/current -type f \( -iname '*.zip' -o -iname '*.rar' -o -iname '*.7z' -o -iname '*.tmp' -o -iname '*.bak' -o -iname '*.orig' -o -iname '*.rej' \) -print
+            exit 1
+          fi
+
+          if [ -d plugin/current/sales-network-v4 ]; then
+            echo "Unexpected nested plugin directory: plugin/current/sales-network-v4"
+            exit 1
+          fi
+
+          echo "Snapshot package sanity OK"
