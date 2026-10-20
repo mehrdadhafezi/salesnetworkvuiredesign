@@ -136,7 +136,7 @@ by the Blueprint. The decisions below are those whose content is recorded in thi
 
 | ID | Question | Why | Earliest phase blocked | Safe default until decided |
 |---|---|---|---|---|
-| D-03…D-22 | As registered in the Blueprint | Per Blueprint | Per Blueprint (not Slice 0) | Per Blueprint; no target behaviour implemented for them |
+| D-03…D-22 | Not recorded on main | Under rule 1 (§5) they carry no authority in this repository until committed | Any later phase that relies on them (not Slice 0) | No target behaviour depending on them is implemented; each must be committed to main before the phase that relies on it starts |
 | D-23 | Invoice Review visibility / PII / export policy | Legacy is organisation-wide, uncapped CSV with name, phones, address, postcode | Any Invoice Review read model or export in the target | Target ships no export. Read access only behind a flag, with read/export audit. Legacy unchanged. |
 | D-24 | Invoice Review product/design owner | No frozen SN-207 design exists | Target Invoice Review UI | Legacy UI only; no target UI work |
 | D-25 | Gateway auto-approval policy | Payment marked `approved` without Finance review | Payments/finance slice | Preserve as distinct provenance (`gateway_auto`); never present as Finance-reviewed |
@@ -193,17 +193,24 @@ Semantics per Phase-0 spec §5 (preserved under D-01).
 **B. Refs.** `NativeRef{Domain, ID string}` (decimal string IDs, domain-qualified; equal IDs
 in different domains are unequal). `SourceRef{Native, OriginBatch?, OriginActor?, OriginAt?,
 Provenance ∈ VERIFIED|INCOMPLETE|UNKNOWN|NOT_APPLICABLE}`. `CaseRef{Natives (non-empty),
-Sources, CanonicalID (nil allowed; never minted), Resolution ∈ RESOLVED|RELATED|UNKNOWN|CONFLICT}`.
+Sources, CanonicalID (never minted), Resolution ∈ RESOLVED|RELATED|UNKNOWN|CONFLICT}`.
+RESOLVED requires a supplied CanonicalID (`GATE-0-PRODUCT-INVARIANTS.md` §3: `canonical_id` required for resolved CaseRef);
+a proven grouping without an existing canonical ID is RELATED, never RESOLVED. CanonicalID is nil
+for RELATED/UNKNOWN/CONFLICT unless an existing one is supplied.
 `LegacyRef{System (wp|woo|gateway|biawin), Table/Entity, ID}` is opaque and only constructible
 by the integration package. A phone, name or token is never a valid ID in any ref (validation
 rejects it). Nil/UNKNOWN/N/A are distinct; zero is never a sentinel.
 
 **C. Reason codes.** Versioned taxonomy `foundation-v1` (Phase-0 spec §6 codes). Two kinds:
 (1) CRM reason codes; (2) `LegacyValue{Source, Field, Raw}` preserved verbatim. Unknown raw
-values map to UNKNOWN, never to false or a default. The known-legacy registry must include
-payment/invoice `approved` and payment `reconcile_error` (plus the observed set: paid,
-partial_paid, pending_payment, awaiting_payment, awaiting_assignment, pre_invoice, rejected,
-cancelled, expired, failed, pending_financial_approval).
+values map to UNKNOWN, never to false or a default. The known-legacy registry is
+namespace-qualified (e.g. `invoice/approved`, `payment_stage/approved`) and must contain the full
+frozen status catalog: every name/namespace row of `docs/source-of-truth/STATUS-TRANSITIONS.fa.md`
+and every value in `GATE-0-PRODUCT-INVARIANTS.md` §8 Status Namespaces (invoice, invoice_workflow,
+payment_stage, transaction, Dot transaction, finance_review, conversion, case/custody, contact,
+hr_request, commission_run/item, wallet_transaction, report_job). It additionally includes the
+legacy payment values `approved` and `reconcile_error` (`class-sn-plugin.php:7160-7164`) and the
+customer-portal values `pending_payment`, `expired`, `failed` (`class-sn-customer-portal.php:806-814`).
 
 **D. Money — APPROVED / FROZEN FOR SLICE 0** (OWNER-APPROVED).
 
@@ -291,10 +298,12 @@ the PHP Phase-0 harness (D-01), any network or file I/O in kernel packages.
 4. Result: tests cover all 7 statuses; empty aggregate → error; every aggregation rule in §9A;
    property test: aggregation is permutation-invariant; UNKNOWN never becomes SUCCESS/FAILED.
 5. Refs: tests reject phone-shaped, empty, zero, negative and non-decimal IDs; cross-domain equal IDs
-   compare unequal; CaseRef rejects empty Natives; CanonicalID is never generated; serialization
-   round-trip property test.
-6. Reason codes: registry versioned `foundation-v1`; `approved` and `reconcile_error` present;
-   unknown raw → UNKNOWN with raw preserved byte-for-byte (property test over arbitrary strings).
+   compare unequal; CaseRef rejects empty Natives; CaseRef with Resolution RESOLVED and nil
+   CanonicalID is rejected; CanonicalID is never generated; serialization round-trip property test.
+6. Reason codes: registry versioned `foundation-v1`; a table-driven test asserts every
+   namespace/value of the frozen status catalog (§9C) is registered as known (none maps to UNKNOWN),
+   including payment `approved` and `reconcile_error`; unknown raw → UNKNOWN with raw preserved
+   byte-for-byte (property test over arbitrary strings).
 7. Money: no `float32/float64` in kernel (lint-enforced); Unit required (zero-value Unit invalid);
    cross-unit ops rejected; no conversion function exists; overflow detected (property test at
    int64 bounds); absent ≠ zero.
@@ -309,6 +318,7 @@ the PHP Phase-0 harness (D-01), any network or file I/O in kernel packages.
 ## 13. Deferred risks / decisions
 
 - D-03…D-26 remain unresolved and gated at later phases (§7B); this record resolves none of them.
+  D-03…D-22 are not recorded on main and must be committed before any phase that relies on them.
 - D-23/D-25/D-26 legacy behaviours remain live in production (PII export, auto-approval, auto-login).
 - OPD-06 business conversion / rounding / normalization of money remains open.
 - Legacy read-path/boot writes (incl. Invoice Review role/page creation).
