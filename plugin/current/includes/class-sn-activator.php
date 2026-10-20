@@ -160,6 +160,7 @@ class SN_Activator {
 		add_role( 'sn_financial', 'تایید مالی', [
 			'read' => true,
 		] );
+		add_role( 'sn_invoice_reviewer', 'بررسی فاکتور', [ 'read' => true, 'sn_review_invoices' => true ] );
 		add_role( 'sn_finance', 'مالی', [ 'read' => true ] );
 		add_role( 'sn_hr', 'منابع انسانی', [ 'read' => true ] );
 		add_role( 'sn_mis', 'MIS', [ 'read' => true ] );
@@ -900,6 +901,7 @@ class SN_Activator {
 			'sn_sales_manager_auth_page_id' => [ 'title' => 'ورود مدیر فروش', 'slug' => 'sales-manager-login', 'shortcode' => '[sn_sales_manager_auth]' ],
 			'sn_sales_manager_panel_page_id' => [ 'title' => 'پنل مدیر فروش', 'slug' => 'sales-manager-panel', 'shortcode' => '[sn_sales_manager_panel]' ],
 			'sn_financial_auth_page_id' => [ 'title' => 'ورود تایید مالی', 'slug' => 'financial-login', 'shortcode' => '[sn_financial_auth]' ],
+			'sn_invoice_review_panel_page_id' => [ 'title' => 'پنل بررسی فاکتور', 'slug' => 'crm-invoice-review', 'shortcode' => '[sn_invoice_review_panel]' ],
 			'sn_financial_panel_page_id' => [ 'title' => 'پنل تایید مالی', 'slug' => 'financial-approval', 'shortcode' => '[sn_financial_panel]' ],
 			'sn_invoice_page_id' => [ 'title' => 'فاکتور', 'slug' => 'invoice', 'shortcode' => '[sn_invoice_page]' ],
 			'sn_dot_customer_page_id' => [ 'title' => 'تایید اعتبارسنجی', 'slug' => 'credit-assessment', 'shortcode' => '[sn_dot_customer_flow]' ],
