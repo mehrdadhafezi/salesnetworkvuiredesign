@@ -192,7 +192,9 @@ Semantics per Phase-0 spec §5 (preserved under D-01).
 
 **B. Refs.** `NativeRef{Domain, ID string}` (decimal string IDs, domain-qualified; equal IDs
 in different domains are unequal). `SourceRef{Native, OriginBatch?, OriginActor?, OriginAt?,
-Provenance ∈ VERIFIED|INCOMPLETE|UNKNOWN|NOT_APPLICABLE}`. `CaseRef{Natives (non-empty),
+Provenance ∈ VERIFIED|INCOMPLETE|UNKNOWN|NOT_RECOVERABLE|NOT_APPLICABLE}` (UNKNOWN = may still
+be reconciled; NOT_RECOVERABLE = known to be permanently unavailable; NOT_APPLICABLE = field does
+not apply; all distinct per `GATE-0-PRODUCT-INVARIANTS.md` §3). `CaseRef{Natives (non-empty),
 Sources, CanonicalID (never minted), Resolution ∈ RESOLVED|RELATED|UNKNOWN|CONFLICT}`.
 RESOLVED requires a supplied CanonicalID (`GATE-0-PRODUCT-INVARIANTS.md` §3: `canonical_id` required for resolved CaseRef);
 a proven grouping without an existing canonical ID is RELATED, never RESOLVED. CanonicalID is nil
@@ -298,7 +300,8 @@ the PHP Phase-0 harness (D-01), any network or file I/O in kernel packages.
 4. Result: tests cover all 7 statuses; empty aggregate → error; every aggregation rule in §9A;
    property test: aggregation is permutation-invariant; UNKNOWN never becomes SUCCESS/FAILED.
 5. Refs: tests reject phone-shaped, empty, zero, negative and non-decimal IDs; cross-domain equal IDs
-   compare unequal; CaseRef rejects empty Natives; CaseRef with Resolution RESOLVED and nil
+   compare unequal; SourceRef provenance states UNKNOWN, NOT_RECOVERABLE and NOT_APPLICABLE are
+   distinct and never collapse into one another or into nil; CaseRef rejects empty Natives; CaseRef with Resolution RESOLVED and nil
    CanonicalID is rejected; CanonicalID is never generated; serialization round-trip property test.
 6. Reason codes: registry versioned `foundation-v1`; a table-driven test asserts every
    namespace/value of the frozen status catalog (§9C) is registered as known (none maps to UNKNOWN),
