@@ -73,7 +73,7 @@ jobs:
         run: go test -count=1 -race ./...
 
       - name: Architecture / import lint
-        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern' -v ./internal/architecture/
+        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern|TestSliceThreeRules|TestAPIServerHasNoLegacyDependency' -v ./internal/architecture/
 
       - name: Kernel is standard-library only
         shell: bash
@@ -95,6 +95,22 @@ jobs:
       - name: Platform PostgreSQL integration tests (verbose)
         run: go test -count=1 -v ./internal/platform/... ./cmd/...
 
+      - name: Slice 3 legacy connector + staging gates (verbose; synthetic data only)
+        run: go test -count=1 -v ./internal/integration/... ./cmd/crm-legacy-import/
+
+      - name: Slice 3 boundary — crm-api never reaches the legacy connector
+        shell: bash
+        run: |
+          module="$(go list -m)"
+          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/integration(/|$)" || true)"
+          if [ -n "$bad" ]; then echo "crm-api depends on the integration/legacy connector:"; echo "$bad"; exit 1; fi
+
+      - name: Slice 3 — no snapshot content tracked
+        shell: bash
+        run: |
+          tracked="$(git ls-files '*.ndjson' '**/manifest.json' 'snapshots/**' 'legacy-snapshot*/**' 'crm-legacy-snapshot*/**')"
+          if [ -n "$tracked" ]; then echo "Snapshot content must never be committed:"; echo "$tracked"; exit 1; fi
+
       - name: crm-migrate on an empty database (apply, repeat, status)
         shell: bash
         env:
@@ -106,6 +122,9 @@ jobs:
           go run ./cmd/crm-migrate up | grep -q 'no pending migrations'
           go run ./cmd/crm-migrate status
           ! go run ./cmd/crm-migrate status | grep -q pending
+          go run ./cmd/crm-migrate status | grep -q 'applied  00001_integration_staging.sql'
+          stg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'integration' AND table_name LIKE 'stg\_%'")"
+          test "$stg" = "11" || { echo "expected 11 integration staging tables, got $stg"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

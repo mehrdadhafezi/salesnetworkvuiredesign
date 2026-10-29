@@ -16,6 +16,17 @@
 # Exception: versioned target migrations and test-only synthetic schemas are source code.
 !internal/platform/migrations/sql/*.sql
 !internal/platform/pgtest/synthetic/*.sql
+# Slice 3: integration staging migrations (DDL only, no data) and lint fixtures.
+!internal/integration/legacy/migrations/sql/*.sql
+!internal/integration/legacy/migrations/body/*.sql
+!internal/architecture/testdata/**/*.sql
+
+# Legacy snapshot packages may contain PII: never committed (Slice 3, D-23).
+# Tests build synthetic packages in temporary directories only.
+*.ndjson
+snapshots/
+legacy-snapshot*/
+crm-legacy-snapshot*/
 
 # Logs / temp
 *.log
