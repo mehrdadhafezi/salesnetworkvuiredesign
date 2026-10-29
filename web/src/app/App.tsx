@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { RouterProvider, createBrowserRouter, type createMemoryRouter } from 'react-router'
 import { ApiProvider, createApi, type ApiClient } from '../shared/api'
-import { SessionProvider } from '../shared/auth/session'
+import { SessionProvider } from '../shared/auth/currentSession'
 import type { AppConfig } from './config'
 import { ErrorBoundary } from './ErrorBoundary'
 import { buildRoutes } from './routes'

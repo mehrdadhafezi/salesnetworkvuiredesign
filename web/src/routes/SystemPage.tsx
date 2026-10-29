@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { toFailure, useApi, type ApiFailure, type HealthLive, type HealthReady } from '../shared/api'
-import { useSession } from '../shared/auth/session'
+import { useSession } from '../shared/auth/currentSession'
 import { outcomePresentation } from '../shared/ui/outcome'
 import { Card, PageHeader, StateBlock, StatusPill } from '../shared/ui/primitives'
 import { formatInstant } from '../shared/ui/time'

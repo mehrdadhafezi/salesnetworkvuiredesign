@@ -1,6 +1,6 @@
 import { Suspense, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import { useSession } from '../shared/auth/session'
+import { useSession } from '../shared/auth/currentSession'
 import { Icon } from '../shared/ui/icons'
 import { StateBlock } from '../shared/ui/primitives'
 
