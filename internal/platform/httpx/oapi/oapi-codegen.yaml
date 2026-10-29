@@ -1,0 +1,10 @@
+# oapi-codegen configuration. Input: the bundled contract produced from
+# api/openapi/openapi.yaml. Output is generated and must never be edited.
+package: oapi
+output: oapi.gen.go
+generate:
+  models: true
+  std-http-server: true
+  strict-server: true
+output-options:
+  skip-prune: true

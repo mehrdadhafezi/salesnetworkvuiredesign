@@ -1,0 +1,95 @@
+name: Web and OpenAPI CI
+
+on:
+  pull_request:
+    paths:
+      - 'api/**'
+      - 'web/**'
+      - 'internal/platform/httpx/oapi/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/web-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  openapi:
+    name: OpenAPI validate, generate, stale check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: npm ci
+        run: npm ci --prefix web
+
+      - name: Validate, bundle and regenerate (Go + TypeScript)
+        run: npm --prefix web run openapi:gen
+
+      - name: Generated outputs are current
+        shell: bash
+        run: |
+          generated="api/openapi/openapi.bundled.yaml web/src/generated internal/platform/httpx/oapi/oapi.gen.go"
+          if ! git diff --exit-code -- $generated; then
+            echo "Generated contract outputs are stale: run 'npm --prefix web run openapi:gen' and commit."; exit 1
+          fi
+          untracked="$(git status --porcelain --untracked-files=all -- $generated)"
+          if [ -n "$untracked" ]; then echo "Untracked generated files:"; echo "$untracked"; exit 1; fi
+
+      - name: Generated Go contract compiles and contract tests pass
+        run: go test -count=1 ./internal/platform/httpx/... ./internal/platform/apiserver/ ./internal/platform/authstub/ ./cmd/crm-api/
+
+  frontend:
+    name: Frontend typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Typecheck (includes generated client and type-level contract tests)
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Production bundle carries no dev auth or dev routes
+        shell: bash
+        run: |
+          if grep -l -E 'X-Dev-User|dev-user-|PrimitivesPage' dist/assets/*.js; then
+            echo "Development-only code leaked into the production bundle"; exit 1
+          fi

@@ -1,0 +1,6 @@
+extends:
+  - recommended
+rules:
+  # Slice 2 is anonymous by design (technical health + dev session context).
+  security-defined: off
+  operation-4xx-response: off

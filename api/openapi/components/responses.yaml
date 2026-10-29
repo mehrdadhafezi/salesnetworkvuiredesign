@@ -1,0 +1,9 @@
+Problem:
+  description: RFC 9457 problem details (transport, contract or server error).
+  headers:
+    X-Correlation-ID:
+      $ref: './headers.yaml#/CorrelationID'
+  content:
+    application/problem+json:
+      schema:
+        $ref: './schemas.yaml#/Problem'

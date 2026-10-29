@@ -6,6 +6,7 @@ on:
       - '**.go'
       - '**.sql'
       - '**.sql.tmpl'
+      - 'api/**'
       - 'go.mod'
       - 'go.sum'
       - 'cmd/**'
