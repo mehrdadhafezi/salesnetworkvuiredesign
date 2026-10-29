@@ -1,0 +1,90 @@
+-- Per-module infrastructure for module "{{.Schema}}" (Architecture V1 §5, §8.8):
+-- the module's own schema, NOLOGIN owner role and its own outbox, inbox and
+-- idempotency tables. Rendered by migrations.RenderModuleInfra; never edited
+-- by hand in a rendered migration.
+
+-- +goose Up
+-- +goose StatementBegin
+DO $$
+BEGIN
+    CREATE ROLE {{.Role}} NOLOGIN;
+EXCEPTION WHEN duplicate_object OR unique_violation THEN
+    NULL;
+END
+$$;
+-- +goose StatementEnd
+
+CREATE SCHEMA {{.Schema}};
+REVOKE ALL ON SCHEMA {{.Schema}} FROM PUBLIC;
+GRANT USAGE ON SCHEMA {{.Schema}} TO {{.Role}};
+
+CREATE TABLE {{.Schema}}.outbox_event (
+    event_id         uuid        PRIMARY KEY,
+    event_type       text        NOT NULL,
+    event_version    integer     NOT NULL,
+    subject_domain   text        NULL,
+    subject_id       text        NULL,
+    payload          jsonb       NOT NULL,
+    occurred_at      timestamptz NOT NULL,
+    recorded_at      timestamptz NOT NULL,
+    correlation_id   text        NULL,
+    dispatch_state   text        NOT NULL DEFAULT 'pending',
+    attempts         integer     NOT NULL DEFAULT 0,
+    last_attempt_at  timestamptz NULL,
+    last_error       text        NULL,
+    dispatched_at    timestamptz NULL,
+    CONSTRAINT outbox_event_type_format CHECK (event_type ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$' AND length(event_type) <= 128),
+    CONSTRAINT outbox_event_version_positive CHECK (event_version > 0),
+    CONSTRAINT outbox_event_subject_pair CHECK ((subject_domain IS NULL) = (subject_id IS NULL)),
+    CONSTRAINT outbox_event_payload_object CHECK (jsonb_typeof(payload) = 'object'),
+    CONSTRAINT outbox_event_correlation_length CHECK (correlation_id IS NULL OR length(correlation_id) BETWEEN 1 AND 128),
+    CONSTRAINT outbox_event_state CHECK (dispatch_state IN ('pending', 'dispatched', 'failed')),
+    CONSTRAINT outbox_event_attempts CHECK (attempts >= 0),
+    CONSTRAINT outbox_event_error_length CHECK (last_error IS NULL OR length(last_error) <= 1000),
+    CONSTRAINT outbox_event_dispatched CHECK ((dispatch_state = 'dispatched') = (dispatched_at IS NOT NULL))
+);
+CREATE INDEX outbox_event_undispatched_idx ON {{.Schema}}.outbox_event (recorded_at, event_id)
+    WHERE dispatch_state <> 'dispatched';
+
+CREATE TABLE {{.Schema}}.inbox_message (
+    consumer         text        NOT NULL,
+    message_id       uuid        NOT NULL,
+    state            text        NOT NULL,
+    first_seen_at    timestamptz NOT NULL,
+    last_attempt_at  timestamptz NOT NULL,
+    processed_at     timestamptz NULL,
+    attempts         integer     NOT NULL,
+    last_error       text        NULL,
+    PRIMARY KEY (consumer, message_id),
+    CONSTRAINT inbox_message_consumer_format CHECK (consumer ~ '^[a-z][a-z0-9_.]{1,127}$'),
+    CONSTRAINT inbox_message_state CHECK (state IN ('processing', 'processed', 'failed')),
+    CONSTRAINT inbox_message_processed CHECK ((state = 'processed') = (processed_at IS NOT NULL)),
+    CONSTRAINT inbox_message_attempts CHECK (attempts >= 1),
+    CONSTRAINT inbox_message_error_length CHECK (last_error IS NULL OR length(last_error) <= 1000)
+);
+
+CREATE TABLE {{.Schema}}.idempotency_record (
+    scope            text        NOT NULL,
+    idem_key         text        NOT NULL,
+    request_hash     bytea       NOT NULL,
+    state            text        NOT NULL,
+    result           jsonb       NULL,
+    created_at       timestamptz NOT NULL,
+    completed_at     timestamptz NULL,
+    PRIMARY KEY (scope, idem_key),
+    CONSTRAINT idempotency_scope_format CHECK (scope ~ '^[a-z][a-z0-9_.]{1,63}$'),
+    CONSTRAINT idempotency_key_format CHECK (idem_key ~ '^[A-Za-z0-9_-]{8,128}$'),
+    CONSTRAINT idempotency_hash_length CHECK (octet_length(request_hash) = 32),
+    CONSTRAINT idempotency_state CHECK (state IN ('in_progress', 'completed')),
+    CONSTRAINT idempotency_completed CHECK ((state = 'completed') = (completed_at IS NOT NULL)),
+    CONSTRAINT idempotency_result_size CHECK (result IS NULL OR pg_column_size(result) <= 65536)
+);
+
+REVOKE ALL ON ALL TABLES IN SCHEMA {{.Schema}} FROM PUBLIC;
+GRANT SELECT, INSERT, UPDATE ON {{.Schema}}.outbox_event, {{.Schema}}.inbox_message, {{.Schema}}.idempotency_record TO {{.Role}};
+
+-- Module-owned tables follow. Grants on them go to {{.Role}} only.
+{{.ModuleUp}}
+
+-- +goose Down
+DROP SCHEMA {{.Schema}} CASCADE;
