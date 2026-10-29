@@ -10,6 +10,15 @@
 //   - refs.NewLegacyRef is called only from internal/integration/legacy.
 //   - no dot imports anywhere in target code: a dot import would hide a
 //     package-qualified call (e.g. a bare NewLegacyRef) from the rules above.
+//
+// Slice 1 rules (Architecture V1 §5, §6, §8.11, §21):
+//
+//   - runtime-ddl: schema-mutating SQL literals (CREATE/ALTER/DROP of
+//     tables, schemas, roles, ...; TRUNCATE; GRANT/REVOKE) appear only in the
+//     migration tooling and the test-only pgtest harness. Test files are exempt.
+//   - platform-import: internal/platform/** never imports a business module.
+//   - foreign-store: internal/<a>/store is imported only from internal/<a>/**.
+//   - pgtest-import: internal/platform/pgtest is imported only from _test.go files.
 package architecture
 
 import (
@@ -46,6 +55,24 @@ const (
 	RuleLegacyLiteral    = "legacy-literal"
 	RuleLegacyRefFactory = "legacyref-factory"
 	RuleDotImport        = "dot-import"
+	RuleRuntimeDDL       = "runtime-ddl"
+	RulePlatformImport   = "platform-import"
+	RuleForeignStore     = "foreign-store"
+	RulePgtestImport     = "pgtest-import"
+)
+
+// DDL is allowed only in migration tooling and the test-only harness. The
+// lint package itself is exempt because its patterns spell DDL keywords.
+var ddlAllowedDirs = []string{"internal/platform/migrations", "cmd/crm-migrate", "internal/platform/pgtest", "internal/architecture"}
+
+var runtimeDDL = regexp.MustCompile(`(?i)\b(create|alter|drop)\s+(table|schema|database|index|role|user|function|procedure|trigger|type|view|sequence|extension|policy)\b|\btruncate\b|\b(grant|revoke)\s+(all|select|insert|update|delete|truncate|references|trigger|usage|create|connect|temporary|execute|maintain|set)\b`)
+
+// platformAllowed are the internal/<top> trees platform code may import.
+var platformAllowed = map[string]bool{"kernel": true, "platform": true}
+
+const (
+	platformDir = "internal/platform"
+	pgtestPkg   = "internal/platform/pgtest"
 )
 
 const (
@@ -133,6 +160,21 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 				add(RuleKernelImport, imp.Pos(), msg)
 			}
 		}
+		internalTop, internalRest, isInternal := splitInternal(p, modulePath)
+		if !isInternal {
+			continue
+		}
+		if under(rel, platformDir) && !platformAllowed[internalTop] {
+			add(RulePlatformImport, imp.Pos(), "platform imports business module "+p)
+		}
+		if internalRest == "store" || strings.HasPrefix(internalRest, "store/") {
+			if !under(rel, "internal/"+internalTop) {
+				add(RuleForeignStore, imp.Pos(), "imports another module's store package "+p)
+			}
+		}
+		if internalTop+"/"+internalRest == strings.TrimPrefix(pgtestPkg, "internal/") && !isTest && !under(rel, pgtestPkg) {
+			add(RulePgtestImport, imp.Pos(), "test-only "+p+" imported from production code")
+		}
 	}
 
 	ast.Inspect(f, func(n ast.Node) bool {
@@ -141,6 +183,11 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			if x.Kind == token.STRING && !under(rel, legacyInteg) {
 				if s, err := strconv.Unquote(x.Value); err == nil && legacyLiteral.MatchString(s) {
 					add(RuleLegacyLiteral, x.Pos(), "legacy table literal "+x.Value+" outside "+legacyInteg)
+				}
+			}
+			if x.Kind == token.STRING && !isTest && !ddlAllowed(rel) {
+				if s, err := strconv.Unquote(x.Value); err == nil && runtimeDDL.MatchString(s) {
+					add(RuleRuntimeDDL, x.Pos(), "schema-mutating SQL outside migrations: "+runtimeDDL.FindString(s))
 				}
 			}
 		case *ast.Ident:
@@ -169,6 +216,25 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		return true
 	})
 	return out, nil
+}
+
+// splitInternal splits "<module>/internal/<top>/<rest>" into top and rest.
+func splitInternal(p, modulePath string) (top, rest string, ok bool) {
+	prefix := modulePath + "/internal/"
+	if !strings.HasPrefix(p, prefix) {
+		return "", "", false
+	}
+	top, rest, _ = strings.Cut(strings.TrimPrefix(p, prefix), "/")
+	return top, rest, top != ""
+}
+
+func ddlAllowed(rel string) bool {
+	for _, d := range ddlAllowedDirs {
+		if under(rel, d) {
+			return true
+		}
+	}
+	return false
 }
 
 func kernelImportProblem(p, modulePath string, isTest bool) string {

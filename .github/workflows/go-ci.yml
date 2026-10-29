@@ -4,8 +4,11 @@ on:
   pull_request:
     paths:
       - '**.go'
+      - '**.sql'
+      - '**.sql.tmpl'
       - 'go.mod'
       - 'go.sum'
+      - 'cmd/**'
       - 'internal/**'
       - '.github/workflows/go-ci.yml'
   workflow_dispatch:
@@ -15,9 +18,30 @@ permissions:
 
 jobs:
   go:
-    name: Go kernel gates
+    name: Go kernel and platform gates
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+
+    services:
+      # Disposable CI database. Synthetic fixtures only; never production data.
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: crm_ci
+          POSTGRES_PASSWORD: crm_ci_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U crm_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      CRM_TEST_DATABASE_URL: postgres://crm_ci:crm_ci_only@localhost:5432/postgres?sslmode=disable
+      # Integration tests must run in CI; a missing database fails instead of skipping.
+      CRM_TEST_REQUIRE_POSTGRES: '1'
 
     steps:
       - name: Checkout
@@ -41,14 +65,14 @@ jobs:
       - name: go vet
         run: go vet ./...
 
-      - name: go test
-        run: go test ./...
+      - name: go test (unit + PostgreSQL integration)
+        run: go test -count=1 ./...
 
       - name: go test -race
-        run: go test -race ./...
+        run: go test -count=1 -race ./...
 
       - name: Architecture / import lint
-        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule' -v ./internal/architecture/
+        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern' -v ./internal/architecture/
 
       - name: Kernel is standard-library only
         shell: bash
@@ -66,6 +90,21 @@ jobs:
           total="$(go tool cover -func=kernel.cover | awk '/^total:/ {sub("%","",$3); print $3}')"
           echo "Kernel statement coverage: ${total}%"
           awk -v t="$total" 'BEGIN { exit (t + 0 >= 90.0) ? 0 : 1 }' || { echo "Coverage below 90%"; exit 1; }
+
+      - name: Platform PostgreSQL integration tests (verbose)
+        run: go test -count=1 -v ./internal/platform/... ./cmd/...
+
+      - name: crm-migrate on an empty database (apply, repeat, status)
+        shell: bash
+        env:
+          PGPASSWORD: crm_ci_only
+        run: |
+          psql -h localhost -U crm_ci -d postgres -c 'CREATE DATABASE crm_migrate_ci'
+          export CRM_MIGRATE_DATABASE_URL='postgres://crm_ci:crm_ci_only@localhost:5432/crm_migrate_ci?sslmode=disable'
+          go run ./cmd/crm-migrate up
+          go run ./cmd/crm-migrate up | grep -q 'no pending migrations'
+          go run ./cmd/crm-migrate status
+          ! go run ./cmd/crm-migrate status | grep -q pending
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

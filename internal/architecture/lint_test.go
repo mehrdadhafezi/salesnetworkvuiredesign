@@ -56,6 +56,10 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleLegacyLiteral:    2, // one in kernel, one in a business package
 		RuleLegacyRefFactory: 1,
 		RuleDotImport:        1, // internal/sales/dotimport.go
+		RuleRuntimeDDL:       3, // platform/bad CREATE TABLE; sales/ddl alter table + GRANT
+		RulePlatformImport:   1, // platform/bad imports billing
+		RulePgtestImport:     1, // platform/bad imports pgtest from production code
+		RuleForeignStore:     1, // sales imports billing/store
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -117,6 +121,61 @@ func TestDotImportRule(t *testing.T) {
 	}
 	for _, v := range allowed {
 		t.Errorf("named/blank imports must be allowed: %s", v)
+	}
+}
+
+// TestSliceOneRules checks each Slice 1 rule fires where expected and
+// stays silent on the allowed fixture (migration DDL, own store, kernel and
+// platform imports from platform, pgtest and DDL from test files).
+func TestSliceOneRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		RulePlatformImport: "internal/platform/bad/bad.go",
+		RulePgtestImport:   "internal/platform/bad/bad.go",
+		RuleForeignStore:   "internal/sales/store_import.go",
+	}
+	for rule, file := range want {
+		found := false
+		for _, v := range vs {
+			if v.Rule == rule && v.File == file {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("rule %s did not fire in %s", rule, file)
+		}
+	}
+	ddlFiles := map[string]int{}
+	for _, v := range vs {
+		if v.Rule == RuleRuntimeDDL {
+			ddlFiles[v.File]++
+		}
+	}
+	if ddlFiles["internal/platform/bad/bad.go"] != 1 || ddlFiles["internal/sales/ddl.go"] != 2 {
+		t.Errorf("runtime-ddl hits = %v", ddlFiles)
+	}
+	allowed, err := Check(filepath.Join("testdata", "allowed"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range allowed {
+		t.Errorf("allowed fixture flagged: %s", v)
+	}
+}
+
+func TestRuntimeDDLPattern(t *testing.T) {
+	for _, s := range []string{"CREATE TABLE x", "create  schema y", "Drop Index z", "ALTER ROLE r", "TRUNCATE t", "grant select on t to r", "REVOKE ALL ON t FROM r", "create extension pgcrypto"} {
+		if !runtimeDDL.MatchString(s) {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	for _, s := range []string{"SELECT * FROM t", "INSERT INTO t VALUES (1)", "UPDATE t SET a = 1", "SET LOCAL ROLE r", "created_at", "table_name", "dropped", "grants", "the grant was"} {
+		if runtimeDDL.MatchString(s) {
+			t.Errorf("%q falsely detected", s)
+		}
 	}
 }
 

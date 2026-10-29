@@ -13,6 +13,9 @@
 *.sqlite
 *.sqlite3
 *.dump
+# Exception: versioned target migrations and test-only synthetic schemas are source code.
+!internal/platform/migrations/sql/*.sql
+!internal/platform/pgtest/synthetic/*.sql
 
 # Logs / temp
 *.log
