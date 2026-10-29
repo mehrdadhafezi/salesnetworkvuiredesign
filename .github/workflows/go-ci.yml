@@ -1,0 +1,75 @@
+name: Go CI
+
+on:
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'internal/**'
+      - '.github/workflows/go-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: Go kernel gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: gofmt
+        shell: bash
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "Files need gofmt:"; echo "$unformatted"; exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: go test -race
+        run: go test -race ./...
+
+      - name: Architecture / import lint
+        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule' -v ./internal/architecture/
+
+      - name: Kernel is standard-library only
+        shell: bash
+        run: |
+          module="$(go list -m)"
+          bad="$(go list -deps -f '{{if not .Standard}}{{.ImportPath}}{{end}}' ./internal/kernel/... | grep -v -E "^${module}/internal/kernel(/|$)" || true)"
+          if [ -n "$bad" ]; then echo "Non-stdlib kernel dependencies:"; echo "$bad"; exit 1; fi
+          forbidden="$(go list -deps ./internal/kernel/... | grep -E '^(database/sql.*|net|net/.*|os/exec)$' || true)"
+          if [ -n "$forbidden" ]; then echo "Kernel depends on forbidden packages:"; echo "$forbidden"; exit 1; fi
+
+      - name: Kernel coverage >= 90%
+        shell: bash
+        run: |
+          go test -count=1 -coverprofile=kernel.cover ./internal/kernel/...
+          total="$(go tool cover -func=kernel.cover | awk '/^total:/ {sub("%","",$3); print $3}')"
+          echo "Kernel statement coverage: ${total}%"
+          awk -v t="$total" 'BEGIN { exit (t + 0 >= 90.0) ? 0 : 1 }' || { echo "Coverage below 90%"; exit 1; }
+
+      - name: plugin/current unchanged
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          changed="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- plugin/current/)"
+          if [ -n "$changed" ]; then echo "plugin/current must not change:"; echo "$changed"; exit 1; fi
