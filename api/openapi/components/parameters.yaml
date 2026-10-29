@@ -1,0 +1,47 @@
+CorrelationID:
+  name: X-Correlation-ID
+  in: header
+  required: false
+  description: Optional client correlation id. Invalid values are replaced by a server-generated id.
+  schema:
+    $ref: './schemas.yaml#/CorrelationID'
+
+IdempotencyKey:
+  name: Idempotency-Key
+  in: header
+  required: true
+  description: |
+    Required on every future mutating command (Architecture V1 §23). Same key
+    and same request replays the stored result; same key with a different
+    request is CONFLICT.
+  schema:
+    type: string
+    pattern: '^[A-Za-z0-9_-]{16,128}$'
+
+IfMatch:
+  name: If-Match
+  in: header
+  required: true
+  description: Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+  schema:
+    type: string
+    maxLength: 128
+
+Cursor:
+  name: cursor
+  in: query
+  required: false
+  description: Opaque cursor from PageInfo.next_cursor.
+  schema:
+    type: string
+    maxLength: 512
+
+Limit:
+  name: limit
+  in: query
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 200
+    default: 50

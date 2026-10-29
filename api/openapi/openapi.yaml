@@ -1,0 +1,159 @@
+openapi: 3.0.3
+info:
+  title: CRM target API
+  version: 0.2.0
+  description: |
+    Authoritative HTTP contract of the standalone CRM (Architecture V1 §23).
+    Slice 2 exposes only technical health and a development session surface;
+    reusable components define the conventions future slices must use.
+
+    Conventions:
+    - Business outcomes use the ResultEnvelope with the seven frozen outcomes.
+      HTTP 2xx is never business SUCCESS by itself: SUCCESS, PARTIAL, FAILED,
+      UNKNOWN and BLOCKED are returned with 200; CONFLICT with 409;
+      UNAUTHORIZED with 403.
+    - Transport, contract and server errors use RFC 9457 application/problem+json
+      with a foundation-v1 reason_code.
+    - Every response carries X-Correlation-ID; a valid inbound value is kept,
+      otherwise one is generated.
+    - Timestamps are RFC 3339 UTC. Money is {amount: string-int64, unit: IRR|IRT}.
+  license:
+    name: Proprietary
+    url: https://github.com/mehrdadhafezi/salesnetworkvuiredesign
+servers:
+  - url: /
+security: []
+tags:
+  - name: health
+    description: Technical liveness/readiness. Not business outcomes.
+  - name: session
+    description: Session context for the SPA shell.
+paths:
+  /health/live:
+    get:
+      tags: [health]
+      operationId: getHealthLive
+      summary: Liveness
+      description: The process is running. Technical status, not a ResultEnvelope.
+      responses:
+        '200':
+          description: Live.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/schemas.yaml#/HealthLive'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /health/ready:
+    get:
+      tags: [health]
+      operationId: getHealthReady
+      summary: Readiness
+      description: |
+        Whether the process can serve traffic. Slice 2 has no dependencies, so
+        the check list is empty. Never exposes DSNs, credentials or internals.
+      responses:
+        '200':
+          description: Ready.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/schemas.yaml#/HealthReady'
+        '503':
+          description: Not ready.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/schemas.yaml#/HealthReady'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/session:
+    get:
+      tags: [session]
+      operationId: getSession
+      summary: Current session context
+      description: |
+        Who the caller is, for shell display only. In Slice 2 the only
+        authentication source is the DEV/TEST stub; in production mode the
+        stub cannot be enabled and the session is always unauthenticated.
+        Capabilities here are synthetic display hints, never authority.
+      responses:
+        '200':
+          description: Session context (authenticated or not).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/schemas.yaml#/SessionEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+components:
+  parameters:
+    CorrelationID:
+      $ref: './components/parameters.yaml#/CorrelationID'
+    IdempotencyKey:
+      $ref: './components/parameters.yaml#/IdempotencyKey'
+    IfMatch:
+      $ref: './components/parameters.yaml#/IfMatch'
+    Cursor:
+      $ref: './components/parameters.yaml#/Cursor'
+    Limit:
+      $ref: './components/parameters.yaml#/Limit'
+  headers:
+    CorrelationID:
+      $ref: './components/headers.yaml#/CorrelationID'
+    ETag:
+      $ref: './components/headers.yaml#/ETag'
+  responses:
+    Problem:
+      $ref: './components/responses.yaml#/Problem'
+  schemas:
+    Outcome:
+      $ref: './components/schemas.yaml#/Outcome'
+    ReasonCode:
+      $ref: './components/schemas.yaml#/ReasonCode'
+    CorrelationID:
+      $ref: './components/schemas.yaml#/CorrelationID'
+    Timestamp:
+      $ref: './components/schemas.yaml#/Timestamp'
+    Unit:
+      $ref: './components/schemas.yaml#/Unit'
+    Money:
+      $ref: './components/schemas.yaml#/Money'
+    NativeRef:
+      $ref: './components/schemas.yaml#/NativeRef'
+    ItemOutcome:
+      $ref: './components/schemas.yaml#/ItemOutcome'
+    ResultEnvelope:
+      $ref: './components/schemas.yaml#/ResultEnvelope'
+    Problem:
+      $ref: './components/schemas.yaml#/Problem'
+    FieldError:
+      $ref: './components/schemas.yaml#/FieldError'
+    PageInfo:
+      $ref: './components/schemas.yaml#/PageInfo'
+    AllowedAction:
+      $ref: './components/schemas.yaml#/AllowedAction'
+    AllowedActions:
+      $ref: './components/schemas.yaml#/AllowedActions'
+    HealthLive:
+      $ref: './components/schemas.yaml#/HealthLive'
+    HealthReady:
+      $ref: './components/schemas.yaml#/HealthReady'
+    SessionContext:
+      $ref: './components/schemas.yaml#/SessionContext'
+    SessionEnvelope:
+      $ref: './components/schemas.yaml#/SessionEnvelope'

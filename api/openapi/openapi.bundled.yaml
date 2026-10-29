@@ -1,0 +1,503 @@
+openapi: 3.0.3
+info:
+  title: CRM target API
+  version: 0.2.0
+  description: |
+    Authoritative HTTP contract of the standalone CRM (Architecture V1 §23).
+    Slice 2 exposes only technical health and a development session surface;
+    reusable components define the conventions future slices must use.
+
+    Conventions:
+    - Business outcomes use the ResultEnvelope with the seven frozen outcomes.
+      HTTP 2xx is never business SUCCESS by itself: SUCCESS, PARTIAL, FAILED,
+      UNKNOWN and BLOCKED are returned with 200; CONFLICT with 409;
+      UNAUTHORIZED with 403.
+    - Transport, contract and server errors use RFC 9457 application/problem+json
+      with a foundation-v1 reason_code.
+    - Every response carries X-Correlation-ID; a valid inbound value is kept,
+      otherwise one is generated.
+    - Timestamps are RFC 3339 UTC. Money is {amount: string-int64, unit: IRR|IRT}.
+  license:
+    name: Proprietary
+    url: https://github.com/mehrdadhafezi/salesnetworkvuiredesign
+servers:
+  - url: /
+security: []
+tags:
+  - name: health
+    description: Technical liveness/readiness. Not business outcomes.
+  - name: session
+    description: Session context for the SPA shell.
+paths:
+  /health/live:
+    get:
+      tags:
+        - health
+      operationId: getHealthLive
+      summary: Liveness
+      description: The process is running. Technical status, not a ResultEnvelope.
+      responses:
+        '200':
+          description: Live.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthLive'
+        default:
+          $ref: '#/components/responses/Problem'
+  /health/ready:
+    get:
+      tags:
+        - health
+      operationId: getHealthReady
+      summary: Readiness
+      description: |
+        Whether the process can serve traffic. Slice 2 has no dependencies, so
+        the check list is empty. Never exposes DSNs, credentials or internals.
+      responses:
+        '200':
+          description: Ready.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthReady'
+        '503':
+          description: Not ready.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthReady'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/session:
+    get:
+      tags:
+        - session
+      operationId: getSession
+      summary: Current session context
+      description: |
+        Who the caller is, for shell display only. In Slice 2 the only
+        authentication source is the DEV/TEST stub; in production mode the
+        stub cannot be enabled and the session is always unauthenticated.
+        Capabilities here are synthetic display hints, never authority.
+      responses:
+        '200':
+          description: Session context (authenticated or not).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+components:
+  parameters:
+    CorrelationID:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      description: Optional client correlation id. Invalid values are replaced by a server-generated id.
+      schema:
+        $ref: '#/components/schemas/CorrelationID'
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Required on every future mutating command (Architecture V1 §23). Same key
+        and same request replays the stored result; same key with a different
+        request is CONFLICT.
+      schema:
+        type: string
+        pattern: ^[A-Za-z0-9_-]{16,128}$
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+      schema:
+        type: string
+        maxLength: 128
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor from PageInfo.next_cursor.
+      schema:
+        type: string
+        maxLength: 512
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  headers:
+    CorrelationID:
+      description: Correlation id of this request (inbound value when valid, otherwise generated).
+      schema:
+        $ref: '#/components/schemas/CorrelationID'
+    ETag:
+      description: Aggregate version for optimistic concurrency (future versioned resources).
+      schema:
+        type: string
+        maxLength: 128
+  responses:
+    Problem:
+      description: RFC 9457 problem details (transport, contract or server error).
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationID'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Outcome:
+      type: string
+      description: |
+        The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+        FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+        distinct from BLOCKED.
+      enum:
+        - SUCCESS
+        - PARTIAL
+        - FAILED
+        - UNKNOWN
+        - CONFLICT
+        - BLOCKED
+        - UNAUTHORIZED
+    ReasonCode:
+      type: string
+      description: foundation-v1 CRM reason codes (Phase-0 spec §6; kernel/reasoncodes).
+      enum:
+        - DEPENDENCY_FINANCIAL_ACTIVE
+        - DEPENDENCY_PROTECTED_DOWNSTREAM
+        - DEPENDENCY_UNKNOWN
+        - LINKAGE_CONFLICT
+        - STALE_STATE
+        - ROW_SCOPE_DENIED
+        - ACTION_DENIED
+        - FIELD_DENIED
+        - RECIPIENT_INELIGIBLE
+        - OUTCOME_UNKNOWN
+        - SOURCE_UNAVAILABLE
+        - COVERAGE_INCOMPLETE
+        - POLICY_UNRESOLVED
+        - FEATURE_DISABLED
+        - CONTRACT_INVALID
+    CorrelationID:
+      type: string
+      description: Opaque request correlation identifier.
+      pattern: ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$
+      minLength: 8
+      maxLength: 128
+    Timestamp:
+      type: string
+      format: date-time
+      description: RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+      pattern: Z$
+    Unit:
+      type: string
+      description: Explicit monetary unit. IRR and IRT are distinct; there is no conversion.
+      enum:
+        - IRR
+        - IRT
+    Money:
+      type: object
+      description: |
+        Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+        decimal string so that no client parses it as a floating-point number.
+      required:
+        - amount
+        - unit
+      additionalProperties: false
+      properties:
+        amount:
+          type: string
+          pattern: ^-?(0|[1-9][0-9]{0,18})$
+          maxLength: 20
+        unit:
+          $ref: '#/components/schemas/Unit'
+    NativeRef:
+      type: object
+      description: Domain-qualified native identifier (kernel/refs). Never a phone number.
+      required:
+        - domain
+        - id
+      additionalProperties: false
+      properties:
+        domain:
+          type: string
+          enum:
+            - LEGACY_LEAD
+            - V4_DISTRIBUTION
+            - MIS_ROW
+            - MIS_POOL
+            - DOT_CASE
+            - INVOICE
+            - PAYMENT_STAGE
+            - PAYMENT
+            - LEDGER_TX
+            - EVENT
+        id:
+          type: string
+          pattern: ^[1-9][0-9]{0,19}$
+    ItemOutcome:
+      type: object
+      description: Per-item outcome inside a ResultEnvelope; per-item classes are preserved.
+      required:
+        - outcome
+        - reasons
+      additionalProperties: false
+      properties:
+        item_ref:
+          $ref: '#/components/schemas/NativeRef'
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          type: array
+          maxItems: 15
+          items:
+            $ref: '#/components/schemas/ReasonCode'
+        message:
+          type: string
+          maxLength: 500
+    ResultEnvelope:
+      type: object
+      description: |
+        Generic business result (Architecture V1 §23). Concrete envelopes add a
+        typed data property. An item-level mix aggregates to PARTIAL.
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        items:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/ItemOutcome'
+        reasons:
+          type: array
+          maxItems: 15
+          items:
+            $ref: '#/components/schemas/ReasonCode'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        audit_id:
+          type: string
+          format: uuid
+          description: Present for sensitive commands (future slices).
+    Problem:
+      type: object
+      description: RFC 9457 problem details with a foundation-v1 reason_code.
+      required:
+        - type
+        - title
+        - status
+        - reason_code
+        - correlation_id
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          maxLength: 256
+        title:
+          type: string
+          maxLength: 200
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+          maxLength: 1000
+        instance:
+          type: string
+          format: uri-reference
+          maxLength: 512
+        reason_code:
+          $ref: '#/components/schemas/ReasonCode'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        errors:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/FieldError'
+    FieldError:
+      type: object
+      required:
+        - path
+        - reason_code
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+          maxLength: 256
+          description: JSON pointer-like path of the offending field, e.g. "/amount".
+        reason_code:
+          $ref: '#/components/schemas/ReasonCode'
+        message:
+          type: string
+          maxLength: 500
+    PageInfo:
+      type: object
+      description: |
+        Cursor pagination state. There is deliberately no total: a total is
+        returned only when it is part of a metric contract.
+      required:
+        - has_more
+      additionalProperties: false
+      properties:
+        next_cursor:
+          type: string
+          maxLength: 512
+          nullable: true
+        has_more:
+          type: boolean
+    AllowedAction:
+      type: object
+      required:
+        - allowed
+      additionalProperties: false
+      properties:
+        allowed:
+          type: boolean
+        reason_code:
+          $ref: '#/components/schemas/ReasonCode'
+    AllowedActions:
+      type: object
+      description: |
+        Server-authoritative permission hints keyed by action name. Clients may
+        render them; they never infer permission from roles, hierarchy or routes.
+      additionalProperties:
+        $ref: '#/components/schemas/AllowedAction'
+    HealthLive:
+      type: object
+      required:
+        - status
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum:
+            - live
+    HealthReady:
+      type: object
+      required:
+        - status
+        - checks
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum:
+            - ready
+            - not_ready
+        checks:
+          type: array
+          maxItems: 32
+          items:
+            type: object
+            required:
+              - name
+              - status
+            additionalProperties: false
+            properties:
+              name:
+                type: string
+                pattern: ^[a-z][a-z0-9_]{1,63}$
+              status:
+                type: string
+                enum:
+                  - ok
+                  - failing
+    SessionContext:
+      type: object
+      required:
+        - authenticated
+        - auth_mode
+        - server_time
+        - display_zone
+      additionalProperties: false
+      properties:
+        authenticated:
+          type: boolean
+        auth_mode:
+          type: string
+          description: dev_stub only in development/test; none in production (Slice 2 has no production auth).
+          enum:
+            - dev_stub
+            - none
+        principal:
+          type: object
+          required:
+            - principal_id
+            - display_name
+            - synthetic
+          additionalProperties: false
+          properties:
+            principal_id:
+              type: string
+              pattern: ^dev-user-[0-9]{3}$
+            display_name:
+              type: string
+              maxLength: 64
+            synthetic:
+              type: boolean
+              enum:
+                - true
+        capability_hints:
+          type: array
+          description: Synthetic display-only hints. Never authoritative permissions.
+          maxItems: 32
+          items:
+            type: string
+            pattern: ^dev\.[a-z][a-z0-9_.]{1,63}$
+        server_time:
+          $ref: '#/components/schemas/Timestamp'
+        display_zone:
+          type: string
+          description: Presentation default zone (IANA). Not storage truth.
+          enum:
+            - Asia/Tehran
+    SessionEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - data
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          type: array
+          maxItems: 15
+          items:
+            $ref: '#/components/schemas/ReasonCode'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/SessionContext'

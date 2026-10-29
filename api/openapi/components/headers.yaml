@@ -1,0 +1,10 @@
+CorrelationID:
+  description: Correlation id of this request (inbound value when valid, otherwise generated).
+  schema:
+    $ref: './schemas.yaml#/CorrelationID'
+
+ETag:
+  description: Aggregate version for optimistic concurrency (future versioned resources).
+  schema:
+    type: string
+    maxLength: 128
