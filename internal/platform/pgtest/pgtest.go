@@ -5,7 +5,10 @@
 // CRM_TEST_DATABASE_URL, applies the platform migrations through the real
 // migration runner, then applies the synthetic test modules syn_alpha and
 // syn_beta (rendered with migrations.RenderModuleInfra) from a separate
-// version table. The database is dropped when the test ends. Without
+// version table. Transactions under test never run as the superuser: each
+// Runner uses its own pool that logs in as a freshly provisioned restricted
+// role (LoginDSN), member of a single owner role — the intended application
+// connection model. The database and roles are dropped when the test ends. Without
 // CRM_TEST_DATABASE_URL the test is skipped, unless
 // CRM_TEST_REQUIRE_POSTGRES=1 (CI), which makes it fail instead.
 package pgtest
@@ -17,6 +20,7 @@ import (
 	"encoding/hex"
 	"net/url"
 	"os"
+	"sync"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -48,8 +52,10 @@ var syntheticFS embed.FS
 
 // Env is one disposable, fully migrated test database.
 type Env struct {
-	Pool *db.Pool
-	DSN  string // migrator DSN of the disposable database
+	DSN string // superuser provisioning/migrator DSN of the disposable database
+
+	mu    sync.Mutex
+	pools map[owner.Module]*db.Pool
 }
 
 // AdminURL returns the configured server URL, skipping or failing the test
@@ -125,7 +131,9 @@ func CreateDatabase(t testing.TB) string {
 	return u.String()
 }
 
-// New returns a migrated disposable database with an open pool.
+// New returns a migrated disposable database. The provisioning connection
+// (DSN) is a superuser; transactions under test never use it, they run
+// through per-owner pools that log in as restricted roles (see Pool).
 func New(t testing.TB) *Env {
 	t.Helper()
 	dsn := CreateDatabase(t)
@@ -137,6 +145,69 @@ func New(t testing.TB) *Env {
 	if _, err := migrations.Up(ctx, dsn, SyntheticSource(t)); err != nil {
 		t.Fatalf("pgtest: synthetic migrations: %v", err)
 	}
+	return &Env{DSN: dsn, pools: map[owner.Module]*db.Pool{}}
+}
+
+// LoginDSN provisions a fresh LOGIN role that represents the intended
+// application connection model: NOINHERIT, not superuser, no CREATEROLE /
+// BYPASSRLS, and a member of exactly the given owner roles. It returns a DSN
+// that logs in as that role. The role is dropped at cleanup. Passing more
+// than one module builds a deliberately mis-provisioned role for negative tests.
+func (e *Env) LoginDSN(t testing.TB, members ...owner.Module) string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	var nb, pb [8]byte
+	if _, err := rand.Read(nb[:]); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rand.Read(pb[:]); err != nil {
+		t.Fatal(err)
+	}
+	name, password := "crmt_login_"+hex.EncodeToString(nb[:]), hex.EncodeToString(pb[:])
+	conn, err := pgx.Connect(ctx, e.DSN)
+	if err != nil {
+		t.Fatalf("pgtest: connect provisioning: %v", err)
+	}
+	defer conn.Close(ctx)
+	role := pgx.Identifier{name}.Sanitize()
+	if _, err := conn.Exec(ctx, "CREATE ROLE "+role+" LOGIN NOINHERIT NOSUPERUSER NOCREATEROLE NOCREATEDB NOBYPASSRLS PASSWORD '"+password+"'"); err != nil {
+		t.Fatalf("pgtest: create login role: %v", err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		c, err := pgx.Connect(ctx, e.DSN)
+		if err != nil {
+			t.Logf("pgtest: cleanup connect: %v", err)
+			return
+		}
+		defer c.Close(ctx)
+		if _, err := c.Exec(ctx, "DROP ROLE IF EXISTS "+role); err != nil {
+			t.Logf("pgtest: drop role %s: %v", name, err)
+		}
+	})
+	for _, m := range members {
+		if err := m.Validate(); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := conn.Exec(ctx, "GRANT "+pgx.Identifier{m.Role()}.Sanitize()+" TO "+role); err != nil {
+			t.Fatalf("pgtest: grant %s: %v", m.Role(), err)
+		}
+	}
+	u, err := url.Parse(e.DSN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u.User = url.UserPassword(name, password)
+	return u.String()
+}
+
+// OpenPool opens a pool on dsn, closed at cleanup.
+func OpenPool(t testing.TB, dsn string) *db.Pool {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	cfg := db.DefaultConfig(dsn)
 	cfg.ApplicationName = "crm-pgtest"
 	pool, err := db.Open(ctx, cfg)
@@ -144,13 +215,27 @@ func New(t testing.TB) *Env {
 		t.Fatalf("pgtest: open pool: %v", err)
 	}
 	t.Cleanup(pool.Close)
-	return &Env{Pool: pool, DSN: dsn}
+	return pool
 }
 
-// Runner returns a runner for module m, failing the test on error.
+// Pool returns the dedicated pool for module m: it logs in as a restricted
+// role that can assume only m's owner role. Pools are cached per Env.
+func (e *Env) Pool(t testing.TB, m owner.Module) *db.Pool {
+	t.Helper()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if p, ok := e.pools[m]; ok {
+		return p
+	}
+	p := OpenPool(t, e.LoginDSN(t, m))
+	e.pools[m] = p
+	return p
+}
+
+// Runner returns a runner for module m over its dedicated pool.
 func (e *Env) Runner(t testing.TB, m owner.Module) *db.Runner {
 	t.Helper()
-	r, err := e.Pool.Runner(m)
+	r, err := e.Pool(t, m).Runner(m)
 	if err != nil {
 		t.Fatal(err)
 	}

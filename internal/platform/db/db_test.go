@@ -97,19 +97,20 @@ func TestClosedPool(t *testing.T) {
 
 func TestPoolLifecycle(t *testing.T) {
 	env := pgtest.New(t)
-	if err := env.Pool.Ping(ctx(t)); err != nil {
+	pool := env.Pool(t, pgtest.Alpha)
+	if err := pool.Ping(ctx(t)); err != nil {
 		t.Fatal(err)
 	}
 	r := env.Runner(t, pgtest.Alpha)
-	env.Pool.Close()
-	env.Pool.Close() // idempotent
-	if err := env.Pool.Ping(ctx(t)); !errors.Is(err, db.ErrClosed) {
+	pool.Close()
+	pool.Close() // idempotent
+	if err := pool.Ping(ctx(t)); !errors.Is(err, db.ErrClosed) {
 		t.Fatalf("ping after close err = %v", err)
 	}
 	if err := r.InTx(ctx(t), db.TxOptions{}, func(context.Context, db.Tx) error { return nil }); !errors.Is(err, db.ErrClosed) {
 		t.Fatalf("InTx after close err = %v", err)
 	}
-	if _, err := env.Pool.Runner(pgtest.Alpha); !errors.Is(err, db.ErrClosed) {
+	if _, err := pool.Runner(pgtest.Alpha); !errors.Is(err, db.ErrClosed) {
 		t.Fatalf("Runner after close err = %v", err)
 	}
 }
@@ -267,14 +268,14 @@ func TestRoleEscapeAbortsCommit(t *testing.T) {
 
 func TestUnknownOwnerRoleFails(t *testing.T) {
 	env := pgtest.New(t)
-	r, err := env.Pool.Runner(owner.Module("syn_missing"))
+	r, err := env.Pool(t, pgtest.Alpha).Runner(owner.Module("syn_missing"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := r.InTx(ctx(t), db.TxOptions{}, func(context.Context, db.Tx) error { return nil }); err == nil {
 		t.Fatal("a module without a migrated owner role must not get a transaction")
 	}
-	if _, err := env.Pool.Runner(owner.Module("Bad")); !errors.Is(err, owner.ErrInvalidModule) {
+	if _, err := env.Pool(t, pgtest.Alpha).Runner(owner.Module("Bad")); !errors.Is(err, owner.ErrInvalidModule) {
 		t.Fatalf("invalid module err = %v", err)
 	}
 }

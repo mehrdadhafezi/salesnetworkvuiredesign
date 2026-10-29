@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -22,7 +23,30 @@ var (
 	ErrRoleEscaped = errors.New("db: transaction role changed; refusing to commit")
 	// ErrInvalidTxOptions reports unsupported transaction options.
 	ErrInvalidTxOptions = errors.New("db: invalid transaction options")
+	// ErrSessionRoleNotIsolated reports a pool whose login role could assume
+	// more than the runner's own owner role (superuser, CREATEROLE, BYPASSRLS,
+	// or membership in another module's owner role). No transaction is opened.
+	ErrSessionRoleNotIsolated = errors.New("db: session role is not dedicated to the runner's owner")
 )
+
+// ownerRolePattern matches every module owner role in a LIKE expression.
+var ownerRolePattern = strings.ReplaceAll(owner.RolePrefix, "_", `\_`) + "%"
+
+// sessionIsolationSQL proves, inside the transaction and before any caller
+// SQL runs, that the connection's login role (session_user) can assume the
+// owner role $1 and NO other module owner role, and holds no attribute that
+// could bypass role checks. Because PostgreSQL itself refuses SET ROLE /
+// SET LOCAL ROLE / set_config('role', ...) to a role the session user is not
+// a member of, a transaction for module A then cannot gain module B's write
+// authority even temporarily.
+const sessionIsolationSQL = `SELECT
+	NOT (r.rolsuper OR r.rolcreaterole OR r.rolbypassrls)
+	AND pg_has_role(session_user, $1::text, 'MEMBER')
+	AND NOT EXISTS (
+		SELECT 1 FROM pg_roles o
+		WHERE o.rolname LIKE $2 AND o.rolname <> $1::text
+		  AND pg_has_role(session_user, o.oid, 'MEMBER'))
+	FROM pg_roles r WHERE r.rolname = session_user`
 
 // Isolation is a transaction isolation level. The zero value is READ COMMITTED.
 type Isolation uint8
@@ -90,6 +114,15 @@ func (t *ownedTx) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 
 // Runner runs transactions for one write owner. A Runner never spans modules:
 // every transaction it opens assumes only that module's owner role.
+//
+// Connection model: the Pool behind a Runner logs in as a role dedicated to
+// that one module (NOLOGIN owner role crm_owner_<m> granted to exactly one
+// LOGIN role, which is not a member of any other owner role and is not
+// superuser/CREATEROLE/BYPASSRLS). Each transaction verifies this before any
+// caller SQL runs and refuses otherwise (ErrSessionRoleNotIsolated). One pool
+// per owner is therefore required; a shared pool whose login role can assume
+// several owner roles is rejected, so lateral role switching inside a
+// transaction is impossible rather than merely detected.
 type Runner struct {
 	pool   *Pool
 	module owner.Module
@@ -111,6 +144,9 @@ func (r *Runner) Module() owner.Module { return r.module }
 
 // InTx runs fn inside one transaction owned by the runner's module.
 //
+//   - the session login role is first proven dedicated to this owner, so
+//     SET ROLE / SET LOCAL ROLE / set_config('role') to any other owner role
+//     fails inside the transaction;
 //   - the transaction assumes the module's owner role (SET LOCAL ROLE) and
 //     search_path, so PostgreSQL rejects writes to any other schema;
 //   - fn returning an error, or panicking, rolls the transaction back;
@@ -170,6 +206,15 @@ func beginOwned(ctx context.Context, pool *pgxpool.Pool, opts pgx.TxOptions, m o
 	ptx, err := pool.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, fmt.Errorf("db: begin: %w", err)
+	}
+	var isolated bool
+	if err := ptx.QueryRow(ctx, sessionIsolationSQL, m.Role(), ownerRolePattern).Scan(&isolated); err != nil {
+		_ = ptx.Rollback(context.WithoutCancel(ctx))
+		return nil, fmt.Errorf("db: verify session role for %s: %w", m.Role(), err)
+	}
+	if !isolated {
+		_ = ptx.Rollback(context.WithoutCancel(ctx))
+		return nil, fmt.Errorf("%w: %s", ErrSessionRoleNotIsolated, m.Role())
 	}
 	role := pgx.Identifier{m.Role()}.Sanitize()
 	schema := pgx.Identifier{m.Schema()}.Sanitize()
