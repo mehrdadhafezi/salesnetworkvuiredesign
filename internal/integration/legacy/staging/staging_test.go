@@ -1,7 +1,10 @@
 package staging_test
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -164,10 +167,17 @@ func TestLoadReconcileFidelityAndReplay(t *testing.T) {
 		t.Fatalf("raw values changed: %q %q %q %q %q %q", display, created, meta, ctxText, status, key)
 	}
 
-	// H. Reconcile (read-only) agrees.
+	// H. Reconcile (read-only) agrees and reports the persisted observations,
+	// never default zeros.
 	rec, err := e.loader.Reconcile(ctx, spec.Default(), "synthetic-snapshot-0100")
-	if err != nil || rec.Outcome != result.Success {
+	if err != nil || rec.Outcome != result.Success || rec.ManifestSHA256 != rep.ManifestSHA256 {
 		t.Fatalf("reconcile: %v %+v", err, rec)
+	}
+	for _, er := range rec.Entities {
+		if er.ParsedRows == nil || *er.ParsedRows != er.ExpectedRows || er.ActualBytes == nil || *er.ActualBytes != er.ExpectedBytes ||
+			er.ActualFileSHA256 != er.ExpectedFileSHA256 || er.ExpectedBytes <= 0 {
+			t.Fatalf("reconcile %s counts: %+v", er.SpecID, er)
+		}
 	}
 
 	// E. Same snapshot again: replay, no duplicates.
@@ -228,6 +238,42 @@ func TestLoadReconcileFidelityAndReplay(t *testing.T) {
 	}
 	if r, err := e.loader.Reconcile(ctx, spec.Default(), "synthetic-snapshot-0999"); err != nil || r.Outcome != result.Failed {
 		t.Fatalf("unknown snapshot reconcile: %v %+v", err, r)
+	}
+}
+
+// The batch stores the exact manifest bytes and their hash, so validate,
+// load and reconcile report the same manifest checksum for any valid
+// formatting of the manifest.
+func TestStoredManifestIsTheOriginalEvidence(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	dir := legacytest.Write(t, "synthetic-snapshot-0150", t0, legacytest.Rows())
+	path := filepath.Join(dir, snapshot.ManifestFile)
+	raw, _ := os.ReadFile(path)
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, raw); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, compact.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	p := e.open(t, dir)
+	rep, err := e.loader.Load(ctx, p, staging.LoadOptions{})
+	if err != nil || rep.Outcome != result.Success || rep.ManifestSHA256 != p.ManifestSHA256 {
+		t.Fatalf("load: %v %+v", err, rep)
+	}
+	var stored string
+	var storedSHA []byte
+	if err := e.admin.QueryRow(ctx, "SELECT manifest_json, manifest_sha256 FROM integration.import_batch").Scan(&stored, &storedSHA); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(compact.Bytes())
+	if stored != compact.String() || !bytes.Equal(storedSHA, sum[:]) {
+		t.Fatal("stored manifest must be the exact original bytes and their checksum")
+	}
+	rec, err := e.loader.Reconcile(ctx, spec.Default(), "synthetic-snapshot-0150")
+	if err != nil || rec.ManifestSHA256 != p.ManifestSHA256 {
+		t.Fatalf("reconcile manifest checksum %s, validate %s (%v)", rec.ManifestSHA256, p.ManifestSHA256, err)
 	}
 }
 

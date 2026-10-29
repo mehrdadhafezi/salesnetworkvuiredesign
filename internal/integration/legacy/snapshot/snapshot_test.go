@@ -2,6 +2,8 @@ package snapshot_test
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
@@ -104,7 +106,7 @@ func TestPackageValidatesAndIsDeterministic(t *testing.T) {
 		t.Fatalf("validated %d entities", len(reps))
 	}
 	for _, r := range reps {
-		if r.Status != result.Success || r.ParsedRows != 3 || r.ActualFileSHA256 != r.ExpectedFileSHA256 || r.ActualContentSHA != r.ExpectedContentSHA {
+		if r.Status != result.Success || r.ParsedRows == nil || *r.ParsedRows != 3 || r.ActualBytes == nil || *r.ActualBytes != r.ExpectedBytes || r.ActualFileSHA256 != r.ExpectedFileSHA256 || r.ActualContentSHA != r.ExpectedContentSHA {
 			t.Fatalf("%s: %+v", r.SpecID, r)
 		}
 	}
@@ -250,6 +252,43 @@ func TestChecksumAndCountTampering(t *testing.T) {
 	}
 }
 
+func TestUnmeasuredCountsAreNullNotZero(t *testing.T) {
+	dir := writeOne(t, mappingID, [][]snapshot.Cell{mapping("1"), mapping("2")}, snapshot.Complete)
+	file := filepath.Join(dir, snapshot.EntityFile(mappingID))
+	b, _ := os.ReadFile(file)
+	_ = os.WriteFile(file, bytes.Replace(b, []byte(`["1"`), []byte(`[ "1"`), 1), 0o600)
+	r := validateOne(t, dir)
+	if r.Status != result.Failed || r.ParsedRows != nil || r.ActualBytes != nil {
+		t.Fatalf("a scan stopped at a malformed row must not report counts: %+v", r)
+	}
+	out, _ := json.Marshal(r)
+	if !bytes.Contains(out, []byte(`"parsed_rows":null`)) || !bytes.Contains(out, []byte(`"actual_bytes":null`)) {
+		t.Fatalf("unmeasured counts must serialise as null: %s", out)
+	}
+}
+
+func TestManifestBytesArePreservedVerbatim(t *testing.T) {
+	dir := writeOne(t, mappingID, [][]snapshot.Cell{mapping("1")}, snapshot.Complete)
+	path := filepath.Join(dir, snapshot.ManifestFile)
+	b, _ := os.ReadFile(path)
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, b); err != nil {
+		t.Fatal(err)
+	}
+	_ = os.WriteFile(path, compact.Bytes(), 0o600) // valid, differently formatted
+	p, err := snapshot.Open(dir, reg())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(p.ManifestBytes, compact.Bytes()) {
+		t.Fatal("ManifestBytes must be the exact file bytes")
+	}
+	sum := sha256.Sum256(compact.Bytes())
+	if p.ManifestSHA256 != hex.EncodeToString(sum[:]) {
+		t.Fatal("ManifestSHA256 must hash the exact file bytes")
+	}
+}
+
 func TestStructuralRowFailures(t *testing.T) {
 	cases := map[string]func(dir, file string){
 		"missing trailing newline": func(dir, file string) {
@@ -346,7 +385,7 @@ func TestCompletenessIsNeverSuccess(t *testing.T) {
 
 func TestEmptyEntity(t *testing.T) {
 	r := validateOne(t, writeOne(t, mappingID, nil, snapshot.Complete))
-	if r.Status != result.Success || r.ParsedRows != 0 || r.ActualBytes != 0 {
+	if r.Status != result.Success || r.ParsedRows == nil || *r.ParsedRows != 0 || r.ActualBytes == nil || *r.ActualBytes != 0 {
 		t.Fatalf("empty: %+v", r)
 	}
 }

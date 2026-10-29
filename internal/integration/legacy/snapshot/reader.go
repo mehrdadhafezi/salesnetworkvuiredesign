@@ -45,8 +45,11 @@ func (e *RowError) Unwrap() error { return e.Err }
 
 // Package is an opened snapshot directory with a parsed manifest.
 type Package struct {
-	Dir            string
-	Manifest       Manifest
+	Dir      string
+	Manifest Manifest
+	// ManifestBytes are the exact manifest file bytes and ManifestSHA256
+	// their checksum; staging stores these, never a re-serialised manifest.
+	ManifestBytes  []byte
 	ManifestSHA256 string
 	reg            *spec.Registry
 }
@@ -70,7 +73,7 @@ func Open(dir string, reg *spec.Registry) (*Package, error) {
 		return nil, err
 	}
 	sum := sha256.Sum256(b)
-	return &Package{Dir: dir, Manifest: m, ManifestSHA256: hex.EncodeToString(sum[:]), reg: reg}, nil
+	return &Package{Dir: dir, Manifest: m, ManifestBytes: b, ManifestSHA256: hex.EncodeToString(sum[:]), reg: reg}, nil
 }
 
 // Spec returns the spec of a declared entity.
@@ -140,14 +143,16 @@ type Row struct {
 // EntityReport is the technical validation/reconciliation result for one
 // entity. It never contains row values.
 type EntityReport struct {
-	SpecID             string            `json:"spec_id"`
-	SourceTable        string            `json:"source_table"`
-	Classification     string            `json:"classification"`
-	Completeness       Completeness      `json:"completeness"`
-	ExpectedRows       int64             `json:"expected_rows"`
-	ParsedRows         int64             `json:"parsed_rows"`
+	SpecID         string       `json:"spec_id"`
+	SourceTable    string       `json:"source_table"`
+	Classification string       `json:"classification"`
+	Completeness   Completeness `json:"completeness"`
+	ExpectedRows   int64        `json:"expected_rows"`
+	// ParsedRows and ActualBytes are null when not measured (e.g. a scan
+	// that stopped at a malformed row); an unmeasured value is never 0.
+	ParsedRows         *int64            `json:"parsed_rows"`
 	ExpectedBytes      int64             `json:"expected_bytes"`
-	ActualBytes        int64             `json:"actual_bytes"`
+	ActualBytes        *int64            `json:"actual_bytes"`
 	ExpectedFileSHA256 string            `json:"expected_file_sha256"`
 	ActualFileSHA256   string            `json:"actual_file_sha256,omitempty"`
 	ExpectedContentSHA string            `json:"expected_content_sha256"`
@@ -246,7 +251,7 @@ func (p *Package) ScanEntity(e Entity, visit func(Row) error) (EntityReport, err
 			}
 		}
 	}
-	rep.ParsedRows, rep.ActualBytes = ordinal, bytesRead
+	rep.ParsedRows, rep.ActualBytes = &ordinal, &bytesRead
 	rep.ActualFileSHA256 = hex.EncodeToString(fileHash.Sum(nil))
 	rep.ActualContentSHA = content.Sum()
 	if len(nulls) > 0 {
@@ -263,9 +268,9 @@ func (p *Package) ScanEntity(e Entity, visit func(Row) error) (EntityReport, err
 	switch {
 	case rep.ActualFileSHA256 != e.FileSHA256:
 		return fail(reasoncodes.ContractInvalid, "file checksum does not match the manifest")
-	case rep.ActualBytes != e.ByteSize:
+	case bytesRead != e.ByteSize:
 		return fail(reasoncodes.ContractInvalid, "byte size does not match the manifest")
-	case rep.ParsedRows != e.RowCount:
+	case ordinal != e.RowCount:
 		return fail(reasoncodes.ContractInvalid, "row count does not match the manifest")
 	case rep.ActualContentSHA != e.ContentSHA256:
 		return fail(reasoncodes.ContractInvalid, "content checksum does not match the manifest")

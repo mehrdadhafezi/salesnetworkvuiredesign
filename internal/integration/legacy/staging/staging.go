@@ -36,7 +36,6 @@ package staging
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -243,12 +242,11 @@ func indexOf(es []snapshot.Entity, id string) int {
 func (l *Loader) register(ctx context.Context, p *snapshot.Package, rep *Report) (string, string, error) {
 	m := p.Manifest
 	content := m.ContentIdentity()
-	manifestBytes, err := snapshot.MarshalManifest(m)
-	if err != nil {
-		return "", "", err
-	}
+	// Store the exact manifest bytes and their checksum (the evidence), not a
+	// re-serialisation, so validate/inspect/load/reconcile agree.
+	manifestBytes := p.ManifestBytes
 	var batchID, state string
-	err = l.runner.InTx(ctx, db.TxOptions{}, func(ctx context.Context, tx db.Tx) error {
+	err := l.runner.InTx(ctx, db.TxOptions{}, func(ctx context.Context, tx db.Tx) error {
 		var enc string
 		if err := tx.QueryRow(ctx, "SHOW server_encoding").Scan(&enc); err != nil {
 			return err
@@ -291,14 +289,13 @@ func (l *Loader) register(ctx context.Context, p *snapshot.Package, rep *Report)
 			return err
 		}
 		now := l.now()
-		ms := sha256.Sum256(manifestBytes)
 		if _, err := tx.Exec(ctx, `INSERT INTO integration.import_batch
 			(batch_id, snapshot_id, content_sha256, manifest_sha256, manifest_format_version, manifest_json,
 			 legacy_application, legacy_version, legacy_build, source_id, source_timezone, source_table_prefix,
 			 data_origin, extracted_at, extraction_tool, extraction_tool_version, import_tool_version,
 			 state, created_at, updated_at)
 			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NULLIF($9,''),$10,NULLIF($11,''),NULLIF($12,''),$13,$14,$15,$16,$17,$18,$19,$19)`,
-			id, m.SnapshotID, mustHex(content), ms[:], m.FormatVersion, string(manifestBytes),
+			id, m.SnapshotID, mustHex(content), mustHex(p.ManifestSHA256), m.FormatVersion, string(manifestBytes),
 			m.Legacy.Application, m.Legacy.Version, m.Legacy.Build, m.Source.ID, m.Source.Timezone, m.Source.TablePrefix,
 			string(m.DataOrigin), extracted.UTC(), m.Tool.Name, m.Tool.Version, l.toolVersion,
 			StateValidated, now); err != nil {
@@ -371,9 +368,9 @@ func (l *Loader) loadEntity(ctx context.Context, p *snapshot.Package, batchID st
 		}
 		if _, err := tx.Exec(ctx, `UPDATE integration.import_entity SET state = $3, parsed_rows = $4, staged_rows = $5,
 			actual_file_sha256 = $6, staging_sha256 = $7, reason_code = $8, failure_reason = NULL, warnings = $9,
-			loaded_at = $10, updated_at = $10 WHERE batch_id = $1 AND spec_id = $2`,
-			batchID, e.SpecID, EntityLoaded, rep.ParsedRows, staged, mustHex(rep.ActualFileSHA256), mustHex(sum),
-			code, string(warnings), now); err != nil {
+			loaded_at = $10, updated_at = $10, actual_bytes = $11 WHERE batch_id = $1 AND spec_id = $2`,
+			batchID, e.SpecID, EntityLoaded, *rep.ParsedRows, staged, mustHex(rep.ActualFileSHA256), mustHex(sum),
+			code, string(warnings), now, *rep.ActualBytes); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE integration.import_batch SET state = $2, failure_reason = NULL, updated_at = $3

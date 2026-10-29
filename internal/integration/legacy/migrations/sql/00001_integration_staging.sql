@@ -136,6 +136,7 @@ CREATE TABLE integration.import_entity (
     expected_file_sha256    bytea       NOT NULL,
     expected_content_sha256 bytea       NOT NULL,
     parsed_rows             bigint      NULL,
+    actual_bytes            bigint      NULL,
     staged_rows             bigint      NULL,
     actual_file_sha256      bytea       NULL,
     staging_sha256          bytea       NULL,
@@ -158,6 +159,7 @@ CREATE TABLE integration.import_entity (
     CONSTRAINT import_entity_loaded_reconciled CHECK (state <> 'LOADED' OR (
         loaded_at IS NOT NULL
         AND parsed_rows = expected_rows AND staged_rows = expected_rows
+        AND actual_bytes = expected_bytes
         AND actual_file_sha256 = expected_file_sha256
         AND staging_sha256 = expected_content_sha256)),
     CONSTRAINT import_entity_not_loaded CHECK (state = 'LOADED' OR loaded_at IS NULL),

@@ -56,11 +56,11 @@ func (l *Loader) reconcileInto(ctx context.Context, rep *Report, batchID, cmd st
 	if err != nil {
 		return finish(rep, err)
 	}
+	// Counts and file checksums come from the persisted observations; this
+	// run's scan adds only what is not persisted (content checksum, NULL
+	// counts) and only when it actually measured them.
 	for i := range rep.Entities {
-		if p, ok := prior[rep.Entities[i].SpecID]; ok {
-			rep.Entities[i].ActualFileSHA256 = p.ActualFileSHA256
-			rep.Entities[i].ParsedRows = p.ParsedRows
-			rep.Entities[i].ActualBytes = p.ActualBytes
+		if p, ok := prior[rep.Entities[i].SpecID]; ok && p.ParsedRows != nil {
 			rep.Entities[i].ActualContentSHA = p.ActualContentSHA
 			rep.Entities[i].NullInNotNull = p.NullInNotNull
 		}
@@ -73,7 +73,8 @@ type entityRow struct {
 	specID, sourceTable, completeness, state string
 	expectedRows, expectedBytes              int64
 	expectedFile, expectedContent            []byte
-	parsedRows, stagedRows                   *int64
+	parsedRows, actualBytes, stagedRows      *int64
+	actualFile                               []byte
 	reasonCode, failureReason                *string
 	warnings                                 []byte
 }
@@ -92,7 +93,8 @@ func fillReconciliation(ctx context.Context, tx db.Tx, reg *spec.Registry, rep *
 	rep.ContentSHA256, rep.ManifestSHA256 = hex.EncodeToString(content), hex.EncodeToString(manifest)
 
 	rows, err := tx.Query(ctx, `SELECT spec_id, source_table, completeness, state, expected_rows, expected_bytes,
-		expected_file_sha256, expected_content_sha256, parsed_rows, staged_rows, reason_code, failure_reason, warnings
+		expected_file_sha256, expected_content_sha256, parsed_rows, actual_bytes, actual_file_sha256, staged_rows,
+		reason_code, failure_reason, warnings
 		FROM integration.import_entity WHERE batch_id = $1 ORDER BY spec_id`, batchID)
 	if err != nil {
 		return err
@@ -101,7 +103,8 @@ func fillReconciliation(ctx context.Context, tx db.Tx, reg *spec.Registry, rep *
 	for rows.Next() {
 		var e entityRow
 		if err := rows.Scan(&e.specID, &e.sourceTable, &e.completeness, &e.state, &e.expectedRows, &e.expectedBytes,
-			&e.expectedFile, &e.expectedContent, &e.parsedRows, &e.stagedRows, &e.reasonCode, &e.failureReason, &e.warnings); err != nil {
+			&e.expectedFile, &e.expectedContent, &e.parsedRows, &e.actualBytes, &e.actualFile, &e.stagedRows,
+			&e.reasonCode, &e.failureReason, &e.warnings); err != nil {
 			rows.Close()
 			return err
 		}
@@ -122,8 +125,11 @@ func fillReconciliation(ctx context.Context, tx db.Tx, reg *spec.Registry, rep *
 			SpecID: e.specID, SourceTable: e.sourceTable, Classification: string(s.Classification()),
 			Completeness: snapshot.Completeness(e.completeness), ExpectedRows: e.expectedRows, ExpectedBytes: e.expectedBytes,
 			ExpectedFileSHA256: hex.EncodeToString(e.expectedFile), ExpectedContentSHA: hex.EncodeToString(e.expectedContent),
-			Warnings: []string{},
+			ParsedRows: e.parsedRows, ActualBytes: e.actualBytes, Warnings: []string{},
 		}, State: e.state}
+		if e.actualFile != nil {
+			er.ActualFileSHA256 = hex.EncodeToString(e.actualFile)
+		}
 		if len(e.warnings) > 0 {
 			_ = json.Unmarshal(e.warnings, &er.Warnings)
 		}
