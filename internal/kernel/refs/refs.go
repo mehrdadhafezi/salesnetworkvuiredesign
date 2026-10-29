@@ -43,7 +43,14 @@ var (
 // Domain qualifies a native identifier. Only declared domains are valid.
 type Domain string
 
-// Declared domains (Phase-0 spec §7). Extending this set is a kernel change.
+// Declared domains (Phase-0 spec §7).
+//
+// The set is intentionally closed to the frozen Phase-0 domains. There is no
+// actor, employee, request or batch domain yet, so SourceRef.OriginActor and
+// SourceRef.OriginBatch stay optional (nil, with the gap expressed through
+// Provenance) until such a domain is approved. Adding a domain requires an
+// explicit kernel contract change; never reuse an unrelated existing domain
+// (e.g. EVENT or MIS_ROW) as a stand-in for an actor or batch.
 const (
 	DomainLegacyLead     Domain = "LEGACY_LEAD"
 	DomainV4Distribution Domain = "V4_DISTRIBUTION"

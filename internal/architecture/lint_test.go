@@ -55,6 +55,7 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleMoneyConversion:  1,
 		RuleLegacyLiteral:    2, // one in kernel, one in a business package
 		RuleLegacyRefFactory: 1,
+		RuleDotImport:        1, // internal/sales/dotimport.go
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -81,6 +82,41 @@ func TestFixtureAllowedCases(t *testing.T) {
 	}
 	for _, v := range vs {
 		t.Errorf("unexpected violation in allowed fixture: %s", v)
+	}
+}
+
+// TestDotImportRule proves the dot-import rule closes the gap where a bare
+// NewLegacyRef call escapes the selector-based legacyref-factory rule.
+func TestDotImportRule(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const file = "internal/sales/dotimport.go"
+	var dot, factory int
+	for _, v := range vs {
+		if v.File != file {
+			continue
+		}
+		switch v.Rule {
+		case RuleDotImport:
+			dot++
+		case RuleLegacyRefFactory:
+			factory++
+		}
+	}
+	if dot != 1 {
+		t.Fatalf("dot-import violations in %s = %d, want 1", file, dot)
+	}
+	if factory != 0 {
+		t.Fatalf("bare call is invisible to %s (got %d); the dot-import rule is what catches it", RuleLegacyRefFactory, factory)
+	}
+	allowed, err := Check(filepath.Join("testdata", "allowed", "internal", "sales"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range allowed {
+		t.Errorf("named/blank imports must be allowed: %s", v)
 	}
 }
 

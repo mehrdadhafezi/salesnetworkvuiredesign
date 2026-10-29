@@ -103,6 +103,31 @@ func TestEveryFrozenValueIsRegistered(t *testing.T) {
 	}
 }
 
+// TestNamespacesAreSliceZeroNormalization pins the foundation-v1 machine
+// namespaces chosen from the frozen catalog rows. They are a normalization, not
+// legacy DB names: renaming one is a contract change, and legacy provenance is
+// carried by LegacyValue.Source/Field rather than by the namespace.
+func TestNamespacesAreSliceZeroNormalization(t *testing.T) {
+	normalized := map[Namespace]string{
+		NSContactArchive:        "catalog row \"archived_at set\" (Seller Contact & Archive)",
+		NSCustomerPortalPayment: "E0 §9C customer-portal values",
+		NSConversionContact:     "catalog \"Dot Case / Converter Contact\" contact states",
+	}
+	for ns, origin := range normalized {
+		if !ns.Valid() {
+			t.Fatalf("normalized namespace %q (%s) must be declared", ns, origin)
+		}
+	}
+	v := LegacyValue{Source: "legacy-portal", Field: "payment_status", Raw: "expired"}
+	c, err := Classify(NSCustomerPortalPayment, v)
+	if err != nil || c.Mapping != MappingKnown {
+		t.Fatalf("Classify = %+v, %v", c, err)
+	}
+	if c.Value.Source != v.Source || c.Value.Field != v.Field || string(c.Namespace) == v.Source {
+		t.Fatal("legacy provenance must stay in LegacyValue, separate from the namespace")
+	}
+}
+
 func TestRequiredE0PaymentValues(t *testing.T) {
 	for _, s := range []string{"payment/approved", "payment/reconcile_error", "invoice/approved", "payment_stage/approved"} {
 		if _, err := ParseKey(s); err != nil {

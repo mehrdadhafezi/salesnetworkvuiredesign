@@ -24,6 +24,14 @@ var (
 )
 
 // Namespace qualifies a legacy status value.
+//
+// Namespace names are the canonical Slice-0 machine normalization chosen for
+// foundation-v1 from the frozen catalog rows (STATUS-TRANSITIONS.fa.md,
+// Gate-0 §8, E0 §9C). They are not literal legacy database namespaces, table
+// names or column names: e.g. contact_archive normalizes the "archived_at set"
+// archive-overlay row, customer_portal_payment groups the E0 §9C portal
+// values, and conversion_contact normalizes the Dot/converter contact states.
+// Legacy provenance travels in LegacyValue.Source/Field, never in a Namespace.
 type Namespace string
 
 // Declared namespaces. Catalog sources are noted per group.

@@ -76,6 +76,34 @@ func TestNativeRefDomainsAndEquality(t *testing.T) {
 	}
 }
 
+// TestDomainSetIsClosed pins the frozen Phase-0 domain set. Adding a domain is
+// an explicit kernel contract change; actor/batch domains are not approved yet.
+func TestDomainSetIsClosed(t *testing.T) {
+	want := []Domain{"LEGACY_LEAD", "V4_DISTRIBUTION", "MIS_ROW", "MIS_POOL", "DOT_CASE", "INVOICE", "PAYMENT_STAGE", "PAYMENT", "LEDGER_TX", "EVENT"}
+	got := Domains()
+	if len(got) != len(want) {
+		t.Fatalf("domain set changed: got %v, want %v (requires a kernel contract change)", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("domain %d = %s, want %s", i, got[i], want[i])
+		}
+	}
+	for _, d := range []Domain{"ACTOR", "EMPLOYEE", "USER", "REQUEST", "BATCH", "MIS_BATCH", "CUSTOMER"} {
+		if d.Valid() {
+			t.Fatalf("unapproved domain %s must be invalid", d)
+		}
+	}
+	// Origin actor/batch remain optional: a SourceRef without them is valid,
+	// with the missing origin expressed through Provenance.
+	row := mustNative(t, DomainMISRow, "1")
+	for _, p := range []Provenance{ProvenanceUnknown, ProvenanceNotRecoverable, ProvenanceNotApplicable} {
+		if err := (SourceRef{Native: row, Provenance: p}).Validate(); err != nil {
+			t.Fatalf("SourceRef without origin actor/batch (%v) must be valid: %v", p, err)
+		}
+	}
+}
+
 func TestNativeRefJSON(t *testing.T) {
 	r := mustNative(t, DomainLegacyLead, "7")
 	b, err := json.Marshal(r)

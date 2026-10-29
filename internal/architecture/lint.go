@@ -8,6 +8,8 @@
 //   - the money package exports no conversion function.
 //   - legacy table literals appear only under internal/integration/legacy.
 //   - refs.NewLegacyRef is called only from internal/integration/legacy.
+//   - no dot imports anywhere in target code: a dot import would hide a
+//     package-qualified call (e.g. a bare NewLegacyRef) from the rules above.
 package architecture
 
 import (
@@ -43,6 +45,7 @@ const (
 	RuleMoneyConversion  = "money-conversion"
 	RuleLegacyLiteral    = "legacy-literal"
 	RuleLegacyRefFactory = "legacyref-factory"
+	RuleDotImport        = "dot-import"
 )
 
 const (
@@ -122,6 +125,9 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 
 	for _, imp := range f.Imports {
 		p, _ := strconv.Unquote(imp.Path.Value)
+		if imp.Name != nil && imp.Name.Name == "." {
+			add(RuleDotImport, imp.Pos(), "dot import of "+p+"; use a package-qualified import")
+		}
 		if inKernel {
 			if msg := kernelImportProblem(p, modulePath, isTest); msg != "" {
 				add(RuleKernelImport, imp.Pos(), msg)
