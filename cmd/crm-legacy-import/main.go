@@ -7,7 +7,7 @@
 //	crm-legacy-import specs                                  published extract specs (JSON)
 //	crm-legacy-import inspect   <snapshot-dir>               manifest summary (no table scan)
 //	crm-legacy-import validate  <snapshot-dir>               full offline validation (JSON report)
-//	crm-legacy-import load      [--allow-unclassified-data] <snapshot-dir>
+//	crm-legacy-import load      <snapshot-dir>               stage a SYNTHETIC package (others are BLOCKED)
 //	crm-legacy-import reconcile <snapshot-id>                staging vs manifest (read-only)
 //
 // load and reconcile need CRM_STAGING_DATABASE_URL: a login dedicated to the
@@ -49,7 +49,7 @@ const usage = `usage:
   crm-legacy-import specs
   crm-legacy-import inspect   <snapshot-dir>
   crm-legacy-import validate  <snapshot-dir>
-  crm-legacy-import load      [--allow-unclassified-data] <snapshot-dir>
+  crm-legacy-import load      <snapshot-dir>
   crm-legacy-import reconcile <snapshot-id>
 (load/reconcile use ` + EnvStagingURL + `)`
 
@@ -97,10 +97,8 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 		out.Outcome, _ = result.Aggregate(statuses)
 		return emit(stdout, stderr, out, out.Outcome == result.Success)
 	case "load":
-		allow := false
-		if len(rest) == 2 && rest[0] == "--allow-unclassified-data" {
-			allow, rest = true, rest[1:]
-		}
+		// No flags: non-synthetic packages are BLOCKED by the loader and
+		// nothing on the command line can override that.
 		if len(rest) != 1 {
 			break
 		}
@@ -109,7 +107,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 			return emit(stdout, stderr, invalidPackage(cmd, err), false)
 		}
 		return withLoader(ctx, getenv, stderr, func(l *staging.Loader) int {
-			rep, err := l.Load(ctx, p, staging.LoadOptions{AllowUnclassified: allow})
+			rep, err := l.Load(ctx, p)
 			code := emit(stdout, stderr, rep, rep.Outcome == result.Success)
 			if err != nil {
 				fmt.Fprintln(stderr, "crm-legacy-import:", err)

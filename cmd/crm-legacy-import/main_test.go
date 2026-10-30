@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/legacytest"
 	integrationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/migrations"
@@ -114,17 +116,47 @@ func TestLoadAndReconcileAgainstDisposablePostgres(t *testing.T) {
 		t.Fatalf("reconcile missing: %d %s", code, out)
 	}
 
-	// Unclassified data needs the explicit acknowledgement.
+	// Non-synthetic data is BLOCKED and no command-line flag can override it.
 	udir := filepath.Join(t.TempDir(), "p")
-	h := legacytest.Header("synthetic-snapshot-cli-4", t0)
+	h := legacytest.Header("unclassified-snapshot-cli-4", t0)
 	h.DataOrigin = snapshot.OriginUnclassified
 	if _, err := snapshot.Write(udir, spec.Default(), h, legacytest.Rows()[:2]); err != nil {
 		t.Fatal(err)
 	}
-	if code, out, _ := call(t, login, "load", udir); code != 3 || !strings.Contains(out, `"outcome": "BLOCKED"`) {
+	code, out, _ = call(t, login, "load", udir)
+	if code != 3 || !strings.Contains(out, `"outcome": "BLOCKED"`) || !strings.Contains(out, `"reason_code": "POLICY_UNRESOLVED"`) {
 		t.Fatalf("unclassified: %d %s", code, out)
 	}
-	if code, out, _ := call(t, login, "load", "--allow-unclassified-data", udir); code != 0 || !strings.Contains(out, `"outcome": "SUCCESS"`) {
-		t.Fatalf("acknowledged: %d %s", code, out)
+	flags := []string{"--allow-unclassified-data", "--allow-unclassified", "--force", "--unsafe", "--allow-real-data",
+		"--yes", "-f", "--data-origin=synthetic", "--acknowledge", "--i-accept-the-risk"}
+	for _, f := range flags {
+		for _, args := range [][]string{{"load", f, udir}, {"load", udir, f}} {
+			code, out, _ := call(t, login, args...)
+			if code == 0 || strings.Contains(out, `"outcome": "SUCCESS"`) {
+				t.Fatalf("%v loaded non-synthetic data: %d %s", args, code, out)
+			}
+			if code != 2 && !strings.Contains(out, `"outcome": "BLOCKED"`) {
+				t.Fatalf("%v: want usage error or BLOCKED, got %d %s", args, code, out)
+			}
+		}
+	}
+	if strings.Contains(usage, "allow") || strings.Contains(usage, "--") {
+		t.Fatalf("usage advertises a flag: %s", usage)
+	}
+	// Nothing of the refused package reached staging.
+	conn, err := pgx.Connect(context.Background(), e.DSN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close(context.Background())
+	var batches, entities int64
+	if err := conn.QueryRow(context.Background(), `SELECT count(*) FROM integration.import_batch WHERE snapshot_id = 'unclassified-snapshot-cli-4'`).Scan(&batches); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.QueryRow(context.Background(), `SELECT count(*) FROM integration.import_entity e JOIN integration.import_batch b USING (batch_id) WHERE b.snapshot_id = 'unclassified-snapshot-cli-4'`).Scan(&entities); err != nil {
+		t.Fatal(err)
+	}
+	if batches != 0 || entities != 0 {
+		t.Fatalf("refused package wrote %d batches, %d entities", batches, entities)
 	}
 }

@@ -33,8 +33,9 @@ type DataOrigin string
 const (
 	// OriginSynthetic: obviously synthetic fixture data (the only origin CI uses).
 	OriginSynthetic DataOrigin = "synthetic"
-	// OriginUnclassified: anything else. Loading it requires an explicit
-	// operator acknowledgement because TAD (E0) #18 / D-23 are unresolved.
+	// OriginUnclassified: anything else. It validates as a package, but the
+	// Slice 3 loader refuses to stage it (BLOCKED, POLICY_UNRESOLVED) until an
+	// Owner-approved staging/anonymisation policy exists (TAD (E0) #18, D-23).
 	OriginUnclassified DataOrigin = "unclassified"
 )
 

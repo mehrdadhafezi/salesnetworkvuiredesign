@@ -21,6 +21,7 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/snapshot"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/spec"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/staging"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/reasoncodes"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/result"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/timeutil"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/db"
@@ -77,7 +78,7 @@ func (e *env) count(t *testing.T, q string, args ...any) int64 {
 
 func (e *env) load(t *testing.T, dir string) staging.Report {
 	t.Helper()
-	rep, err := e.loader.Load(context.Background(), e.open(t, dir), staging.LoadOptions{})
+	rep, err := e.loader.Load(context.Background(), e.open(t, dir))
 	if err != nil {
 		t.Fatalf("load: %v (report %+v)", err, rep)
 	}
@@ -195,12 +196,12 @@ func TestLoadReconcileFidelityAndReplay(t *testing.T) {
 	// E. Same snapshot_id, different content → CONFLICT, nothing written.
 	changed := legacytest.Rows()
 	changed[0].Rows = changed[0].Rows[:2]
-	conflict, err := e.loader.Load(ctx, e.open(t, legacytest.Write(t, "synthetic-snapshot-0100", t0, changed)), staging.LoadOptions{})
+	conflict, err := e.loader.Load(ctx, e.open(t, legacytest.Write(t, "synthetic-snapshot-0100", t0, changed)))
 	if err != nil || conflict.Outcome != result.Conflict {
 		t.Fatalf("conflict: %v %+v", err, conflict)
 	}
 	// Identical content, different snapshot_id → existing batch, no new rows.
-	dup, err := e.loader.Load(ctx, e.open(t, legacytest.Write(t, "synthetic-snapshot-0101", "2027-01-01T00:00:00Z", legacytest.Rows())), staging.LoadOptions{})
+	dup, err := e.loader.Load(ctx, e.open(t, legacytest.Write(t, "synthetic-snapshot-0101", "2027-01-01T00:00:00Z", legacytest.Rows())))
 	if err != nil || dup.BatchID != rep.BatchID || len(dup.Warnings) == 0 {
 		t.Fatalf("duplicate content: %v %+v", err, dup)
 	}
@@ -258,7 +259,7 @@ func TestStoredManifestIsTheOriginalEvidence(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := e.open(t, dir)
-	rep, err := e.loader.Load(ctx, p, staging.LoadOptions{})
+	rep, err := e.loader.Load(ctx, p)
 	if err != nil || rep.Outcome != result.Success || rep.ManifestSHA256 != p.ManifestSHA256 {
 		t.Fatalf("load: %v %+v", err, rep)
 	}
@@ -287,7 +288,7 @@ func TestFailedEntityRollsBackAndRetryResumes(t *testing.T) {
 	if _, err := e.admin.Exec(ctx, "REVOKE INSERT ON integration.stg_hr_team_v1 FROM crm_owner_integration"); err != nil {
 		t.Fatal(err)
 	}
-	rep, err := e.loader.Load(ctx, e.open(t, dir), staging.LoadOptions{})
+	rep, err := e.loader.Load(ctx, e.open(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,7 +328,7 @@ func TestFailedEntityRollsBackAndRetryResumes(t *testing.T) {
 func TestDatabaseRefusesDishonestStates(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()
-	rep, err := e.loader.Load(ctx, e.open(t, legacytest.Write(t, "synthetic-snapshot-0300", t0, legacytest.Rows())), staging.LoadOptions{})
+	rep, err := e.loader.Load(ctx, e.open(t, legacytest.Write(t, "synthetic-snapshot-0300", t0, legacytest.Rows())))
 	if err != nil || rep.Outcome != result.Success {
 		t.Fatalf("load: %v %+v", err, rep)
 	}
@@ -369,7 +370,7 @@ func TestDatabaseRefusesDishonestStates(t *testing.T) {
 	}
 }
 
-func TestIncompleteEntityAndUnclassifiedOrigin(t *testing.T) {
+func TestIncompleteEntityAndTamperedFile(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()
 	rows := legacytest.Rows()
@@ -379,36 +380,122 @@ func TestIncompleteEntityAndUnclassifiedOrigin(t *testing.T) {
 		t.Fatalf("incomplete: %+v", rep)
 	}
 
-	// Unclassified data is BLOCKED without the explicit acknowledgement.
-	dir := filepath.Join(t.TempDir(), "p")
-	h := legacytest.Header("synthetic-snapshot-0401", t0)
-	h.DataOrigin = snapshot.OriginUnclassified
-	if _, err := snapshot.Write(dir, spec.Default(), h, legacytest.Rows()[:1]); err != nil {
-		t.Fatal(err)
-	}
-	blocked, err := e.loader.Load(ctx, e.open(t, dir), staging.LoadOptions{})
-	if err != nil || blocked.Outcome != result.Blocked {
-		t.Fatalf("unclassified: %v %+v", err, blocked)
-	}
-	if n := e.count(t, "SELECT count(*) FROM integration.import_batch WHERE snapshot_id = 'synthetic-snapshot-0401'"); n != 0 {
-		t.Fatal("a BLOCKED load wrote a batch")
-	}
-	allowed, err := e.loader.Load(ctx, e.open(t, dir), staging.LoadOptions{AllowUnclassified: true})
-	if err != nil || allowed.Outcome != result.Success {
-		t.Fatalf("acknowledged unclassified: %v %+v", err, allowed)
-	}
-
 	// A tampered file fails validation before anything is written.
 	bad := legacytest.Write(t, "synthetic-snapshot-0402", t0, legacytest.Rows())
 	f := filepath.Join(bad, snapshot.EntityFile("legacy.hr_level.v1"))
 	b, _ := os.ReadFile(f)
 	_ = os.WriteFile(f, []byte(strings.Replace(string(b), "syn-", "syx-", 1)), 0o600)
-	failed, err := e.loader.Load(ctx, e.open(t, bad), staging.LoadOptions{})
+	failed, err := e.loader.Load(ctx, e.open(t, bad))
 	if err != nil || failed.Outcome != result.Failed {
 		t.Fatalf("tampered: %v %+v", err, failed)
 	}
 	if n := e.count(t, "SELECT count(*) FROM integration.import_batch WHERE snapshot_id = 'synthetic-snapshot-0402'"); n != 0 {
 		t.Fatal("a failed validation wrote a batch")
+	}
+}
+
+func unclassifiedPackage(t *testing.T, snapshotID string) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "p")
+	h := legacytest.Header(snapshotID, t0)
+	h.DataOrigin = snapshot.OriginUnclassified
+	if _, err := snapshot.Write(dir, spec.Default(), h, legacytest.Rows()); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+// assertNothingWritten proves a refused load left no batch, no entity and no
+// staged row in any staging table.
+func (e *env) assertNothingWritten(t *testing.T) {
+	t.Helper()
+	if n := e.count(t, "SELECT count(*) FROM integration.import_batch"); n != 0 {
+		t.Fatalf("import_batch rows = %d", n)
+	}
+	if n := e.count(t, "SELECT count(*) FROM integration.import_entity"); n != 0 {
+		t.Fatalf("import_entity rows = %d", n)
+	}
+	for _, s := range spec.Default().Specs() {
+		if n := e.count(t, "SELECT count(*) FROM integration."+s.StagingTable); n != 0 {
+			t.Fatalf("%s rows = %d", s.StagingTable, n)
+		}
+	}
+}
+
+func assertBlocked(t *testing.T, rep staging.Report, err error) {
+	t.Helper()
+	if err != nil || rep.Outcome != result.Blocked || rep.Reason == nil || *rep.Reason != reasoncodes.PolicyUnresolved ||
+		rep.Problem != staging.BlockedNonSyntheticMessage || rep.BatchID != "" {
+		t.Fatalf("want BLOCKED/POLICY_UNRESOLVED: %v %+v", err, rep)
+	}
+}
+
+// Slice 3 fails closed: a non-synthetic package is BLOCKED and writes nothing.
+func TestNonSyntheticPackageIsBlocked(t *testing.T) {
+	e := setup(t)
+	rep, err := e.loader.Load(context.Background(), e.open(t, unclassifiedPackage(t, "unclassified-snapshot-0401")))
+	assertBlocked(t, rep, err)
+	e.assertNothingWritten(t)
+	// The block is stable on repeat.
+	rep, err = e.loader.Load(context.Background(), e.open(t, unclassifiedPackage(t, "unclassified-snapshot-0401")))
+	assertBlocked(t, rep, err)
+	e.assertNothingWritten(t)
+}
+
+// Direct Loader callers cannot bypass the block: Load has no options, and
+// altering the in-memory Package (origin, bytes, checksum) or handing it a
+// nil/zero Package still fails closed with nothing written.
+func TestLoaderCannotBeBypassed(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	unclassified := unclassifiedPackage(t, "unclassified-snapshot-0402")
+	synthetic := legacytest.Write(t, "synthetic-snapshot-0403", t0, legacytest.Rows())
+
+	// 1. Flip the parsed origin to synthetic; the stored manifest bytes still say unclassified.
+	p := e.open(t, unclassified)
+	p.Manifest.DataOrigin = snapshot.OriginSynthetic
+	rep, err := e.loader.Load(ctx, p)
+	assertBlocked(t, rep, err)
+
+	// 2. Swap in synthetic manifest bytes without their checksum.
+	p = e.open(t, unclassified)
+	p.Manifest.DataOrigin = snapshot.OriginSynthetic
+	p.ManifestBytes = e.open(t, synthetic).ManifestBytes
+	rep, err = e.loader.Load(ctx, p)
+	assertBlocked(t, rep, err)
+
+	// 3. Swap in synthetic bytes and their checksum from another package.
+	s := e.open(t, synthetic)
+	p = e.open(t, unclassified)
+	p.Manifest.DataOrigin = snapshot.OriginSynthetic
+	p.ManifestBytes, p.ManifestSHA256 = s.ManifestBytes, s.ManifestSHA256
+	rep, err = e.loader.Load(ctx, p)
+	assertBlocked(t, rep, err)
+
+	// 4. Unparseable or empty manifest bytes, nil and zero-value packages.
+	p = e.open(t, unclassified)
+	p.Manifest.DataOrigin = snapshot.OriginSynthetic
+	p.ManifestBytes = nil
+	rep, err = e.loader.Load(ctx, p)
+	assertBlocked(t, rep, err)
+	rep, err = e.loader.Load(ctx, nil)
+	assertBlocked(t, rep, err)
+	// A fully consistent synthetic Package re-pointed at the unclassified
+	// package's directory (identical table files) is refused: the manifest on
+	// disk must equal the bytes that would be stored.
+	p = e.open(t, synthetic)
+	p.Dir = unclassified
+	rep, err = e.loader.Load(ctx, p)
+	assertBlocked(t, rep, err)
+	rep, err = e.loader.Load(ctx, &snapshot.Package{})
+	assertBlocked(t, rep, err)
+
+	e.assertNothingWritten(t)
+
+	// 5. The genuine synthetic package still loads.
+	ok, err := e.loader.Load(ctx, e.open(t, synthetic))
+	if err != nil || ok.Outcome != result.Success || ok.BatchState != staging.StateLoaded {
+		t.Fatalf("synthetic load: %v %+v", err, ok)
 	}
 }
 
@@ -423,7 +510,7 @@ func TestConcurrentLoadsAreDeterministic(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			reps[i], errs[i] = e.loader.Load(context.Background(), e.open(t, dir), staging.LoadOptions{})
+			reps[i], errs[i] = e.loader.Load(context.Background(), e.open(t, dir))
 		}(i)
 	}
 	wg.Wait()

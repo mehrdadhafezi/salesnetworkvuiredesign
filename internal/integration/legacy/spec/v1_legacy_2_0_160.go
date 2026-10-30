@@ -92,6 +92,10 @@ func wpUserV1() Spec {
 	)
 }
 
+// wpUsermetaV1 defines the raw columns only. Its meta_key ROW SCOPE is an
+// unresolved Owner decision: no future extractor may extract all usermeta rows
+// by default; see ExtractionScopeUnresolved (scope.go). Slice 3 snapshot
+// import does not resolve that decision.
 func wpUsermetaV1() Spec {
 	ev := transfer + ":402-404 (umeta_id, user_id, meta_key, meta_value)"
 	return v1("wp_usermeta", "usermeta", []Column{

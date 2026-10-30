@@ -32,14 +32,26 @@
 // duplicating rows; the same snapshot_id with different content is CONFLICT;
 // identical content under another snapshot_id reports the existing batch and
 // stages nothing new. File names are never identity.
+//
+// # Synthetic only (fail closed)
+//
+// Slice 3 stages synthetic packages only. A package whose manifest declares
+// any other data_origin is BLOCKED (POLICY_UNRESOLVED) and nothing is
+// written; no option, flag or alternative caller path exists. Lifting this
+// requires a future Owner-approved staging/anonymisation policy and
+// environment (TAD (E0) #18, D-23).
 package staging
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -99,13 +111,32 @@ func NewLoader(r *db.Runner, c timeutil.Clock, toolVersion string) (*Loader, err
 	return &Loader{runner: r, clock: c, toolVersion: toolVersion}, nil
 }
 
-// LoadOptions are operator choices for one load.
-type LoadOptions struct {
-	// AllowUnclassified permits a package whose data_origin is not
-	// "synthetic". It is an explicit operator acknowledgement that the
-	// staging environment is approved for such data; Slice 3 defines no
-	// anonymisation, masking or retention policy (TAD (E0) #18, D-23).
-	AllowUnclassified bool
+// BlockedNonSyntheticMessage is the bounded explanation returned for every
+// non-synthetic package. Slice 3 fails closed: there is no option, flag or
+// caller path that stages non-synthetic data. Staging such data requires a
+// future Owner-approved staging/anonymisation policy and environment (TAD (E0)
+// #18, D-23), which this code does not define.
+const BlockedNonSyntheticMessage = "non-synthetic snapshot refused: staging non-synthetic data requires a future Owner-approved staging/anonymisation policy and environment (TAD (E0) #18, D-23); nothing was written"
+
+// syntheticOnly reports whether p may be staged. It checks the parsed
+// manifest, the exact manifest bytes that would be stored (and their recorded
+// checksum) and the manifest file actually present in the package directory,
+// so a caller that alters or re-points the in-memory Package cannot bypass
+// the block. Any inconsistency fails closed.
+func syntheticOnly(p *snapshot.Package) bool {
+	if p == nil || p.Manifest.DataOrigin != snapshot.OriginSynthetic || len(p.ManifestBytes) == 0 || p.Dir == "" {
+		return false
+	}
+	sum := sha256.Sum256(p.ManifestBytes)
+	if hex.EncodeToString(sum[:]) != p.ManifestSHA256 {
+		return false
+	}
+	onDisk, err := os.ReadFile(filepath.Join(p.Dir, snapshot.ManifestFile))
+	if err != nil || !bytes.Equal(onDisk, p.ManifestBytes) {
+		return false
+	}
+	stored, err := snapshot.ParseManifest(p.ManifestBytes)
+	return err == nil && stored.DataOrigin == snapshot.OriginSynthetic && stored.SnapshotID == p.Manifest.SnapshotID
 }
 
 // EntityResult is the per-entity load/reconciliation result (no row values).
@@ -159,13 +190,20 @@ func mustHex(s string) []byte {
 // Load validates the package offline, then stages it. It returns a report in
 // every case; err is non-nil only for infrastructure faults, and then the
 // report outcome says FAILED or UNKNOWN honestly.
-func (l *Loader) Load(ctx context.Context, p *snapshot.Package, opts LoadOptions) (Report, error) {
-	rep := newReport("load", p)
-	if p.Manifest.DataOrigin != snapshot.OriginSynthetic && !opts.AllowUnclassified {
-		rep.set(result.Blocked, reasoncodes.PolicyUnresolved,
-			"data_origin is not synthetic; staging/anonymisation policy (TAD (E0) #18, D-23) is unresolved — nothing was written")
+//
+// Only synthetic packages are staged. Every other package is BLOCKED with
+// POLICY_UNRESOLVED before any validation or database access; the loader
+// enforces this itself and offers no override.
+func (l *Loader) Load(ctx context.Context, p *snapshot.Package) (Report, error) {
+	if !syntheticOnly(p) {
+		rep := Report{Command: "load", Entities: []EntityResult{}, Warnings: []string{}}
+		if p != nil {
+			rep.SnapshotID, rep.LegacyVersion, rep.DataOrigin = p.Manifest.SnapshotID, p.Manifest.Legacy.Version, string(p.Manifest.DataOrigin)
+		}
+		rep.set(result.Blocked, reasoncodes.PolicyUnresolved, BlockedNonSyntheticMessage)
 		return rep, nil
 	}
+	rep := newReport("load", p)
 	// 1. Offline validation of every entity before anything is written.
 	pre, err := p.Validate()
 	if err != nil {

@@ -114,6 +114,31 @@ func TestNoCredentialOrOverlaySources(t *testing.T) {
 	}
 }
 
+// TestWpUsermetaExtractionScopeIsUnresolved guards the deferred wp_usermeta
+// meta_key decision: real extraction stays blocked until an Owner-approved
+// allowlist exists. Removing this entry requires that decision.
+func TestWpUsermetaExtractionScopeIsUnresolved(t *testing.T) {
+	reason, blocked := ExtractionScopeUnresolved("legacy.wp_usermeta.v1")
+	if !blocked || !strings.Contains(reason, "meta_key") || !strings.Contains(reason, "allowlist") {
+		t.Fatalf("wp_usermeta extraction scope must stay unresolved: %q %v", reason, blocked)
+	}
+	s, err := Default().Lookup("legacy.wp_usermeta.v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(strings.Join(s.Notes, " "), "v1 defines no filter") {
+		t.Fatalf("wp_usermeta spec note changed: %v", s.Notes)
+	}
+	for _, id := range Default().IDs() {
+		if _, b := ExtractionScopeUnresolved(id); b && id != "legacy.wp_usermeta.v1" {
+			t.Errorf("unexpected scope block on %s", id)
+		}
+	}
+	if _, b := ExtractionScopeUnresolved("legacy.nope.v1"); b {
+		t.Fatal("unknown spec must not be listed")
+	}
+}
+
 func TestStagingColumnsDeterministic(t *testing.T) {
 	u, _ := Default().Lookup("legacy.wp_user.v1")
 	got := []string{}
