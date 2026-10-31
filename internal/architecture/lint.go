@@ -18,7 +18,18 @@
 //     migration tooling and the test-only pgtest harness. Test files are exempt.
 //   - platform-import: internal/platform/** never imports a business module.
 //   - foreign-store: internal/<a>/store is imported only from internal/<a>/**.
-//   - pgtest-import: internal/platform/pgtest is imported only from _test.go files.
+//   - pgtest-import: internal/platform/pgtest (and, from Slice 3, the
+//     synthetic-snapshot builder internal/integration/legacy/legacytest) is
+//     imported only from _test.go files.
+//
+// Slice 3 rules (Architecture V1 §24):
+//
+//   - legacy-import: internal/integration/legacy/** is imported only from
+//     itself and the offline cmd/crm-legacy-import tool; cmd/crm-migrate may
+//     import exactly its migrations package (the only DDL path). The API
+//     server, platform and business modules never reach the legacy connector.
+//   - legacy-literal also covers "woocommerce" in Go string literals and
+//     wp_/sn_/woocommerce text in .sql and .tmpl files outside the legacy tree.
 package architecture
 
 import (
@@ -27,6 +38,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -59,6 +71,7 @@ const (
 	RulePlatformImport   = "platform-import"
 	RuleForeignStore     = "foreign-store"
 	RulePgtestImport     = "pgtest-import"
+	RuleLegacyImport     = "legacy-import"
 )
 
 // DDL is allowed only in migration tooling and the test-only harness. The
@@ -73,6 +86,8 @@ var platformAllowed = map[string]bool{"kernel": true, "platform": true}
 const (
 	platformDir = "internal/platform"
 	pgtestPkg   = "internal/platform/pgtest"
+	// legacyTestPkg builds synthetic legacy snapshots; test files only.
+	legacyTestPkg = "internal/integration/legacy/legacytest"
 )
 
 const (
@@ -95,6 +110,24 @@ var testOnlyStd = []string{"math/rand", "time/tzdata", "testing"}
 
 var legacyLiteral = regexp.MustCompile(`(^|[^A-Za-z0-9_])(wp|sn)_[A-Za-z0-9_]`)
 
+// wooLiteral matches WooCommerce internals named in target code. The lint
+// package itself is exempt (it spells the pattern).
+var wooLiteral = regexp.MustCompile(`(?i)woo` + `commerce`)
+
+// legacyImporters may import internal/integration/legacy/**.
+var legacyImporters = []string{legacyInteg, "cmd/crm-legacy-import"}
+
+// legacyMigrationsImporter may import only the legacy migrations package.
+const (
+	legacyMigrationsImporter = "cmd/crm-migrate"
+	legacyMigrationsPkg      = "integration/legacy/migrations"
+)
+
+// scannedTextExt are non-Go files scanned for legacy literals.
+var scannedTextExt = []string{".sql", ".tmpl"}
+
+const architectureDir = "internal/architecture"
+
 var conversionName = regexp.MustCompile(`(?i)convert|toirr|toirt|ratio|rate|rial|toman`)
 
 // Check scans every Go file under root. modulePath is the go.mod module path.
@@ -110,12 +143,17 @@ func Check(root, modulePath string) ([]Violation, error) {
 			}
 			return nil
 		}
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
 		rel, err := filepath.Rel(root, path)
 		if err != nil {
 			return err
+		}
+		if !strings.HasSuffix(path, ".go") {
+			vs, err := checkText(path, filepath.ToSlash(rel))
+			if err != nil {
+				return err
+			}
+			out = append(out, vs...)
+			return nil
 		}
 		vs, err := checkFile(path, filepath.ToSlash(rel), modulePath)
 		if err != nil {
@@ -172,8 +210,13 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 				add(RuleForeignStore, imp.Pos(), "imports another module's store package "+p)
 			}
 		}
-		if internalTop+"/"+internalRest == strings.TrimPrefix(pgtestPkg, "internal/") && !isTest && !under(rel, pgtestPkg) {
-			add(RulePgtestImport, imp.Pos(), "test-only "+p+" imported from production code")
+		for _, testOnly := range []string{pgtestPkg, legacyTestPkg} {
+			if internalTop+"/"+internalRest == strings.TrimPrefix(testOnly, "internal/") && !isTest && !under(rel, testOnly) {
+				add(RulePgtestImport, imp.Pos(), "test-only "+p+" imported from production code")
+			}
+		}
+		if full := internalTop + "/" + internalRest; hasPrefixPath(full, strings.TrimPrefix(legacyInteg, "internal/")) && !legacyImportAllowed(rel, full) {
+			add(RuleLegacyImport, imp.Pos(), "imports the legacy connector "+p+" outside "+legacyInteg+" and cmd/crm-legacy-import")
 		}
 	}
 
@@ -183,6 +226,8 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			if x.Kind == token.STRING && !under(rel, legacyInteg) {
 				if s, err := strconv.Unquote(x.Value); err == nil && legacyLiteral.MatchString(s) {
 					add(RuleLegacyLiteral, x.Pos(), "legacy table literal "+x.Value+" outside "+legacyInteg)
+				} else if err == nil && wooLiteral.MatchString(s) && !under(rel, architectureDir) {
+					add(RuleLegacyLiteral, x.Pos(), "WooCommerce literal "+x.Value+" outside "+legacyInteg)
 				}
 			}
 			if x.Kind == token.STRING && !isTest && !ddlAllowed(rel) {
@@ -226,6 +271,42 @@ func splitInternal(p, modulePath string) (top, rest string, ok bool) {
 	}
 	top, rest, _ = strings.Cut(strings.TrimPrefix(p, prefix), "/")
 	return top, rest, top != ""
+}
+
+// legacyImportAllowed reports whether rel may import the legacy package full
+// ("integration/legacy/...").
+func legacyImportAllowed(rel, full string) bool {
+	for _, d := range legacyImporters {
+		if under(rel, d) {
+			return true
+		}
+	}
+	return under(rel, legacyMigrationsImporter) && full == legacyMigrationsPkg
+}
+
+// checkText scans a non-Go text file (.sql, .tmpl) outside the legacy tree
+// for legacy table names and WooCommerce internals.
+func checkText(path, rel string) ([]Violation, error) {
+	scan := false
+	for _, ext := range scannedTextExt {
+		if strings.HasSuffix(rel, ext) {
+			scan = true
+		}
+	}
+	if !scan || under(rel, legacyInteg) || under(rel, architectureDir) {
+		return nil, nil
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var out []Violation
+	for i, line := range strings.Split(string(b), "\n") {
+		if legacyLiteral.MatchString(line) || wooLiteral.MatchString(line) {
+			out = append(out, Violation{Rule: RuleLegacyLiteral, File: rel, Line: i + 1, Text: "legacy name in " + filepath.Ext(rel) + " file outside " + legacyInteg})
+		}
+	}
+	return out, nil
 }
 
 func ddlAllowed(rel string) bool {

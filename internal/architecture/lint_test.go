@@ -3,6 +3,7 @@ package architecture
 import (
 	"bufio"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -53,13 +54,14 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleKernelClock:      2, // time.Now and .Local()
 		RuleKernelFloat:      2, // float64 parameter and float32 conversion
 		RuleMoneyConversion:  1,
-		RuleLegacyLiteral:    2, // one in kernel, one in a business package
+		RuleLegacyLiteral:    4, // kernel, business package, WooCommerce literal, .sql file
 		RuleLegacyRefFactory: 1,
 		RuleDotImport:        1, // internal/sales/dotimport.go
 		RuleRuntimeDDL:       3, // platform/bad CREATE TABLE; sales/ddl alter table + GRANT
 		RulePlatformImport:   1, // platform/bad imports billing
-		RulePgtestImport:     1, // platform/bad imports pgtest from production code
+		RulePgtestImport:     2, // pgtest from platform/bad; legacytest from the import tool
 		RuleForeignStore:     1, // sales imports billing/store
+		RuleLegacyImport:     3, // sales, crm-api and crm-migrate (non-migrations) import the connector
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -163,6 +165,70 @@ func TestSliceOneRules(t *testing.T) {
 	}
 	for _, v := range allowed {
 		t.Errorf("allowed fixture flagged: %s", v)
+	}
+}
+
+// TestSliceThreeRules checks the legacy connector boundary (Architecture V1
+// §24): the connector is imported only by itself and the offline import
+// tool (crm-migrate only its migrations), and WooCommerce/legacy names never
+// appear in target Go strings or SQL/template files outside it.
+func TestSliceThreeRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"internal/sales/legacy_import.go":  RuleLegacyImport,
+		"cmd/crm-api/legacy.go":            RuleLegacyImport,
+		"cmd/crm-migrate/legacy.go":        RuleLegacyImport,
+		"internal/billing/woo.go":          RuleLegacyLiteral,
+		"internal/sales/schema.sql":        RuleLegacyLiteral,
+		"cmd/crm-legacy-import/fixture.go": RulePgtestImport,
+	}
+	for file, rule := range want {
+		found := false
+		for _, v := range vs {
+			if v.File == file && v.Rule == rule {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("rule %s did not fire in %s", rule, file)
+		}
+	}
+	allowed, err := Check(filepath.Join("testdata", "allowed"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range allowed {
+		t.Errorf("allowed fixture flagged: %s", v)
+	}
+	for _, s := range []string{"WooCommerce", "woocommerce_order_items"} {
+		if !wooLiteral.MatchString(s) {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	for _, s := range []string{"commerce", "woo", "workflow"} {
+		if wooLiteral.MatchString(s) {
+			t.Errorf("%q falsely detected", s)
+		}
+	}
+}
+
+// TestAPIServerHasNoLegacyDependency proves, transitively, that the target
+// API server binary cannot reach the legacy connector.
+func TestAPIServerHasNoLegacyDependency(t *testing.T) {
+	mod := modulePath(t)
+	cmd := exec.Command("go", "list", "-deps", "./cmd/crm-api")
+	cmd.Dir = repoRoot
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("go list: %v", err)
+	}
+	for _, p := range strings.Fields(string(out)) {
+		if hasPrefixPath(p, mod+"/internal/integration") {
+			t.Errorf("crm-api depends on %s", p)
+		}
 	}
 }
 

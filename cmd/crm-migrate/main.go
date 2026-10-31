@@ -1,6 +1,7 @@
 // Command crm-migrate is the only way target DDL reaches a database
-// (Architecture V1 §8.11). It applies the embedded platform migrations
-// explicitly; no application process runs migrations on startup.
+// (Architecture V1 §8.11). It applies the embedded platform migrations and
+// then the integration staging migrations (Slice 3), each source in its own
+// version table; no application process runs migrations on startup.
 //
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate up
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate status
@@ -17,8 +18,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	integrationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/migrations"
 )
+
+// sources returns every migration source in apply order: platform first.
+func sources() []migrations.Source {
+	return []migrations.Source{migrations.Platform(), integrationmigrations.Source()}
+}
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -36,32 +43,37 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 		fmt.Fprintln(stderr, "crm-migrate: "+migrations.EnvMigrateURL+" is not set")
 		return 2
 	}
-	src := migrations.Platform()
 	switch args[0] {
 	case "up":
-		applied, err := migrations.Up(ctx, dsn, src)
-		for _, a := range applied {
-			fmt.Fprintf(stdout, "applied %05d %s\n", a.Version, a.Name)
+		total := 0
+		for _, src := range sources() {
+			applied, err := migrations.Up(ctx, dsn, src)
+			for _, a := range applied {
+				fmt.Fprintf(stdout, "applied %05d %s\n", a.Version, a.Name)
+			}
+			total += len(applied)
+			if err != nil {
+				fmt.Fprintln(stderr, "crm-migrate:", err)
+				return 1
+			}
 		}
-		if err != nil {
-			fmt.Fprintln(stderr, "crm-migrate:", err)
-			return 1
-		}
-		if len(applied) == 0 {
+		if total == 0 {
 			fmt.Fprintln(stdout, "no pending migrations")
 		}
 	case "status":
-		states, err := migrations.Status(ctx, dsn, src)
-		if err != nil {
-			fmt.Fprintln(stderr, "crm-migrate:", err)
-			return 1
-		}
-		for _, s := range states {
-			state := "pending"
-			if s.Applied {
-				state = "applied"
+		for _, src := range sources() {
+			states, err := migrations.Status(ctx, dsn, src)
+			if err != nil {
+				fmt.Fprintln(stderr, "crm-migrate:", err)
+				return 1
 			}
-			fmt.Fprintf(stdout, "%05d %-8s %s\n", s.Version, state, s.Name)
+			for _, s := range states {
+				state := "pending"
+				if s.Applied {
+					state = "applied"
+				}
+				fmt.Fprintf(stdout, "%05d %-8s %s\n", s.Version, state, s.Name)
+			}
 		}
 	}
 	return 0

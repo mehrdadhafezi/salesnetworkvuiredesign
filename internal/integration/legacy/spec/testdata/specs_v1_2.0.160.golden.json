@@ -1,0 +1,1079 @@
+[
+  {
+    "id": "legacy.hr_assignment.v1",
+    "entity": "hr_assignment",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_hr_assignments",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:582 (table definition)"
+      },
+      {
+        "name": "child_profile_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:583 (table definition)"
+      },
+      {
+        "name": "parent_profile_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:584 (table definition)"
+      },
+      {
+        "name": "relationship_type",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:585 (table definition)",
+        "note": "raw; unfamiliar values are preserved"
+      },
+      {
+        "name": "effective_from",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:586 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "effective_to",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:587 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "is_current",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:588 (table definition)"
+      },
+      {
+        "name": "source",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:589 (table definition)"
+      },
+      {
+        "name": "created_by",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:590 (table definition)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:591 (table definition)"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:592 (table definition)"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_hr_assignment_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "581-600",
+        "note": "table definition of sn_hr_assignments"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "legacy.hr_assignment_history.v1",
+    "entity": "hr_assignment_history",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_hr_assignment_history",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:603 (table definition)"
+      },
+      {
+        "name": "assignment_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:604 (table definition)"
+      },
+      {
+        "name": "child_profile_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:605 (table definition)"
+      },
+      {
+        "name": "old_parent_profile_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:606 (table definition)"
+      },
+      {
+        "name": "new_parent_profile_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:607 (table definition)"
+      },
+      {
+        "name": "actor_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:608 (table definition)"
+      },
+      {
+        "name": "action",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:609 (table definition)"
+      },
+      {
+        "name": "reason",
+        "raw_type": "TEXT",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:610 (table definition)",
+        "note": "free text; content unverified"
+      },
+      {
+        "name": "context",
+        "raw_type": "LONGTEXT",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:611 (table definition)",
+        "note": "raw JSON/text preserved exactly; never parsed in staging"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:612 (table definition)"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_hr_assignment_history_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "602-621",
+        "note": "table definition of sn_hr_assignment_history"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "legacy.hr_department.v1",
+    "entity": "hr_department",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_hr_departments",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:535 (table definition)"
+      },
+      {
+        "name": "slug",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:537 (table definition); plugin/current/includes/class-sn-migration-service.php:555 (add_column_if_missing)"
+      },
+      {
+        "name": "label",
+        "raw_type": "VARCHAR(191)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:538 (table definition); plugin/current/includes/class-sn-migration-service.php:556 (add_column_if_missing)"
+      },
+      {
+        "name": "description",
+        "raw_type": "TEXT",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:539 (table definition); plugin/current/includes/class-sn-migration-service.php:557 (add_column_if_missing)"
+      },
+      {
+        "name": "is_active",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:540 (table definition); plugin/current/includes/class-sn-migration-service.php:558 (add_column_if_missing)"
+      },
+      {
+        "name": "sort_order",
+        "raw_type": "INT",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:541 (table definition); plugin/current/includes/class-sn-migration-service.php:559 (add_column_if_missing)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:542 (table definition); plugin/current/includes/class-sn-migration-service.php:560 (add_column_if_missing)"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:543 (table definition); plugin/current/includes/class-sn-migration-service.php:561 (add_column_if_missing)"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_hr_department_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "515-575",
+        "note": "create_hr_structure_tables: sn_hr_departments (no parent column)"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "legacy.hr_level.v1",
+    "entity": "hr_level",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_hr_levels",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:406 (table definition)"
+      },
+      {
+        "name": "slug",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:407 (table definition); :349 (add_column_if_missing)"
+      },
+      {
+        "name": "label",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:408 (table definition); :350 (add_column_if_missing)"
+      },
+      {
+        "name": "description",
+        "raw_type": "TEXT",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:409 (table definition); :351 (add_column_if_missing)"
+      },
+      {
+        "name": "sort_order",
+        "raw_type": "INT",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:410 (table definition); :352 (add_column_if_missing)"
+      },
+      {
+        "name": "is_active",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:411 (table definition); :353 (add_column_if_missing)"
+      },
+      {
+        "name": "is_system",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:412 (table definition); :354 (add_column_if_missing)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "UNKNOWN",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:413 (table definition); :355 (add_column_if_missing)",
+        "note": "NOT NULL in CREATE, NULL when added later; raw legacy DATETIME, zone not asserted"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "UNKNOWN",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:414 (table definition); :356 (add_column_if_missing)",
+        "note": "NOT NULL in CREATE, NULL when added later; raw legacy DATETIME, zone not asserted"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_hr_level_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "405-419, 348-358",
+        "note": "create_hr_tables + ensure_hr_lookup_schema"
+      }
+    ],
+    "notes": [
+      "legacy columns that older installs may carry (title, name, level_key) are not verified in 2.0.160 and are not extracted"
+    ]
+  },
+  {
+    "id": "legacy.hr_position.v1",
+    "entity": "hr_position",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_hr_positions",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:389 (table definition)"
+      },
+      {
+        "name": "slug",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:390 (table definition); :336 (add_column_if_missing)"
+      },
+      {
+        "name": "label",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:391 (table definition); :337 (add_column_if_missing)"
+      },
+      {
+        "name": "description",
+        "raw_type": "TEXT",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:392 (table definition); :338 (add_column_if_missing)"
+      },
+      {
+        "name": "panel_key",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:393 (table definition); :339 (add_column_if_missing)"
+      },
+      {
+        "name": "sort_order",
+        "raw_type": "INT",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:394 (table definition); :340 (add_column_if_missing)"
+      },
+      {
+        "name": "is_active",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:395 (table definition); :341 (add_column_if_missing)"
+      },
+      {
+        "name": "is_system",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:396 (table definition); :342 (add_column_if_missing)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "UNKNOWN",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:397 (table definition); :343 (add_column_if_missing)",
+        "note": "NOT NULL in CREATE, NULL when added later; raw legacy DATETIME, zone not asserted"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "UNKNOWN",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:398 (table definition); :344 (add_column_if_missing)",
+        "note": "NOT NULL in CREATE, NULL when added later; raw legacy DATETIME, zone not asserted"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_hr_position_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "388-403, 335-346",
+        "note": "create_hr_tables + ensure_hr_lookup_schema"
+      }
+    ],
+    "notes": [
+      "legacy columns that older installs may carry (title, name, position_key) are not verified in 2.0.160 and are not extracted"
+    ]
+  },
+  {
+    "id": "legacy.hr_position_role_mapping.v1",
+    "entity": "hr_position_role_mapping",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_hr_position_role_mappings",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:445 (table definition)"
+      },
+      {
+        "name": "legacy_role",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:446 (table definition)",
+        "note": "raw legacy role string; never mapped to a capability in staging"
+      },
+      {
+        "name": "position_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:447 (table definition)"
+      },
+      {
+        "name": "default_level_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:448 (table definition)"
+      },
+      {
+        "name": "is_active",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:449 (table definition)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:450 (table definition)"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:451 (table definition)"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_hr_position_role_mapping_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "444-457",
+        "note": "table definition of sn_hr_position_role_mappings"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "legacy.hr_profile.v1",
+    "entity": "hr_profile",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_hr_profiles",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:424 (table definition)"
+      },
+      {
+        "name": "user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:425 (table definition)"
+      },
+      {
+        "name": "hr_display_name",
+        "raw_type": "VARCHAR(191)",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:1043, :8892 (ADD COLUMN statement)"
+      },
+      {
+        "name": "position_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:426 (table definition); plugin/current/includes/class-sn-migration-service.php:479 (add_column_if_missing)"
+      },
+      {
+        "name": "level_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:427 (table definition); plugin/current/includes/class-sn-migration-service.php:480 (add_column_if_missing)"
+      },
+      {
+        "name": "employee_code",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:481 (add_column_if_missing)"
+      },
+      {
+        "name": "employment_status",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NOT_NULL",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:428 (table definition); plugin/current/includes/class-sn-migration-service.php:482 (add_column_if_missing)"
+      },
+      {
+        "name": "employment_type",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:483 (add_column_if_missing)"
+      },
+      {
+        "name": "contract_status",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:429 (table definition)"
+      },
+      {
+        "name": "training_status",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:430 (table definition)"
+      },
+      {
+        "name": "hire_date",
+        "raw_type": "DATE",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:484 (add_column_if_missing)"
+      },
+      {
+        "name": "termination_date",
+        "raw_type": "DATE",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:485 (add_column_if_missing)"
+      },
+      {
+        "name": "base_salary",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:486 (add_column_if_missing)",
+        "note": "raw value; no unit interpretation or conversion in staging"
+      },
+      {
+        "name": "salary_currency",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:487 (add_column_if_missing)",
+        "note": "raw legacy unit label; not interpreted"
+      },
+      {
+        "name": "national_id",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NULLABLE",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:488 (add_column_if_missing)"
+      },
+      {
+        "name": "work_phone",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:489 (add_column_if_missing)",
+        "note": "raw; never normalised or used as identity"
+      },
+      {
+        "name": "emergency_phone",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:490 (add_column_if_missing)",
+        "note": "raw; never normalised or used as identity"
+      },
+      {
+        "name": "department_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:491 (add_column_if_missing)"
+      },
+      {
+        "name": "unit_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:492 (add_column_if_missing)"
+      },
+      {
+        "name": "team_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:493 (add_column_if_missing)"
+      },
+      {
+        "name": "notes",
+        "raw_type": "TEXT",
+        "nullability": "NULLABLE",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:494 (add_column_if_missing)",
+        "note": "free text about a person; content unverified"
+      },
+      {
+        "name": "legacy_role",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:431 (table definition)"
+      },
+      {
+        "name": "legacy_source",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:432 (table definition)"
+      },
+      {
+        "name": "is_active",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:433 (table definition)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:434 (table definition)"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:435 (table definition)"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_hr_profile_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "423-442",
+        "note": "table definition of sn_hr_profiles"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "477-497",
+        "note": "add_column_if_missing for HR profile columns"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "1039-1044, 8885-8893",
+        "note": "ADD COLUMN hr_display_name"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "legacy.hr_team.v1",
+    "entity": "hr_team",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_hr_teams",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:535 (table definition)"
+      },
+      {
+        "name": "unit_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:525/529 (parent_column), :551 (add_column_if_missing)"
+      },
+      {
+        "name": "slug",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:537 (table definition); plugin/current/includes/class-sn-migration-service.php:555 (add_column_if_missing)"
+      },
+      {
+        "name": "label",
+        "raw_type": "VARCHAR(191)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:538 (table definition); plugin/current/includes/class-sn-migration-service.php:556 (add_column_if_missing)"
+      },
+      {
+        "name": "description",
+        "raw_type": "TEXT",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:539 (table definition); plugin/current/includes/class-sn-migration-service.php:557 (add_column_if_missing)"
+      },
+      {
+        "name": "is_active",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:540 (table definition); plugin/current/includes/class-sn-migration-service.php:558 (add_column_if_missing)"
+      },
+      {
+        "name": "sort_order",
+        "raw_type": "INT",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:541 (table definition); plugin/current/includes/class-sn-migration-service.php:559 (add_column_if_missing)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:542 (table definition); plugin/current/includes/class-sn-migration-service.php:560 (add_column_if_missing)"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:543 (table definition); plugin/current/includes/class-sn-migration-service.php:561 (add_column_if_missing)"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_hr_team_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "515-575",
+        "note": "create_hr_structure_tables: sn_hr_teams (parent unit_id)"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "legacy.hr_unit.v1",
+    "entity": "hr_unit",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_hr_units",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:535 (table definition)"
+      },
+      {
+        "name": "department_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:525/529 (parent_column), :551 (add_column_if_missing)"
+      },
+      {
+        "name": "slug",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:537 (table definition); plugin/current/includes/class-sn-migration-service.php:555 (add_column_if_missing)"
+      },
+      {
+        "name": "label",
+        "raw_type": "VARCHAR(191)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:538 (table definition); plugin/current/includes/class-sn-migration-service.php:556 (add_column_if_missing)"
+      },
+      {
+        "name": "description",
+        "raw_type": "TEXT",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:539 (table definition); plugin/current/includes/class-sn-migration-service.php:557 (add_column_if_missing)"
+      },
+      {
+        "name": "is_active",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:540 (table definition); plugin/current/includes/class-sn-migration-service.php:558 (add_column_if_missing)"
+      },
+      {
+        "name": "sort_order",
+        "raw_type": "INT",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:541 (table definition); plugin/current/includes/class-sn-migration-service.php:559 (add_column_if_missing)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:542 (table definition); plugin/current/includes/class-sn-migration-service.php:560 (add_column_if_missing)"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:543 (table definition); plugin/current/includes/class-sn-migration-service.php:561 (add_column_if_missing)"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_hr_unit_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "515-575",
+        "note": "create_hr_structure_tables: sn_hr_units (parent department_id)"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "legacy.wp_user.v1",
+    "entity": "wp_user",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "users",
+    "columns": [
+      {
+        "name": "ID",
+        "raw_type": "UNKNOWN (WordPress core table; DDL not in plugin/current)",
+        "nullability": "UNKNOWN",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-hr-transfer.php:263; plugin/current/includes/class-sn-plugin.php:9563 (u.ID joins)"
+      },
+      {
+        "name": "user_login",
+        "raw_type": "UNKNOWN (WordPress core table; DDL not in plugin/current)",
+        "nullability": "UNKNOWN",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-hr-transfer.php:263; plugin/current/includes/class-sn-plugin.php:9563 (SELECT u.user_login, u.user_email ... JOIN users)",
+        "note": "may hold a phone number for customer accounts; preserved raw, never an identity key"
+      },
+      {
+        "name": "user_email",
+        "raw_type": "UNKNOWN (WordPress core table; DDL not in plugin/current)",
+        "nullability": "UNKNOWN",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-hr-transfer.php:263; plugin/current/includes/class-sn-plugin.php:9563 (SELECT u.user_login, u.user_email ... JOIN users)"
+      },
+      {
+        "name": "display_name",
+        "raw_type": "UNKNOWN (WordPress core table; DDL not in plugin/current)",
+        "nullability": "UNKNOWN",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:9563; plugin/current/includes/class-sn-plugin.php:1044 (u.display_name)"
+      },
+      {
+        "name": "user_registered",
+        "raw_type": "UNKNOWN (WordPress core table; DDL not in plugin/current)",
+        "nullability": "UNKNOWN",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:29995, :35518 ($user->user_registered)"
+      }
+    ],
+    "key_columns": [
+      "ID"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_wp_user_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-hr-transfer.php",
+        "lines": "263",
+        "note": "SELECT ... u.user_login, u.user_email ... FROM users"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "9563, 29995, 35518",
+        "note": "u.ID, u.display_name, u.user_login, u.user_email, user_registered"
+      }
+    ],
+    "notes": [
+      "WordPress core table; only the columns the 2.0.160 plugin references are extracted",
+      "user_pass and every other credential/core column are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.wp_usermeta.v1",
+    "entity": "wp_usermeta",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "usermeta",
+    "columns": [
+      {
+        "name": "umeta_id",
+        "raw_type": "UNKNOWN (WordPress core table; DDL not in plugin/current)",
+        "nullability": "UNKNOWN",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-hr-transfer.php:402-404 (umeta_id, user_id, meta_key, meta_value)"
+      },
+      {
+        "name": "user_id",
+        "raw_type": "UNKNOWN (WordPress core table; DDL not in plugin/current)",
+        "nullability": "UNKNOWN",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-hr-transfer.php:402-404 (umeta_id, user_id, meta_key, meta_value)"
+      },
+      {
+        "name": "meta_key",
+        "raw_type": "UNKNOWN (WordPress core table; DDL not in plugin/current)",
+        "nullability": "UNKNOWN",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-hr-transfer.php:402-404 (umeta_id, user_id, meta_key, meta_value)"
+      },
+      {
+        "name": "meta_value",
+        "raw_type": "UNKNOWN (WordPress core table; DDL not in plugin/current)",
+        "nullability": "UNKNOWN",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-hr-transfer.php:402-404 (umeta_id, user_id, meta_key, meta_value)",
+        "note": "raw serialized/meta text preserved exactly; may contain names, phones, role maps or other unverified content; never parsed in staging"
+      }
+    ],
+    "key_columns": [
+      "umeta_id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_wp_usermeta_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-hr-transfer.php",
+        "lines": "402-404",
+        "note": "MAX(umeta_id) ... WHERE user_id ... AND meta_key=..., meta_value"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "1512, 12955, 17718",
+        "note": "user_id / meta_key / meta_value reads"
+      }
+    ],
+    "notes": [
+      "WordPress core table; row scope and any meta_key exclusion are an owner decision (D-23 / TAD (E0) #18); v1 defines no filter"
+    ]
+  }
+]
