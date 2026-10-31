@@ -6,6 +6,12 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases"
+	casesimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/imports"
+	casesquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/query"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody"
+	custodyimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/imports"
+	custodyquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers"
 	customersimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/imports"
 	customersquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/query"
@@ -42,6 +48,15 @@ type shadowResult struct {
 	Problem    string             `json:"problem,omitempty"`
 }
 
+// worst returns the less successful of two outcomes (never hides a failure).
+func worst(a, b result.Status) result.Status {
+	rank := map[result.Status]int{result.Success: 0, result.Partial: 1, result.Unknown: 2, result.Conflict: 3, result.Blocked: 4, result.Failed: 5}
+	if rank[b] > rank[a] {
+		return b
+	}
+	return a
+}
+
 func nonNil(m map[string]int64) map[string]int64 {
 	if m == nil {
 		return map[string]int64{}
@@ -72,6 +87,15 @@ func shadowDSNs(cmd string, getenv func(string) string) (map[owner.Module]string
 	case "import-customers", "reconcile-customers":
 		// Slice 5 touches staging (read) and customers only.
 		need[customers.Module] = EnvCustomersURL
+	case "import-sales":
+		// Slice 6: staging (read), identity (read: user references),
+		// cases then custody — each in its own module transaction.
+		need[identity.Module] = EnvIdentityURL
+		need[cases.Module] = EnvCasesURL
+		need[custody.Module] = EnvCustodyURL
+	case "reconcile-sales":
+		need[cases.Module] = EnvCasesURL
+		need[custody.Module] = EnvCustodyURL
 	case "import-identity":
 		need[identity.Module] = EnvIdentityURL
 	default:
@@ -146,6 +170,58 @@ func runShadow(ctx context.Context, cmd, snapshotID string, reg *spec.Registry, 
 			out.Reasons = []reasoncodes.Code{reasoncodes.CoverageIncomplete}
 		}
 		return emit(stdout, stderr, out, out.Outcome == result.Success)
+	case "import-sales":
+		users, err := identityquery.New(runners[identity.Module]).ResolveUsers(ctx, shadow.SourceSystem, shadow.UserKeys(b))
+		if err != nil {
+			fmt.Fprintln(stderr, "crm-legacy-import:", err)
+			return 1
+		}
+		casesQ := casesquery.New(runners[cases.Module])
+		// 1. cases (cases transaction only).
+		cin, cmap := shadow.CasesCommand(b, users)
+		crep, err := casesimports.New(runners[cases.Module], clk).ImportCases(ctx, cin)
+		if err != nil {
+			out.Outcome, out.Counts = crep.Outcome, nonNil(crep.Counts)
+			fmt.Fprintln(stderr, "crm-legacy-import: cases:", err)
+			emit(stdout, stderr, out, false)
+			return 1
+		}
+		// 2. custody resolves Cases through the published cases API and
+		//    writes its own schema (custody transaction only).
+		sin, smap := shadow.CustodyCommand(b, users)
+		srep, err := custodyimports.New(runners[custody.Module], casesQ, clk).ImportCustody(ctx, sin)
+		out.Mapping = map[string]int64{}
+		for k, v := range cmap {
+			out.Mapping["cases."+k] = v
+		}
+		for k, v := range smap {
+			out.Mapping["custody."+k] = v
+		}
+		out.Counts = map[string]int64{}
+		for k, v := range crep.Counts {
+			out.Counts["cases."+k] = v
+		}
+		for k, v := range srep.Counts {
+			out.Counts["custody."+k] = v
+		}
+		out.Replay, out.RunID = crep.Replay && srep.Replay, crep.RunID
+		out.Outcome = worst(crep.Outcome, srep.Outcome)
+		if err != nil {
+			fmt.Fprintln(stderr, "crm-legacy-import: custody:", err)
+			emit(stdout, stderr, out, false)
+			return 1
+		}
+		if out.Outcome != result.Success && len(out.Reasons) == 0 {
+			out.Reasons = []reasoncodes.Code{reasoncodes.CoverageIncomplete}
+		}
+		return emit(stdout, stderr, out, out.Outcome == result.Success)
+	case "reconcile-sales":
+		rep, err := shadow.ReconcileSales(ctx, b, casesquery.New(runners[cases.Module]), custodyquery.New(runners[custody.Module]))
+		if err != nil {
+			fmt.Fprintln(stderr, "crm-legacy-import:", err)
+			return 1
+		}
+		return emit(stdout, stderr, rep, rep.Outcome == result.Success)
 	case "reconcile-customers":
 		rep, err := shadow.ReconcileCustomers(ctx, b, customersquery.New(runners[customers.Module]))
 		if err != nil {

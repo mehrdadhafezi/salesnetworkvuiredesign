@@ -284,7 +284,7 @@ func TestReadAPIEndToEnd(t *testing.T) {
 
 	// Effective access: the same evaluator.
 	ea := get(t, h, "/api/v1/authorization/effective-access", "dev-user-001")
-	if strings.Count(ea.body, `"allowed":true`) != 9 || !strings.Contains(ea.body, `"matched_roles":["hr"]`) ||
+	if strings.Count(ea.body, `"allowed":true`) != 12 || !strings.Contains(ea.body, `"matched_roles":["hr"]`) ||
 		!strings.Contains(ea.body, `"capability":"customers.customer.read","matched_roles":["synthetic_dev_stub"]`) {
 		t.Fatalf("effective access: %s", ea.body)
 	}

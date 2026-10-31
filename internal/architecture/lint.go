@@ -58,6 +58,19 @@
 //     (ResolveMerge, MergeCustomers, ApplyMerge, CanonicalizeByPhone, ...).
 //     Slice 5 is read/shadow only and D-30 (merge policy) is open.
 //
+// Slice 6 rules (sales read shadow; FPR append-only, INV-004, INV-029):
+//
+//   - module-boundary also covers cases and custody: custody reaches cases
+//     only through cases/api; cases never imports custody; neither imports
+//     organization at all (historical attribution never consults the
+//     current hierarchy); their http adapters may use identity/api (the
+//     capability vocabulary) and the authorization evaluator.
+//   - foreign-schema-write covers the cases and custody schemas.
+//   - append-only-write: no SQL literal anywhere UPDATEs or DELETEs a
+//     custody event, a case state history row or an attribution snapshot.
+//   - phone-key: no string literal in internal/cases or internal/custody
+//     mentions a phone (phone is never a Case or customer key or join).
+//
 // Test files are composition roots for module-boundary (as cmd/ is); every
 // other rule applies to them as before.
 package architecture
@@ -106,26 +119,37 @@ const (
 	RuleForeignWrite     = "foreign-schema-write"
 	RuleReadPathImport   = "read-path-import"
 	RuleMergePath        = "merge-path"
+	RuleAppendOnlyWrite  = "append-only-write"
+	RulePhoneKey         = "phone-key"
 )
+
+// appendOnlyWrite matches SQL that would mutate an append-only table.
+var appendOnlyWrite = regexp.MustCompile(`(?i)\b(update|delete\s+from)\s+(custody\.custody_event|cases\.case_state_history|cases\.attribution_snapshot)\b`)
+
+// phoneLiteral matches a phone reference in cases/custody string literals.
+var phoneLiteral = regexp.MustCompile(`(?i)phone`)
 
 // mergePath matches identifiers of forbidden merge / canonicalisation
 // operations (Slice 5; D-30 open). Matching is case-insensitive.
 var mergePath = regexp.MustCompile(`(?i)^(resolvemerge|mergecustomers?|applymerge|canonicali[sz]ebyphone|canonicali[sz]ecustomers?|selectcanonical|pickwinner|mergebyphone|collapsecandidates?|reassigncustomer)`)
 
 // slice4Modules are the business modules of Slice 4.
-var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true, "customers": true}
+var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true, "customers": true,
+	"cases": true, "custody": true}
 
 // schemaOwners maps a module schema to the only tree allowed to write it.
 var schemaOwners = map[string]string{
 	"identity":              "internal/identity",
 	"organization":          "internal/organization",
 	"customers":             "internal/customers",
+	"cases":                 "internal/cases",
+	"custody":               "internal/custody",
 	"integration":           "internal/integration",
 	"audit":                 "internal/platform/audit",
 	"platform_featureflags": "internal/platform/featureflags",
 }
 
-var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|integration|audit|platform_featureflags)\.`)
+var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|integration|audit|platform_featureflags)\.`)
 
 // readPathDirs never import an import command.
 var readPathDirs = []string{"internal/platform/apiserver", "cmd/crm-api"}
@@ -145,6 +169,10 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 		return false
 	case top == "customers" && other == "identity":
 		return rest == "api" && under(rel, "internal/customers/http")
+	case (top == "cases" || top == "custody") && other == "identity":
+		return rest == "api" && under(rel, "internal/"+top+"/http")
+	case top == "custody" && other == "cases":
+		return rest == "api"
 	case other == "authorization" && (rest == "" || rest == "http"):
 		return under(rel, "internal/"+top+"/http")
 	case top == "authorization" || top == "organization" && other == "identity":
@@ -330,6 +358,16 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			if x.Kind == token.STRING && !isTest && !ddlAllowed(rel) {
 				if s, err := strconv.Unquote(x.Value); err == nil && runtimeDDL.MatchString(s) {
 					add(RuleRuntimeDDL, x.Pos(), "schema-mutating SQL outside migrations: "+runtimeDDL.FindString(s))
+				}
+			}
+			if x.Kind == token.STRING && !under(rel, architectureDir) {
+				if s, err := strconv.Unquote(x.Value); err == nil {
+					if m := appendOnlyWrite.FindString(s); m != "" && !isTest {
+						add(RuleAppendOnlyWrite, x.Pos(), "mutates an append-only table: "+m)
+					}
+					if !isTest && (under(rel, "internal/cases") || under(rel, "internal/custody")) && phoneLiteral.MatchString(s) {
+						add(RulePhoneKey, x.Pos(), "phone in a cases/custody literal; phone is never a Case key or join")
+					}
 				}
 			}
 			if x.Kind == token.STRING && !isTest && !under(rel, architectureDir) {

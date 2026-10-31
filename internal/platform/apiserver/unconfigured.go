@@ -27,7 +27,8 @@ func (unconfigured) GetEffectiveAccess(ctx context.Context, _ oapi.GetEffectiveA
 	data := oapi.EffectiveAccess{Decisions: []oapi.AccessDecision{}}
 	reason := oapi.ReasonCode(reasoncodes.FeatureDisabled)
 	for _, c := range []oapi.Capability{oapi.IdentityUserRead, oapi.OrgPersonRead, oapi.OrgEmploymentRead, oapi.OrgPositionRead, oapi.OrgUnitRead,
-		oapi.OrgAssignmentRead, oapi.CustomersCustomerRead, oapi.CustomersMergeCaseRead, oapi.CustomersIdentityReportRead} {
+		oapi.OrgAssignmentRead, oapi.CustomersCustomerRead, oapi.CustomersMergeCaseRead, oapi.CustomersIdentityReportRead,
+		oapi.CasesCaseRead, oapi.CustodyCustodyRead, oapi.SalesReportRead} {
 		data.Decisions = append(data.Decisions, oapi.AccessDecision{Capability: c, Outcome: oapi.Outcome(result.Blocked.String()),
 			ReasonCode: &reason, Scope: oapi.AccessDecisionScopeNONE, MatchedRoles: []string{}})
 	}
@@ -121,4 +122,52 @@ func (unconfiguredCustomers) GetMergeCase(ctx context.Context, _ oapi.GetMergeCa
 func (unconfiguredCustomers) GetCustomerResolutionReport(ctx context.Context, _ oapi.GetCustomerResolutionReportRequestObject) (oapi.GetCustomerResolutionReportResponseObject, error) {
 	o, r, c := blocked(ctx)
 	return oapi.GetCustomerResolutionReport200JSONResponse{Body: oapi.ResolutionReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+// unconfiguredSales is the Slice 6 surface without the cases/custody
+// modules: every operation is BLOCKED / FEATURE_DISABLED.
+type unconfiguredSales struct{}
+
+var _ SalesAPI = unconfiguredSales{}
+
+func (unconfiguredSales) SalesEnabled(context.Context) bool { return false }
+
+func (unconfiguredSales) ListCases(ctx context.Context, _ oapi.ListCasesRequestObject) (oapi.ListCasesResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCases200JSONResponse{Body: oapi.CaseListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredSales) GetCase(ctx context.Context, _ oapi.GetCaseRequestObject) (oapi.GetCaseResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCase200JSONResponse{Body: oapi.CaseEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredSales) ListCaseHistory(ctx context.Context, _ oapi.ListCaseHistoryRequestObject) (oapi.ListCaseHistoryResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCaseHistory200JSONResponse{Body: oapi.StateHistoryListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredSales) ListCaseAttribution(ctx context.Context, _ oapi.ListCaseAttributionRequestObject) (oapi.ListCaseAttributionResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCaseAttribution200JSONResponse{Body: oapi.AttributionListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredSales) ListCustodyAssignments(ctx context.Context, _ oapi.ListCustodyAssignmentsRequestObject) (oapi.ListCustodyAssignmentsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCustodyAssignments200JSONResponse{Body: oapi.CustodyAssignmentListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredSales) GetCaseCustody(ctx context.Context, _ oapi.GetCaseCustodyRequestObject) (oapi.GetCaseCustodyResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCaseCustody200JSONResponse{Body: oapi.CaseCustodyEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredSales) GetSalesCoverageReport(ctx context.Context, _ oapi.GetSalesCoverageReportRequestObject) (oapi.GetSalesCoverageReportResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetSalesCoverageReport200JSONResponse{Body: oapi.SalesCoverageReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredSales) GetCustodyParityReport(ctx context.Context, _ oapi.GetCustodyParityReportRequestObject) (oapi.GetCustodyParityReportResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCustodyParityReport200JSONResponse{Body: oapi.CustodyParityReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
 }

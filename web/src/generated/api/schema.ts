@@ -427,6 +427,174 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List shadow cases
+         * @description Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one shadow case
+         * @description Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCase"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cases/{case_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a case's append-only state history
+         * @description Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCaseHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cases/{case_id}/attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a case's immutable attribution snapshots
+         * @description Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCaseAttribution"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/custody/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List derived custody projections
+         * @description Requires custody.custody.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCustodyAssignments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/custody/cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the custody record of one case
+         * @description Requires custody.custody.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCaseCustody"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/coverage-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sales read source coverage report (F02/F03 honest labels)
+         * @description Requires sales.report.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getSalesCoverageReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/custody-parity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Custody current-holder parity report
+         * @description Requires sales.report.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCustodyParityReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -571,6 +739,8 @@ export interface components {
                 hr_read: boolean;
                 /** @description Slice 5 customer identity shadow read (flag customers.identity_shadow_read). */
                 customers_identity: boolean;
+                /** @description Slice 6 sales read shadow (flag sales.read_shadow). */
+                sales_read: boolean;
             };
         };
         SessionEnvelope: {
@@ -855,7 +1025,7 @@ export interface components {
          * @description Slice 4 read capability vocabulary (<module>.<object>.<action>).
          * @enum {string}
          */
-        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read";
+        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read";
         AccessDecision: {
             capability: components["schemas"]["Capability"];
             allowed: boolean;
@@ -1046,6 +1216,297 @@ export interface components {
             data?: components["schemas"]["ResolutionReport"];
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
+        /**
+         * @description Source work unit a Case stands for (one staged legacy row each).
+         * @enum {string}
+         */
+        WorkflowType: "LEGACY_LEAD" | "DISTRIBUTION_ITEM";
+        /**
+         * @description KNOWN = raw value is in the explicit verified mapping of its namespace; UNKNOWN = raw kept, nothing defaulted.
+         * @enum {string}
+         */
+        StateMapping: "KNOWN" | "UNKNOWN";
+        CaseSource: {
+            source_system: string;
+            source_spec: string;
+            source_key: components["schemas"]["LegacyKey"];
+            channel_raw: components["schemas"]["RawText"];
+            origin_ref_raw: components["schemas"]["RawText"];
+            first_batch_id: components["schemas"]["NativeID"];
+            last_batch_id: components["schemas"]["NativeID"];
+            presence: components["schemas"]["Presence"];
+            first_seen_at: components["schemas"]["Timestamp"];
+            last_seen_at: components["schemas"]["Timestamp"];
+        };
+        CaseSummary: {
+            case_id: components["schemas"]["NativeID"];
+            workflow_type: components["schemas"]["WorkflowType"];
+            state_namespace: string;
+            state_raw: components["schemas"]["RawText"];
+            state_mapping: components["schemas"]["StateMapping"];
+            /** Format: uuid */
+            customer_id: string | null;
+            customer_link_state: components["schemas"]["ResolutionState"];
+            customer_link_reason: string;
+            presence: components["schemas"]["Presence"];
+            source: components["schemas"]["CaseSource"];
+            /** Format: int64 */
+            alias_count: number;
+            /** Format: int64 */
+            history_count: number;
+            imported_at: components["schemas"]["Timestamp"];
+            refreshed_at: components["schemas"]["Timestamp"];
+        };
+        CaseListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["CaseSummary"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Raw legacy lead facts (the Legacy Leads Only grain). No phone or name. */
+        LeadFacts: {
+            status_raw: components["schemas"]["RawText"];
+            lead_status_raw: components["schemas"]["RawText"];
+            destination_panel_raw: components["schemas"]["RawText"];
+            imported_at_raw: components["schemas"]["RawText"];
+            assigned_at_raw: components["schemas"]["RawText"];
+            updated_at_raw: components["schemas"]["RawText"];
+            presence: components["schemas"]["Presence"];
+        };
+        /** @description An explicit native link between representations. Never a merge; continuation vs related-distinct is OPD-01. */
+        CaseAlias: {
+            alias_id: components["schemas"]["NativeID"];
+            case_id: components["schemas"]["NativeID"];
+            /** Format: uuid */
+            related_case_id: string | null;
+            related_source_spec: string;
+            related_source_key: components["schemas"]["LegacyKey"];
+            /** @enum {string} */
+            relation: "CONVERSION_LINK";
+            resolution: components["schemas"]["ResolutionState"];
+            basis: string;
+            presence: components["schemas"]["Presence"];
+            recorded_at: components["schemas"]["Timestamp"];
+        };
+        CaseDetail: {
+            case: components["schemas"]["CaseSummary"];
+            lead?: components["schemas"]["LeadFacts"];
+            aliases: components["schemas"]["CaseAlias"][];
+        };
+        CaseEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["CaseDetail"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description A legacy user reference and, when the identity module resolved it, the target user id (absent object = no reference). */
+        UserRef: {
+            legacy_key: components["schemas"]["LegacyKey"];
+            /** Format: uuid */
+            user_id: string | null;
+        };
+        StateHistoryEntry: {
+            history_id: components["schemas"]["NativeID"];
+            source_spec: string;
+            source_key: components["schemas"]["LegacyKey"];
+            old_state_raw: components["schemas"]["RawText"];
+            new_state_raw: components["schemas"]["RawText"];
+            actor?: components["schemas"]["UserRef"];
+            occurred_raw: components["schemas"]["RawText"];
+            recorded_at: components["schemas"]["Timestamp"];
+        };
+        StateHistoryListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["StateHistoryEntry"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description Attribution facet (GATE-0 §4, Architecture V1 §7). Never collapsed with Current Custody or Next Actor.
+         * @enum {string}
+         */
+        Facet: "ORIGINAL_OWNER" | "ORIGINAL_SELLER" | "CREDIT_OWNER";
+        /** @description Immutable. Frozen from stored evidence at import; never recomputed from the current hierarchy. */
+        AttributionSnapshot: {
+            snapshot_id: components["schemas"]["NativeID"];
+            facet: components["schemas"]["Facet"];
+            resolution: components["schemas"]["ResolutionState"];
+            subject?: components["schemas"]["UserRef"];
+            position_raw: components["schemas"]["RawText"];
+            basis: string;
+            source_time_raw: components["schemas"]["RawText"];
+            evidence_spec: string | null;
+            evidence_key: string | null;
+            captured_batch_id: components["schemas"]["NativeID"];
+            captured_at: components["schemas"]["Timestamp"];
+        };
+        AttributionListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["AttributionSnapshot"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description Legacy current-holder evidence vs the holder derived from custody events.
+         *     MATCH (both agree, history consistent), TARGET_UNKNOWN (events cannot establish a holder),
+         *     LEGACY_UNKNOWN (legacy names none), CONFLICT (they differ), MULTIPLE_CURRENT (contradictory
+         *     equally-ordered holders), HISTORY_GAP (holder agrees but history has gaps), NOT_RECOVERABLE
+         *     (no evidence on either side).
+         * @enum {string}
+         */
+        Parity: "MATCH" | "TARGET_UNKNOWN" | "LEGACY_UNKNOWN" | "CONFLICT" | "MULTIPLE_CURRENT" | "HISTORY_GAP" | "NOT_RECOVERABLE";
+        /** @enum {string} */
+        Derivation: "DERIVED" | "RELEASED" | "UNKNOWN" | "MULTIPLE" | "NONE";
+        /** @description Derived, reconcilable custody projection next to the legacy current-holder evidence. */
+        CustodyAssignment: {
+            case_id: components["schemas"]["NativeID"];
+            derivation: components["schemas"]["Derivation"];
+            derived_holder?: components["schemas"]["UserRef"];
+            derived_position_raw: components["schemas"]["RawText"];
+            legacy_holder?: components["schemas"]["UserRef"];
+            legacy_position_raw: components["schemas"]["RawText"];
+            legacy_source_spec: string;
+            parity: components["schemas"]["Parity"];
+            event_count: number;
+            /** Format: int64 */
+            finding_count: number;
+            presence: components["schemas"]["Presence"];
+            refreshed_at: components["schemas"]["Timestamp"];
+        };
+        CustodyAssignmentListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["CustodyAssignment"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description Evidence-backed classification of a legacy action; UNKNOWN keeps the raw action.
+         * @enum {string}
+         */
+        EventKind: "HOLDER_ASSIGNED" | "HOLDER_RELEASED" | "NO_HOLDER_CHANGE" | "UNKNOWN";
+        /** @enum {string} */
+        EventContext: "DISTRIBUTION" | "MIS" | "PAYMENT_WORKFLOW" | "REFERRAL" | "CONVERSION" | "SELLER_UPDATE" | "UNKNOWN";
+        /** @description Append-only. The legacy action is shown raw next to its evidence-backed kind. */
+        CustodyEvent: {
+            event_id: components["schemas"]["NativeID"];
+            source_spec: string;
+            source_key: components["schemas"]["LegacyKey"];
+            legacy_action: string;
+            kind: components["schemas"]["EventKind"];
+            context: components["schemas"]["EventContext"];
+            actor?: components["schemas"]["UserRef"];
+            from?: components["schemas"]["UserRef"];
+            to?: components["schemas"]["UserRef"];
+            from_position_raw: components["schemas"]["RawText"];
+            to_position_raw: components["schemas"]["RawText"];
+            occurred_raw: components["schemas"]["RawText"];
+            recorded_at: components["schemas"]["Timestamp"];
+        };
+        /** @enum {string} */
+        CustodyFindingKind: "MISSING_PRIOR_OWNER" | "MISSING_TARGET_OWNER" | "HISTORY_GAP" | "MULTIPLE_CURRENT" | "ORDERING_CONTRADICTION" | "MISSING_EVENT_HISTORY" | "SOURCE_CURRENT_MISMATCH" | "UNKNOWN_ACTION";
+        CustodyFinding: {
+            finding_id: components["schemas"]["NativeID"];
+            kind: components["schemas"]["CustodyFindingKind"];
+            detail: string;
+            /** Format: uuid */
+            event_id: string | null;
+            presence: components["schemas"]["Presence"];
+            recorded_at: components["schemas"]["Timestamp"];
+        };
+        CaseCustody: {
+            assignment: components["schemas"]["CustodyAssignment"];
+            events: components["schemas"]["CustodyEvent"][];
+            findings: components["schemas"]["CustodyFinding"][];
+        };
+        CaseCustodyEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["CaseCustody"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        CountMap: {
+            [key: string]: number;
+        };
+        /** @description A metric with its exact label, definition, authority and evaluation state. A null count is not zero. */
+        HonestMetric: {
+            /** @enum {string} */
+            code: "F02" | "F03";
+            label: string;
+            /** @enum {string} */
+            status: "EVALUATED" | "PARTIAL" | "NOT_EVALUATED";
+            /** Format: int64 */
+            count: number | null;
+            definition: string;
+            authority: string;
+            coverage: string;
+            reason: string;
+        };
+        SalesCoverageReport: {
+            /** Format: int64 */
+            cases_total: number;
+            /** Format: int64 */
+            cases_present: number;
+            cases_by_source_spec: components["schemas"]["CountMap"];
+            cases_by_workflow_type: components["schemas"]["CountMap"];
+            /** Format: int64 */
+            cases_with_unknown_state_mapping: number;
+            /** Format: int64 */
+            sourceless_cases: number;
+            aliases_by_resolution: components["schemas"]["CountMap"];
+            /** Format: int64 */
+            status_history_rows: number;
+            /** Format: int64 */
+            cases_with_status_history: number;
+            attribution_by_facet_and_resolution: {
+                [key: string]: components["schemas"]["CountMap"];
+            };
+            customer_link_states: components["schemas"]["CountMap"];
+            legacy_leads_only: components["schemas"]["HonestMetric"];
+            total_cases: components["schemas"]["HonestMetric"];
+            f02: components["schemas"]["HonestMetric"];
+            source_coverage: {
+                [key: string]: string;
+            };
+        };
+        SalesCoverageReportEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["SalesCoverageReport"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        CustodyParityReport: {
+            /** Format: int64 */
+            assignments_present: number;
+            current_holder_parity: components["schemas"]["CountMap"];
+            derivation_states: components["schemas"]["CountMap"];
+            findings_by_kind: components["schemas"]["CountMap"];
+            /** Format: int64 */
+            custody_events: number;
+            custody_events_by_kind: components["schemas"]["CountMap"];
+            /** Format: int64 */
+            cases_with_custody_events: number;
+            unknown_legacy_actions: components["schemas"]["CountMap"];
+            /** @description True only when every present projection is MATCH; never claimed on empty or partial evidence. */
+            full_parity: boolean;
+            notes: string[];
+        };
+        CustodyParityReportEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["CustodyParityReport"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
     };
     responses: {
         /** @description RFC 9457 problem details (transport, contract or server error). */
@@ -1117,6 +1578,12 @@ export interface components {
         EvidenceStrength: components["schemas"]["Strength"];
         CaseReason: components["schemas"]["CaseReason"];
         CustomerID: components["schemas"]["NativeID"];
+        WorkflowType: components["schemas"]["WorkflowType"];
+        StateMapping: components["schemas"]["StateMapping"];
+        CustomerLinkState: components["schemas"]["ResolutionState"];
+        CaseID: components["schemas"]["NativeID"];
+        Parity: components["schemas"]["Parity"];
+        Derivation: components["schemas"]["Derivation"];
     };
     requestBodies: never;
     headers: {
@@ -1700,6 +2167,229 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResolutionReportEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCases: {
+        parameters: {
+            query?: {
+                workflow_type?: components["parameters"]["WorkflowType"];
+                state_mapping?: components["parameters"]["StateMapping"];
+                customer_link_state?: components["parameters"]["CustomerLinkState"];
+                presence?: components["parameters"]["Presence"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: components["parameters"]["CaseID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCaseHistory: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                case_id: components["parameters"]["CaseID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StateHistoryListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCaseAttribution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: components["parameters"]["CaseID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributionListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCustodyAssignments: {
+        parameters: {
+            query?: {
+                parity?: components["parameters"]["Parity"];
+                derivation?: components["parameters"]["Derivation"];
+                presence?: components["parameters"]["Presence"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustodyAssignmentListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCaseCustody: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: components["parameters"]["CaseID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseCustodyEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getSalesCoverageReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesCoverageReportEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCustodyParityReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustodyParityReportEnvelope"];
                 };
             };
             400: components["responses"]["Problem"];

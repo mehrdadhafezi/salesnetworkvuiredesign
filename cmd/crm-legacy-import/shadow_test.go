@@ -5,6 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases"
+	casesmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/migrations"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody"
+	custodymigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers"
 	customersmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity"
@@ -115,6 +119,44 @@ func TestCustomerCommandsAgainstDisposablePostgres(t *testing.T) {
 		}
 	}
 	if code, out, _ := call(t, env(vars), "import-customers", "synthetic-cust-0001"); !strings.Contains(out, `"replay": true`) {
+		t.Fatalf("replay: %d %s", code, out)
+	}
+}
+
+// Slice 6: staging, identity (read), cases then custody; reconcile is honest.
+func TestSalesCommandsAgainstDisposablePostgres(t *testing.T) {
+	e := pgtest.New(t)
+	for _, src := range []migrations.Source{integrationmigrations.Source(), identitymigrations.Source(), organizationmigrations.Source(),
+		casesmigrations.Source(), custodymigrations.Source()} {
+		if _, err := migrations.Up(context.Background(), e.DSN, src); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if code, _, stderr := call(t, env(map[string]string{EnvStagingURL: e.LoginDSN(t, integration.Module)}), "import-sales", "synthetic-sales-cli-0001"); code != 2 ||
+		!strings.Contains(stderr, "is not set") {
+		t.Fatalf("missing DSNs: %d %q", code, stderr)
+	}
+	vars := map[string]string{
+		EnvStagingURL: e.LoginDSN(t, integration.Module), EnvIdentityURL: e.LoginDSN(t, identity.Module), EnvOrganizationURL: e.LoginDSN(t, organization.Module),
+		EnvCasesURL: e.LoginDSN(t, cases.Module), EnvCustodyURL: e.LoginDSN(t, custody.Module),
+	}
+	dir := legacytest.Write(t, "synthetic-sales-cli-0001", t0, append(legacytest.HRScenario(), legacytest.SalesScenario(snapshot.Complete)...))
+	if code, out, stderr := call(t, env(vars), "load", dir); code != 0 && code != 3 {
+		t.Fatalf("load: %d %s %s", code, out, stderr)
+	}
+	call(t, env(vars), "import-identity", "synthetic-sales-cli-0001")
+	code, out, stderr := call(t, env(vars), "import-sales", "synthetic-sales-cli-0001")
+	if code != 0 || !strings.Contains(out, `"cases.cases_inserted": 6`) || !strings.Contains(out, `"custody.events_appended": 8`) ||
+		!strings.Contains(out, `"custody.log_actions_unknown": 1`) {
+		t.Fatalf("import-sales: %d %s %s", code, out, stderr)
+	}
+	code, out, _ = call(t, env(vars), "reconcile-sales", "synthetic-sales-cli-0001")
+	// Imperfect parity (one CONFLICT, unknowns) is PARTIAL: non-zero exit.
+	if code == 0 || !strings.Contains(out, `"outcome": "PARTIAL"`) || !strings.Contains(out, `"full_parity": false`) ||
+		!strings.Contains(out, `"no_resolved_alias": true`) || !strings.Contains(out, `"cases_matched_to_batch": 6`) {
+		t.Fatalf("reconcile-sales: %d %s", code, out)
+	}
+	if code, out, _ := call(t, env(vars), "import-sales", "synthetic-sales-cli-0001"); code != 0 || !strings.Contains(out, `"replay": true`) {
 		t.Fatalf("replay: %d %s", code, out)
 	}
 }

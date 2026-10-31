@@ -1,0 +1,434 @@
+[
+  {
+    "id": "legacy.distribution_item.v1",
+    "entity": "distribution_item",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_distribution_items",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:964 (table definition)"
+      },
+      {
+        "name": "source_type",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:965 (table definition)",
+        "note": "raw source kind (default 'mis_pool')"
+      },
+      {
+        "name": "source_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:966 (table definition)",
+        "note": "raw source row reference; (source_type, source_id) UNIQUE at :992"
+      },
+      {
+        "name": "batch_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:967 (table definition)"
+      },
+      {
+        "name": "current_owner_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:969 (table definition)",
+        "note": "legacy current holder of record; also used for payment-workflow routing (class-sn-plugin.php:28687)"
+      },
+      {
+        "name": "current_owner_position",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:970 (table definition)",
+        "note": "raw position slug of the holder of record"
+      },
+      {
+        "name": "current_step_order",
+        "raw_type": "INT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:971 (table definition)"
+      },
+      {
+        "name": "final_seller_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:972 (table definition)",
+        "note": "legacy seller reference; not proven to be the original seller"
+      },
+      {
+        "name": "live_lead_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:973 (table definition)",
+        "note": "sn_leads id written on conversion (class-sn-plugin.php:21209); explicit native link"
+      },
+      {
+        "name": "conversion_status",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:976 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:988 (table definition)",
+        "note": "raw legacy item status"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:989 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:990 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_distribution_item_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "962-1052",
+        "note": "table definition and ensured columns of sn_distribution_items"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "20828-20853, 21195-21218, 22462-22500, 28682-28694",
+        "note": "holder updates on delivery, conversion, return to MIS and payment routing"
+      }
+    ],
+    "notes": [
+      "work-item and holder columns only; seller_customer_name, seller_province/city, seller_contact_status, seller_notes, conversion_error and other free-text columns are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.distribution_item_log.v1",
+    "entity": "distribution_item_log",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_distribution_item_logs",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1056 (table definition)"
+      },
+      {
+        "name": "item_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1057 (table definition)"
+      },
+      {
+        "name": "action",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1058 (table definition)",
+        "note": "raw legacy action; mapped only by an explicit verified table, unknown values stay UNKNOWN"
+      },
+      {
+        "name": "actor_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1059 (table definition)",
+        "note": "legacy event actor"
+      },
+      {
+        "name": "from_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1060 (table definition)",
+        "note": "0 is written as NULL (class-sn-plugin.php:24017)"
+      },
+      {
+        "name": "to_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1061 (table definition)",
+        "note": "not always the new holder (e.g. conversion logs carry the final seller)"
+      },
+      {
+        "name": "from_position",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1062 (table definition)"
+      },
+      {
+        "name": "to_position",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1063 (table definition)"
+      },
+      {
+        "name": "step_order",
+        "raw_type": "INT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1064 (table definition)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1067 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_distribution_item_log_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "1054-1100",
+        "note": "table definition of sn_distribution_item_logs"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "24008-24020",
+        "note": "sn_distribution_log writer (append-only insert)"
+      }
+    ],
+    "notes": [
+      "append-only item log; note and payload_json are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.lead.v1",
+    "entity": "lead",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_leads",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:236 (table definition)"
+      },
+      {
+        "name": "marketing_form_id",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:240 (table definition); :530 (ADD COLUMN statement)",
+        "note": "raw source/channel evidence"
+      },
+      {
+        "name": "import_code",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:241 (table definition); :520 (ADD COLUMN statement)",
+        "note": "raw import provenance code"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:244 (table definition)",
+        "note": "raw legacy lead status; never defaulted or relabelled in staging"
+      },
+      {
+        "name": "lead_status",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:245 (table definition); :508 (ADD COLUMN statement)",
+        "note": "raw legacy contact/lead status value"
+      },
+      {
+        "name": "destination_panel",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:247 (table definition); :536 (ADD COLUMN statement)",
+        "note": "raw routing panel value"
+      },
+      {
+        "name": "seller_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:250 (table definition)",
+        "note": "legacy current seller holder (current state only; 2.0.160 keeps no lead assignment log)"
+      },
+      {
+        "name": "supervisor_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:251 (table definition); :517 (ADD COLUMN statement)",
+        "note": "legacy current supervisor reference (current state only)"
+      },
+      {
+        "name": "imported_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:252 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "assigned_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:253 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:254 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_lead_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "235-262",
+        "note": "table definition of sn_leads (UNIQUE KEY phone at :256 is legacy behaviour; never a target key)"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "505-540",
+        "note": "columns added on upgraded installs"
+      }
+    ],
+    "notes": [
+      "lead work-unit and current-holder columns only; phone, customer_name, national_id, note, province, city and sales_prediction are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.lead_status_history.v1",
+    "entity": "lead_status_history",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_lead_status_history",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:492 (table definition)"
+      },
+      {
+        "name": "lead_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:493 (table definition)"
+      },
+      {
+        "name": "user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:494 (table definition)",
+        "note": "legacy event actor reference"
+      },
+      {
+        "name": "old_status",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:495 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "new_status",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:496 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:498 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_lead_status_history_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "491-503",
+        "note": "table definition of sn_lead_status_history"
+      }
+    ],
+    "notes": [
+      "append-only legacy status history; the free-text note column is deliberately NOT extracted"
+    ]
+  }
+]

@@ -38,6 +38,8 @@ tags:
     description: Slice 4 read evaluator (server-authoritative effective access).
   - name: customers
     description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
+  - name: sales
+    description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
 paths:
   /health/live:
     get:
@@ -644,6 +646,237 @@ paths:
           $ref: '#/components/responses/Denied'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/cases:
+    get:
+      tags:
+        - sales
+      operationId: listCases
+      summary: List shadow cases
+      description: |
+        Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/WorkflowType'
+        - $ref: '#/components/parameters/StateMapping'
+        - $ref: '#/components/parameters/CustomerLinkState'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/cases/{case_id}:
+    get:
+      tags:
+        - sales
+      operationId: getCase
+      summary: Get one shadow case
+      description: |
+        Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CaseID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/cases/{case_id}/history:
+    get:
+      tags:
+        - sales
+      operationId: listCaseHistory
+      summary: List a case's append-only state history
+      description: |
+        Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CaseID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StateHistoryListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/cases/{case_id}/attribution:
+    get:
+      tags:
+        - sales
+      operationId: listCaseAttribution
+      summary: List a case's immutable attribution snapshots
+      description: |
+        Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CaseID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributionListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/custody/assignments:
+    get:
+      tags:
+        - sales
+      operationId: listCustodyAssignments
+      summary: List derived custody projections
+      description: |
+        Requires custody.custody.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Parity'
+        - $ref: '#/components/parameters/Derivation'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustodyAssignmentListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/custody/cases/{case_id}:
+    get:
+      tags:
+        - sales
+      operationId: getCaseCustody
+      summary: Get the custody record of one case
+      description: |
+        Requires custody.custody.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CaseID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseCustodyEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/sales/coverage-report:
+    get:
+      tags:
+        - sales
+      operationId: getSalesCoverageReport
+      summary: Sales read source coverage report (F02/F03 honest labels)
+      description: |
+        Requires sales.report.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesCoverageReportEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/sales/custody-parity:
+    get:
+      tags:
+        - sales
+      operationId: getCustodyParityReport
+      summary: Custody current-holder parity report
+      description: |
+        Requires sales.report.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustodyParityReportEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
 components:
   parameters:
     CorrelationID:
@@ -859,6 +1092,42 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/NativeID'
+    WorkflowType:
+      name: workflow_type
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/WorkflowType'
+    StateMapping:
+      name: state_mapping
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/StateMapping'
+    CustomerLinkState:
+      name: customer_link_state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ResolutionState'
+    CaseID:
+      name: case_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/NativeID'
+    Parity:
+      name: parity
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/Parity'
+    Derivation:
+      name: derivation
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/Derivation'
   headers:
     CorrelationID:
       description: Correlation id of this request (inbound value when valid, otherwise generated).
@@ -1212,6 +1481,7 @@ components:
           required:
             - hr_read
             - customers_identity
+            - sales_read
           additionalProperties: false
           properties:
             hr_read:
@@ -1219,6 +1489,9 @@ components:
             customers_identity:
               type: boolean
               description: Slice 5 customer identity shadow read (flag customers.identity_shadow_read).
+            sales_read:
+              type: boolean
+              description: Slice 6 sales read shadow (flag sales.read_shadow).
     SessionEnvelope:
       type: object
       required:
@@ -2001,6 +2274,9 @@ components:
         - customers.customer.read
         - customers.merge_case.read
         - customers.identity_report.read
+        - cases.case.read
+        - custody.custody.read
+        - sales.report.read
     AccessDecision:
       type: object
       required:
@@ -2568,5 +2844,789 @@ components:
           $ref: '#/components/schemas/CorrelationID'
         data:
           $ref: '#/components/schemas/ResolutionReport'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    WorkflowType:
+      type: string
+      description: Source work unit a Case stands for (one staged legacy row each).
+      enum:
+        - LEGACY_LEAD
+        - DISTRIBUTION_ITEM
+    StateMapping:
+      type: string
+      description: KNOWN = raw value is in the explicit verified mapping of its namespace; UNKNOWN = raw kept, nothing defaulted.
+      enum:
+        - KNOWN
+        - UNKNOWN
+    CaseSource:
+      type: object
+      required:
+        - source_system
+        - source_spec
+        - source_key
+        - channel_raw
+        - origin_ref_raw
+        - first_batch_id
+        - last_batch_id
+        - presence
+        - first_seen_at
+        - last_seen_at
+      additionalProperties: false
+      properties:
+        source_system:
+          type: string
+          maxLength: 16
+        source_spec:
+          type: string
+          maxLength: 120
+        source_key:
+          $ref: '#/components/schemas/LegacyKey'
+        channel_raw:
+          $ref: '#/components/schemas/RawText'
+        origin_ref_raw:
+          $ref: '#/components/schemas/RawText'
+        first_batch_id:
+          $ref: '#/components/schemas/NativeID'
+        last_batch_id:
+          $ref: '#/components/schemas/NativeID'
+        presence:
+          $ref: '#/components/schemas/Presence'
+        first_seen_at:
+          $ref: '#/components/schemas/Timestamp'
+        last_seen_at:
+          $ref: '#/components/schemas/Timestamp'
+    CaseSummary:
+      type: object
+      required:
+        - case_id
+        - workflow_type
+        - state_namespace
+        - state_raw
+        - state_mapping
+        - customer_id
+        - customer_link_state
+        - customer_link_reason
+        - presence
+        - source
+        - alias_count
+        - history_count
+        - imported_at
+        - refreshed_at
+      additionalProperties: false
+      properties:
+        case_id:
+          $ref: '#/components/schemas/NativeID'
+        workflow_type:
+          $ref: '#/components/schemas/WorkflowType'
+        state_namespace:
+          type: string
+          maxLength: 80
+        state_raw:
+          $ref: '#/components/schemas/RawText'
+        state_mapping:
+          $ref: '#/components/schemas/StateMapping'
+        customer_id:
+          type: string
+          format: uuid
+          nullable: true
+        customer_link_state:
+          $ref: '#/components/schemas/ResolutionState'
+        customer_link_reason:
+          type: string
+          maxLength: 300
+        presence:
+          $ref: '#/components/schemas/Presence'
+        source:
+          $ref: '#/components/schemas/CaseSource'
+        alias_count:
+          type: integer
+          format: int64
+          minimum: 0
+        history_count:
+          type: integer
+          format: int64
+          minimum: 0
+        imported_at:
+          $ref: '#/components/schemas/Timestamp'
+        refreshed_at:
+          $ref: '#/components/schemas/Timestamp'
+    CaseListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CaseSummary'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    LeadFacts:
+      type: object
+      description: Raw legacy lead facts (the Legacy Leads Only grain). No phone or name.
+      required:
+        - status_raw
+        - lead_status_raw
+        - destination_panel_raw
+        - imported_at_raw
+        - assigned_at_raw
+        - updated_at_raw
+        - presence
+      additionalProperties: false
+      properties:
+        status_raw:
+          $ref: '#/components/schemas/RawText'
+        lead_status_raw:
+          $ref: '#/components/schemas/RawText'
+        destination_panel_raw:
+          $ref: '#/components/schemas/RawText'
+        imported_at_raw:
+          $ref: '#/components/schemas/RawText'
+        assigned_at_raw:
+          $ref: '#/components/schemas/RawText'
+        updated_at_raw:
+          $ref: '#/components/schemas/RawText'
+        presence:
+          $ref: '#/components/schemas/Presence'
+    CaseAlias:
+      type: object
+      description: An explicit native link between representations. Never a merge; continuation vs related-distinct is OPD-01.
+      required:
+        - alias_id
+        - case_id
+        - related_case_id
+        - related_source_spec
+        - related_source_key
+        - relation
+        - resolution
+        - basis
+        - presence
+        - recorded_at
+      additionalProperties: false
+      properties:
+        alias_id:
+          $ref: '#/components/schemas/NativeID'
+        case_id:
+          $ref: '#/components/schemas/NativeID'
+        related_case_id:
+          type: string
+          format: uuid
+          nullable: true
+        related_source_spec:
+          type: string
+          maxLength: 120
+        related_source_key:
+          $ref: '#/components/schemas/LegacyKey'
+        relation:
+          type: string
+          enum:
+            - CONVERSION_LINK
+        resolution:
+          $ref: '#/components/schemas/ResolutionState'
+        basis:
+          type: string
+          maxLength: 300
+        presence:
+          $ref: '#/components/schemas/Presence'
+        recorded_at:
+          $ref: '#/components/schemas/Timestamp'
+    CaseDetail:
+      type: object
+      required:
+        - case
+        - aliases
+      additionalProperties: false
+      properties:
+        case:
+          $ref: '#/components/schemas/CaseSummary'
+        lead:
+          $ref: '#/components/schemas/LeadFacts'
+        aliases:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CaseAlias'
+    CaseEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/CaseDetail'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    UserRef:
+      type: object
+      description: A legacy user reference and, when the identity module resolved it, the target user id (absent object = no reference).
+      required:
+        - legacy_key
+        - user_id
+      additionalProperties: false
+      properties:
+        legacy_key:
+          $ref: '#/components/schemas/LegacyKey'
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+    StateHistoryEntry:
+      type: object
+      required:
+        - history_id
+        - source_spec
+        - source_key
+        - old_state_raw
+        - new_state_raw
+        - occurred_raw
+        - recorded_at
+      additionalProperties: false
+      properties:
+        history_id:
+          $ref: '#/components/schemas/NativeID'
+        source_spec:
+          type: string
+          maxLength: 120
+        source_key:
+          $ref: '#/components/schemas/LegacyKey'
+        old_state_raw:
+          $ref: '#/components/schemas/RawText'
+        new_state_raw:
+          $ref: '#/components/schemas/RawText'
+        actor:
+          $ref: '#/components/schemas/UserRef'
+        occurred_raw:
+          $ref: '#/components/schemas/RawText'
+        recorded_at:
+          $ref: '#/components/schemas/Timestamp'
+    StateHistoryListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/StateHistoryEntry'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    Facet:
+      type: string
+      description: Attribution facet (GATE-0 §4, Architecture V1 §7). Never collapsed with Current Custody or Next Actor.
+      enum:
+        - ORIGINAL_OWNER
+        - ORIGINAL_SELLER
+        - CREDIT_OWNER
+    AttributionSnapshot:
+      type: object
+      description: Immutable. Frozen from stored evidence at import; never recomputed from the current hierarchy.
+      required:
+        - snapshot_id
+        - facet
+        - resolution
+        - position_raw
+        - basis
+        - source_time_raw
+        - evidence_spec
+        - evidence_key
+        - captured_batch_id
+        - captured_at
+      additionalProperties: false
+      properties:
+        snapshot_id:
+          $ref: '#/components/schemas/NativeID'
+        facet:
+          $ref: '#/components/schemas/Facet'
+        resolution:
+          $ref: '#/components/schemas/ResolutionState'
+        subject:
+          $ref: '#/components/schemas/UserRef'
+        position_raw:
+          $ref: '#/components/schemas/RawText'
+        basis:
+          type: string
+          maxLength: 300
+        source_time_raw:
+          $ref: '#/components/schemas/RawText'
+        evidence_spec:
+          type: string
+          maxLength: 120
+          nullable: true
+        evidence_key:
+          type: string
+          maxLength: 20
+          nullable: true
+        captured_batch_id:
+          $ref: '#/components/schemas/NativeID'
+        captured_at:
+          $ref: '#/components/schemas/Timestamp'
+    AttributionListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/AttributionSnapshot'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    Parity:
+      type: string
+      description: |
+        Legacy current-holder evidence vs the holder derived from custody events.
+        MATCH (both agree, history consistent), TARGET_UNKNOWN (events cannot establish a holder),
+        LEGACY_UNKNOWN (legacy names none), CONFLICT (they differ), MULTIPLE_CURRENT (contradictory
+        equally-ordered holders), HISTORY_GAP (holder agrees but history has gaps), NOT_RECOVERABLE
+        (no evidence on either side).
+      enum:
+        - MATCH
+        - TARGET_UNKNOWN
+        - LEGACY_UNKNOWN
+        - CONFLICT
+        - MULTIPLE_CURRENT
+        - HISTORY_GAP
+        - NOT_RECOVERABLE
+    Derivation:
+      type: string
+      enum:
+        - DERIVED
+        - RELEASED
+        - UNKNOWN
+        - MULTIPLE
+        - NONE
+    CustodyAssignment:
+      type: object
+      description: Derived, reconcilable custody projection next to the legacy current-holder evidence.
+      required:
+        - case_id
+        - derivation
+        - derived_position_raw
+        - legacy_position_raw
+        - legacy_source_spec
+        - parity
+        - event_count
+        - finding_count
+        - presence
+        - refreshed_at
+      additionalProperties: false
+      properties:
+        case_id:
+          $ref: '#/components/schemas/NativeID'
+        derivation:
+          $ref: '#/components/schemas/Derivation'
+        derived_holder:
+          $ref: '#/components/schemas/UserRef'
+        derived_position_raw:
+          $ref: '#/components/schemas/RawText'
+        legacy_holder:
+          $ref: '#/components/schemas/UserRef'
+        legacy_position_raw:
+          $ref: '#/components/schemas/RawText'
+        legacy_source_spec:
+          type: string
+          maxLength: 120
+        parity:
+          $ref: '#/components/schemas/Parity'
+        event_count:
+          type: integer
+          minimum: 0
+        finding_count:
+          type: integer
+          format: int64
+          minimum: 0
+        presence:
+          $ref: '#/components/schemas/Presence'
+        refreshed_at:
+          $ref: '#/components/schemas/Timestamp'
+    CustodyAssignmentListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CustodyAssignment'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    EventKind:
+      type: string
+      description: Evidence-backed classification of a legacy action; UNKNOWN keeps the raw action.
+      enum:
+        - HOLDER_ASSIGNED
+        - HOLDER_RELEASED
+        - NO_HOLDER_CHANGE
+        - UNKNOWN
+    EventContext:
+      type: string
+      enum:
+        - DISTRIBUTION
+        - MIS
+        - PAYMENT_WORKFLOW
+        - REFERRAL
+        - CONVERSION
+        - SELLER_UPDATE
+        - UNKNOWN
+    CustodyEvent:
+      type: object
+      description: Append-only. The legacy action is shown raw next to its evidence-backed kind.
+      required:
+        - event_id
+        - source_spec
+        - source_key
+        - legacy_action
+        - kind
+        - context
+        - from_position_raw
+        - to_position_raw
+        - occurred_raw
+        - recorded_at
+      additionalProperties: false
+      properties:
+        event_id:
+          $ref: '#/components/schemas/NativeID'
+        source_spec:
+          type: string
+          maxLength: 120
+        source_key:
+          $ref: '#/components/schemas/LegacyKey'
+        legacy_action:
+          type: string
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/EventKind'
+        context:
+          $ref: '#/components/schemas/EventContext'
+        actor:
+          $ref: '#/components/schemas/UserRef'
+        from:
+          $ref: '#/components/schemas/UserRef'
+        to:
+          $ref: '#/components/schemas/UserRef'
+        from_position_raw:
+          $ref: '#/components/schemas/RawText'
+        to_position_raw:
+          $ref: '#/components/schemas/RawText'
+        occurred_raw:
+          $ref: '#/components/schemas/RawText'
+        recorded_at:
+          $ref: '#/components/schemas/Timestamp'
+    CustodyFindingKind:
+      type: string
+      enum:
+        - MISSING_PRIOR_OWNER
+        - MISSING_TARGET_OWNER
+        - HISTORY_GAP
+        - MULTIPLE_CURRENT
+        - ORDERING_CONTRADICTION
+        - MISSING_EVENT_HISTORY
+        - SOURCE_CURRENT_MISMATCH
+        - UNKNOWN_ACTION
+    CustodyFinding:
+      type: object
+      required:
+        - finding_id
+        - kind
+        - detail
+        - event_id
+        - presence
+        - recorded_at
+      additionalProperties: false
+      properties:
+        finding_id:
+          $ref: '#/components/schemas/NativeID'
+        kind:
+          $ref: '#/components/schemas/CustodyFindingKind'
+        detail:
+          type: string
+          maxLength: 300
+        event_id:
+          type: string
+          format: uuid
+          nullable: true
+        presence:
+          $ref: '#/components/schemas/Presence'
+        recorded_at:
+          $ref: '#/components/schemas/Timestamp'
+    CaseCustody:
+      type: object
+      required:
+        - assignment
+        - events
+        - findings
+      additionalProperties: false
+      properties:
+        assignment:
+          $ref: '#/components/schemas/CustodyAssignment'
+        events:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/CustodyEvent'
+        findings:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/CustodyFinding'
+    CaseCustodyEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/CaseCustody'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CountMap:
+      type: object
+      additionalProperties:
+        type: integer
+        format: int64
+    HonestMetric:
+      type: object
+      description: A metric with its exact label, definition, authority and evaluation state. A null count is not zero.
+      required:
+        - code
+        - label
+        - status
+        - count
+        - definition
+        - authority
+        - coverage
+        - reason
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          enum:
+            - F02
+            - F03
+        label:
+          type: string
+          maxLength: 200
+        status:
+          type: string
+          enum:
+            - EVALUATED
+            - PARTIAL
+            - NOT_EVALUATED
+        count:
+          type: integer
+          format: int64
+          nullable: true
+        definition:
+          type: string
+          maxLength: 600
+        authority:
+          type: string
+          maxLength: 300
+        coverage:
+          type: string
+          maxLength: 300
+        reason:
+          type: string
+          maxLength: 600
+    SalesCoverageReport:
+      type: object
+      required:
+        - cases_total
+        - cases_present
+        - cases_by_source_spec
+        - cases_by_workflow_type
+        - cases_with_unknown_state_mapping
+        - sourceless_cases
+        - aliases_by_resolution
+        - status_history_rows
+        - cases_with_status_history
+        - attribution_by_facet_and_resolution
+        - customer_link_states
+        - legacy_leads_only
+        - total_cases
+        - f02
+        - source_coverage
+      additionalProperties: false
+      properties:
+        cases_total:
+          type: integer
+          format: int64
+        cases_present:
+          type: integer
+          format: int64
+        cases_by_source_spec:
+          $ref: '#/components/schemas/CountMap'
+        cases_by_workflow_type:
+          $ref: '#/components/schemas/CountMap'
+        cases_with_unknown_state_mapping:
+          type: integer
+          format: int64
+        sourceless_cases:
+          type: integer
+          format: int64
+        aliases_by_resolution:
+          $ref: '#/components/schemas/CountMap'
+        status_history_rows:
+          type: integer
+          format: int64
+        cases_with_status_history:
+          type: integer
+          format: int64
+        attribution_by_facet_and_resolution:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CountMap'
+        customer_link_states:
+          $ref: '#/components/schemas/CountMap'
+        legacy_leads_only:
+          $ref: '#/components/schemas/HonestMetric'
+        total_cases:
+          $ref: '#/components/schemas/HonestMetric'
+        f02:
+          $ref: '#/components/schemas/HonestMetric'
+        source_coverage:
+          type: object
+          additionalProperties:
+            type: string
+            maxLength: 200
+    SalesCoverageReportEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/SalesCoverageReport'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CustodyParityReport:
+      type: object
+      required:
+        - assignments_present
+        - current_holder_parity
+        - derivation_states
+        - findings_by_kind
+        - custody_events
+        - custody_events_by_kind
+        - cases_with_custody_events
+        - unknown_legacy_actions
+        - full_parity
+        - notes
+      additionalProperties: false
+      properties:
+        assignments_present:
+          type: integer
+          format: int64
+        current_holder_parity:
+          $ref: '#/components/schemas/CountMap'
+        derivation_states:
+          $ref: '#/components/schemas/CountMap'
+        findings_by_kind:
+          $ref: '#/components/schemas/CountMap'
+        custody_events:
+          type: integer
+          format: int64
+        custody_events_by_kind:
+          $ref: '#/components/schemas/CountMap'
+        cases_with_custody_events:
+          type: integer
+          format: int64
+        unknown_legacy_actions:
+          $ref: '#/components/schemas/CountMap'
+        full_parity:
+          type: boolean
+          description: True only when every present projection is MATCH; never claimed on empty or partial evidence.
+        notes:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 300
+    CustodyParityReportEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/CustodyParityReport'
         allowed_actions:
           $ref: '#/components/schemas/AllowedActions'

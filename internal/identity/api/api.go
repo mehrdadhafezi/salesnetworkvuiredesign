@@ -43,6 +43,12 @@ const (
 	CapCustomerRead       Capability = "customers.customer.read"
 	CapMergeCaseRead      Capability = "customers.merge_case.read"
 	CapIdentityReportRead Capability = "customers.identity_report.read"
+	// Slice 6 sales read shadow. No role receives them: OPD-01 is open and
+	// no frozen row-scope policy exists for seller/supervisor/manager, so
+	// they fail closed for every real account.
+	CapCaseRead        Capability = "cases.case.read"
+	CapCustodyRead     Capability = "custody.custody.read"
+	CapSalesReportRead Capability = "sales.report.read"
 )
 
 // CapabilityDef is one vocabulary entry.
@@ -61,6 +67,9 @@ var vocabulary = []CapabilityDef{
 	{CapCustomerRead, "Read shadow customers, their masked contact points, identifiers and evidence"},
 	{CapMergeCaseRead, "Read the merge-case candidate queue (no merge authority)"},
 	{CapIdentityReportRead, "Read the customer identity resolution report"},
+	{CapCaseRead, "Read shadow cases, their lineage, state history and attribution snapshots"},
+	{CapCustodyRead, "Read derived custody projections, custody events and findings"},
+	{CapSalesReportRead, "Read the sales source coverage and custody parity reports"},
 }
 
 // HRReadCapabilities returns the Slice 4 HR read capabilities: the set the

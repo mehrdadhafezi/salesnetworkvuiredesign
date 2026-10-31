@@ -22,6 +22,9 @@ const golden = "testdata/specs_v1_2.0.160.golden.json"
 // stays byte-identical.
 const goldenSlice5 = "testdata/specs_v1_2.0.160_slice5.golden.json"
 
+// goldenSlice6 pins the Slice 6 extension (sales read sources).
+const goldenSlice6 = "testdata/specs_v1_2.0.160_slice6.golden.json"
+
 // render encodes the given published set exactly as the registry orders it.
 func render(t *testing.T, set []Spec) []byte {
 	t.Helper()
@@ -43,7 +46,7 @@ func render(t *testing.T, set []Spec) []byte {
 // byte, one golden per published set. Changing a v1 spec fails here: publish
 // a new version instead.
 func TestPublishedSpecsAreImmutable(t *testing.T) {
-	for file, set := range map[string][]Spec{golden: V1Slice3(), goldenSlice5: V1Slice5()} {
+	for file, set := range map[string][]Spec{golden: V1Slice3(), goldenSlice5: V1Slice5(), goldenSlice6: V1Slice6()} {
 		got := render(t, set)
 		if *update {
 			if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
@@ -63,7 +66,7 @@ func TestPublishedSpecsAreImmutable(t *testing.T) {
 		sum := sha256.Sum256(want)
 		t.Logf("%s sha256 %s", file, hex.EncodeToString(sum[:]))
 	}
-	if len(Default().IDs()) != len(V1Slice3())+len(V1Slice5()) {
+	if len(Default().IDs()) != len(V1Slice3())+len(V1Slice5())+len(V1Slice6()) {
 		t.Fatal("registry must be exactly the published sets")
 	}
 }
@@ -71,9 +74,11 @@ func TestPublishedSpecsAreImmutable(t *testing.T) {
 func TestDefaultRegistry(t *testing.T) {
 	r := Default()
 	want := []string{
+		"legacy.distribution_item.v1", "legacy.distribution_item_log.v1",
 		"legacy.hr_assignment.v1", "legacy.hr_assignment_history.v1", "legacy.hr_department.v1", "legacy.hr_level.v1",
 		"legacy.hr_position.v1", "legacy.hr_position_role_mapping.v1", "legacy.hr_profile.v1", "legacy.hr_team.v1",
-		"legacy.hr_unit.v1", "legacy.invoice_issued_to.v1", "legacy.wp_user.v1", "legacy.wp_usermeta.v1",
+		"legacy.hr_unit.v1", "legacy.invoice_issued_to.v1", "legacy.lead.v1", "legacy.lead_status_history.v1",
+		"legacy.wp_user.v1", "legacy.wp_usermeta.v1",
 	}
 	if got := r.IDs(); strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("ids = %v", got)

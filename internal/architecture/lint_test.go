@@ -56,16 +56,18 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleMoneyConversion:  1,
 		RuleLegacyLiteral:    4, // kernel, business package, WooCommerce literal, .sql file
 		RuleLegacyRefFactory: 1,
-		RuleDotImport:        1, // internal/sales/dotimport.go
-		RuleRuntimeDDL:       3, // platform/bad CREATE TABLE; sales/ddl alter table + GRANT
-		RulePlatformImport:   1, // platform/bad imports billing
-		RulePgtestImport:     2, // pgtest from platform/bad; legacytest from the import tool
-		RuleForeignStore:     3, // sales imports billing/store; authorization imports organization/store; connector imports customers/store
-		RuleLegacyImport:     3, // sales, crm-api and crm-migrate (non-migrations) import the connector
-		RuleModuleBoundary:   7, // identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
-		RuleForeignWrite:     2, // connector INSERT INTO organization.*, UPDATE customers.*
-		RuleReadPathImport:   3, // organization/http, customers/http and crm-api import an import command
-		RuleMergePath:        2, // customers MergeCustomers, canonicalizeByPhone
+		RuleDotImport:        1,  // internal/sales/dotimport.go
+		RuleRuntimeDDL:       3,  // platform/bad CREATE TABLE; sales/ddl alter table + GRANT
+		RulePlatformImport:   1,  // platform/bad imports billing
+		RulePgtestImport:     2,  // pgtest from platform/bad; legacytest from the import tool
+		RuleForeignStore:     3,  // sales imports billing/store; authorization imports organization/store; connector imports customers/store
+		RuleLegacyImport:     3,  // sales, crm-api and crm-migrate (non-migrations) import the connector
+		RuleModuleBoundary:   10, // + custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
+		RuleForeignWrite:     3,  // connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*
+		RuleReadPathImport:   4,  // organization/http, customers/http, cases/http and crm-api import an import command
+		RuleMergePath:        2,  // customers MergeCustomers, canonicalizeByPhone
+		RuleAppendOnlyWrite:  1,  // custody UPDATE custody.custody_event
+		RulePhoneKey:         1,  // custody customer_phone join
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -345,6 +347,45 @@ func TestSliceFiveRules(t *testing.T) {
 	for _, name := range []string{"MergeCase", "MergeCaseState", "ListMergeCases", "mergeCaseID", "GetMergeCase"} {
 		if mergePath.MatchString(name) {
 			t.Errorf("%s falsely detected", name)
+		}
+	}
+}
+
+func TestSliceSixRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct {
+		file, rule string
+		n          int
+	}{
+		{"internal/custody/bad.go", RuleModuleBoundary, 2},
+		{"internal/custody/bad.go", RuleAppendOnlyWrite, 1},
+		{"internal/custody/bad.go", RulePhoneKey, 1},
+		{"internal/cases/http/handler.go", RuleModuleBoundary, 1},
+		{"internal/cases/http/handler.go", RuleReadPathImport, 1},
+		{"internal/integration/legacy/salesbad/write.go", RuleForeignWrite, 1},
+	}
+	for _, w := range want {
+		n := 0
+		for _, v := range vs {
+			if v.File == w.file && v.Rule == w.rule {
+				n++
+			}
+		}
+		if n != w.n {
+			t.Errorf("rule %s fired %d times in %s, want %d", w.rule, n, w.file, w.n)
+		}
+	}
+	for _, s := range []string{"UPDATE custody.custody_event SET x = 1", "delete from cases.attribution_snapshot", "update  cases.case_state_history set"} {
+		if !appendOnlyWrite.MatchString(s) {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	for _, s := range []string{"INSERT INTO custody.custody_event", "SELECT * FROM cases.attribution_snapshot", "UPDATE custody.assignment SET parity = $1"} {
+		if appendOnlyWrite.MatchString(s) {
+			t.Errorf("%q falsely detected", s)
 		}
 	}
 }

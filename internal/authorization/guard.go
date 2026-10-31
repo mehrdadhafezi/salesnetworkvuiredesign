@@ -30,8 +30,9 @@ type DevSubjects struct{}
 
 // devGrants are the synthetic grants per stub identity:
 //   - dev-user-001 ("Dev Operator"): the HR role (Slice 4 HR read) and a
-//     direct synthetic grant of the Slice 5 customer read capabilities (no
-//     target role carries them; D-30 is open);
+//     direct synthetic grant of the Slice 5 customer read and Slice 6 sales
+//     read capabilities (no target role carries them; D-30 and OPD-01 are
+//     open);
 //   - dev-user-002 ("Dev Viewer"): nothing (every read is denied).
 var devGrants = map[string][]identityapi.Role{
 	"dev-user-001": {identityapi.RoleHR},
@@ -39,7 +40,8 @@ var devGrants = map[string][]identityapi.Role{
 }
 
 var devCapabilities = map[string][]identityapi.Capability{
-	"dev-user-001": {identityapi.CapCustomerRead, identityapi.CapMergeCaseRead, identityapi.CapIdentityReportRead},
+	"dev-user-001": {identityapi.CapCustomerRead, identityapi.CapMergeCaseRead, identityapi.CapIdentityReportRead,
+		identityapi.CapCaseRead, identityapi.CapCustodyRead, identityapi.CapSalesReportRead},
 }
 
 // DevGrantBasis marks synthetic dev/test grants.

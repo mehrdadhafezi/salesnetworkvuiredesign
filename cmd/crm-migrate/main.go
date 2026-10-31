@@ -2,7 +2,8 @@
 // (Architecture V1 §8.11). It applies the embedded platform migrations, then
 // the integration staging migrations (Slice 3), then the identity and
 // organization read-model migrations (Slice 4), then the customers identity
-// shadow migrations (Slice 5), each source in its own version table; no application process runs migrations on startup.
+// shadow migrations (Slice 5), then the cases and custody sales read
+// migrations (Slice 6), each source in its own version table; no application process runs migrations on startup.
 //
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate up
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate status
@@ -19,6 +20,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	casesmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/migrations"
+	custodymigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/migrations"
 	customersmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/migrations"
 	identitymigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/migrations"
 	integrationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/migrations"
@@ -29,7 +32,8 @@ import (
 // sources returns every migration source in apply order: platform first.
 func sources() []migrations.Source {
 	return []migrations.Source{migrations.Platform(), integrationmigrations.Source(),
-		identitymigrations.Source(), organizationmigrations.Source(), customersmigrations.Source()}
+		identitymigrations.Source(), organizationmigrations.Source(), customersmigrations.Source(),
+		casesmigrations.Source(), custodymigrations.Source()}
 }
 
 func main() {
