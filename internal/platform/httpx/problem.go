@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -41,7 +42,22 @@ var (
 	// OUTCOME_UNKNOWN (reconcile before any retry), never a guessed failure.
 	ProblemInternal = Problem{Status: http.StatusInternalServerError, Slug: "internal", Title: "Internal server error",
 		Reason: reasoncodes.OutcomeUnknown, Detail: "The request could not be completed; its outcome is unknown."}
+	// ProblemNoRecord: a contract path whose identified record does not exist.
+	ProblemNoRecord = Problem{Status: http.StatusNotFound, Slug: "not-found", Title: "Resource not found",
+		Reason: reasoncodes.ContractInvalid, Detail: "No record with this id."}
 )
+
+// BodyCtx renders the problem inside a strict handler, where only the
+// request context is available (no instance path).
+func (p Problem) BodyCtx(ctx context.Context) oapi.Problem {
+	body := oapi.Problem{Type: problemTypeBase + p.Slug, Title: p.Title, Status: p.Status,
+		ReasonCode: oapi.ReasonCode(p.Reason), CorrelationId: CorrelationID(ctx)}
+	if p.Detail != "" {
+		d := p.Detail
+		body.Detail = &d
+	}
+	return body
+}
 
 // Body renders the problem for a request.
 func (p Problem) Body(r *http.Request) oapi.Problem {

@@ -39,7 +39,8 @@ func TestUpThenStatus(t *testing.T) {
 		t.Fatalf("up code=%d stderr=%s", code, errOut.String())
 	}
 	if !strings.Contains(out.String(), "applied 00001 00001_platform_audit.sql") || !strings.Contains(out.String(), "applied 00002 00002_platform_featureflags.sql") ||
-		!strings.Contains(out.String(), "applied 00001 00001_integration_staging.sql") || !strings.Contains(out.String(), "applied 00002 00002_integration_staging_guards.sql") {
+		!strings.Contains(out.String(), "applied 00001 00001_integration_staging.sql") || !strings.Contains(out.String(), "applied 00002 00002_integration_staging_guards.sql") ||
+		!strings.Contains(out.String(), "applied 00001 00001_identity.sql") || !strings.Contains(out.String(), "applied 00001 00001_organization.sql") {
 		t.Fatalf("up output = %q", out.String())
 	}
 	out.Reset()
@@ -47,7 +48,7 @@ func TestUpThenStatus(t *testing.T) {
 		t.Fatalf("second up code=%d out=%q", code, out.String())
 	}
 	out.Reset()
-	if code := run(context.Background(), []string{"status"}, e, &out, &errOut); code != 0 || strings.Count(out.String(), "applied") != 4 || strings.Contains(out.String(), "pending") {
+	if code := run(context.Background(), []string{"status"}, e, &out, &errOut); code != 0 || strings.Count(out.String(), "applied") != 6 || strings.Contains(out.String(), "pending") {
 		t.Fatalf("status code=%d out=%q", code, out.String())
 	}
 }

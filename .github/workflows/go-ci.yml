@@ -73,7 +73,7 @@ jobs:
         run: go test -count=1 -race ./...
 
       - name: Architecture / import lint
-        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern|TestSliceThreeRules|TestAPIServerHasNoLegacyDependency' -v ./internal/architecture/
+        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern|TestSliceThreeRules|TestAPIServerHasNoLegacyDependency|TestSliceFourRules|TestAPIServerHasNoImportDependency' -v ./internal/architecture/
 
       - name: Kernel is standard-library only
         shell: bash
@@ -98,6 +98,9 @@ jobs:
       - name: Slice 3 legacy connector + staging gates (verbose; synthetic data only)
         run: go test -count=1 -v ./internal/integration/... ./cmd/crm-legacy-import/
 
+      - name: Slice 4 identity / organization / authorization read gates (verbose; synthetic data only)
+        run: go test -count=1 -v ./internal/identity/... ./internal/organization/... ./internal/authorization/... ./internal/integration/legacy/shadow/ ./internal/platform/apiserver/ ./internal/platform/pagination/
+
       - name: Slice 3 boundary — crm-api never reaches the legacy connector
         shell: bash
         run: |
@@ -119,12 +122,22 @@ jobs:
           psql -h localhost -U crm_ci -d postgres -c 'CREATE DATABASE crm_migrate_ci'
           export CRM_MIGRATE_DATABASE_URL='postgres://crm_ci:crm_ci_only@localhost:5432/crm_migrate_ci?sslmode=disable'
           go run ./cmd/crm-migrate up
-          go run ./cmd/crm-migrate up | grep -q 'no pending migrations'
-          go run ./cmd/crm-migrate status
-          ! go run ./cmd/crm-migrate status | grep -q pending
-          go run ./cmd/crm-migrate status | grep -q 'applied  00001_integration_staging.sql'
+          # Capture output once: under pipefail, `cmd | grep -q` can kill cmd
+          # with SIGPIPE once grep has matched.
+          up="$(go run ./cmd/crm-migrate up)"
+          grep -q 'no pending migrations' <<< "$up"
+          status="$(go run ./cmd/crm-migrate status)"
+          echo "$status"
+          ! grep -q pending <<< "$status"
+          grep -q 'applied  00001_integration_staging.sql' <<< "$status"
           stg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'integration' AND table_name LIKE 'stg\_%'")"
           test "$stg" = "11" || { echo "expected 11 integration staging tables, got $stg"; exit 1; }
+          grep -q 'applied  00001_identity.sql' <<< "$status"
+          grep -q 'applied  00001_organization.sql' <<< "$status"
+          s4="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('identity', 'organization')")"
+          test "$s4" = "22" || { echo "expected 22 identity/organization tables (incl. per-module outbox/inbox/idempotency), got $s4"; exit 1; }
+          creds="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'identity' AND table_name IN ('credential', 'session')")"
+          test "$creds" = "0" || { echo "Slice 4 must not create credential/session tables"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

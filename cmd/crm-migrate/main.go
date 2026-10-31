@@ -1,6 +1,7 @@
 // Command crm-migrate is the only way target DDL reaches a database
-// (Architecture V1 §8.11). It applies the embedded platform migrations and
-// then the integration staging migrations (Slice 3), each source in its own
+// (Architecture V1 §8.11). It applies the embedded platform migrations, then
+// the integration staging migrations (Slice 3), then the identity and
+// organization read-model migrations (Slice 4), each source in its own
 // version table; no application process runs migrations on startup.
 //
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate up
@@ -18,13 +19,16 @@ import (
 	"os/signal"
 	"syscall"
 
+	identitymigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/migrations"
 	integrationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/migrations"
+	organizationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/migrations"
 )
 
 // sources returns every migration source in apply order: platform first.
 func sources() []migrations.Source {
-	return []migrations.Source{migrations.Platform(), integrationmigrations.Source()}
+	return []migrations.Source{migrations.Platform(), integrationmigrations.Source(),
+		identitymigrations.Source(), organizationmigrations.Source()}
 }
 
 func main() {

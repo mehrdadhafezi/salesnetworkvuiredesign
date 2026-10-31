@@ -4,12 +4,21 @@ import { useSession } from '../shared/auth/currentSession'
 import { Icon } from '../shared/ui/icons'
 import { StateBlock } from '../shared/ui/primitives'
 
-export interface NavItem { to: string; label: string; dev?: boolean }
+export interface NavItem {
+  to: string
+  label: string
+  dev?: boolean
+  /** Shown only when the server session reports this feature enabled (navigation hint only). */
+  feature?: 'hr_read'
+}
 
 /** AppShell (SN-207 §2, §5): skip link → header → nav → main#ws. */
 export function Shell({ nav }: { nav: NavItem[] }) {
   const [open, setOpen] = useState(false)
   const location = useLocation()
+  const session = useSession()
+  const features = session.status === 'ready' ? session.session.features : undefined
+  const visible = nav.filter(item => !item.feature || features?.[item.feature] === true)
   const [lastPath, setLastPath] = useState(location.pathname)
   if (lastPath !== location.pathname) { // close the mobile menu after navigation
     setLastPath(location.pathname)
@@ -31,7 +40,7 @@ export function Shell({ nav }: { nav: NavItem[] }) {
         </button>
       </header>
       <nav id="main-nav" className="nav" aria-label="ناوبری اصلی" data-open={open}>
-        {nav.map(item => (
+        {visible.map(item => (
           <NavLink key={item.to} to={item.to} end>
             {item.label}
             {item.dev ? <span className="demo-tag">DEV</span> : null}

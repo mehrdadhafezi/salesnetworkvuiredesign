@@ -20,6 +20,11 @@
 !internal/integration/legacy/migrations/sql/*.sql
 !internal/integration/legacy/migrations/body/*.sql
 !internal/architecture/testdata/**/*.sql
+# Slice 4: identity and organization read-model migrations (DDL + reference data only).
+!internal/identity/migrations/sql/*.sql
+!internal/identity/migrations/body/*.sql
+!internal/organization/migrations/sql/*.sql
+!internal/organization/migrations/body/*.sql
 
 # Legacy snapshot packages may contain PII: never committed (Slice 3, D-23).
 # Tests build synthetic packages in temporary directories only.
