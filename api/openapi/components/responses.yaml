@@ -7,3 +7,16 @@ Problem:
     application/problem+json:
       schema:
         $ref: './schemas.yaml#/Problem'
+
+Denied:
+  description: |
+    The caller lacks the evaluated capability (outcome UNAUTHORIZED,
+    reason ACTION_DENIED). Server-authoritative; never inferred from role
+    names, positions or hierarchy.
+  headers:
+    X-Correlation-ID:
+      $ref: './headers.yaml#/CorrelationID'
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yaml#/ResultEnvelope'

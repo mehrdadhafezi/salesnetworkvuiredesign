@@ -1,6 +1,6 @@
 import { createApi, type ApiClient } from '../shared/api'
 
-export interface Captured { url: string; method: string; headers: Headers }
+export interface Captured { url: string; method: string; headers: Headers; search: URLSearchParams }
 
 type Route = (req: Request) => Response | Promise<Response>
 
@@ -26,7 +26,7 @@ export function fakeApi(routes: Record<string, Route>, devUser?: string): { clie
     fetch: async (input: RequestInfo | URL) => {
       const req = input as Request
       const url = new URL(req.url)
-      calls.push({ url: url.pathname, method: req.method, headers: req.headers })
+      calls.push({ url: url.pathname, method: req.method, headers: req.headers, search: url.searchParams })
       const route = routes[`${req.method} ${url.pathname}`]
       return route ? route(req) : json({ type: '/problems/not-found', title: 'Resource not found', status: 404, reason_code: 'CONTRACT_INVALID', correlation_id: 'x-not-found-01' }, 404, 'application/problem+json')
     },

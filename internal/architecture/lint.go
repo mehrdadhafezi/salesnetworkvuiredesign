@@ -30,6 +30,24 @@
 //     server, platform and business modules never reach the legacy connector.
 //   - legacy-literal also covers "woocommerce" in Go string literals and
 //     wp_/sn_/woocommerce text in .sql and .tmpl files outside the legacy tree.
+//
+// Slice 4 rules (Architecture V1 §5, §6, §18, §21, §24):
+//
+//   - module-boundary: identity, organization and authorization reach each
+//     other only through published api packages: identity never imports
+//     organization; organization imports identity/api only; authorization
+//     imports identity/api and organization/api only; a module's http
+//     adapter may also use the authorization evaluator (authorization and
+//     authorization/http). The integration connector reaches target modules
+//     only through their api packages and the authorization evaluator, so
+//     it can never call a module's store or write its tables directly.
+//   - foreign-schema-write: an INSERT/UPDATE/DELETE SQL literal naming a
+//     module schema appears only inside that module's own tree.
+//   - read-path-import: read handlers (internal/<m>/http), the API server
+//     and cmd/crm-api never import an import command (internal/<m>/imports).
+//
+// Test files are composition roots for module-boundary (as cmd/ is); every
+// other rule applies to them as before.
 package architecture
 
 import (
@@ -72,7 +90,48 @@ const (
 	RuleForeignStore     = "foreign-store"
 	RulePgtestImport     = "pgtest-import"
 	RuleLegacyImport     = "legacy-import"
+	RuleModuleBoundary   = "module-boundary"
+	RuleForeignWrite     = "foreign-schema-write"
+	RuleReadPathImport   = "read-path-import"
 )
+
+// slice4Modules are the business modules of Slice 4.
+var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true}
+
+// schemaOwners maps a module schema to the only tree allowed to write it.
+var schemaOwners = map[string]string{
+	"identity":              "internal/identity",
+	"organization":          "internal/organization",
+	"integration":           "internal/integration",
+	"audit":                 "internal/platform/audit",
+	"platform_featureflags": "internal/platform/featureflags",
+}
+
+var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|integration|audit|platform_featureflags)\.`)
+
+// readPathDirs never import an import command.
+var readPathDirs = []string{"internal/platform/apiserver", "cmd/crm-api"}
+
+// moduleImportAllowed reports whether a file of module top (rel) may import
+// internal/<other>/<rest> under the Slice 4 module-boundary rule.
+func moduleImportAllowed(rel, top, other, rest string) bool {
+	if other == top {
+		return true
+	}
+	switch {
+	case top == "integration":
+		return rest == "api" || other == "authorization" && rest == ""
+	case !slice4Modules[top] || !slice4Modules[other]:
+		return true
+	case top == "identity" && other == "organization":
+		return false
+	case other == "authorization" && (rest == "" || rest == "http"):
+		return under(rel, "internal/"+top+"/http")
+	case top == "authorization" || top == "organization" && other == "identity":
+		return rest == "api"
+	}
+	return false
+}
 
 // DDL is allowed only in migration tooling and the test-only harness. The
 // lint package itself is exempt because its patterns spell DDL keywords.
@@ -218,6 +277,24 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		if full := internalTop + "/" + internalRest; hasPrefixPath(full, strings.TrimPrefix(legacyInteg, "internal/")) && !legacyImportAllowed(rel, full) {
 			add(RuleLegacyImport, imp.Pos(), "imports the legacy connector "+p+" outside "+legacyInteg+" and cmd/crm-legacy-import")
 		}
+		// Test files are composition roots (like cmd/) and may wire modules.
+		if relTop, ok := internalTopOf(rel); ok && !isTest && internalTop != "kernel" && internalTop != "platform" {
+			if !moduleImportAllowed(rel, relTop, internalTop, internalRest) {
+				add(RuleModuleBoundary, imp.Pos(), "internal/"+relTop+" imports "+p+"; cross-module access goes through the published api")
+			}
+		}
+		if internalRest == "imports" || strings.HasPrefix(internalRest, "imports/") {
+			readPath := false
+			for _, d := range readPathDirs {
+				readPath = readPath || under(rel, d)
+			}
+			if top, ok := internalTopOf(rel); ok && under(rel, "internal/"+top+"/http") {
+				readPath = true
+			}
+			if readPath {
+				add(RuleReadPathImport, imp.Pos(), "read path imports the import command "+p)
+			}
+		}
 	}
 
 	ast.Inspect(f, func(n ast.Node) bool {
@@ -233,6 +310,15 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			if x.Kind == token.STRING && !isTest && !ddlAllowed(rel) {
 				if s, err := strconv.Unquote(x.Value); err == nil && runtimeDDL.MatchString(s) {
 					add(RuleRuntimeDDL, x.Pos(), "schema-mutating SQL outside migrations: "+runtimeDDL.FindString(s))
+				}
+			}
+			if x.Kind == token.STRING && !isTest && !under(rel, architectureDir) {
+				if s, err := strconv.Unquote(x.Value); err == nil {
+					for _, m := range foreignWrite.FindAllStringSubmatch(s, -1) {
+						if owner := schemaOwners[strings.ToLower(m[2])]; !under(rel, owner) {
+							add(RuleForeignWrite, x.Pos(), "writes schema "+m[2]+" outside "+owner)
+						}
+					}
 				}
 			}
 		case *ast.Ident:
@@ -261,6 +347,15 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		return true
 	})
 	return out, nil
+}
+
+// internalTopOf returns the internal/<top> of a repository-relative path.
+func internalTopOf(rel string) (string, bool) {
+	if !strings.HasPrefix(rel, "internal/") {
+		return "", false
+	}
+	top, _, _ := strings.Cut(strings.TrimPrefix(rel, "internal/"), "/")
+	return top, top != ""
 }
 
 // splitInternal splits "<module>/internal/<top>/<rest>" into top and rest.

@@ -9,12 +9,269 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for AccessDecisionScope.
+const (
+	AccessDecisionScopeNONE         AccessDecisionScope = "NONE"
+	AccessDecisionScopeORGANIZATION AccessDecisionScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the AccessDecisionScope enum.
+func (e AccessDecisionScope) Valid() bool {
+	switch e {
+	case AccessDecisionScopeNONE:
+		return true
+	case AccessDecisionScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AssignmentIntervalZone.
+const (
+	AssignmentIntervalZoneUNKNOWN AssignmentIntervalZone = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the AssignmentIntervalZone enum.
+func (e AssignmentIntervalZone) Valid() bool {
+	switch e {
+	case AssignmentIntervalZoneUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AssignmentRelationshipKind.
+const (
+	AssignmentRelationshipKindREPORTSTO AssignmentRelationshipKind = "REPORTS_TO"
+	AssignmentRelationshipKindUNMAPPED  AssignmentRelationshipKind = "UNMAPPED"
+)
+
+// Valid indicates whether the value is a known member of the AssignmentRelationshipKind enum.
+func (e AssignmentRelationshipKind) Valid() bool {
+	switch e {
+	case AssignmentRelationshipKindREPORTSTO:
+		return true
+	case AssignmentRelationshipKindUNMAPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AssignmentEndState.
+const (
+	AssignmentEndStateMISSING     AssignmentEndState = "MISSING"
+	AssignmentEndStateNOTRECORDED AssignmentEndState = "NOT_RECORDED"
+	AssignmentEndStateRESOLVED    AssignmentEndState = "RESOLVED"
+)
+
+// Valid indicates whether the value is a known member of the AssignmentEndState enum.
+func (e AssignmentEndState) Valid() bool {
+	switch e {
+	case AssignmentEndStateMISSING:
+		return true
+	case AssignmentEndStateNOTRECORDED:
+		return true
+	case AssignmentEndStateRESOLVED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Capability.
+const (
+	IdentityUserRead  Capability = "identity.user.read"
+	OrgAssignmentRead Capability = "org.assignment.read"
+	OrgEmploymentRead Capability = "org.employment.read"
+	OrgPersonRead     Capability = "org.person.read"
+	OrgPositionRead   Capability = "org.position.read"
+	OrgUnitRead       Capability = "org.unit.read"
+)
+
+// Valid indicates whether the value is a known member of the Capability enum.
+func (e Capability) Valid() bool {
+	switch e {
+	case IdentityUserRead:
+		return true
+	case OrgAssignmentRead:
+		return true
+	case OrgEmploymentRead:
+		return true
+	case OrgPersonRead:
+		return true
+	case OrgPositionRead:
+		return true
+	case OrgUnitRead:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EmploymentStatus.
+const (
+	EmploymentStatusACTIVE      EmploymentStatus = "ACTIVE"
+	EmploymentStatusINACTIVE    EmploymentStatus = "INACTIVE"
+	EmploymentStatusNOTRECORDED EmploymentStatus = "NOT_RECORDED"
+	EmploymentStatusPROBATION   EmploymentStatus = "PROBATION"
+	EmploymentStatusRESIGNED    EmploymentStatus = "RESIGNED"
+	EmploymentStatusSUSPENDED   EmploymentStatus = "SUSPENDED"
+	EmploymentStatusTERMINATED  EmploymentStatus = "TERMINATED"
+	EmploymentStatusUNMAPPED    EmploymentStatus = "UNMAPPED"
+)
+
+// Valid indicates whether the value is a known member of the EmploymentStatus enum.
+func (e EmploymentStatus) Valid() bool {
+	switch e {
+	case EmploymentStatusACTIVE:
+		return true
+	case EmploymentStatusINACTIVE:
+		return true
+	case EmploymentStatusNOTRECORDED:
+		return true
+	case EmploymentStatusPROBATION:
+		return true
+	case EmploymentStatusRESIGNED:
+		return true
+	case EmploymentStatusSUSPENDED:
+		return true
+	case EmploymentStatusTERMINATED:
+		return true
+	case EmploymentStatusUNMAPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FindingKind.
+const (
+	FindingKindCURRENTFLAGINCONSISTENT  FindingKind = "CURRENT_FLAG_INCONSISTENT"
+	FindingKindCYCLE                    FindingKind = "CYCLE"
+	FindingKindDUPLICATECURRENT         FindingKind = "DUPLICATE_CURRENT"
+	FindingKindHISTORYCHANGED           FindingKind = "HISTORY_CHANGED"
+	FindingKindHISTORYCURRENTDISAGREE   FindingKind = "HISTORY_CURRENT_DISAGREE"
+	FindingKindHISTORYGAP               FindingKind = "HISTORY_GAP"
+	FindingKindINTERVALOVERLAP          FindingKind = "INTERVAL_OVERLAP"
+	FindingKindMEMBERSHIPMISMATCH       FindingKind = "MEMBERSHIP_MISMATCH"
+	FindingKindMISSINGCHILD             FindingKind = "MISSING_CHILD"
+	FindingKindMISSINGPARENT            FindingKind = "MISSING_PARENT"
+	FindingKindMISSINGREFERENCE         FindingKind = "MISSING_REFERENCE"
+	FindingKindMULTIPLECURRENTPARENTS   FindingKind = "MULTIPLE_CURRENT_PARENTS"
+	FindingKindORGUNITPARENTMISSING     FindingKind = "ORG_UNIT_PARENT_MISSING"
+	FindingKindORGUNITPARENTNOTRECORDED FindingKind = "ORG_UNIT_PARENT_NOT_RECORDED"
+	FindingKindSELFPARENT               FindingKind = "SELF_PARENT"
+	FindingKindSHAREDUSER               FindingKind = "SHARED_USER"
+	FindingKindUNEXPLAINEDGAP           FindingKind = "UNEXPLAINED_GAP"
+	FindingKindUNMAPPEDRELATIONSHIP     FindingKind = "UNMAPPED_RELATIONSHIP"
+	FindingKindUNREADABLEDATE           FindingKind = "UNREADABLE_DATE"
+	FindingKindUSERNOTIMPORTED          FindingKind = "USER_NOT_IMPORTED"
+)
+
+// Valid indicates whether the value is a known member of the FindingKind enum.
+func (e FindingKind) Valid() bool {
+	switch e {
+	case FindingKindCURRENTFLAGINCONSISTENT:
+		return true
+	case FindingKindCYCLE:
+		return true
+	case FindingKindDUPLICATECURRENT:
+		return true
+	case FindingKindHISTORYCHANGED:
+		return true
+	case FindingKindHISTORYCURRENTDISAGREE:
+		return true
+	case FindingKindHISTORYGAP:
+		return true
+	case FindingKindINTERVALOVERLAP:
+		return true
+	case FindingKindMEMBERSHIPMISMATCH:
+		return true
+	case FindingKindMISSINGCHILD:
+		return true
+	case FindingKindMISSINGPARENT:
+		return true
+	case FindingKindMISSINGREFERENCE:
+		return true
+	case FindingKindMULTIPLECURRENTPARENTS:
+		return true
+	case FindingKindORGUNITPARENTMISSING:
+		return true
+	case FindingKindORGUNITPARENTNOTRECORDED:
+		return true
+	case FindingKindSELFPARENT:
+		return true
+	case FindingKindSHAREDUSER:
+		return true
+	case FindingKindUNEXPLAINEDGAP:
+		return true
+	case FindingKindUNMAPPEDRELATIONSHIP:
+		return true
+	case FindingKindUNREADABLEDATE:
+		return true
+	case FindingKindUSERNOTIMPORTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FindingSeverity.
+const (
+	FindingSeverityCONFLICT FindingSeverity = "CONFLICT"
+	FindingSeverityINFO     FindingSeverity = "INFO"
+	FindingSeverityUNKNOWN  FindingSeverity = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the FindingSeverity enum.
+func (e FindingSeverity) Valid() bool {
+	switch e {
+	case FindingSeverityCONFLICT:
+		return true
+	case FindingSeverityINFO:
+		return true
+	case FindingSeverityUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FindingSubject.
+const (
+	ASSIGNMENT FindingSubject = "ASSIGNMENT"
+	EMPLOYMENT FindingSubject = "EMPLOYMENT"
+	HISTORY    FindingSubject = "HISTORY"
+	ORGUNIT    FindingSubject = "ORG_UNIT"
+)
+
+// Valid indicates whether the value is a known member of the FindingSubject enum.
+func (e FindingSubject) Valid() bool {
+	switch e {
+	case ASSIGNMENT:
+		return true
+	case EMPLOYMENT:
+		return true
+	case HISTORY:
+		return true
+	case ORGUNIT:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for HealthLiveStatus.
 const (
@@ -67,6 +324,30 @@ func (e HealthReadyStatus) Valid() bool {
 	}
 }
 
+// Defines values for ManagerState.
+const (
+	ManagerStateMISSING  ManagerState = "MISSING"
+	ManagerStateMULTIPLE ManagerState = "MULTIPLE"
+	ManagerStateNONE     ManagerState = "NONE"
+	ManagerStateRESOLVED ManagerState = "RESOLVED"
+)
+
+// Valid indicates whether the value is a known member of the ManagerState enum.
+func (e ManagerState) Valid() bool {
+	switch e {
+	case ManagerStateMISSING:
+		return true
+	case ManagerStateMULTIPLE:
+		return true
+	case ManagerStateNONE:
+		return true
+	case ManagerStateRESOLVED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NativeRefDomain.
 const (
 	DOTCASE        NativeRefDomain = "DOT_CASE"
@@ -109,33 +390,96 @@ func (e NativeRefDomain) Valid() bool {
 	}
 }
 
+// Defines values for OrgUnitParentState.
+const (
+	OrgUnitParentStateMISSING       OrgUnitParentState = "MISSING"
+	OrgUnitParentStateNOTAPPLICABLE OrgUnitParentState = "NOT_APPLICABLE"
+	OrgUnitParentStateNOTRECORDED   OrgUnitParentState = "NOT_RECORDED"
+	OrgUnitParentStateRESOLVED      OrgUnitParentState = "RESOLVED"
+)
+
+// Valid indicates whether the value is a known member of the OrgUnitParentState enum.
+func (e OrgUnitParentState) Valid() bool {
+	switch e {
+	case OrgUnitParentStateMISSING:
+		return true
+	case OrgUnitParentStateNOTAPPLICABLE:
+		return true
+	case OrgUnitParentStateNOTRECORDED:
+		return true
+	case OrgUnitParentStateRESOLVED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrgUnitKind.
+const (
+	DEPARTMENT OrgUnitKind = "DEPARTMENT"
+	TEAM       OrgUnitKind = "TEAM"
+	UNIT       OrgUnitKind = "UNIT"
+)
+
+// Valid indicates whether the value is a known member of the OrgUnitKind enum.
+func (e OrgUnitKind) Valid() bool {
+	switch e {
+	case DEPARTMENT:
+		return true
+	case TEAM:
+		return true
+	case UNIT:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Outcome.
 const (
-	BLOCKED      Outcome = "BLOCKED"
-	CONFLICT     Outcome = "CONFLICT"
-	FAILED       Outcome = "FAILED"
-	PARTIAL      Outcome = "PARTIAL"
-	SUCCESS      Outcome = "SUCCESS"
-	UNAUTHORIZED Outcome = "UNAUTHORIZED"
-	UNKNOWN      Outcome = "UNKNOWN"
+	OutcomeBLOCKED      Outcome = "BLOCKED"
+	OutcomeCONFLICT     Outcome = "CONFLICT"
+	OutcomeFAILED       Outcome = "FAILED"
+	OutcomePARTIAL      Outcome = "PARTIAL"
+	OutcomeSUCCESS      Outcome = "SUCCESS"
+	OutcomeUNAUTHORIZED Outcome = "UNAUTHORIZED"
+	OutcomeUNKNOWN      Outcome = "UNKNOWN"
 )
 
 // Valid indicates whether the value is a known member of the Outcome enum.
 func (e Outcome) Valid() bool {
 	switch e {
-	case BLOCKED:
+	case OutcomeBLOCKED:
 		return true
-	case CONFLICT:
+	case OutcomeCONFLICT:
 		return true
-	case FAILED:
+	case OutcomeFAILED:
 		return true
-	case PARTIAL:
+	case OutcomePARTIAL:
 		return true
-	case SUCCESS:
+	case OutcomeSUCCESS:
 		return true
-	case UNAUTHORIZED:
+	case OutcomeUNAUTHORIZED:
 		return true
-	case UNKNOWN:
+	case OutcomeUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Presence.
+const (
+	ABSENTINLATEST Presence = "ABSENT_IN_LATEST"
+	PRESENT        Presence = "PRESENT"
+)
+
+// Valid indicates whether the value is a known member of the Presence enum.
+func (e Presence) Valid() bool {
+	switch e {
+	case ABSENTINLATEST:
+		return true
+	case PRESENT:
 		return true
 	default:
 		return false
@@ -193,6 +537,27 @@ func (e ReasonCode) Valid() bool {
 	case SOURCEUNAVAILABLE:
 		return true
 	case STALESTATE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RefState.
+const (
+	RefStateMISSING     RefState = "MISSING"
+	RefStateNOTRECORDED RefState = "NOT_RECORDED"
+	RefStateRESOLVED    RefState = "RESOLVED"
+)
+
+// Valid indicates whether the value is a known member of the RefState enum.
+func (e RefState) Valid() bool {
+	switch e {
+	case RefStateMISSING:
+		return true
+	case RefStateNOTRECORDED:
+		return true
+	case RefStateRESOLVED:
 		return true
 	default:
 		return false
@@ -265,6 +630,249 @@ func (e Unit) Valid() bool {
 	}
 }
 
+// Defines values for UserLinkState.
+const (
+	UserLinkStateLINKED          UserLinkState = "LINKED"
+	UserLinkStateSHAREDUSER      UserLinkState = "SHARED_USER"
+	UserLinkStateUSERNOTIMPORTED UserLinkState = "USER_NOT_IMPORTED"
+	UserLinkStateUSERNOTRECORDED UserLinkState = "USER_NOT_RECORDED"
+)
+
+// Valid indicates whether the value is a known member of the UserLinkState enum.
+func (e UserLinkState) Valid() bool {
+	switch e {
+	case UserLinkStateLINKED:
+		return true
+	case UserLinkStateSHAREDUSER:
+		return true
+	case UserLinkStateUSERNOTIMPORTED:
+		return true
+	case UserLinkStateUSERNOTRECORDED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UserSummaryAccountState.
+const (
+	SHADOWIMPORTED UserSummaryAccountState = "SHADOW_IMPORTED"
+)
+
+// Valid indicates whether the value is a known member of the UserSummaryAccountState enum.
+func (e UserSummaryAccountState) Valid() bool {
+	switch e {
+	case SHADOWIMPORTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UserSummaryLoginEnabled.
+const (
+	False UserSummaryLoginEnabled = false
+)
+
+// Valid indicates whether the value is a known member of the UserSummaryLoginEnabled enum.
+func (e UserSummaryLoginEnabled) Valid() bool {
+	switch e {
+	case False:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PersonSort.
+const (
+	PersonSortDisplayName           PersonSort = "display_name"
+	PersonSortEmployeeCode          PersonSort = "employee_code"
+	PersonSortEmploymentStatus      PersonSort = "employment_status"
+	PersonSortMinusDisplayName      PersonSort = "-display_name"
+	PersonSortMinusEmployeeCode     PersonSort = "-employee_code"
+	PersonSortMinusEmploymentStatus PersonSort = "-employment_status"
+)
+
+// Valid indicates whether the value is a known member of the PersonSort enum.
+func (e PersonSort) Valid() bool {
+	switch e {
+	case PersonSortDisplayName:
+		return true
+	case PersonSortEmployeeCode:
+		return true
+	case PersonSortEmploymentStatus:
+		return true
+	case PersonSortMinusDisplayName:
+		return true
+	case PersonSortMinusEmployeeCode:
+		return true
+	case PersonSortMinusEmploymentStatus:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Relation.
+const (
+	RelationCHILD  Relation = "CHILD"
+	RelationPARENT Relation = "PARENT"
+)
+
+// Valid indicates whether the value is a known member of the Relation enum.
+func (e Relation) Valid() bool {
+	switch e {
+	case RelationCHILD:
+		return true
+	case RelationPARENT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RelationshipKind.
+const (
+	RelationshipKindREPORTSTO RelationshipKind = "REPORTS_TO"
+	RelationshipKindUNMAPPED  RelationshipKind = "UNMAPPED"
+)
+
+// Valid indicates whether the value is a known member of the RelationshipKind enum.
+func (e RelationshipKind) Valid() bool {
+	switch e {
+	case RelationshipKindREPORTSTO:
+		return true
+	case RelationshipKindUNMAPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UserSort.
+const (
+	UserSortDisplayName      UserSort = "display_name"
+	UserSortMinusDisplayName UserSort = "-display_name"
+)
+
+// Valid indicates whether the value is a known member of the UserSort enum.
+func (e UserSort) Valid() bool {
+	switch e {
+	case UserSortDisplayName:
+		return true
+	case UserSortMinusDisplayName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListIdentityUsersParamsSort.
+const (
+	ListIdentityUsersParamsSortDisplayName      ListIdentityUsersParamsSort = "display_name"
+	ListIdentityUsersParamsSortMinusDisplayName ListIdentityUsersParamsSort = "-display_name"
+)
+
+// Valid indicates whether the value is a known member of the ListIdentityUsersParamsSort enum.
+func (e ListIdentityUsersParamsSort) Valid() bool {
+	switch e {
+	case ListIdentityUsersParamsSortDisplayName:
+		return true
+	case ListIdentityUsersParamsSortMinusDisplayName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListOrganizationAssignmentsParamsRelation.
+const (
+	ListOrganizationAssignmentsParamsRelationCHILD  ListOrganizationAssignmentsParamsRelation = "CHILD"
+	ListOrganizationAssignmentsParamsRelationPARENT ListOrganizationAssignmentsParamsRelation = "PARENT"
+)
+
+// Valid indicates whether the value is a known member of the ListOrganizationAssignmentsParamsRelation enum.
+func (e ListOrganizationAssignmentsParamsRelation) Valid() bool {
+	switch e {
+	case ListOrganizationAssignmentsParamsRelationCHILD:
+		return true
+	case ListOrganizationAssignmentsParamsRelationPARENT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListOrganizationAssignmentsParamsRelationshipKind.
+const (
+	ListOrganizationAssignmentsParamsRelationshipKindREPORTSTO ListOrganizationAssignmentsParamsRelationshipKind = "REPORTS_TO"
+	ListOrganizationAssignmentsParamsRelationshipKindUNMAPPED  ListOrganizationAssignmentsParamsRelationshipKind = "UNMAPPED"
+)
+
+// Valid indicates whether the value is a known member of the ListOrganizationAssignmentsParamsRelationshipKind enum.
+func (e ListOrganizationAssignmentsParamsRelationshipKind) Valid() bool {
+	switch e {
+	case ListOrganizationAssignmentsParamsRelationshipKindREPORTSTO:
+		return true
+	case ListOrganizationAssignmentsParamsRelationshipKindUNMAPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListOrganizationPersonsParamsSort.
+const (
+	ListOrganizationPersonsParamsSortDisplayName           ListOrganizationPersonsParamsSort = "display_name"
+	ListOrganizationPersonsParamsSortEmployeeCode          ListOrganizationPersonsParamsSort = "employee_code"
+	ListOrganizationPersonsParamsSortEmploymentStatus      ListOrganizationPersonsParamsSort = "employment_status"
+	ListOrganizationPersonsParamsSortMinusDisplayName      ListOrganizationPersonsParamsSort = "-display_name"
+	ListOrganizationPersonsParamsSortMinusEmployeeCode     ListOrganizationPersonsParamsSort = "-employee_code"
+	ListOrganizationPersonsParamsSortMinusEmploymentStatus ListOrganizationPersonsParamsSort = "-employment_status"
+)
+
+// Valid indicates whether the value is a known member of the ListOrganizationPersonsParamsSort enum.
+func (e ListOrganizationPersonsParamsSort) Valid() bool {
+	switch e {
+	case ListOrganizationPersonsParamsSortDisplayName:
+		return true
+	case ListOrganizationPersonsParamsSortEmployeeCode:
+		return true
+	case ListOrganizationPersonsParamsSortEmploymentStatus:
+		return true
+	case ListOrganizationPersonsParamsSortMinusDisplayName:
+		return true
+	case ListOrganizationPersonsParamsSortMinusEmployeeCode:
+		return true
+	case ListOrganizationPersonsParamsSortMinusEmploymentStatus:
+		return true
+	default:
+		return false
+	}
+}
+
+// AccessDecision defines model for AccessDecision.
+type AccessDecision struct {
+	Allowed bool `json:"allowed"`
+
+	// Capability Slice 4 read capability vocabulary (<module>.<object>.<action>).
+	Capability   Capability `json:"capability"`
+	MatchedRoles []string   `json:"matched_roles"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// ReasonCode foundation-v1 CRM reason codes (Phase-0 spec §6; kernel/reasoncodes).
+	ReasonCode *ReasonCode         `json:"reason_code,omitempty"`
+	Scope      AccessDecisionScope `json:"scope"`
+}
+
+// AccessDecisionScope defines model for AccessDecision.Scope.
+type AccessDecisionScope string
+
 // AllowedAction defines model for AllowedAction.
 type AllowedAction struct {
 	Allowed bool `json:"allowed"`
@@ -277,8 +885,155 @@ type AllowedAction struct {
 // render them; they never infer permission from roles, hierarchy or routes.
 type AllowedActions map[string]AllowedAction
 
+// Assignment Reporting assignment. Interval values are raw legacy DATETIME text; the source zone is not asserted.
+type Assignment struct {
+	// AssignmentId Target native identifier. Never a phone, e-mail, login or legacy key.
+	AssignmentId NativeID      `json:"assignment_id"`
+	Child        AssignmentEnd `json:"child"`
+
+	// CurrentRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	CurrentRaw *RawText `json:"current_raw"`
+
+	// EffectiveFromRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	EffectiveFromRaw *RawText `json:"effective_from_raw"`
+
+	// EffectiveToRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	EffectiveToRaw *RawText               `json:"effective_to_raw"`
+	FindingKinds   []FindingKind          `json:"finding_kinds"`
+	IntervalZone   AssignmentIntervalZone `json:"interval_zone"`
+	IsCurrent      *bool                  `json:"is_current"`
+	Parent         AssignmentEnd          `json:"parent"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance       Provenance                 `json:"provenance"`
+	RelationshipKind AssignmentRelationshipKind `json:"relationship_kind"`
+
+	// RelationshipRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	RelationshipRaw *RawText `json:"relationship_raw"`
+}
+
+// AssignmentIntervalZone defines model for Assignment.IntervalZone.
+type AssignmentIntervalZone string
+
+// AssignmentRelationshipKind defines model for Assignment.RelationshipKind.
+type AssignmentRelationshipKind string
+
+// AssignmentEnd defines model for AssignmentEnd.
+type AssignmentEnd struct {
+	Person *PersonRef         `json:"person,omitempty"`
+	State  AssignmentEndState `json:"state"`
+}
+
+// AssignmentEndState defines model for AssignmentEnd.State.
+type AssignmentEndState string
+
+// AssignmentListEnvelope defines model for AssignmentListEnvelope.
+type AssignmentListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]Assignment `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// Capability Slice 4 read capability vocabulary (<module>.<object>.<action>).
+type Capability string
+
 // CorrelationID Opaque request correlation identifier.
 type CorrelationID = string
+
+// EffectiveAccess Server-authoritative evaluation for the current principal (same evaluator as allowed_actions).
+type EffectiveAccess struct {
+	Authenticated bool             `json:"authenticated"`
+	Decisions     []AccessDecision `json:"decisions"`
+	HrReadEnabled bool             `json:"hr_read_enabled"`
+}
+
+// EffectiveAccessEnvelope defines model for EffectiveAccessEnvelope.
+type EffectiveAccessEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data Server-authoritative evaluation for the current principal (same evaluator as allowed_actions).
+	Data EffectiveAccess `json:"data"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// Employment Organisation relationship of a person (separate from Person and from User).
+type Employment struct {
+	Department *UnitRef `json:"department,omitempty"`
+
+	// DepartmentState RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
+	DepartmentState *RefState `json:"department_state,omitempty"`
+	EmployeeCode    *string   `json:"employee_code"`
+
+	// EmploymentId Target native identifier. Never a phone, e-mail, login or legacy key.
+	EmploymentId NativeID `json:"employment_id"`
+
+	// HireDate Calendar date when the raw value is a readable legacy DATE; otherwise null (raw kept).
+	HireDate *openapi_types.Date `json:"hire_date"`
+
+	// HireDateRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	HireDateRaw *RawText   `json:"hire_date_raw"`
+	IsActive    *bool      `json:"is_active"`
+	Level       *LookupRef `json:"level,omitempty"`
+
+	// LevelState RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
+	LevelState *RefState  `json:"level_state,omitempty"`
+	Position   *LookupRef `json:"position,omitempty"`
+
+	// PositionState RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
+	PositionState *RefState `json:"position_state,omitempty"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance Provenance `json:"provenance"`
+
+	// Status Statuses evidenced by the legacy HR UI; anything else is UNMAPPED (raw kept), a missing value is NOT_RECORDED.
+	Status EmploymentStatus `json:"status"`
+
+	// StatusRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	StatusRaw *RawText `json:"status_raw"`
+	Team      *UnitRef `json:"team,omitempty"`
+
+	// TeamState RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
+	TeamState       *RefState           `json:"team_state,omitempty"`
+	TerminationDate *openapi_types.Date `json:"termination_date"`
+
+	// TerminationDateRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	TerminationDateRaw *RawText `json:"termination_date_raw"`
+
+	// TypeRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	TypeRaw *RawText `json:"type_raw"`
+	Unit    *UnitRef `json:"unit,omitempty"`
+
+	// UnitState RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
+	UnitState *RefState `json:"unit_state,omitempty"`
+	User      struct {
+		// LinkState Person ↔ account linkage. SHARED_USER means one account is linked to several profiles (conflict).
+		LinkState UserLinkState       `json:"link_state"`
+		UserId    *openapi_types.UUID `json:"user_id"`
+	} `json:"user"`
+}
+
+// EmploymentStatus Statuses evidenced by the legacy HR UI; anything else is UNMAPPED (raw kept), a missing value is NOT_RECORDED.
+type EmploymentStatus string
 
 // FieldError defines model for FieldError.
 type FieldError struct {
@@ -290,6 +1045,51 @@ type FieldError struct {
 	// ReasonCode foundation-v1 CRM reason codes (Phase-0 spec §6; kernel/reasoncodes).
 	ReasonCode ReasonCode `json:"reason_code"`
 }
+
+// Finding A hierarchy finding. Reported, never auto-fixed. Detail names keys and reasons only.
+type Finding struct {
+	Detail string `json:"detail"`
+
+	// FindingId Target native identifier. Never a phone, e-mail, login or legacy key.
+	FindingId        NativeID            `json:"finding_id"`
+	Kind             FindingKind         `json:"kind"`
+	RelatedId        *openapi_types.UUID `json:"related_id"`
+	RelatedSourceKey *string             `json:"related_source_key"`
+	Severity         FindingSeverity     `json:"severity"`
+	SubjectId        *openapi_types.UUID `json:"subject_id"`
+	SubjectSourceKey *string             `json:"subject_source_key"`
+	SubjectType      FindingSubject      `json:"subject_type"`
+}
+
+// FindingKind defines model for FindingKind.
+type FindingKind string
+
+// FindingListEnvelope defines model for FindingListEnvelope.
+type FindingListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]Finding    `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// FindingSeverity defines model for FindingSeverity.
+type FindingSeverity string
+
+// FindingSubject defines model for FindingSubject.
+type FindingSubject string
 
 // HealthLive defines model for HealthLive.
 type HealthLive struct {
@@ -314,6 +1114,23 @@ type HealthReadyChecksStatus string
 // HealthReadyStatus defines model for HealthReady.Status.
 type HealthReadyStatus string
 
+// HistoryEntry Append-only assignment history (free-text reason/context excluded).
+type HistoryEntry struct {
+	// ActionRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	ActionRaw *RawText `json:"action_raw"`
+
+	// HistoryId Target native identifier. Never a phone, e-mail, login or legacy key.
+	HistoryId NativeID   `json:"history_id"`
+	NewParent *PersonRef `json:"new_parent,omitempty"`
+	OldParent *PersonRef `json:"old_parent,omitempty"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance Provenance `json:"provenance"`
+
+	// RecordedRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	RecordedRaw *RawText `json:"recorded_raw"`
+}
+
 // ItemOutcome Per-item outcome inside a ResultEnvelope; per-item classes are preserved.
 type ItemOutcome struct {
 	// ItemRef Domain-qualified native identifier (kernel/refs). Never a phone number.
@@ -327,6 +1144,57 @@ type ItemOutcome struct {
 	Reasons []ReasonCode `json:"reasons"`
 }
 
+// LegacyKey Legacy source key (provenance only, never identity).
+type LegacyKey = string
+
+// Lookup A position or a level (legacy lookup). Position is never a role.
+type Lookup struct {
+	Description *string `json:"description"`
+
+	// Id Target native identifier. Never a phone, e-mail, login or legacy key.
+	Id       NativeID `json:"id"`
+	IsActive *bool    `json:"is_active"`
+	IsSystem *bool    `json:"is_system"`
+	Label    *string  `json:"label"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance Provenance `json:"provenance"`
+	Slug       *string    `json:"slug"`
+	SortOrder  *int       `json:"sort_order"`
+}
+
+// LookupListEnvelope defines model for LookupListEnvelope.
+type LookupListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]Lookup     `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// LookupRef defines model for LookupRef.
+type LookupRef struct {
+	// Id Target native identifier. Never a phone, e-mail, login or legacy key.
+	Id    NativeID `json:"id"`
+	Label *string  `json:"label"`
+	Slug  *string  `json:"slug"`
+}
+
+// ManagerState Current reporting parent. MULTIPLE and MISSING are conflicts; NONE is not a defect by itself.
+type ManagerState string
+
 // Money Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
 // decimal string so that no client parses it as a floating-point number.
 type Money struct {
@@ -336,6 +1204,9 @@ type Money struct {
 	Unit Unit `json:"unit"`
 }
 
+// NativeID Target native identifier. Never a phone, e-mail, login or legacy key.
+type NativeID = openapi_types.UUID
+
 // NativeRef Domain-qualified native identifier (kernel/refs). Never a phone number.
 type NativeRef struct {
 	Domain NativeRefDomain `json:"domain"`
@@ -344,6 +1215,52 @@ type NativeRef struct {
 
 // NativeRefDomain defines model for NativeRef.Domain.
 type NativeRefDomain string
+
+// OrgUnit One node of the single typed organisation tree. A MISSING or NOT_RECORDED parent is never attached to a root.
+type OrgUnit struct {
+	FindingKinds []FindingKind `json:"finding_kinds"`
+	IsActive     *bool         `json:"is_active"`
+	Kind         OrgUnitKind   `json:"kind"`
+	Label        *string       `json:"label"`
+	MemberCount  int           `json:"member_count"`
+
+	// OrgUnitId Target native identifier. Never a phone, e-mail, login or legacy key.
+	OrgUnitId   NativeID            `json:"org_unit_id"`
+	ParentId    *openapi_types.UUID `json:"parent_id"`
+	ParentState OrgUnitParentState  `json:"parent_state"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance Provenance `json:"provenance"`
+	Slug       *string    `json:"slug"`
+	SortOrder  *int       `json:"sort_order"`
+}
+
+// OrgUnitParentState defines model for OrgUnit.ParentState.
+type OrgUnitParentState string
+
+// OrgUnitKind defines model for OrgUnitKind.
+type OrgUnitKind string
+
+// OrgUnitListEnvelope defines model for OrgUnitListEnvelope.
+type OrgUnitListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]OrgUnit    `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
 
 // Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
 // FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
@@ -356,6 +1273,92 @@ type PageInfo struct {
 	HasMore    bool    `json:"has_more"`
 	NextCursor *string `json:"next_cursor,omitempty"`
 }
+
+// PersonDetail defines model for PersonDetail.
+type PersonDetail struct {
+	Assignments   []Assignment   `json:"assignments"`
+	DirectReports []PersonRef    `json:"direct_reports"`
+	Findings      []Finding      `json:"findings"`
+	History       []HistoryEntry `json:"history"`
+
+	// Person A person (HR identity) with field-masked context: employment, structure
+	// and manager are present only when the caller's evaluated capabilities
+	// allow them (see allowed_actions).
+	Person PersonSummary `json:"person"`
+}
+
+// PersonEnvelope defines model for PersonEnvelope.
+type PersonEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Data          *PersonDetail `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// PersonListEnvelope defines model for PersonListEnvelope.
+type PersonListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID    `json:"correlation_id"`
+	Items         *[]PersonSummary `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// PersonRef defines model for PersonRef.
+type PersonRef struct {
+	DisplayName *string `json:"display_name"`
+
+	// EmploymentId Target native identifier. Never a phone, e-mail, login or legacy key.
+	EmploymentId NativeID `json:"employment_id"`
+
+	// PersonId Target native identifier. Never a phone, e-mail, login or legacy key.
+	PersonId NativeID `json:"person_id"`
+}
+
+// PersonSummary A person (HR identity) with field-masked context: employment, structure
+// and manager are present only when the caller's evaluated capabilities
+// allow them (see allowed_actions).
+type PersonSummary struct {
+	DisplayName *string `json:"display_name"`
+
+	// Employment Organisation relationship of a person (separate from Person and from User).
+	Employment   *Employment `json:"employment,omitempty"`
+	FindingCount int         `json:"finding_count"`
+	Manager      *PersonRef  `json:"manager,omitempty"`
+
+	// ManagerState Current reporting parent. MULTIPLE and MISSING are conflicts; NONE is not a defect by itself.
+	ManagerState *ManagerState `json:"manager_state,omitempty"`
+
+	// PersonId Target native identifier. Never a phone, e-mail, login or legacy key.
+	PersonId NativeID `json:"person_id"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance Provenance `json:"provenance"`
+}
+
+// Presence Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+type Presence string
 
 // Problem RFC 9457 problem details with a foundation-v1 reason_code.
 type Problem struct {
@@ -372,8 +1375,37 @@ type Problem struct {
 	Type       string     `json:"type"`
 }
 
+// Provenance Source provenance of an imported shadow row.
+type Provenance struct {
+	// BatchId Target native identifier. Never a phone, e-mail, login or legacy key.
+	BatchId NativeID `json:"batch_id"`
+
+	// ImportedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	ImportedAt Timestamp `json:"imported_at"`
+
+	// Presence Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+	Presence Presence `json:"presence"`
+
+	// RefreshedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	RefreshedAt Timestamp `json:"refreshed_at"`
+
+	// SourceKey Legacy source key (provenance only, never identity).
+	SourceKey    LegacyKey `json:"source_key"`
+	SourceSpec   string    `json:"source_spec"`
+	SourceSystem string    `json:"source_system"`
+}
+
+// RawText Raw legacy value kept verbatim as evidence (not interpreted).
+type RawText = string
+
 // ReasonCode foundation-v1 CRM reason codes (Phase-0 spec §6; kernel/reasoncodes).
 type ReasonCode string
+
+// Reasons defines model for Reasons.
+type Reasons = []ReasonCode
+
+// RefState RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
+type RefState string
 
 // ResultEnvelope Generic business result (Architecture V1 §23). Concrete envelopes add a
 // typed data property. An item-level mix aggregates to PARTIAL.
@@ -403,7 +1435,13 @@ type SessionContext struct {
 
 	// DisplayZone Presentation default zone (IANA). Not storage truth.
 	DisplayZone SessionContextDisplayZone `json:"display_zone"`
-	Principal   *struct {
+
+	// Features Server feature switches for navigation only (Slice 4 rollback is
+	// flag-off). Never authority: every read is evaluated by the server.
+	Features *struct {
+		HrRead bool `json:"hr_read"`
+	} `json:"features,omitempty"`
+	Principal *struct {
 		DisplayName string                           `json:"display_name"`
 		PrincipalId string                           `json:"principal_id"`
 		Synthetic   SessionContextPrincipalSynthetic `json:"synthetic"`
@@ -441,8 +1479,82 @@ type Timestamp = time.Time
 // Unit Explicit monetary unit. IRR and IRT are distinct; there is no conversion.
 type Unit string
 
+// UnitRef defines model for UnitRef.
+type UnitRef struct {
+	// Id Target native identifier. Never a phone, e-mail, login or legacy key.
+	Id    NativeID    `json:"id"`
+	Kind  OrgUnitKind `json:"kind"`
+	Label *string     `json:"label"`
+}
+
+// UserEnvelope defines model for UserEnvelope.
+type UserEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Data          *UserSummary  `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// UserLinkState Person ↔ account linkage. SHARED_USER means one account is linked to several profiles (conflict).
+type UserLinkState string
+
+// UserListEnvelope defines model for UserListEnvelope.
+type UserListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID  `json:"correlation_id"`
+	Items         *[]UserSummary `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// UserSummary defines model for UserSummary.
+type UserSummary struct {
+	// AccountState Slice 4 accounts are a read/shadow model only.
+	AccountState UserSummaryAccountState `json:"account_state"`
+	DisplayName  *string                 `json:"display_name"`
+
+	// LoginEnabled Always false; there is no production authentication in Slice 4.
+	LoginEnabled UserSummaryLoginEnabled `json:"login_enabled"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance Provenance `json:"provenance"`
+
+	// UserId Target native identifier. Never a phone, e-mail, login or legacy key.
+	UserId NativeID `json:"user_id"`
+}
+
+// UserSummaryAccountState Slice 4 accounts are a read/shadow model only.
+type UserSummaryAccountState string
+
+// UserSummaryLoginEnabled Always false; there is no production authentication in Slice 4.
+type UserSummaryLoginEnabled bool
+
 // Cursor defines model for Cursor.
 type Cursor = string
+
+// HasFindings defines model for HasFindings.
+type HasFindings = bool
 
 // IdempotencyKey defines model for IdempotencyKey.
 type IdempotencyKey = string
@@ -450,11 +1562,175 @@ type IdempotencyKey = string
 // IfMatch defines model for IfMatch.
 type IfMatch = string
 
+// IsActive defines model for IsActive.
+type IsActive = bool
+
+// IsCurrent defines model for IsCurrent.
+type IsCurrent = bool
+
+// LevelID Target native identifier. Never a phone, e-mail, login or legacy key.
+type LevelID = NativeID
+
 // Limit defines model for Limit.
 type Limit = int
 
+// OrgUnitID Target native identifier. Never a phone, e-mail, login or legacy key.
+type OrgUnitID = NativeID
+
+// PersonID Target native identifier. Never a phone, e-mail, login or legacy key.
+type PersonID = NativeID
+
+// PersonSort defines model for PersonSort.
+type PersonSort string
+
+// PositionID Target native identifier. Never a phone, e-mail, login or legacy key.
+type PositionID = NativeID
+
+// Query defines model for Query.
+type Query = string
+
+// Relation defines model for Relation.
+type Relation string
+
+// RelationshipKind defines model for RelationshipKind.
+type RelationshipKind string
+
+// UserSort defines model for UserSort.
+type UserSort string
+
+// Denied Generic business result (Architecture V1 §23). Concrete envelopes add a
+// typed data property. An item-level mix aggregates to PARTIAL.
+type Denied = ResultEnvelope
+
+// ListIdentityUsersParams defines parameters for ListIdentityUsers.
+type ListIdentityUsersParams struct {
+	// Q Case-insensitive substring of the display name (persons also match the employee code).
+	Q        *Query    `form:"q,omitempty" json:"q,omitempty"`
+	Presence *Presence `form:"presence,omitempty" json:"presence,omitempty"`
+
+	// Sort Allowlisted sort; a leading "-" is descending.
+	Sort *ListIdentityUsersParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListIdentityUsersParamsSort defines parameters for ListIdentityUsers.
+type ListIdentityUsersParamsSort string
+
+// ListOrganizationAssignmentsParams defines parameters for ListOrganizationAssignments.
+type ListOrganizationAssignmentsParams struct {
+	PersonId *PersonID `form:"person_id,omitempty" json:"person_id,omitempty"`
+
+	// Relation With person_id, restrict to assignments where the person is the CHILD or the PARENT.
+	Relation         *ListOrganizationAssignmentsParamsRelation         `form:"relation,omitempty" json:"relation,omitempty"`
+	IsCurrent        *IsCurrent                                         `form:"is_current,omitempty" json:"is_current,omitempty"`
+	RelationshipKind *ListOrganizationAssignmentsParamsRelationshipKind `form:"relationship_kind,omitempty" json:"relationship_kind,omitempty"`
+	HasFindings      *HasFindings                                       `form:"has_findings,omitempty" json:"has_findings,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListOrganizationAssignmentsParamsRelation defines parameters for ListOrganizationAssignments.
+type ListOrganizationAssignmentsParamsRelation string
+
+// ListOrganizationAssignmentsParamsRelationshipKind defines parameters for ListOrganizationAssignments.
+type ListOrganizationAssignmentsParamsRelationshipKind string
+
+// ListOrganizationHierarchyFindingsParams defines parameters for ListOrganizationHierarchyFindings.
+type ListOrganizationHierarchyFindingsParams struct {
+	Kind        *FindingKind     `form:"kind,omitempty" json:"kind,omitempty"`
+	Severity    *FindingSeverity `form:"severity,omitempty" json:"severity,omitempty"`
+	SubjectType *FindingSubject  `form:"subject_type,omitempty" json:"subject_type,omitempty"`
+	PersonId    *PersonID        `form:"person_id,omitempty" json:"person_id,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListOrganizationLevelsParams defines parameters for ListOrganizationLevels.
+type ListOrganizationLevelsParams struct {
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListOrganizationOrgUnitsParams defines parameters for ListOrganizationOrgUnits.
+type ListOrganizationOrgUnitsParams struct {
+	Kind *OrgUnitKind `form:"kind,omitempty" json:"kind,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListOrganizationPersonsParams defines parameters for ListOrganizationPersons.
+type ListOrganizationPersonsParams struct {
+	// Q Case-insensitive substring of the display name (persons also match the employee code).
+	Q                *Query            `form:"q,omitempty" json:"q,omitempty"`
+	EmploymentStatus *EmploymentStatus `form:"employment_status,omitempty" json:"employment_status,omitempty"`
+	PositionId       *PositionID       `form:"position_id,omitempty" json:"position_id,omitempty"`
+	LevelId          *LevelID          `form:"level_id,omitempty" json:"level_id,omitempty"`
+
+	// OrgUnitId Matches the person's department, unit or team.
+	OrgUnitId   *OrgUnitID   `form:"org_unit_id,omitempty" json:"org_unit_id,omitempty"`
+	IsActive    *IsActive    `form:"is_active,omitempty" json:"is_active,omitempty"`
+	HasFindings *HasFindings `form:"has_findings,omitempty" json:"has_findings,omitempty"`
+
+	// Sort Allowlisted sort; a leading "-" is descending.
+	Sort *ListOrganizationPersonsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListOrganizationPersonsParamsSort defines parameters for ListOrganizationPersons.
+type ListOrganizationPersonsParamsSort string
+
+// ListOrganizationPositionsParams defines parameters for ListOrganizationPositions.
+type ListOrganizationPositionsParams struct {
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetEffectiveAccess Effective access of the current principal
+	// (GET /api/v1/authorization/effective-access)
+	GetEffectiveAccess(w http.ResponseWriter, r *http.Request)
+	// ListIdentityUsers List shadow user accounts
+	// (GET /api/v1/identity/users)
+	ListIdentityUsers(w http.ResponseWriter, r *http.Request, params ListIdentityUsersParams)
+	// GetIdentityUser Get one shadow user account
+	// (GET /api/v1/identity/users/{user_id})
+	GetIdentityUser(w http.ResponseWriter, r *http.Request, userId NativeID)
+	// ListOrganizationAssignments List reporting assignments
+	// (GET /api/v1/organization/assignments)
+	ListOrganizationAssignments(w http.ResponseWriter, r *http.Request, params ListOrganizationAssignmentsParams)
+	// ListOrganizationHierarchyFindings List hierarchy findings
+	// (GET /api/v1/organization/hierarchy-findings)
+	ListOrganizationHierarchyFindings(w http.ResponseWriter, r *http.Request, params ListOrganizationHierarchyFindingsParams)
+	// ListOrganizationLevels List levels
+	// (GET /api/v1/organization/levels)
+	ListOrganizationLevels(w http.ResponseWriter, r *http.Request, params ListOrganizationLevelsParams)
+	// ListOrganizationOrgUnits List org units (one typed tree)
+	// (GET /api/v1/organization/org-units)
+	ListOrganizationOrgUnits(w http.ResponseWriter, r *http.Request, params ListOrganizationOrgUnitsParams)
+	// ListOrganizationPersons List persons (HR workforce)
+	// (GET /api/v1/organization/persons)
+	ListOrganizationPersons(w http.ResponseWriter, r *http.Request, params ListOrganizationPersonsParams)
+	// GetOrganizationPerson Get one person with employment, assignments, history and findings
+	// (GET /api/v1/organization/persons/{person_id})
+	GetOrganizationPerson(w http.ResponseWriter, r *http.Request, personId NativeID)
+	// ListOrganizationPositions List positions
+	// (GET /api/v1/organization/positions)
+	ListOrganizationPositions(w http.ResponseWriter, r *http.Request, params ListOrganizationPositionsParams)
 	// GetSession Current session context
 	// (GET /api/v1/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
@@ -474,6 +1750,667 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetEffectiveAccess operation middleware
+func (siw *ServerInterfaceWrapper) GetEffectiveAccess(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEffectiveAccess(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListIdentityUsers operation middleware
+func (siw *ServerInterfaceWrapper) ListIdentityUsers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListIdentityUsersParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListIdentityUsers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetIdentityUser operation middleware
+func (siw *ServerInterfaceWrapper) GetIdentityUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "user_id" -------------
+	var userId NativeID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", r.PathValue("user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetIdentityUser(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationAssignments operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationAssignments(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationAssignmentsParams
+
+	// ------------- Optional query parameter "person_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "person_id", r.URL.Query(), &params.PersonId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "person_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "person_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "relation" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "relation", r.URL.Query(), &params.Relation, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "relation"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "relation", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "is_current" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "is_current", r.URL.Query(), &params.IsCurrent, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "is_current"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "is_current", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "relationship_kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "relationship_kind", r.URL.Query(), &params.RelationshipKind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "relationship_kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "relationship_kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "has_findings" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "has_findings", r.URL.Query(), &params.HasFindings, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has_findings"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has_findings", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationAssignments(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationHierarchyFindings operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationHierarchyFindings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationHierarchyFindingsParams
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kind", r.URL.Query(), &params.Kind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "severity" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "severity", r.URL.Query(), &params.Severity, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "severity"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "severity", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "subject_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subject_type", r.URL.Query(), &params.SubjectType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subject_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "person_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "person_id", r.URL.Query(), &params.PersonId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "person_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "person_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationHierarchyFindings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationLevels operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationLevels(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationLevelsParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationLevels(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationOrgUnits operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationOrgUnits(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationOrgUnitsParams
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kind", r.URL.Query(), &params.Kind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationOrgUnits(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationPersons operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationPersons(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationPersonsParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "employment_status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "employment_status", r.URL.Query(), &params.EmploymentStatus, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "employment_status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "employment_status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "position_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "position_id", r.URL.Query(), &params.PositionId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "position_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "position_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "level_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "level_id", r.URL.Query(), &params.LevelId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "level_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "level_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "org_unit_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "org_unit_id", r.URL.Query(), &params.OrgUnitId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "org_unit_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "org_unit_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "is_active" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "is_active", r.URL.Query(), &params.IsActive, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "is_active"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "is_active", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "has_findings" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "has_findings", r.URL.Query(), &params.HasFindings, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has_findings"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has_findings", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationPersons(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrganizationPerson operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganizationPerson(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "person_id" -------------
+	var personId NativeID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "person_id", r.PathValue("person_id"), &personId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "person_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganizationPerson(w, r, personId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationPositions operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationPositions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationPositionsParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationPositions(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetSession operation middleware
 func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
@@ -640,8 +2577,27 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/health/live", wrapper.GetHealthLive)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/health/ready", wrapper.GetHealthReady)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/session", wrapper.GetSession)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/identity/users", wrapper.ListIdentityUsers)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/identity/users/{user_id}", wrapper.GetIdentityUser)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/persons", wrapper.ListOrganizationPersons)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/persons/{person_id}", wrapper.GetOrganizationPerson)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/positions", wrapper.ListOrganizationPositions)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/levels", wrapper.ListOrganizationLevels)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/org-units", wrapper.ListOrganizationOrgUnits)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/assignments", wrapper.ListOrganizationAssignments)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/hierarchy-findings", wrapper.ListOrganizationHierarchyFindings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/authorization/effective-access", wrapper.GetEffectiveAccess)
 
 	return m
+}
+
+type DeniedResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+type DeniedJSONResponse struct {
+	Body ResultEnvelope
+
+	Headers DeniedResponseHeaders
 }
 
 type ProblemResponseHeaders struct {
@@ -651,6 +2607,966 @@ type ProblemApplicationProblemPlusJSONResponse struct {
 	Body Problem
 
 	Headers ProblemResponseHeaders
+}
+
+type GetEffectiveAccessRequestObject struct {
+}
+
+type GetEffectiveAccessResponseObject interface {
+	VisitGetEffectiveAccessResponse(w http.ResponseWriter) error
+}
+
+type GetEffectiveAccess200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetEffectiveAccess200JSONResponse struct {
+	Body    EffectiveAccessEnvelope
+	Headers GetEffectiveAccess200ResponseHeaders
+}
+
+func (response GetEffectiveAccess200JSONResponse) VisitGetEffectiveAccessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEffectiveAccess400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetEffectiveAccess400ApplicationProblemPlusJSONResponse) VisitGetEffectiveAccessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEffectiveAccessdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetEffectiveAccessdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetEffectiveAccessdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetEffectiveAccessdefaultApplicationProblemPlusJSONResponse) VisitGetEffectiveAccessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListIdentityUsersRequestObject struct {
+	Params ListIdentityUsersParams
+}
+
+type ListIdentityUsersResponseObject interface {
+	VisitListIdentityUsersResponse(w http.ResponseWriter) error
+}
+
+type ListIdentityUsers200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListIdentityUsers200JSONResponse struct {
+	Body    UserListEnvelope
+	Headers ListIdentityUsers200ResponseHeaders
+}
+
+func (response ListIdentityUsers200JSONResponse) VisitListIdentityUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListIdentityUsers400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListIdentityUsers400ApplicationProblemPlusJSONResponse) VisitListIdentityUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListIdentityUsers403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListIdentityUsers403JSONResponse) VisitListIdentityUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListIdentityUsersdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListIdentityUsersdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListIdentityUsersdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListIdentityUsersdefaultApplicationProblemPlusJSONResponse) VisitListIdentityUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIdentityUserRequestObject struct {
+	UserId NativeID `json:"user_id"`
+}
+
+type GetIdentityUserResponseObject interface {
+	VisitGetIdentityUserResponse(w http.ResponseWriter) error
+}
+
+type GetIdentityUser200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetIdentityUser200JSONResponse struct {
+	Body    UserEnvelope
+	Headers GetIdentityUser200ResponseHeaders
+}
+
+func (response GetIdentityUser200JSONResponse) VisitGetIdentityUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIdentityUser400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetIdentityUser400ApplicationProblemPlusJSONResponse) VisitGetIdentityUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIdentityUser403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetIdentityUser403JSONResponse) VisitGetIdentityUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIdentityUser404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetIdentityUser404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetIdentityUser404ResponseHeaders
+}
+
+func (response GetIdentityUser404ApplicationProblemPlusJSONResponse) VisitGetIdentityUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIdentityUserdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetIdentityUserdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetIdentityUserdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetIdentityUserdefaultApplicationProblemPlusJSONResponse) VisitGetIdentityUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationAssignmentsRequestObject struct {
+	Params ListOrganizationAssignmentsParams
+}
+
+type ListOrganizationAssignmentsResponseObject interface {
+	VisitListOrganizationAssignmentsResponse(w http.ResponseWriter) error
+}
+
+type ListOrganizationAssignments200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationAssignments200JSONResponse struct {
+	Body    AssignmentListEnvelope
+	Headers ListOrganizationAssignments200ResponseHeaders
+}
+
+func (response ListOrganizationAssignments200JSONResponse) VisitListOrganizationAssignmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationAssignments400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListOrganizationAssignments400ApplicationProblemPlusJSONResponse) VisitListOrganizationAssignmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationAssignments403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListOrganizationAssignments403JSONResponse) VisitListOrganizationAssignmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationAssignmentsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationAssignmentsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListOrganizationAssignmentsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListOrganizationAssignmentsdefaultApplicationProblemPlusJSONResponse) VisitListOrganizationAssignmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationHierarchyFindingsRequestObject struct {
+	Params ListOrganizationHierarchyFindingsParams
+}
+
+type ListOrganizationHierarchyFindingsResponseObject interface {
+	VisitListOrganizationHierarchyFindingsResponse(w http.ResponseWriter) error
+}
+
+type ListOrganizationHierarchyFindings200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationHierarchyFindings200JSONResponse struct {
+	Body    FindingListEnvelope
+	Headers ListOrganizationHierarchyFindings200ResponseHeaders
+}
+
+func (response ListOrganizationHierarchyFindings200JSONResponse) VisitListOrganizationHierarchyFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationHierarchyFindings400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListOrganizationHierarchyFindings400ApplicationProblemPlusJSONResponse) VisitListOrganizationHierarchyFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationHierarchyFindings403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListOrganizationHierarchyFindings403JSONResponse) VisitListOrganizationHierarchyFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationHierarchyFindingsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationHierarchyFindingsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListOrganizationHierarchyFindingsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListOrganizationHierarchyFindingsdefaultApplicationProblemPlusJSONResponse) VisitListOrganizationHierarchyFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationLevelsRequestObject struct {
+	Params ListOrganizationLevelsParams
+}
+
+type ListOrganizationLevelsResponseObject interface {
+	VisitListOrganizationLevelsResponse(w http.ResponseWriter) error
+}
+
+type ListOrganizationLevels200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationLevels200JSONResponse struct {
+	Body    LookupListEnvelope
+	Headers ListOrganizationLevels200ResponseHeaders
+}
+
+func (response ListOrganizationLevels200JSONResponse) VisitListOrganizationLevelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationLevels400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListOrganizationLevels400ApplicationProblemPlusJSONResponse) VisitListOrganizationLevelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationLevels403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListOrganizationLevels403JSONResponse) VisitListOrganizationLevelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationLevelsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationLevelsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListOrganizationLevelsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListOrganizationLevelsdefaultApplicationProblemPlusJSONResponse) VisitListOrganizationLevelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationOrgUnitsRequestObject struct {
+	Params ListOrganizationOrgUnitsParams
+}
+
+type ListOrganizationOrgUnitsResponseObject interface {
+	VisitListOrganizationOrgUnitsResponse(w http.ResponseWriter) error
+}
+
+type ListOrganizationOrgUnits200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationOrgUnits200JSONResponse struct {
+	Body    OrgUnitListEnvelope
+	Headers ListOrganizationOrgUnits200ResponseHeaders
+}
+
+func (response ListOrganizationOrgUnits200JSONResponse) VisitListOrganizationOrgUnitsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationOrgUnits400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListOrganizationOrgUnits400ApplicationProblemPlusJSONResponse) VisitListOrganizationOrgUnitsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationOrgUnits403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListOrganizationOrgUnits403JSONResponse) VisitListOrganizationOrgUnitsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationOrgUnitsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationOrgUnitsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListOrganizationOrgUnitsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListOrganizationOrgUnitsdefaultApplicationProblemPlusJSONResponse) VisitListOrganizationOrgUnitsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationPersonsRequestObject struct {
+	Params ListOrganizationPersonsParams
+}
+
+type ListOrganizationPersonsResponseObject interface {
+	VisitListOrganizationPersonsResponse(w http.ResponseWriter) error
+}
+
+type ListOrganizationPersons200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationPersons200JSONResponse struct {
+	Body    PersonListEnvelope
+	Headers ListOrganizationPersons200ResponseHeaders
+}
+
+func (response ListOrganizationPersons200JSONResponse) VisitListOrganizationPersonsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationPersons400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListOrganizationPersons400ApplicationProblemPlusJSONResponse) VisitListOrganizationPersonsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationPersons403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListOrganizationPersons403JSONResponse) VisitListOrganizationPersonsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationPersonsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationPersonsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListOrganizationPersonsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListOrganizationPersonsdefaultApplicationProblemPlusJSONResponse) VisitListOrganizationPersonsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrganizationPersonRequestObject struct {
+	PersonId NativeID `json:"person_id"`
+}
+
+type GetOrganizationPersonResponseObject interface {
+	VisitGetOrganizationPersonResponse(w http.ResponseWriter) error
+}
+
+type GetOrganizationPerson200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetOrganizationPerson200JSONResponse struct {
+	Body    PersonEnvelope
+	Headers GetOrganizationPerson200ResponseHeaders
+}
+
+func (response GetOrganizationPerson200JSONResponse) VisitGetOrganizationPersonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrganizationPerson400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetOrganizationPerson400ApplicationProblemPlusJSONResponse) VisitGetOrganizationPersonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrganizationPerson403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetOrganizationPerson403JSONResponse) VisitGetOrganizationPersonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrganizationPerson404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetOrganizationPerson404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetOrganizationPerson404ResponseHeaders
+}
+
+func (response GetOrganizationPerson404ApplicationProblemPlusJSONResponse) VisitGetOrganizationPersonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOrganizationPersondefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetOrganizationPersondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetOrganizationPersondefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetOrganizationPersondefaultApplicationProblemPlusJSONResponse) VisitGetOrganizationPersonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationPositionsRequestObject struct {
+	Params ListOrganizationPositionsParams
+}
+
+type ListOrganizationPositionsResponseObject interface {
+	VisitListOrganizationPositionsResponse(w http.ResponseWriter) error
+}
+
+type ListOrganizationPositions200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationPositions200JSONResponse struct {
+	Body    LookupListEnvelope
+	Headers ListOrganizationPositions200ResponseHeaders
+}
+
+func (response ListOrganizationPositions200JSONResponse) VisitListOrganizationPositionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationPositions400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListOrganizationPositions400ApplicationProblemPlusJSONResponse) VisitListOrganizationPositionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationPositions403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListOrganizationPositions403JSONResponse) VisitListOrganizationPositionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrganizationPositionsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListOrganizationPositionsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListOrganizationPositionsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListOrganizationPositionsdefaultApplicationProblemPlusJSONResponse) VisitListOrganizationPositionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type GetSessionRequestObject struct {
@@ -858,6 +3774,36 @@ func (response GetHealthReadydefaultApplicationProblemPlusJSONResponse) VisitGet
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// GetEffectiveAccess Effective access of the current principal
+	// (GET /api/v1/authorization/effective-access)
+	GetEffectiveAccess(ctx context.Context, request GetEffectiveAccessRequestObject) (GetEffectiveAccessResponseObject, error)
+	// ListIdentityUsers List shadow user accounts
+	// (GET /api/v1/identity/users)
+	ListIdentityUsers(ctx context.Context, request ListIdentityUsersRequestObject) (ListIdentityUsersResponseObject, error)
+	// GetIdentityUser Get one shadow user account
+	// (GET /api/v1/identity/users/{user_id})
+	GetIdentityUser(ctx context.Context, request GetIdentityUserRequestObject) (GetIdentityUserResponseObject, error)
+	// ListOrganizationAssignments List reporting assignments
+	// (GET /api/v1/organization/assignments)
+	ListOrganizationAssignments(ctx context.Context, request ListOrganizationAssignmentsRequestObject) (ListOrganizationAssignmentsResponseObject, error)
+	// ListOrganizationHierarchyFindings List hierarchy findings
+	// (GET /api/v1/organization/hierarchy-findings)
+	ListOrganizationHierarchyFindings(ctx context.Context, request ListOrganizationHierarchyFindingsRequestObject) (ListOrganizationHierarchyFindingsResponseObject, error)
+	// ListOrganizationLevels List levels
+	// (GET /api/v1/organization/levels)
+	ListOrganizationLevels(ctx context.Context, request ListOrganizationLevelsRequestObject) (ListOrganizationLevelsResponseObject, error)
+	// ListOrganizationOrgUnits List org units (one typed tree)
+	// (GET /api/v1/organization/org-units)
+	ListOrganizationOrgUnits(ctx context.Context, request ListOrganizationOrgUnitsRequestObject) (ListOrganizationOrgUnitsResponseObject, error)
+	// ListOrganizationPersons List persons (HR workforce)
+	// (GET /api/v1/organization/persons)
+	ListOrganizationPersons(ctx context.Context, request ListOrganizationPersonsRequestObject) (ListOrganizationPersonsResponseObject, error)
+	// GetOrganizationPerson Get one person with employment, assignments, history and findings
+	// (GET /api/v1/organization/persons/{person_id})
+	GetOrganizationPerson(ctx context.Context, request GetOrganizationPersonRequestObject) (GetOrganizationPersonResponseObject, error)
+	// ListOrganizationPositions List positions
+	// (GET /api/v1/organization/positions)
+	ListOrganizationPositions(ctx context.Context, request ListOrganizationPositionsRequestObject) (ListOrganizationPositionsResponseObject, error)
 	// GetSession Current session context
 	// (GET /api/v1/session)
 	GetSession(ctx context.Context, request GetSessionRequestObject) (GetSessionResponseObject, error)
@@ -906,6 +3852,264 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetEffectiveAccess operation middleware
+func (sh *strictHandler) GetEffectiveAccess(w http.ResponseWriter, r *http.Request) {
+	var request GetEffectiveAccessRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetEffectiveAccess(ctx, request.(GetEffectiveAccessRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetEffectiveAccess")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetEffectiveAccessResponseObject); ok {
+		if err := validResponse.VisitGetEffectiveAccessResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListIdentityUsers operation middleware
+func (sh *strictHandler) ListIdentityUsers(w http.ResponseWriter, r *http.Request, params ListIdentityUsersParams) {
+	var request ListIdentityUsersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListIdentityUsers(ctx, request.(ListIdentityUsersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListIdentityUsers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListIdentityUsersResponseObject); ok {
+		if err := validResponse.VisitListIdentityUsersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetIdentityUser operation middleware
+func (sh *strictHandler) GetIdentityUser(w http.ResponseWriter, r *http.Request, userId NativeID) {
+	var request GetIdentityUserRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetIdentityUser(ctx, request.(GetIdentityUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetIdentityUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetIdentityUserResponseObject); ok {
+		if err := validResponse.VisitGetIdentityUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListOrganizationAssignments operation middleware
+func (sh *strictHandler) ListOrganizationAssignments(w http.ResponseWriter, r *http.Request, params ListOrganizationAssignmentsParams) {
+	var request ListOrganizationAssignmentsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrganizationAssignments(ctx, request.(ListOrganizationAssignmentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrganizationAssignments")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListOrganizationAssignmentsResponseObject); ok {
+		if err := validResponse.VisitListOrganizationAssignmentsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListOrganizationHierarchyFindings operation middleware
+func (sh *strictHandler) ListOrganizationHierarchyFindings(w http.ResponseWriter, r *http.Request, params ListOrganizationHierarchyFindingsParams) {
+	var request ListOrganizationHierarchyFindingsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrganizationHierarchyFindings(ctx, request.(ListOrganizationHierarchyFindingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrganizationHierarchyFindings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListOrganizationHierarchyFindingsResponseObject); ok {
+		if err := validResponse.VisitListOrganizationHierarchyFindingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListOrganizationLevels operation middleware
+func (sh *strictHandler) ListOrganizationLevels(w http.ResponseWriter, r *http.Request, params ListOrganizationLevelsParams) {
+	var request ListOrganizationLevelsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrganizationLevels(ctx, request.(ListOrganizationLevelsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrganizationLevels")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListOrganizationLevelsResponseObject); ok {
+		if err := validResponse.VisitListOrganizationLevelsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListOrganizationOrgUnits operation middleware
+func (sh *strictHandler) ListOrganizationOrgUnits(w http.ResponseWriter, r *http.Request, params ListOrganizationOrgUnitsParams) {
+	var request ListOrganizationOrgUnitsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrganizationOrgUnits(ctx, request.(ListOrganizationOrgUnitsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrganizationOrgUnits")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListOrganizationOrgUnitsResponseObject); ok {
+		if err := validResponse.VisitListOrganizationOrgUnitsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListOrganizationPersons operation middleware
+func (sh *strictHandler) ListOrganizationPersons(w http.ResponseWriter, r *http.Request, params ListOrganizationPersonsParams) {
+	var request ListOrganizationPersonsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrganizationPersons(ctx, request.(ListOrganizationPersonsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrganizationPersons")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListOrganizationPersonsResponseObject); ok {
+		if err := validResponse.VisitListOrganizationPersonsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetOrganizationPerson operation middleware
+func (sh *strictHandler) GetOrganizationPerson(w http.ResponseWriter, r *http.Request, personId NativeID) {
+	var request GetOrganizationPersonRequestObject
+
+	request.PersonId = personId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOrganizationPerson(ctx, request.(GetOrganizationPersonRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOrganizationPerson")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetOrganizationPersonResponseObject); ok {
+		if err := validResponse.VisitGetOrganizationPersonResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListOrganizationPositions operation middleware
+func (sh *strictHandler) ListOrganizationPositions(w http.ResponseWriter, r *http.Request, params ListOrganizationPositionsParams) {
+	var request ListOrganizationPositionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrganizationPositions(ctx, request.(ListOrganizationPositionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrganizationPositions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListOrganizationPositionsResponseObject); ok {
+		if err := validResponse.VisitListOrganizationPositionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetSession operation middleware

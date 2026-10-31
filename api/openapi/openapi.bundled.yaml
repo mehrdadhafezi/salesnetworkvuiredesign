@@ -4,8 +4,10 @@ info:
   version: 0.2.0
   description: |
     Authoritative HTTP contract of the standalone CRM (Architecture V1 §23).
-    Slice 2 exposes only technical health and a development session surface;
-    reusable components define the conventions future slices must use.
+    Slice 2 exposes technical health and a development session surface.
+    Slice 4 adds READ-ONLY identity / organization / authorization surfaces
+    over the shadow read model (no write operation exists). Reusable
+    components define the conventions future slices must use.
 
     Conventions:
     - Business outcomes use the ResultEnvelope with the seven frozen outcomes.
@@ -28,6 +30,12 @@ tags:
     description: Technical liveness/readiness. Not business outcomes.
   - name: session
     description: Session context for the SPA shell.
+  - name: identity
+    description: Slice 4 read-only shadow identity model (no authentication).
+  - name: organization
+    description: Slice 4 read-only shadow organization model (HR read).
+  - name: authorization
+    description: Slice 4 read evaluator (server-authoritative effective access).
 paths:
   /health/live:
     get:
@@ -103,6 +111,314 @@ paths:
           $ref: '#/components/responses/Problem'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/identity/users:
+    get:
+      tags:
+        - identity
+      operationId: listIdentityUsers
+      summary: List shadow user accounts
+      description: |
+        Requires identity.user.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Query'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/UserSort'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/identity/users/{user_id}:
+    get:
+      tags:
+        - identity
+      operationId: getIdentityUser
+      summary: Get one shadow user account
+      description: |
+        Requires identity.user.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/organization/persons:
+    get:
+      tags:
+        - organization
+      operationId: listOrganizationPersons
+      summary: List persons (HR workforce)
+      description: |
+        Requires org.person.read; employment, structure and manager context are field-masked by
+        org.employment.read, org.position.read, org.unit.read and org.assignment.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Query'
+        - $ref: '#/components/parameters/EmploymentStatus'
+        - $ref: '#/components/parameters/PositionID'
+        - $ref: '#/components/parameters/LevelID'
+        - $ref: '#/components/parameters/OrgUnitID'
+        - $ref: '#/components/parameters/IsActive'
+        - $ref: '#/components/parameters/HasFindings'
+        - $ref: '#/components/parameters/PersonSort'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/organization/persons/{person_id}:
+    get:
+      tags:
+        - organization
+      operationId: getOrganizationPerson
+      summary: Get one person with employment, assignments, history and findings
+      description: |
+        Requires org.person.read; sections are field-masked per capability. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - name: person_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/organization/positions:
+    get:
+      tags:
+        - organization
+      operationId: listOrganizationPositions
+      summary: List positions
+      description: |
+        Requires org.position.read. Positions are HR facts, never roles. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LookupListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/organization/levels:
+    get:
+      tags:
+        - organization
+      operationId: listOrganizationLevels
+      summary: List levels
+      description: |
+        Requires org.position.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LookupListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/organization/org-units:
+    get:
+      tags:
+        - organization
+      operationId: listOrganizationOrgUnits
+      summary: List org units (one typed tree)
+      description: |
+        Requires org.unit.read. Ordered departments, units, teams. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/OrgUnitKind'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgUnitListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/organization/assignments:
+    get:
+      tags:
+        - organization
+      operationId: listOrganizationAssignments
+      summary: List reporting assignments
+      description: |
+        Requires org.assignment.read. Interval text is raw legacy evidence (zone UNKNOWN). Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/PersonID'
+        - $ref: '#/components/parameters/Relation'
+        - $ref: '#/components/parameters/IsCurrent'
+        - $ref: '#/components/parameters/RelationshipKind'
+        - $ref: '#/components/parameters/HasFindings'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/organization/hierarchy-findings:
+    get:
+      tags:
+        - organization
+      operationId: listOrganizationHierarchyFindings
+      summary: List hierarchy findings
+      description: |
+        Requires org.assignment.read. Findings are reported, never auto-fixed. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/FindingKind'
+        - $ref: '#/components/parameters/FindingSeverity'
+        - $ref: '#/components/parameters/FindingSubject'
+        - $ref: '#/components/parameters/PersonID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindingListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/authorization/effective-access:
+    get:
+      tags:
+        - authorization
+      operationId: getEffectiveAccess
+      summary: Effective access of the current principal
+      description: |
+        Evaluates every Slice 4 capability for the caller with the same
+        evaluator that produces allowed_actions. Anonymous callers receive
+        an all-denied evaluation. Read-only.
+      responses:
+        '200':
+          description: Evaluation (always returned; denial is data here, not an error).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EffectiveAccessEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
 components:
   parameters:
     CorrelationID:
@@ -148,6 +464,139 @@ components:
         minimum: 1
         maximum: 200
         default: 50
+    Query:
+      name: q
+      in: query
+      required: false
+      description: Case-insensitive substring of the display name (persons also match the employee code).
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+    Presence:
+      name: presence
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/Presence'
+    UserSort:
+      name: sort
+      in: query
+      required: false
+      description: Allowlisted sort; a leading "-" is descending.
+      schema:
+        type: string
+        enum:
+          - display_name
+          - -display_name
+        default: display_name
+    EmploymentStatus:
+      name: employment_status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/EmploymentStatus'
+    PositionID:
+      name: position_id
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/NativeID'
+    LevelID:
+      name: level_id
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/NativeID'
+    OrgUnitID:
+      name: org_unit_id
+      in: query
+      required: false
+      description: Matches the person's department, unit or team.
+      schema:
+        $ref: '#/components/schemas/NativeID'
+    IsActive:
+      name: is_active
+      in: query
+      required: false
+      schema:
+        type: boolean
+    HasFindings:
+      name: has_findings
+      in: query
+      required: false
+      schema:
+        type: boolean
+    PersonSort:
+      name: sort
+      in: query
+      required: false
+      description: Allowlisted sort; a leading "-" is descending.
+      schema:
+        type: string
+        enum:
+          - display_name
+          - -display_name
+          - employee_code
+          - -employee_code
+          - employment_status
+          - -employment_status
+        default: display_name
+    OrgUnitKind:
+      name: kind
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/OrgUnitKind'
+    PersonID:
+      name: person_id
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/NativeID'
+    Relation:
+      name: relation
+      in: query
+      required: false
+      description: With person_id, restrict to assignments where the person is the CHILD or the PARENT.
+      schema:
+        type: string
+        enum:
+          - CHILD
+          - PARENT
+    IsCurrent:
+      name: is_current
+      in: query
+      required: false
+      schema:
+        type: boolean
+    RelationshipKind:
+      name: relationship_kind
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - REPORTS_TO
+          - UNMAPPED
+    FindingKind:
+      name: kind
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/FindingKind'
+    FindingSeverity:
+      name: severity
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/FindingSeverity'
+    FindingSubject:
+      name: subject_type
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/FindingSubject'
   headers:
     CorrelationID:
       description: Correlation id of this request (inbound value when valid, otherwise generated).
@@ -168,6 +617,18 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    Denied:
+      description: |
+        The caller lacks the evaluated capability (outcome UNAUTHORIZED,
+        reason ACTION_DENIED). Server-authoritative; never inferred from role
+        names, positions or hierarchy.
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResultEnvelope'
   schemas:
     Outcome:
       type: string
@@ -481,6 +942,17 @@ components:
           description: Presentation default zone (IANA). Not storage truth.
           enum:
             - Asia/Tehran
+        features:
+          type: object
+          description: |
+            Server feature switches for navigation only (Slice 4 rollback is
+            flag-off). Never authority: every read is evaluated by the server.
+          required:
+            - hr_read
+          additionalProperties: false
+          properties:
+            hr_read:
+              type: boolean
     SessionEnvelope:
       type: object
       required:
@@ -501,3 +973,826 @@ components:
           $ref: '#/components/schemas/CorrelationID'
         data:
           $ref: '#/components/schemas/SessionContext'
+    Presence:
+      type: string
+      description: Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+      enum:
+        - PRESENT
+        - ABSENT_IN_LATEST
+    Reasons:
+      type: array
+      maxItems: 15
+      items:
+        $ref: '#/components/schemas/ReasonCode'
+    NativeID:
+      type: string
+      format: uuid
+      description: Target native identifier. Never a phone, e-mail, login or legacy key.
+    LegacyKey:
+      type: string
+      description: Legacy source key (provenance only, never identity).
+      pattern: ^[1-9][0-9]{0,19}$
+    Provenance:
+      type: object
+      description: Source provenance of an imported shadow row.
+      required:
+        - source_system
+        - source_spec
+        - source_key
+        - batch_id
+        - imported_at
+        - refreshed_at
+        - presence
+      additionalProperties: false
+      properties:
+        source_system:
+          type: string
+          maxLength: 16
+        source_spec:
+          type: string
+          maxLength: 80
+        source_key:
+          $ref: '#/components/schemas/LegacyKey'
+        batch_id:
+          $ref: '#/components/schemas/NativeID'
+        imported_at:
+          $ref: '#/components/schemas/Timestamp'
+        refreshed_at:
+          $ref: '#/components/schemas/Timestamp'
+        presence:
+          $ref: '#/components/schemas/Presence'
+    UserSummary:
+      type: object
+      required:
+        - user_id
+        - display_name
+        - account_state
+        - login_enabled
+        - provenance
+      additionalProperties: false
+      properties:
+        user_id:
+          $ref: '#/components/schemas/NativeID'
+        display_name:
+          type: string
+          nullable: true
+          maxLength: 250
+        account_state:
+          type: string
+          description: Slice 4 accounts are a read/shadow model only.
+          enum:
+            - SHADOW_IMPORTED
+        login_enabled:
+          type: boolean
+          description: Always false; there is no production authentication in Slice 4.
+          enum:
+            - false
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    UserListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/UserSummary'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    UserEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/UserSummary'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    EmploymentStatus:
+      type: string
+      description: Statuses evidenced by the legacy HR UI; anything else is UNMAPPED (raw kept), a missing value is NOT_RECORDED.
+      enum:
+        - ACTIVE
+        - INACTIVE
+        - SUSPENDED
+        - RESIGNED
+        - TERMINATED
+        - PROBATION
+        - UNMAPPED
+        - NOT_RECORDED
+    RawText:
+      type: string
+      nullable: true
+      maxLength: 200
+      description: Raw legacy value kept verbatim as evidence (not interpreted).
+    UserLinkState:
+      type: string
+      description: Person ↔ account linkage. SHARED_USER means one account is linked to several profiles (conflict).
+      enum:
+        - LINKED
+        - USER_NOT_IMPORTED
+        - USER_NOT_RECORDED
+        - SHARED_USER
+    LookupRef:
+      type: object
+      required:
+        - id
+        - slug
+        - label
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/NativeID'
+        slug:
+          type: string
+          nullable: true
+          maxLength: 100
+        label:
+          type: string
+          nullable: true
+          maxLength: 200
+    RefState:
+      type: string
+      description: RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
+      enum:
+        - RESOLVED
+        - NOT_RECORDED
+        - MISSING
+    OrgUnitKind:
+      type: string
+      enum:
+        - DEPARTMENT
+        - UNIT
+        - TEAM
+    UnitRef:
+      type: object
+      required:
+        - id
+        - kind
+        - label
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/NativeID'
+        kind:
+          $ref: '#/components/schemas/OrgUnitKind'
+        label:
+          type: string
+          nullable: true
+          maxLength: 200
+    Employment:
+      type: object
+      description: Organisation relationship of a person (separate from Person and from User).
+      required:
+        - employment_id
+        - status
+        - status_raw
+        - type_raw
+        - employee_code
+        - hire_date
+        - hire_date_raw
+        - termination_date
+        - termination_date_raw
+        - is_active
+        - user
+        - provenance
+      additionalProperties: false
+      properties:
+        employment_id:
+          $ref: '#/components/schemas/NativeID'
+        status:
+          $ref: '#/components/schemas/EmploymentStatus'
+        status_raw:
+          $ref: '#/components/schemas/RawText'
+        type_raw:
+          $ref: '#/components/schemas/RawText'
+        employee_code:
+          type: string
+          nullable: true
+          maxLength: 100
+        hire_date:
+          type: string
+          format: date
+          nullable: true
+          description: Calendar date when the raw value is a readable legacy DATE; otherwise null (raw kept).
+        hire_date_raw:
+          $ref: '#/components/schemas/RawText'
+        termination_date:
+          type: string
+          format: date
+          nullable: true
+        termination_date_raw:
+          $ref: '#/components/schemas/RawText'
+        is_active:
+          type: boolean
+          nullable: true
+        user:
+          type: object
+          required:
+            - user_id
+            - link_state
+          additionalProperties: false
+          properties:
+            user_id:
+              type: string
+              format: uuid
+              nullable: true
+            link_state:
+              $ref: '#/components/schemas/UserLinkState'
+        position:
+          $ref: '#/components/schemas/LookupRef'
+        position_state:
+          $ref: '#/components/schemas/RefState'
+        level:
+          $ref: '#/components/schemas/LookupRef'
+        level_state:
+          $ref: '#/components/schemas/RefState'
+        department:
+          $ref: '#/components/schemas/UnitRef'
+        department_state:
+          $ref: '#/components/schemas/RefState'
+        unit:
+          $ref: '#/components/schemas/UnitRef'
+        unit_state:
+          $ref: '#/components/schemas/RefState'
+        team:
+          $ref: '#/components/schemas/UnitRef'
+        team_state:
+          $ref: '#/components/schemas/RefState'
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    ManagerState:
+      type: string
+      description: Current reporting parent. MULTIPLE and MISSING are conflicts; NONE is not a defect by itself.
+      enum:
+        - NONE
+        - RESOLVED
+        - MULTIPLE
+        - MISSING
+    PersonRef:
+      type: object
+      required:
+        - person_id
+        - employment_id
+        - display_name
+      additionalProperties: false
+      properties:
+        person_id:
+          $ref: '#/components/schemas/NativeID'
+        employment_id:
+          $ref: '#/components/schemas/NativeID'
+        display_name:
+          type: string
+          nullable: true
+          maxLength: 250
+    PersonSummary:
+      type: object
+      description: |
+        A person (HR identity) with field-masked context: employment, structure
+        and manager are present only when the caller's evaluated capabilities
+        allow them (see allowed_actions).
+      required:
+        - person_id
+        - display_name
+        - finding_count
+        - provenance
+      additionalProperties: false
+      properties:
+        person_id:
+          $ref: '#/components/schemas/NativeID'
+        display_name:
+          type: string
+          nullable: true
+          maxLength: 250
+        employment:
+          $ref: '#/components/schemas/Employment'
+        manager_state:
+          $ref: '#/components/schemas/ManagerState'
+        manager:
+          $ref: '#/components/schemas/PersonRef'
+        finding_count:
+          type: integer
+          minimum: 0
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    PersonListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/PersonSummary'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    AssignmentEnd:
+      type: object
+      required:
+        - state
+      additionalProperties: false
+      properties:
+        state:
+          type: string
+          enum:
+            - RESOLVED
+            - MISSING
+            - NOT_RECORDED
+        person:
+          $ref: '#/components/schemas/PersonRef'
+    FindingKind:
+      type: string
+      enum:
+        - MISSING_PARENT
+        - SELF_PARENT
+        - CYCLE
+        - DUPLICATE_CURRENT
+        - MULTIPLE_CURRENT_PARENTS
+        - INTERVAL_OVERLAP
+        - HISTORY_GAP
+        - UNEXPLAINED_GAP
+        - MISSING_CHILD
+        - ORG_UNIT_PARENT_MISSING
+        - ORG_UNIT_PARENT_NOT_RECORDED
+        - MEMBERSHIP_MISMATCH
+        - CURRENT_FLAG_INCONSISTENT
+        - HISTORY_CURRENT_DISAGREE
+        - UNREADABLE_DATE
+        - UNMAPPED_RELATIONSHIP
+        - MISSING_REFERENCE
+        - SHARED_USER
+        - USER_NOT_IMPORTED
+        - HISTORY_CHANGED
+    Assignment:
+      type: object
+      description: Reporting assignment. Interval values are raw legacy DATETIME text; the source zone is not asserted.
+      required:
+        - assignment_id
+        - child
+        - parent
+        - relationship_kind
+        - relationship_raw
+        - effective_from_raw
+        - effective_to_raw
+        - interval_zone
+        - is_current
+        - current_raw
+        - finding_kinds
+        - provenance
+      additionalProperties: false
+      properties:
+        assignment_id:
+          $ref: '#/components/schemas/NativeID'
+        child:
+          $ref: '#/components/schemas/AssignmentEnd'
+        parent:
+          $ref: '#/components/schemas/AssignmentEnd'
+        relationship_kind:
+          type: string
+          enum:
+            - REPORTS_TO
+            - UNMAPPED
+        relationship_raw:
+          $ref: '#/components/schemas/RawText'
+        effective_from_raw:
+          $ref: '#/components/schemas/RawText'
+        effective_to_raw:
+          $ref: '#/components/schemas/RawText'
+        interval_zone:
+          type: string
+          enum:
+            - UNKNOWN
+        is_current:
+          type: boolean
+          nullable: true
+        current_raw:
+          $ref: '#/components/schemas/RawText'
+        finding_kinds:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/FindingKind'
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    HistoryEntry:
+      type: object
+      description: Append-only assignment history (free-text reason/context excluded).
+      required:
+        - history_id
+        - action_raw
+        - recorded_raw
+        - provenance
+      additionalProperties: false
+      properties:
+        history_id:
+          $ref: '#/components/schemas/NativeID'
+        old_parent:
+          $ref: '#/components/schemas/PersonRef'
+        new_parent:
+          $ref: '#/components/schemas/PersonRef'
+        action_raw:
+          $ref: '#/components/schemas/RawText'
+        recorded_raw:
+          $ref: '#/components/schemas/RawText'
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    FindingSeverity:
+      type: string
+      enum:
+        - CONFLICT
+        - UNKNOWN
+        - INFO
+    FindingSubject:
+      type: string
+      enum:
+        - ASSIGNMENT
+        - EMPLOYMENT
+        - ORG_UNIT
+        - HISTORY
+    Finding:
+      type: object
+      description: A hierarchy finding. Reported, never auto-fixed. Detail names keys and reasons only.
+      required:
+        - finding_id
+        - kind
+        - severity
+        - subject_type
+        - subject_id
+        - subject_source_key
+        - related_id
+        - related_source_key
+        - detail
+      additionalProperties: false
+      properties:
+        finding_id:
+          $ref: '#/components/schemas/NativeID'
+        kind:
+          $ref: '#/components/schemas/FindingKind'
+        severity:
+          $ref: '#/components/schemas/FindingSeverity'
+        subject_type:
+          $ref: '#/components/schemas/FindingSubject'
+        subject_id:
+          type: string
+          format: uuid
+          nullable: true
+        subject_source_key:
+          type: string
+          nullable: true
+          maxLength: 20
+        related_id:
+          type: string
+          format: uuid
+          nullable: true
+        related_source_key:
+          type: string
+          nullable: true
+          maxLength: 20
+        detail:
+          type: string
+          maxLength: 300
+    PersonDetail:
+      type: object
+      required:
+        - person
+        - assignments
+        - direct_reports
+        - history
+        - findings
+      additionalProperties: false
+      properties:
+        person:
+          $ref: '#/components/schemas/PersonSummary'
+        assignments:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Assignment'
+        direct_reports:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/PersonRef'
+        history:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/HistoryEntry'
+        findings:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Finding'
+    PersonEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/PersonDetail'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    Lookup:
+      type: object
+      description: A position or a level (legacy lookup). Position is never a role.
+      required:
+        - id
+        - slug
+        - label
+        - description
+        - sort_order
+        - is_active
+        - is_system
+        - provenance
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/NativeID'
+        slug:
+          type: string
+          nullable: true
+          maxLength: 100
+        label:
+          type: string
+          nullable: true
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+        sort_order:
+          type: integer
+          nullable: true
+        is_active:
+          type: boolean
+          nullable: true
+        is_system:
+          type: boolean
+          nullable: true
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    LookupListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Lookup'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    OrgUnit:
+      type: object
+      description: One node of the single typed organisation tree. A MISSING or NOT_RECORDED parent is never attached to a root.
+      required:
+        - org_unit_id
+        - kind
+        - slug
+        - label
+        - sort_order
+        - is_active
+        - parent_id
+        - parent_state
+        - member_count
+        - finding_kinds
+        - provenance
+      additionalProperties: false
+      properties:
+        org_unit_id:
+          $ref: '#/components/schemas/NativeID'
+        kind:
+          $ref: '#/components/schemas/OrgUnitKind'
+        slug:
+          type: string
+          nullable: true
+          maxLength: 100
+        label:
+          type: string
+          nullable: true
+          maxLength: 200
+        sort_order:
+          type: integer
+          nullable: true
+        is_active:
+          type: boolean
+          nullable: true
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        parent_state:
+          type: string
+          enum:
+            - NOT_APPLICABLE
+            - NOT_RECORDED
+            - RESOLVED
+            - MISSING
+        member_count:
+          type: integer
+          minimum: 0
+        finding_kinds:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/FindingKind'
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    OrgUnitListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/OrgUnit'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    AssignmentListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Assignment'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    FindingListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Finding'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    Capability:
+      type: string
+      description: Slice 4 read capability vocabulary (<module>.<object>.<action>).
+      enum:
+        - identity.user.read
+        - org.person.read
+        - org.employment.read
+        - org.position.read
+        - org.unit.read
+        - org.assignment.read
+    AccessDecision:
+      type: object
+      required:
+        - capability
+        - allowed
+        - outcome
+        - scope
+        - matched_roles
+      additionalProperties: false
+      properties:
+        capability:
+          $ref: '#/components/schemas/Capability'
+        allowed:
+          type: boolean
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reason_code:
+          $ref: '#/components/schemas/ReasonCode'
+        scope:
+          type: string
+          enum:
+            - NONE
+            - ORGANIZATION
+        matched_roles:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 40
+    EffectiveAccess:
+      type: object
+      description: Server-authoritative evaluation for the current principal (same evaluator as allowed_actions).
+      required:
+        - authenticated
+        - hr_read_enabled
+        - decisions
+      additionalProperties: false
+      properties:
+        authenticated:
+          type: boolean
+        hr_read_enabled:
+          type: boolean
+        decisions:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/AccessDecision'
+    EffectiveAccessEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - data
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/EffectiveAccess'

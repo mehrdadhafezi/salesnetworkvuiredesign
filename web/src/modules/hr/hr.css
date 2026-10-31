@@ -1,0 +1,22 @@
+/*
+ * HR read surfaces (Slice 4). Additive layout only, built from SN-207 tokens:
+ * no raw colours, no new token families.
+ */
+.hr-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--gap);align-items:end}
+.hr-check{display:flex;align-items:center;gap:8px}
+.hr-table-wrap{overflow-x:auto}
+.hr-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.hr-table th,.hr-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.hr-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.hr-pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.hr-sections{display:grid;gap:12px}
+.hr-sections .card + .card{margin-top:0}
+.hr-sub{font-size:var(--fs);font-weight:600;margin:12px 0 4px}
+.hr-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.hr-timeline{margin:0;padding-inline-start:20px;display:grid;gap:6px}
+.hr-tree,.hr-tree ul{list-style:none;margin:0;padding-inline-start:16px}
+.hr-tree li{margin:4px 0;border-inline-start:1px solid var(--border);padding-inline-start:8px}
+.hr-node{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}
+@media (max-width:760px){
+  .hr-filters{grid-template-columns:1fr}
+}

@@ -4,8 +4,10 @@ info:
   version: 0.2.0
   description: |
     Authoritative HTTP contract of the standalone CRM (Architecture V1 §23).
-    Slice 2 exposes only technical health and a development session surface;
-    reusable components define the conventions future slices must use.
+    Slice 2 exposes technical health and a development session surface.
+    Slice 4 adds READ-ONLY identity / organization / authorization surfaces
+    over the shadow read model (no write operation exists). Reusable
+    components define the conventions future slices must use.
 
     Conventions:
     - Business outcomes use the ResultEnvelope with the seven frozen outcomes.
@@ -28,6 +30,12 @@ tags:
     description: Technical liveness/readiness. Not business outcomes.
   - name: session
     description: Session context for the SPA shell.
+  - name: identity
+    description: Slice 4 read-only shadow identity model (no authentication).
+  - name: organization
+    description: Slice 4 read-only shadow organization model (HR read).
+  - name: authorization
+    description: Slice 4 read evaluator (server-authoritative effective access).
 paths:
   /health/live:
     get:
@@ -96,6 +104,304 @@ paths:
             application/json:
               schema:
                 $ref: './components/schemas.yaml#/SessionEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/identity/users:
+    get:
+      tags: [identity]
+      operationId: listIdentityUsers
+      summary: List shadow user accounts
+      description: |
+        Requires identity.user.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Query'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/UserSort'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/UserListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/identity/users/{user_id}:
+    get:
+      tags: [identity]
+      operationId: getIdentityUser
+      summary: Get one shadow user account
+      description: |
+        Requires identity.user.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            $ref: './components/hr.yaml#/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/UserEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/organization/persons:
+    get:
+      tags: [organization]
+      operationId: listOrganizationPersons
+      summary: List persons (HR workforce)
+      description: |
+        Requires org.person.read; employment, structure and manager context are field-masked by
+        org.employment.read, org.position.read, org.unit.read and org.assignment.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Query'
+        - $ref: './components/parameters.yaml#/EmploymentStatus'
+        - $ref: './components/parameters.yaml#/PositionID'
+        - $ref: './components/parameters.yaml#/LevelID'
+        - $ref: './components/parameters.yaml#/OrgUnitID'
+        - $ref: './components/parameters.yaml#/IsActive'
+        - $ref: './components/parameters.yaml#/HasFindings'
+        - $ref: './components/parameters.yaml#/PersonSort'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/PersonListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/organization/persons/{person_id}:
+    get:
+      tags: [organization]
+      operationId: getOrganizationPerson
+      summary: Get one person with employment, assignments, history and findings
+      description: |
+        Requires org.person.read; sections are field-masked per capability. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - name: person_id
+          in: path
+          required: true
+          schema:
+            $ref: './components/hr.yaml#/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/PersonEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/organization/positions:
+    get:
+      tags: [organization]
+      operationId: listOrganizationPositions
+      summary: List positions
+      description: |
+        Requires org.position.read. Positions are HR facts, never roles. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/LookupListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/organization/levels:
+    get:
+      tags: [organization]
+      operationId: listOrganizationLevels
+      summary: List levels
+      description: |
+        Requires org.position.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/LookupListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/organization/org-units:
+    get:
+      tags: [organization]
+      operationId: listOrganizationOrgUnits
+      summary: List org units (one typed tree)
+      description: |
+        Requires org.unit.read. Ordered departments, units, teams. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/OrgUnitKind'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/OrgUnitListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/organization/assignments:
+    get:
+      tags: [organization]
+      operationId: listOrganizationAssignments
+      summary: List reporting assignments
+      description: |
+        Requires org.assignment.read. Interval text is raw legacy evidence (zone UNKNOWN). Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/PersonID'
+        - $ref: './components/parameters.yaml#/Relation'
+        - $ref: './components/parameters.yaml#/IsCurrent'
+        - $ref: './components/parameters.yaml#/RelationshipKind'
+        - $ref: './components/parameters.yaml#/HasFindings'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/AssignmentListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/organization/hierarchy-findings:
+    get:
+      tags: [organization]
+      operationId: listOrganizationHierarchyFindings
+      summary: List hierarchy findings
+      description: |
+        Requires org.assignment.read. Findings are reported, never auto-fixed. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+        Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/FindingKind'
+        - $ref: './components/parameters.yaml#/FindingSeverity'
+        - $ref: './components/parameters.yaml#/FindingSubject'
+        - $ref: './components/parameters.yaml#/PersonID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/FindingListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/authorization/effective-access:
+    get:
+      tags: [authorization]
+      operationId: getEffectiveAccess
+      summary: Effective access of the current principal
+      description: |
+        Evaluates every Slice 4 capability for the caller with the same
+        evaluator that produces allowed_actions. Anonymous callers receive
+        an all-denied evaluation. Read-only.
+      responses:
+        '200':
+          description: Evaluation (always returned; denial is data here, not an error).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/hr.yaml#/EffectiveAccessEnvelope'
         '400':
           $ref: './components/responses.yaml#/Problem'
         default:

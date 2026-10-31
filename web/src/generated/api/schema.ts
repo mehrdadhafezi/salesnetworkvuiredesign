@@ -68,6 +68,218 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/identity/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List shadow user accounts
+         * @description Requires identity.user.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+         *     Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+         */
+        get: operations["listIdentityUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/identity/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one shadow user account
+         * @description Requires identity.user.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+         *     Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+         */
+        get: operations["getIdentityUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/persons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List persons (HR workforce)
+         * @description Requires org.person.read; employment, structure and manager context are field-masked by
+         *     org.employment.read, org.position.read, org.unit.read and org.assignment.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+         *     Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+         */
+        get: operations["listOrganizationPersons"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/persons/{person_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one person with employment, assignments, history and findings
+         * @description Requires org.person.read; sections are field-masked per capability. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+         *     Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+         */
+        get: operations["getOrganizationPerson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List positions
+         * @description Requires org.position.read. Positions are HR facts, never roles. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+         *     Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+         */
+        get: operations["listOrganizationPositions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List levels
+         * @description Requires org.position.read. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+         *     Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+         */
+        get: operations["listOrganizationLevels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/org-units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List org units (one typed tree)
+         * @description Requires org.unit.read. Ordered departments, units, teams. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+         *     Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+         */
+        get: operations["listOrganizationOrgUnits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List reporting assignments
+         * @description Requires org.assignment.read. Interval text is raw legacy evidence (zone UNKNOWN). Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+         *     Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+         */
+        get: operations["listOrganizationAssignments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/hierarchy-findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List hierarchy findings
+         * @description Requires org.assignment.read. Findings are reported, never auto-fixed. Read-only: runs in a READ ONLY transaction and never creates, backfills or repairs data.
+         *     Unknown query parameters, filters or sorts are rejected with 400 CONTRACT_INVALID.
+         */
+        get: operations["listOrganizationHierarchyFindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/effective-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Effective access of the current principal
+         * @description Evaluates every Slice 4 capability for the caller with the same
+         *     evaluator that produces allowed_actions. Anonymous callers receive
+         *     an all-denied evaluation. Read-only.
+         */
+        get: operations["getEffectiveAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -204,12 +416,317 @@ export interface components {
              * @enum {string}
              */
             display_zone: "Asia/Tehran";
+            /**
+             * @description Server feature switches for navigation only (Slice 4 rollback is
+             *     flag-off). Never authority: every read is evaluated by the server.
+             */
+            features?: {
+                hr_read: boolean;
+            };
         };
         SessionEnvelope: {
             outcome: components["schemas"]["Outcome"];
             reasons: components["schemas"]["ReasonCode"][];
             correlation_id: components["schemas"]["CorrelationID"];
             data: components["schemas"]["SessionContext"];
+        };
+        /**
+         * @description Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+         * @enum {string}
+         */
+        Presence: "PRESENT" | "ABSENT_IN_LATEST";
+        Reasons: components["schemas"]["ReasonCode"][];
+        /**
+         * Format: uuid
+         * @description Target native identifier. Never a phone, e-mail, login or legacy key.
+         */
+        NativeID: string;
+        /** @description Legacy source key (provenance only, never identity). */
+        LegacyKey: string;
+        /** @description Source provenance of an imported shadow row. */
+        Provenance: {
+            source_system: string;
+            source_spec: string;
+            source_key: components["schemas"]["LegacyKey"];
+            batch_id: components["schemas"]["NativeID"];
+            imported_at: components["schemas"]["Timestamp"];
+            refreshed_at: components["schemas"]["Timestamp"];
+            presence: components["schemas"]["Presence"];
+        };
+        UserSummary: {
+            user_id: components["schemas"]["NativeID"];
+            display_name: string | null;
+            /**
+             * @description Slice 4 accounts are a read/shadow model only.
+             * @enum {string}
+             */
+            account_state: "SHADOW_IMPORTED";
+            /**
+             * @description Always false; there is no production authentication in Slice 4.
+             * @enum {boolean}
+             */
+            login_enabled: false;
+            provenance: components["schemas"]["Provenance"];
+        };
+        UserListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["UserSummary"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        UserEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["UserSummary"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description Statuses evidenced by the legacy HR UI; anything else is UNMAPPED (raw kept), a missing value is NOT_RECORDED.
+         * @enum {string}
+         */
+        EmploymentStatus: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "RESIGNED" | "TERMINATED" | "PROBATION" | "UNMAPPED" | "NOT_RECORDED";
+        /** @description Raw legacy value kept verbatim as evidence (not interpreted). */
+        RawText: string | null;
+        /**
+         * @description Person ↔ account linkage. SHARED_USER means one account is linked to several profiles (conflict).
+         * @enum {string}
+         */
+        UserLinkState: "LINKED" | "USER_NOT_IMPORTED" | "USER_NOT_RECORDED" | "SHARED_USER";
+        LookupRef: {
+            id: components["schemas"]["NativeID"];
+            slug: string | null;
+            label: string | null;
+        };
+        /**
+         * @description RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
+         * @enum {string}
+         */
+        RefState: "RESOLVED" | "NOT_RECORDED" | "MISSING";
+        /** @enum {string} */
+        OrgUnitKind: "DEPARTMENT" | "UNIT" | "TEAM";
+        UnitRef: {
+            id: components["schemas"]["NativeID"];
+            kind: components["schemas"]["OrgUnitKind"];
+            label: string | null;
+        };
+        /** @description Organisation relationship of a person (separate from Person and from User). */
+        Employment: {
+            employment_id: components["schemas"]["NativeID"];
+            status: components["schemas"]["EmploymentStatus"];
+            status_raw: components["schemas"]["RawText"];
+            type_raw: components["schemas"]["RawText"];
+            employee_code: string | null;
+            /**
+             * Format: date
+             * @description Calendar date when the raw value is a readable legacy DATE; otherwise null (raw kept).
+             */
+            hire_date: string | null;
+            hire_date_raw: components["schemas"]["RawText"];
+            /** Format: date */
+            termination_date: string | null;
+            termination_date_raw: components["schemas"]["RawText"];
+            is_active: boolean | null;
+            user: {
+                /** Format: uuid */
+                user_id: string | null;
+                link_state: components["schemas"]["UserLinkState"];
+            };
+            position?: components["schemas"]["LookupRef"];
+            position_state?: components["schemas"]["RefState"];
+            level?: components["schemas"]["LookupRef"];
+            level_state?: components["schemas"]["RefState"];
+            department?: components["schemas"]["UnitRef"];
+            department_state?: components["schemas"]["RefState"];
+            unit?: components["schemas"]["UnitRef"];
+            unit_state?: components["schemas"]["RefState"];
+            team?: components["schemas"]["UnitRef"];
+            team_state?: components["schemas"]["RefState"];
+            provenance: components["schemas"]["Provenance"];
+        };
+        /**
+         * @description Current reporting parent. MULTIPLE and MISSING are conflicts; NONE is not a defect by itself.
+         * @enum {string}
+         */
+        ManagerState: "NONE" | "RESOLVED" | "MULTIPLE" | "MISSING";
+        PersonRef: {
+            person_id: components["schemas"]["NativeID"];
+            employment_id: components["schemas"]["NativeID"];
+            display_name: string | null;
+        };
+        /**
+         * @description A person (HR identity) with field-masked context: employment, structure
+         *     and manager are present only when the caller's evaluated capabilities
+         *     allow them (see allowed_actions).
+         */
+        PersonSummary: {
+            person_id: components["schemas"]["NativeID"];
+            display_name: string | null;
+            employment?: components["schemas"]["Employment"];
+            manager_state?: components["schemas"]["ManagerState"];
+            manager?: components["schemas"]["PersonRef"];
+            finding_count: number;
+            provenance: components["schemas"]["Provenance"];
+        };
+        PersonListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["PersonSummary"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        AssignmentEnd: {
+            /** @enum {string} */
+            state: "RESOLVED" | "MISSING" | "NOT_RECORDED";
+            person?: components["schemas"]["PersonRef"];
+        };
+        /** @enum {string} */
+        FindingKind: "MISSING_PARENT" | "SELF_PARENT" | "CYCLE" | "DUPLICATE_CURRENT" | "MULTIPLE_CURRENT_PARENTS" | "INTERVAL_OVERLAP" | "HISTORY_GAP" | "UNEXPLAINED_GAP" | "MISSING_CHILD" | "ORG_UNIT_PARENT_MISSING" | "ORG_UNIT_PARENT_NOT_RECORDED" | "MEMBERSHIP_MISMATCH" | "CURRENT_FLAG_INCONSISTENT" | "HISTORY_CURRENT_DISAGREE" | "UNREADABLE_DATE" | "UNMAPPED_RELATIONSHIP" | "MISSING_REFERENCE" | "SHARED_USER" | "USER_NOT_IMPORTED" | "HISTORY_CHANGED";
+        /** @description Reporting assignment. Interval values are raw legacy DATETIME text; the source zone is not asserted. */
+        Assignment: {
+            assignment_id: components["schemas"]["NativeID"];
+            child: components["schemas"]["AssignmentEnd"];
+            parent: components["schemas"]["AssignmentEnd"];
+            /** @enum {string} */
+            relationship_kind: "REPORTS_TO" | "UNMAPPED";
+            relationship_raw: components["schemas"]["RawText"];
+            effective_from_raw: components["schemas"]["RawText"];
+            effective_to_raw: components["schemas"]["RawText"];
+            /** @enum {string} */
+            interval_zone: "UNKNOWN";
+            is_current: boolean | null;
+            current_raw: components["schemas"]["RawText"];
+            finding_kinds: components["schemas"]["FindingKind"][];
+            provenance: components["schemas"]["Provenance"];
+        };
+        /** @description Append-only assignment history (free-text reason/context excluded). */
+        HistoryEntry: {
+            history_id: components["schemas"]["NativeID"];
+            old_parent?: components["schemas"]["PersonRef"];
+            new_parent?: components["schemas"]["PersonRef"];
+            action_raw: components["schemas"]["RawText"];
+            recorded_raw: components["schemas"]["RawText"];
+            provenance: components["schemas"]["Provenance"];
+        };
+        /** @enum {string} */
+        FindingSeverity: "CONFLICT" | "UNKNOWN" | "INFO";
+        /** @enum {string} */
+        FindingSubject: "ASSIGNMENT" | "EMPLOYMENT" | "ORG_UNIT" | "HISTORY";
+        /** @description A hierarchy finding. Reported, never auto-fixed. Detail names keys and reasons only. */
+        Finding: {
+            finding_id: components["schemas"]["NativeID"];
+            kind: components["schemas"]["FindingKind"];
+            severity: components["schemas"]["FindingSeverity"];
+            subject_type: components["schemas"]["FindingSubject"];
+            /** Format: uuid */
+            subject_id: string | null;
+            subject_source_key: string | null;
+            /** Format: uuid */
+            related_id: string | null;
+            related_source_key: string | null;
+            detail: string;
+        };
+        PersonDetail: {
+            person: components["schemas"]["PersonSummary"];
+            assignments: components["schemas"]["Assignment"][];
+            direct_reports: components["schemas"]["PersonRef"][];
+            history: components["schemas"]["HistoryEntry"][];
+            findings: components["schemas"]["Finding"][];
+        };
+        PersonEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["PersonDetail"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description A position or a level (legacy lookup). Position is never a role. */
+        Lookup: {
+            id: components["schemas"]["NativeID"];
+            slug: string | null;
+            label: string | null;
+            description: string | null;
+            sort_order: number | null;
+            is_active: boolean | null;
+            is_system: boolean | null;
+            provenance: components["schemas"]["Provenance"];
+        };
+        LookupListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["Lookup"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description One node of the single typed organisation tree. A MISSING or NOT_RECORDED parent is never attached to a root. */
+        OrgUnit: {
+            org_unit_id: components["schemas"]["NativeID"];
+            kind: components["schemas"]["OrgUnitKind"];
+            slug: string | null;
+            label: string | null;
+            sort_order: number | null;
+            is_active: boolean | null;
+            /** Format: uuid */
+            parent_id: string | null;
+            /** @enum {string} */
+            parent_state: "NOT_APPLICABLE" | "NOT_RECORDED" | "RESOLVED" | "MISSING";
+            member_count: number;
+            finding_kinds: components["schemas"]["FindingKind"][];
+            provenance: components["schemas"]["Provenance"];
+        };
+        OrgUnitListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["OrgUnit"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        AssignmentListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["Assignment"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        FindingListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["Finding"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description Slice 4 read capability vocabulary (<module>.<object>.<action>).
+         * @enum {string}
+         */
+        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read";
+        AccessDecision: {
+            capability: components["schemas"]["Capability"];
+            allowed: boolean;
+            outcome: components["schemas"]["Outcome"];
+            reason_code?: components["schemas"]["ReasonCode"];
+            /** @enum {string} */
+            scope: "NONE" | "ORGANIZATION";
+            matched_roles: string[];
+        };
+        /** @description Server-authoritative evaluation for the current principal (same evaluator as allowed_actions). */
+        EffectiveAccess: {
+            authenticated: boolean;
+            hr_read_enabled: boolean;
+            decisions: components["schemas"]["AccessDecision"][];
+        };
+        EffectiveAccessEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data: components["schemas"]["EffectiveAccess"];
         };
     };
     responses: {
@@ -221,6 +738,20 @@ export interface components {
             };
             content: {
                 "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /**
+         * @description The caller lacks the evaluated capability (outcome UNAUTHORIZED,
+         *     reason ACTION_DENIED). Server-authoritative; never inferred from role
+         *     names, positions or hierarchy.
+         */
+        Denied: {
+            headers: {
+                "X-Correlation-ID": components["headers"]["CorrelationID"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ResultEnvelope"];
             };
         };
     };
@@ -238,6 +769,29 @@ export interface components {
         /** @description Opaque cursor from PageInfo.next_cursor. */
         Cursor: string;
         Limit: number;
+        /** @description Case-insensitive substring of the display name (persons also match the employee code). */
+        Query: string;
+        Presence: components["schemas"]["Presence"];
+        /** @description Allowlisted sort; a leading "-" is descending. */
+        UserSort: "display_name" | "-display_name";
+        EmploymentStatus: components["schemas"]["EmploymentStatus"];
+        PositionID: components["schemas"]["NativeID"];
+        LevelID: components["schemas"]["NativeID"];
+        /** @description Matches the person's department, unit or team. */
+        OrgUnitID: components["schemas"]["NativeID"];
+        IsActive: boolean;
+        HasFindings: boolean;
+        /** @description Allowlisted sort; a leading "-" is descending. */
+        PersonSort: "display_name" | "-display_name" | "employee_code" | "-employee_code" | "employment_status" | "-employment_status";
+        OrgUnitKind: components["schemas"]["OrgUnitKind"];
+        PersonID: components["schemas"]["NativeID"];
+        /** @description With person_id, restrict to assignments where the person is the CHILD or the PARENT. */
+        Relation: "CHILD" | "PARENT";
+        IsCurrent: boolean;
+        RelationshipKind: "REPORTS_TO" | "UNMAPPED";
+        FindingKind: components["schemas"]["FindingKind"];
+        FindingSeverity: components["schemas"]["FindingSeverity"];
+        FindingSubject: components["schemas"]["FindingSubject"];
     };
     requestBodies: never;
     headers: {
@@ -321,6 +875,306 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listIdentityUsers: {
+        parameters: {
+            query?: {
+                /** @description Case-insensitive substring of the display name (persons also match the employee code). */
+                q?: components["parameters"]["Query"];
+                presence?: components["parameters"]["Presence"];
+                /** @description Allowlisted sort; a leading "-" is descending. */
+                sort?: components["parameters"]["UserSort"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getIdentityUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: components["schemas"]["NativeID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listOrganizationPersons: {
+        parameters: {
+            query?: {
+                /** @description Case-insensitive substring of the display name (persons also match the employee code). */
+                q?: components["parameters"]["Query"];
+                employment_status?: components["parameters"]["EmploymentStatus"];
+                position_id?: components["parameters"]["PositionID"];
+                level_id?: components["parameters"]["LevelID"];
+                /** @description Matches the person's department, unit or team. */
+                org_unit_id?: components["parameters"]["OrgUnitID"];
+                is_active?: components["parameters"]["IsActive"];
+                has_findings?: components["parameters"]["HasFindings"];
+                /** @description Allowlisted sort; a leading "-" is descending. */
+                sort?: components["parameters"]["PersonSort"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getOrganizationPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                person_id: components["schemas"]["NativeID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listOrganizationPositions: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LookupListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listOrganizationLevels: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LookupListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listOrganizationOrgUnits: {
+        parameters: {
+            query?: {
+                kind?: components["parameters"]["OrgUnitKind"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnitListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listOrganizationAssignments: {
+        parameters: {
+            query?: {
+                person_id?: components["parameters"]["PersonID"];
+                /** @description With person_id, restrict to assignments where the person is the CHILD or the PARENT. */
+                relation?: components["parameters"]["Relation"];
+                is_current?: components["parameters"]["IsCurrent"];
+                relationship_kind?: components["parameters"]["RelationshipKind"];
+                has_findings?: components["parameters"]["HasFindings"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listOrganizationHierarchyFindings: {
+        parameters: {
+            query?: {
+                kind?: components["parameters"]["FindingKind"];
+                severity?: components["parameters"]["FindingSeverity"];
+                subject_type?: components["parameters"]["FindingSubject"];
+                person_id?: components["parameters"]["PersonID"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 4 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getEffectiveAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Evaluation (always returned; denial is data here, not an error). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EffectiveAccessEnvelope"];
                 };
             };
             400: components["responses"]["Problem"];

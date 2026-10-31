@@ -9,10 +9,19 @@
 //	crm-legacy-import validate  <snapshot-dir>               full offline validation (JSON report)
 //	crm-legacy-import load      <snapshot-dir>               stage a SYNTHETIC package (others are BLOCKED)
 //	crm-legacy-import reconcile <snapshot-id>                staging vs manifest (read-only)
+//	crm-legacy-import import-identity <snapshot-id>          Slice 4: staging → identity shadow model
+//	crm-legacy-import import-organization <snapshot-id>      Slice 4: staging → organization shadow model
+//	crm-legacy-import reconcile-identity-org <snapshot-id>   Slice 4: counts, hierarchy findings, capability diff (read-only)
 //
 // load and reconcile need CRM_STAGING_DATABASE_URL: a login dedicated to the
 // integration owner role (the platform runner refuses any other). It must
-// differ from the application and migrator DSNs.
+// differ from the application and migrator DSNs. The Slice 4 commands also
+// need CRM_IDENTITY_DATABASE_URL and (organization, reconcile)
+// CRM_ORGANIZATION_DATABASE_URL, each a login dedicated to that module's
+// owner role and distinct from every other DSN. Each module writes only in
+// its own transaction: identity first, then organization (which resolves
+// accounts through the published identity API). Nothing here runs on API
+// startup, and no command reads WordPress, MySQL or snapshot files.
 //
 // Exit status: 0 SUCCESS · 3 any other outcome (PARTIAL, UNKNOWN, CONFLICT,
 // BLOCKED, FAILED) · 1 infrastructure error · 2 usage. Reports never contain
@@ -42,6 +51,12 @@ import (
 // source DSN: Slice 3 imports snapshot packages only.
 const EnvStagingURL = "CRM_STAGING_DATABASE_URL"
 
+// Slice 4 module DSNs (one login per owner role).
+const (
+	EnvIdentityURL     = "CRM_IDENTITY_DATABASE_URL"
+	EnvOrganizationURL = "CRM_ORGANIZATION_DATABASE_URL"
+)
+
 // ToolVersion is recorded on every batch.
 const ToolVersion = "crm-legacy-import/1.0.0"
 
@@ -51,7 +66,10 @@ const usage = `usage:
   crm-legacy-import validate  <snapshot-dir>
   crm-legacy-import load      <snapshot-dir>
   crm-legacy-import reconcile <snapshot-id>
-(load/reconcile use ` + EnvStagingURL + `)`
+  crm-legacy-import import-identity <snapshot-id>
+  crm-legacy-import import-organization <snapshot-id>
+  crm-legacy-import reconcile-identity-org <snapshot-id>
+(` + EnvStagingURL + `; Slice 4 also ` + EnvIdentityURL + ` and ` + EnvOrganizationURL + `)`
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -115,6 +133,11 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 			}
 			return code
 		})
+	case "import-identity", "import-organization", "reconcile-identity-org":
+		if len(rest) != 1 {
+			break
+		}
+		return runShadow(ctx, cmd, rest[0], reg, getenv, stdout, stderr)
 	case "reconcile":
 		if len(rest) != 1 {
 			break

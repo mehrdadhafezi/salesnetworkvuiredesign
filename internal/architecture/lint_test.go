@@ -60,8 +60,11 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleRuntimeDDL:       3, // platform/bad CREATE TABLE; sales/ddl alter table + GRANT
 		RulePlatformImport:   1, // platform/bad imports billing
 		RulePgtestImport:     2, // pgtest from platform/bad; legacytest from the import tool
-		RuleForeignStore:     1, // sales imports billing/store
+		RuleForeignStore:     2, // sales imports billing/store; authorization imports organization/store
 		RuleLegacyImport:     3, // sales, crm-api and crm-migrate (non-migrations) import the connector
+		RuleModuleBoundary:   4, // identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports
+		RuleForeignWrite:     1, // connector INSERT INTO organization.*
+		RuleReadPathImport:   2, // organization/http and crm-api import an import command
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -255,5 +258,74 @@ func TestViolationString(t *testing.T) {
 func TestCheckMissingRoot(t *testing.T) {
 	if _, err := Check(filepath.Join("testdata", "does-not-exist"), "m"); err == nil {
 		t.Fatal("missing root must error")
+	}
+}
+
+// TestSliceFourRules checks the Slice 4 module boundaries (Architecture V1
+// §5, §6, §21, §24): published-api-only access between identity,
+// organization, authorization and the connector; no foreign schema writes;
+// no import command on a read path.
+func TestSliceFourRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct{ file, rule string }{
+		{"internal/identity/org.go", RuleModuleBoundary},
+		{"internal/organization/internals.go", RuleModuleBoundary},
+		{"internal/authorization/engine.go", RuleModuleBoundary},
+		{"internal/integration/legacy/shadowbad/write.go", RuleModuleBoundary},
+		{"internal/integration/legacy/shadowbad/write.go", RuleForeignWrite},
+		{"internal/organization/http/handler.go", RuleReadPathImport},
+		{"cmd/crm-api/imports.go", RuleReadPathImport},
+	}
+	for _, w := range want {
+		found := false
+		for _, v := range vs {
+			if v.File == w.file && v.Rule == w.rule {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("rule %s did not fire in %s", w.rule, w.file)
+		}
+	}
+	allowed, err := Check(filepath.Join("testdata", "allowed"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range allowed {
+		t.Errorf("allowed fixture flagged: %s", v)
+	}
+	for _, s := range []string{"INSERT INTO identity.user_account", "update  organization.person set", "DELETE FROM audit.audit_event"} {
+		if !foreignWrite.MatchString(s) {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	for _, s := range []string{"SELECT * FROM identity.user_account", "updated organization.person", "the identity. update"} {
+		if foreignWrite.MatchString(s) {
+			t.Errorf("%q falsely detected", s)
+		}
+	}
+}
+
+// TestAPIServerHasNoImportDependency proves, transitively, that the API
+// server binary reaches no import command and no migration source: every
+// GET path is read-only by construction.
+func TestAPIServerHasNoImportDependency(t *testing.T) {
+	mod := modulePath(t)
+	cmd := exec.Command("go", "list", "-deps", "./cmd/crm-api")
+	cmd.Dir = repoRoot
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("go list: %v", err)
+	}
+	for _, p := range strings.Fields(string(out)) {
+		if !strings.HasPrefix(p, mod+"/internal/") {
+			continue
+		}
+		if strings.HasSuffix(p, "/imports") || strings.HasSuffix(p, "/migrations") {
+			t.Errorf("crm-api depends on %s", p)
+		}
 	}
 }

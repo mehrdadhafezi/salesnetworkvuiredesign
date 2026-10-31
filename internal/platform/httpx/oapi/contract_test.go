@@ -226,7 +226,7 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		paths = append(paths, path)
 		for method := range item.Operations() {
 			if method != "GET" {
-				t.Fatalf("mutating operation %s %s is not allowed in Slice 2", method, path)
+				t.Fatalf("mutating operation %s %s is not allowed (Slices 2 and 4 are read-only)", method, path)
 			}
 		}
 		for _, op := range item.Operations() {
@@ -240,7 +240,12 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		}
 	}
 	sort.Strings(paths)
-	if strings.Join(paths, ",") != "/api/v1/session,/health/live,/health/ready" {
+	// Slice 2 technical surface + Slice 4 read-only identity/organization/authorization surface.
+	want := []string{"/api/v1/authorization/effective-access", "/api/v1/identity/users", "/api/v1/identity/users/{user_id}",
+		"/api/v1/organization/assignments", "/api/v1/organization/hierarchy-findings", "/api/v1/organization/levels",
+		"/api/v1/organization/org-units", "/api/v1/organization/persons", "/api/v1/organization/persons/{person_id}",
+		"/api/v1/organization/positions", "/api/v1/session", "/health/live", "/health/ready"}
+	if strings.Join(paths, ",") != strings.Join(want, ",") {
 		t.Fatalf("paths = %v", paths)
 	}
 }

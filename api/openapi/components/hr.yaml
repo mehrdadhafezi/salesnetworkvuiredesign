@@ -1,0 +1,680 @@
+# Slice 4 identity / organization / authorization READ contract.
+# Read/shadow model only: no write operation exists. Raw legacy values are
+# exposed only where the target keeps them as evidence (statuses, interval
+# text) and always next to the typed value; staging rows are never exposed.
+# Not part of any schema (intentionally excluded): national id, salary,
+# salary currency, phones, notes, contract/training status, account login,
+# e-mail, history reason/context, credentials.
+
+NativeID:
+  type: string
+  format: uuid
+  description: Target native identifier. Never a phone, e-mail, login or legacy key.
+
+LegacyKey:
+  type: string
+  description: Legacy source key (provenance only, never identity).
+  pattern: '^[1-9][0-9]{0,19}$'
+
+Presence:
+  type: string
+  description: Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+  enum: [PRESENT, ABSENT_IN_LATEST]
+
+Provenance:
+  type: object
+  description: Source provenance of an imported shadow row.
+  required: [source_system, source_spec, source_key, batch_id, imported_at, refreshed_at, presence]
+  additionalProperties: false
+  properties:
+    source_system:
+      type: string
+      maxLength: 16
+    source_spec:
+      type: string
+      maxLength: 80
+    source_key:
+      $ref: '#/LegacyKey'
+    batch_id:
+      $ref: '#/NativeID'
+    imported_at:
+      $ref: './schemas.yaml#/Timestamp'
+    refreshed_at:
+      $ref: './schemas.yaml#/Timestamp'
+    presence:
+      $ref: '#/Presence'
+
+RawText:
+  type: string
+  nullable: true
+  maxLength: 200
+  description: Raw legacy value kept verbatim as evidence (not interpreted).
+
+UserSummary:
+  type: object
+  required: [user_id, display_name, account_state, login_enabled, provenance]
+  additionalProperties: false
+  properties:
+    user_id:
+      $ref: '#/NativeID'
+    display_name:
+      type: string
+      nullable: true
+      maxLength: 250
+    account_state:
+      type: string
+      description: Slice 4 accounts are a read/shadow model only.
+      enum: [SHADOW_IMPORTED]
+    login_enabled:
+      type: boolean
+      description: Always false; there is no production authentication in Slice 4.
+      enum: [false]
+    provenance:
+      $ref: '#/Provenance'
+
+LookupRef:
+  type: object
+  required: [id, slug, label]
+  additionalProperties: false
+  properties:
+    id:
+      $ref: '#/NativeID'
+    slug:
+      type: string
+      nullable: true
+      maxLength: 100
+    label:
+      type: string
+      nullable: true
+      maxLength: 200
+
+UnitRef:
+  type: object
+  required: [id, kind, label]
+  additionalProperties: false
+  properties:
+    id:
+      $ref: '#/NativeID'
+    kind:
+      $ref: '#/OrgUnitKind'
+    label:
+      type: string
+      nullable: true
+      maxLength: 200
+
+RefState:
+  type: string
+  description: RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
+  enum: [RESOLVED, NOT_RECORDED, MISSING]
+
+PersonRef:
+  type: object
+  required: [person_id, employment_id, display_name]
+  additionalProperties: false
+  properties:
+    person_id:
+      $ref: '#/NativeID'
+    employment_id:
+      $ref: '#/NativeID'
+    display_name:
+      type: string
+      nullable: true
+      maxLength: 250
+
+EmploymentStatus:
+  type: string
+  description: Statuses evidenced by the legacy HR UI; anything else is UNMAPPED (raw kept), a missing value is NOT_RECORDED.
+  enum: [ACTIVE, INACTIVE, SUSPENDED, RESIGNED, TERMINATED, PROBATION, UNMAPPED, NOT_RECORDED]
+
+UserLinkState:
+  type: string
+  description: Person ↔ account linkage. SHARED_USER means one account is linked to several profiles (conflict).
+  enum: [LINKED, USER_NOT_IMPORTED, USER_NOT_RECORDED, SHARED_USER]
+
+Employment:
+  type: object
+  description: Organisation relationship of a person (separate from Person and from User).
+  required: [employment_id, status, status_raw, type_raw, employee_code, hire_date, hire_date_raw, termination_date,
+    termination_date_raw, is_active, user, provenance]
+  additionalProperties: false
+  properties:
+    employment_id:
+      $ref: '#/NativeID'
+    status:
+      $ref: '#/EmploymentStatus'
+    status_raw:
+      $ref: '#/RawText'
+    type_raw:
+      $ref: '#/RawText'
+    employee_code:
+      type: string
+      nullable: true
+      maxLength: 100
+    hire_date:
+      type: string
+      format: date
+      nullable: true
+      description: Calendar date when the raw value is a readable legacy DATE; otherwise null (raw kept).
+    hire_date_raw:
+      $ref: '#/RawText'
+    termination_date:
+      type: string
+      format: date
+      nullable: true
+    termination_date_raw:
+      $ref: '#/RawText'
+    is_active:
+      type: boolean
+      nullable: true
+    user:
+      type: object
+      required: [user_id, link_state]
+      additionalProperties: false
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        link_state:
+          $ref: '#/UserLinkState'
+    position:
+      $ref: '#/LookupRef'
+    position_state:
+      $ref: '#/RefState'
+    level:
+      $ref: '#/LookupRef'
+    level_state:
+      $ref: '#/RefState'
+    department:
+      $ref: '#/UnitRef'
+    department_state:
+      $ref: '#/RefState'
+    unit:
+      $ref: '#/UnitRef'
+    unit_state:
+      $ref: '#/RefState'
+    team:
+      $ref: '#/UnitRef'
+    team_state:
+      $ref: '#/RefState'
+    provenance:
+      $ref: '#/Provenance'
+
+ManagerState:
+  type: string
+  description: Current reporting parent. MULTIPLE and MISSING are conflicts; NONE is not a defect by itself.
+  enum: [NONE, RESOLVED, MULTIPLE, MISSING]
+
+PersonSummary:
+  type: object
+  description: |
+    A person (HR identity) with field-masked context: employment, structure
+    and manager are present only when the caller's evaluated capabilities
+    allow them (see allowed_actions).
+  required: [person_id, display_name, finding_count, provenance]
+  additionalProperties: false
+  properties:
+    person_id:
+      $ref: '#/NativeID'
+    display_name:
+      type: string
+      nullable: true
+      maxLength: 250
+    employment:
+      $ref: '#/Employment'
+    manager_state:
+      $ref: '#/ManagerState'
+    manager:
+      $ref: '#/PersonRef'
+    finding_count:
+      type: integer
+      minimum: 0
+    provenance:
+      $ref: '#/Provenance'
+
+AssignmentEnd:
+  type: object
+  required: [state]
+  additionalProperties: false
+  properties:
+    state:
+      type: string
+      enum: [RESOLVED, MISSING, NOT_RECORDED]
+    person:
+      $ref: '#/PersonRef'
+
+Assignment:
+  type: object
+  description: Reporting assignment. Interval values are raw legacy DATETIME text; the source zone is not asserted.
+  required: [assignment_id, child, parent, relationship_kind, relationship_raw, effective_from_raw, effective_to_raw,
+    interval_zone, is_current, current_raw, finding_kinds, provenance]
+  additionalProperties: false
+  properties:
+    assignment_id:
+      $ref: '#/NativeID'
+    child:
+      $ref: '#/AssignmentEnd'
+    parent:
+      $ref: '#/AssignmentEnd'
+    relationship_kind:
+      type: string
+      enum: [REPORTS_TO, UNMAPPED]
+    relationship_raw:
+      $ref: '#/RawText'
+    effective_from_raw:
+      $ref: '#/RawText'
+    effective_to_raw:
+      $ref: '#/RawText'
+    interval_zone:
+      type: string
+      enum: [UNKNOWN]
+    is_current:
+      type: boolean
+      nullable: true
+    current_raw:
+      $ref: '#/RawText'
+    finding_kinds:
+      type: array
+      maxItems: 20
+      items:
+        $ref: '#/FindingKind'
+    provenance:
+      $ref: '#/Provenance'
+
+HistoryEntry:
+  type: object
+  description: Append-only assignment history (free-text reason/context excluded).
+  required: [history_id, action_raw, recorded_raw, provenance]
+  additionalProperties: false
+  properties:
+    history_id:
+      $ref: '#/NativeID'
+    old_parent:
+      $ref: '#/PersonRef'
+    new_parent:
+      $ref: '#/PersonRef'
+    action_raw:
+      $ref: '#/RawText'
+    recorded_raw:
+      $ref: '#/RawText'
+    provenance:
+      $ref: '#/Provenance'
+
+FindingKind:
+  type: string
+  enum: [MISSING_PARENT, SELF_PARENT, CYCLE, DUPLICATE_CURRENT, MULTIPLE_CURRENT_PARENTS, INTERVAL_OVERLAP, HISTORY_GAP,
+    UNEXPLAINED_GAP, MISSING_CHILD, ORG_UNIT_PARENT_MISSING, ORG_UNIT_PARENT_NOT_RECORDED, MEMBERSHIP_MISMATCH,
+    CURRENT_FLAG_INCONSISTENT, HISTORY_CURRENT_DISAGREE, UNREADABLE_DATE, UNMAPPED_RELATIONSHIP, MISSING_REFERENCE,
+    SHARED_USER, USER_NOT_IMPORTED, HISTORY_CHANGED]
+
+FindingSeverity:
+  type: string
+  enum: [CONFLICT, UNKNOWN, INFO]
+
+FindingSubject:
+  type: string
+  enum: [ASSIGNMENT, EMPLOYMENT, ORG_UNIT, HISTORY]
+
+Finding:
+  type: object
+  description: A hierarchy finding. Reported, never auto-fixed. Detail names keys and reasons only.
+  required: [finding_id, kind, severity, subject_type, subject_id, subject_source_key, related_id, related_source_key, detail]
+  additionalProperties: false
+  properties:
+    finding_id:
+      $ref: '#/NativeID'
+    kind:
+      $ref: '#/FindingKind'
+    severity:
+      $ref: '#/FindingSeverity'
+    subject_type:
+      $ref: '#/FindingSubject'
+    subject_id:
+      type: string
+      format: uuid
+      nullable: true
+    subject_source_key:
+      type: string
+      nullable: true
+      maxLength: 20
+    related_id:
+      type: string
+      format: uuid
+      nullable: true
+    related_source_key:
+      type: string
+      nullable: true
+      maxLength: 20
+    detail:
+      type: string
+      maxLength: 300
+
+PersonDetail:
+  type: object
+  required: [person, assignments, direct_reports, history, findings]
+  additionalProperties: false
+  properties:
+    person:
+      $ref: '#/PersonSummary'
+    assignments:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/Assignment'
+    direct_reports:
+      type: array
+      maxItems: 1000
+      items:
+        $ref: '#/PersonRef'
+    history:
+      type: array
+      maxItems: 1000
+      items:
+        $ref: '#/HistoryEntry'
+    findings:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/Finding'
+
+OrgUnitKind:
+  type: string
+  enum: [DEPARTMENT, UNIT, TEAM]
+
+OrgUnit:
+  type: object
+  description: One node of the single typed organisation tree. A MISSING or NOT_RECORDED parent is never attached to a root.
+  required: [org_unit_id, kind, slug, label, sort_order, is_active, parent_id, parent_state, member_count, finding_kinds, provenance]
+  additionalProperties: false
+  properties:
+    org_unit_id:
+      $ref: '#/NativeID'
+    kind:
+      $ref: '#/OrgUnitKind'
+    slug:
+      type: string
+      nullable: true
+      maxLength: 100
+    label:
+      type: string
+      nullable: true
+      maxLength: 200
+    sort_order:
+      type: integer
+      nullable: true
+    is_active:
+      type: boolean
+      nullable: true
+    parent_id:
+      type: string
+      format: uuid
+      nullable: true
+    parent_state:
+      type: string
+      enum: [NOT_APPLICABLE, NOT_RECORDED, RESOLVED, MISSING]
+    member_count:
+      type: integer
+      minimum: 0
+    finding_kinds:
+      type: array
+      maxItems: 20
+      items:
+        $ref: '#/FindingKind'
+    provenance:
+      $ref: '#/Provenance'
+
+Lookup:
+  type: object
+  description: A position or a level (legacy lookup). Position is never a role.
+  required: [id, slug, label, description, sort_order, is_active, is_system, provenance]
+  additionalProperties: false
+  properties:
+    id:
+      $ref: '#/NativeID'
+    slug:
+      type: string
+      nullable: true
+      maxLength: 100
+    label:
+      type: string
+      nullable: true
+      maxLength: 200
+    description:
+      type: string
+      nullable: true
+      maxLength: 1000
+    sort_order:
+      type: integer
+      nullable: true
+    is_active:
+      type: boolean
+      nullable: true
+    is_system:
+      type: boolean
+      nullable: true
+    provenance:
+      $ref: '#/Provenance'
+
+Capability:
+  type: string
+  description: Slice 4 read capability vocabulary (<module>.<object>.<action>).
+  enum: [identity.user.read, org.person.read, org.employment.read, org.position.read, org.unit.read, org.assignment.read]
+
+AccessDecision:
+  type: object
+  required: [capability, allowed, outcome, scope, matched_roles]
+  additionalProperties: false
+  properties:
+    capability:
+      $ref: '#/Capability'
+    allowed:
+      type: boolean
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reason_code:
+      $ref: './schemas.yaml#/ReasonCode'
+    scope:
+      type: string
+      enum: [NONE, ORGANIZATION]
+    matched_roles:
+      type: array
+      maxItems: 20
+      items:
+        type: string
+        maxLength: 40
+
+EffectiveAccess:
+  type: object
+  description: Server-authoritative evaluation for the current principal (same evaluator as allowed_actions).
+  required: [authenticated, hr_read_enabled, decisions]
+  additionalProperties: false
+  properties:
+    authenticated:
+      type: boolean
+    hr_read_enabled:
+      type: boolean
+    decisions:
+      type: array
+      maxItems: 50
+      items:
+        $ref: '#/AccessDecision'
+
+# --- envelopes -----------------------------------------------------------------
+
+UserListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      $ref: '#/Reasons'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    items:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/UserSummary'
+    page:
+      $ref: './schemas.yaml#/PageInfo'
+    allowed_actions:
+      $ref: './schemas.yaml#/AllowedActions'
+
+UserEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      $ref: '#/Reasons'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    data:
+      $ref: '#/UserSummary'
+    allowed_actions:
+      $ref: './schemas.yaml#/AllowedActions'
+
+PersonListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      $ref: '#/Reasons'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    items:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/PersonSummary'
+    page:
+      $ref: './schemas.yaml#/PageInfo'
+    allowed_actions:
+      $ref: './schemas.yaml#/AllowedActions'
+
+PersonEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      $ref: '#/Reasons'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    data:
+      $ref: '#/PersonDetail'
+    allowed_actions:
+      $ref: './schemas.yaml#/AllowedActions'
+
+LookupListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      $ref: '#/Reasons'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    items:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/Lookup'
+    page:
+      $ref: './schemas.yaml#/PageInfo'
+    allowed_actions:
+      $ref: './schemas.yaml#/AllowedActions'
+
+OrgUnitListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      $ref: '#/Reasons'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    items:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/OrgUnit'
+    page:
+      $ref: './schemas.yaml#/PageInfo'
+    allowed_actions:
+      $ref: './schemas.yaml#/AllowedActions'
+
+AssignmentListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      $ref: '#/Reasons'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    items:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/Assignment'
+    page:
+      $ref: './schemas.yaml#/PageInfo'
+    allowed_actions:
+      $ref: './schemas.yaml#/AllowedActions'
+
+FindingListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      $ref: '#/Reasons'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    items:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/Finding'
+    page:
+      $ref: './schemas.yaml#/PageInfo'
+    allowed_actions:
+      $ref: './schemas.yaml#/AllowedActions'
+
+EffectiveAccessEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, data]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      $ref: '#/Reasons'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    data:
+      $ref: '#/EffectiveAccess'
+
+Reasons:
+  type: array
+  maxItems: 15
+  items:
+    $ref: './schemas.yaml#/ReasonCode'

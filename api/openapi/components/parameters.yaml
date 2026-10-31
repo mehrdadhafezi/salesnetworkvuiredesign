@@ -45,3 +45,142 @@ Limit:
     minimum: 1
     maximum: 200
     default: 50
+
+Query:
+  name: q
+  in: query
+  required: false
+  description: Case-insensitive substring of the display name (persons also match the employee code).
+  schema:
+    type: string
+    minLength: 1
+    maxLength: 100
+
+Presence:
+  name: presence
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/Presence'
+
+UserSort:
+  name: sort
+  in: query
+  required: false
+  description: Allowlisted sort; a leading "-" is descending.
+  schema:
+    type: string
+    enum: [display_name, -display_name]
+    default: display_name
+
+PersonSort:
+  name: sort
+  in: query
+  required: false
+  description: Allowlisted sort; a leading "-" is descending.
+  schema:
+    type: string
+    enum: [display_name, -display_name, employee_code, -employee_code, employment_status, -employment_status]
+    default: display_name
+
+EmploymentStatus:
+  name: employment_status
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/EmploymentStatus'
+
+PositionID:
+  name: position_id
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
+LevelID:
+  name: level_id
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
+OrgUnitID:
+  name: org_unit_id
+  in: query
+  required: false
+  description: Matches the person's department, unit or team.
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
+IsActive:
+  name: is_active
+  in: query
+  required: false
+  schema:
+    type: boolean
+
+HasFindings:
+  name: has_findings
+  in: query
+  required: false
+  schema:
+    type: boolean
+
+PersonID:
+  name: person_id
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
+Relation:
+  name: relation
+  in: query
+  required: false
+  description: With person_id, restrict to assignments where the person is the CHILD or the PARENT.
+  schema:
+    type: string
+    enum: [CHILD, PARENT]
+
+IsCurrent:
+  name: is_current
+  in: query
+  required: false
+  schema:
+    type: boolean
+
+RelationshipKind:
+  name: relationship_kind
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [REPORTS_TO, UNMAPPED]
+
+OrgUnitKind:
+  name: kind
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/OrgUnitKind'
+
+FindingKind:
+  name: kind
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/FindingKind'
+
+FindingSeverity:
+  name: severity
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/FindingSeverity'
+
+FindingSubject:
+  name: subject_type
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/FindingSubject'
