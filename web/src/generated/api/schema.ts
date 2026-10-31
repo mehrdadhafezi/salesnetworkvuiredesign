@@ -280,6 +280,153 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List shadow customers
+         * @description Requires customers.customer.read. One customer per source subject; never merged.
+         *     Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCustomers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customers/{customer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one shadow customer
+         * @description Requires customers.customer.read.
+         *     Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCustomer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customers/{customer_id}/contact-points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a customer's masked contact points
+         * @description Requires customers.customer.read. Values are masked; equal phones are ambiguity, never identity.
+         *     Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCustomerContactPoints"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customers/{customer_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List identity evidence about a customer
+         * @description Requires customers.customer.read.
+         *     Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCustomerEvidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer-identity/merge-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Merge-case candidate queue (read only)
+         * @description Requires customers.merge_case.read. No merge, resolve or winner selection exists (D-30 open).
+         *     Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listMergeCases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer-identity/merge-cases/{merge_case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one merge-case candidate
+         * @description Requires customers.merge_case.read.
+         *     Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getMergeCase"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer-identity/resolution-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Customer identity resolution report
+         * @description Requires customers.identity_report.read. Includes the invariants phone_only_resolved_count = 0 and merge_count = 0.
+         *     Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCustomerResolutionReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -422,6 +569,8 @@ export interface components {
              */
             features?: {
                 hr_read: boolean;
+                /** @description Slice 5 customer identity shadow read (flag customers.identity_shadow_read). */
+                customers_identity: boolean;
             };
         };
         SessionEnvelope: {
@@ -706,7 +855,7 @@ export interface components {
          * @description Slice 4 read capability vocabulary (<module>.<object>.<action>).
          * @enum {string}
          */
-        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read";
+        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read";
         AccessDecision: {
             capability: components["schemas"]["Capability"];
             allowed: boolean;
@@ -727,6 +876,175 @@ export interface components {
             reasons: components["schemas"]["Reasons"];
             correlation_id: components["schemas"]["CorrelationID"];
             data: components["schemas"]["EffectiveAccess"];
+        };
+        /**
+         * @description RESOLVED (strong evidence; still never merged), RELATED (relationship
+         *     without equality), UNKNOWN (insufficient evidence), CONFLICT
+         *     (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
+         * @enum {string}
+         */
+        ResolutionState: "RESOLVED" | "RELATED" | "UNKNOWN" | "CONFLICT" | "NOT_RECOVERABLE";
+        CustomerSummary: {
+            customer_id: components["schemas"]["NativeID"];
+            /**
+             * @description The source subject this customer stands for (one legacy issued-to record each).
+             * @enum {string}
+             */
+            subject_kind: "INVOICE_ISSUED_TO" | "SYNTHETIC_SUBJECT";
+            resolution_state: components["schemas"]["ResolutionState"];
+            resolution_reason: string;
+            name_masked: string | null;
+            observed_raw: components["schemas"]["RawText"];
+            contact_count: number;
+            identifier_count: number;
+            evidence_count: number;
+            open_case_count: number;
+            conflict_case_count: number;
+            provenance: components["schemas"]["Provenance"];
+        };
+        CustomerListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["CustomerSummary"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description An external / legacy identifier claim (masked). Never a key. */
+        Identifier: {
+            identifier_id: components["schemas"]["NativeID"];
+            /** @enum {string} */
+            scheme: "LEGACY_WP_ACCOUNT" | "WOO_CUSTOMER" | "BIAWIN" | "LEGACY_AGGREGATE_V1" | "LEGACY_MAP_V2" | "CRM_CODE";
+            masked_value: string;
+            /** @enum {string} */
+            derivation: "DIRECT" | "PHONE_DERIVED";
+            /** @enum {string} */
+            status: "ACTIVE" | "CONFLICT";
+            provenance: components["schemas"]["Provenance"];
+        };
+        /** @enum {string} */
+        CaseReason: "SHARED_PHONE" | "SHARED_ACCOUNT_REF" | "SHARED_EXCLUSIVE_IDENTIFIER" | "SUPPLIED_EVIDENCE";
+        /** @enum {string} */
+        Strength: "STRONG" | "MEDIUM" | "WEAK";
+        /** @enum {string} */
+        EvidenceKind: "PHONE_MATCH" | "ACCOUNT_REF_MATCH" | "SEQUENTIAL_PHONE_REUSE" | "OVERLAPPING_PHONE_OWNERSHIP" | "EXCLUSIVE_IDENTIFIER_SHARED" | "OTP_CONTACT_CONTROL" | "VERIFIED_EQUALITY" | "VERIFIED_DISTINCT" | "SOURCE_NOT_RECOVERABLE";
+        /** @description A read-only candidate. No winner, no canonical choice, no merge (D-30 open). */
+        MergeCase: {
+            merge_case_id: components["schemas"]["NativeID"];
+            reason: components["schemas"]["CaseReason"];
+            state: components["schemas"]["ResolutionState"];
+            state_reason: string;
+            max_strength: components["schemas"]["Strength"];
+            member_customer_ids: components["schemas"]["NativeID"][];
+            evidence_kinds: components["schemas"]["EvidenceKind"][];
+            presence: components["schemas"]["Presence"];
+            created_at: components["schemas"]["Timestamp"];
+            refreshed_at: components["schemas"]["Timestamp"];
+        };
+        CustomerDetail: {
+            customer: components["schemas"]["CustomerSummary"];
+            identifiers: components["schemas"]["Identifier"][];
+            merge_cases: components["schemas"]["MergeCase"][];
+        };
+        CustomerEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["CustomerDetail"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description A masked contact point. Equal values on several customers are shown as ambiguity, never as identity. */
+        ContactPoint: {
+            contact_point_id: components["schemas"]["NativeID"];
+            /** @enum {string} */
+            kind: "PHONE" | "EMAIL";
+            /** @enum {string} */
+            role: "PRIMARY" | "SECONDARY";
+            masked_value: string;
+            /** @enum {string} */
+            normalization: "VALID" | "INVALID" | "EMPTY";
+            /** @description Other present customers with the same comparison value (discovery only). */
+            shared_with_customers: number;
+            valid_from_raw: components["schemas"]["RawText"];
+            valid_to_raw: components["schemas"]["RawText"];
+            observed_raw: components["schemas"]["RawText"];
+            provenance: components["schemas"]["Provenance"];
+        };
+        ContactPointListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["ContactPoint"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        Evidence: {
+            evidence_id: components["schemas"]["NativeID"];
+            kind: components["schemas"]["EvidenceKind"];
+            strength: components["schemas"]["Strength"];
+            /** @enum {string} */
+            polarity: "EQUALITY" | "RELATION" | "DISCOVERY" | "CONTRADICTION" | "MISSING";
+            /** @enum {string} */
+            origin: "DERIVED" | "SUPPLIED";
+            reference: string;
+            observed_raw: components["schemas"]["RawText"];
+            subject_count: number;
+            source_spec: string;
+            presence: components["schemas"]["Presence"];
+            recorded_at: components["schemas"]["Timestamp"];
+        };
+        EvidenceListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["Evidence"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        MergeCaseListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["MergeCase"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        MergeCaseEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["MergeCase"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Machine-readable resolution projection. phone_only_resolved_count and merge_count must be 0. */
+        ResolutionReport: {
+            customers: number;
+            customers_present: number;
+            source_subjects_present: number;
+            customers_by_state: {
+                [key: string]: number;
+            };
+            merge_cases_by_state: {
+                [key: string]: number;
+            };
+            merge_cases_by_reason: {
+                [key: string]: number;
+            };
+            phone_only_candidate_count: number;
+            overlapping_phone_conflict_count: number;
+            duplicate_external_id_conflict_count: number;
+            strong_evidence_count: number;
+            weak_only_customer_count: number;
+            unresolved_count: number;
+            phone_only_resolved_count: number;
+            phone_only_merge_count: number;
+            merge_count: number;
+        };
+        ResolutionReportEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["ResolutionReport"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
         };
     };
     responses: {
@@ -792,6 +1110,13 @@ export interface components {
         FindingKind: components["schemas"]["FindingKind"];
         FindingSeverity: components["schemas"]["FindingSeverity"];
         FindingSubject: components["schemas"]["FindingSubject"];
+        ResolutionState: components["schemas"]["ResolutionState"];
+        HasConflict: boolean;
+        Strength: components["schemas"]["Strength"];
+        /** @description The strongest evidence of the case. */
+        EvidenceStrength: components["schemas"]["Strength"];
+        CaseReason: components["schemas"]["CaseReason"];
+        CustomerID: components["schemas"]["NativeID"];
     };
     requestBodies: never;
     headers: {
@@ -1178,6 +1503,207 @@ export interface operations {
                 };
             };
             400: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCustomers: {
+        parameters: {
+            query?: {
+                state?: components["parameters"]["ResolutionState"];
+                has_conflict?: components["parameters"]["HasConflict"];
+                presence?: components["parameters"]["Presence"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: components["schemas"]["NativeID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCustomerContactPoints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: components["schemas"]["NativeID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactPointListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCustomerEvidence: {
+        parameters: {
+            query?: {
+                strength?: components["parameters"]["Strength"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                customer_id: components["schemas"]["NativeID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMergeCases: {
+        parameters: {
+            query?: {
+                state?: components["parameters"]["ResolutionState"];
+                /** @description The strongest evidence of the case. */
+                evidence_strength?: components["parameters"]["EvidenceStrength"];
+                reason?: components["parameters"]["CaseReason"];
+                customer_id?: components["parameters"]["CustomerID"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MergeCaseListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getMergeCase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                merge_case_id: components["schemas"]["NativeID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MergeCaseEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCustomerResolutionReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolutionReportEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
             default: components["responses"]["Problem"];
         };
     };

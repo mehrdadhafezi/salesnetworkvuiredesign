@@ -92,17 +92,26 @@ func (e AssignmentEndState) Valid() bool {
 
 // Defines values for Capability.
 const (
-	IdentityUserRead  Capability = "identity.user.read"
-	OrgAssignmentRead Capability = "org.assignment.read"
-	OrgEmploymentRead Capability = "org.employment.read"
-	OrgPersonRead     Capability = "org.person.read"
-	OrgPositionRead   Capability = "org.position.read"
-	OrgUnitRead       Capability = "org.unit.read"
+	CustomersCustomerRead       Capability = "customers.customer.read"
+	CustomersIdentityReportRead Capability = "customers.identity_report.read"
+	CustomersMergeCaseRead      Capability = "customers.merge_case.read"
+	IdentityUserRead            Capability = "identity.user.read"
+	OrgAssignmentRead           Capability = "org.assignment.read"
+	OrgEmploymentRead           Capability = "org.employment.read"
+	OrgPersonRead               Capability = "org.person.read"
+	OrgPositionRead             Capability = "org.position.read"
+	OrgUnitRead                 Capability = "org.unit.read"
 )
 
 // Valid indicates whether the value is a known member of the Capability enum.
 func (e Capability) Valid() bool {
 	switch e {
+	case CustomersCustomerRead:
+		return true
+	case CustomersIdentityReportRead:
+		return true
+	case CustomersMergeCaseRead:
+		return true
 	case IdentityUserRead:
 		return true
 	case OrgAssignmentRead:
@@ -114,6 +123,105 @@ func (e Capability) Valid() bool {
 	case OrgPositionRead:
 		return true
 	case OrgUnitRead:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CaseReason.
+const (
+	SHAREDACCOUNTREF          CaseReason = "SHARED_ACCOUNT_REF"
+	SHAREDEXCLUSIVEIDENTIFIER CaseReason = "SHARED_EXCLUSIVE_IDENTIFIER"
+	SHAREDPHONE               CaseReason = "SHARED_PHONE"
+	SUPPLIEDEVIDENCE          CaseReason = "SUPPLIED_EVIDENCE"
+)
+
+// Valid indicates whether the value is a known member of the CaseReason enum.
+func (e CaseReason) Valid() bool {
+	switch e {
+	case SHAREDACCOUNTREF:
+		return true
+	case SHAREDEXCLUSIVEIDENTIFIER:
+		return true
+	case SHAREDPHONE:
+		return true
+	case SUPPLIEDEVIDENCE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ContactPointKind.
+const (
+	EMAIL ContactPointKind = "EMAIL"
+	PHONE ContactPointKind = "PHONE"
+)
+
+// Valid indicates whether the value is a known member of the ContactPointKind enum.
+func (e ContactPointKind) Valid() bool {
+	switch e {
+	case EMAIL:
+		return true
+	case PHONE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ContactPointNormalization.
+const (
+	EMPTY   ContactPointNormalization = "EMPTY"
+	INVALID ContactPointNormalization = "INVALID"
+	VALID   ContactPointNormalization = "VALID"
+)
+
+// Valid indicates whether the value is a known member of the ContactPointNormalization enum.
+func (e ContactPointNormalization) Valid() bool {
+	switch e {
+	case EMPTY:
+		return true
+	case INVALID:
+		return true
+	case VALID:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ContactPointRole.
+const (
+	PRIMARY   ContactPointRole = "PRIMARY"
+	SECONDARY ContactPointRole = "SECONDARY"
+)
+
+// Valid indicates whether the value is a known member of the ContactPointRole enum.
+func (e ContactPointRole) Valid() bool {
+	switch e {
+	case PRIMARY:
+		return true
+	case SECONDARY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomerSummarySubjectKind.
+const (
+	INVOICEISSUEDTO  CustomerSummarySubjectKind = "INVOICE_ISSUED_TO"
+	SYNTHETICSUBJECT CustomerSummarySubjectKind = "SYNTHETIC_SUBJECT"
+)
+
+// Valid indicates whether the value is a known member of the CustomerSummarySubjectKind enum.
+func (e CustomerSummarySubjectKind) Valid() bool {
+	switch e {
+	case INVOICEISSUEDTO:
+		return true
+	case SYNTHETICSUBJECT:
 		return true
 	default:
 		return false
@@ -150,6 +258,90 @@ func (e EmploymentStatus) Valid() bool {
 	case EmploymentStatusTERMINATED:
 		return true
 	case EmploymentStatusUNMAPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EvidenceOrigin.
+const (
+	DERIVED  EvidenceOrigin = "DERIVED"
+	SUPPLIED EvidenceOrigin = "SUPPLIED"
+)
+
+// Valid indicates whether the value is a known member of the EvidenceOrigin enum.
+func (e EvidenceOrigin) Valid() bool {
+	switch e {
+	case DERIVED:
+		return true
+	case SUPPLIED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EvidencePolarity.
+const (
+	EvidencePolarityCONTRADICTION EvidencePolarity = "CONTRADICTION"
+	EvidencePolarityDISCOVERY     EvidencePolarity = "DISCOVERY"
+	EvidencePolarityEQUALITY      EvidencePolarity = "EQUALITY"
+	EvidencePolarityMISSING       EvidencePolarity = "MISSING"
+	EvidencePolarityRELATION      EvidencePolarity = "RELATION"
+)
+
+// Valid indicates whether the value is a known member of the EvidencePolarity enum.
+func (e EvidencePolarity) Valid() bool {
+	switch e {
+	case EvidencePolarityCONTRADICTION:
+		return true
+	case EvidencePolarityDISCOVERY:
+		return true
+	case EvidencePolarityEQUALITY:
+		return true
+	case EvidencePolarityMISSING:
+		return true
+	case EvidencePolarityRELATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EvidenceKind.
+const (
+	ACCOUNTREFMATCH           EvidenceKind = "ACCOUNT_REF_MATCH"
+	EXCLUSIVEIDENTIFIERSHARED EvidenceKind = "EXCLUSIVE_IDENTIFIER_SHARED"
+	OTPCONTACTCONTROL         EvidenceKind = "OTP_CONTACT_CONTROL"
+	OVERLAPPINGPHONEOWNERSHIP EvidenceKind = "OVERLAPPING_PHONE_OWNERSHIP"
+	PHONEMATCH                EvidenceKind = "PHONE_MATCH"
+	SEQUENTIALPHONEREUSE      EvidenceKind = "SEQUENTIAL_PHONE_REUSE"
+	SOURCENOTRECOVERABLE      EvidenceKind = "SOURCE_NOT_RECOVERABLE"
+	VERIFIEDDISTINCT          EvidenceKind = "VERIFIED_DISTINCT"
+	VERIFIEDEQUALITY          EvidenceKind = "VERIFIED_EQUALITY"
+)
+
+// Valid indicates whether the value is a known member of the EvidenceKind enum.
+func (e EvidenceKind) Valid() bool {
+	switch e {
+	case ACCOUNTREFMATCH:
+		return true
+	case EXCLUSIVEIDENTIFIERSHARED:
+		return true
+	case OTPCONTACTCONTROL:
+		return true
+	case OVERLAPPINGPHONEOWNERSHIP:
+		return true
+	case PHONEMATCH:
+		return true
+	case SEQUENTIALPHONEREUSE:
+		return true
+	case SOURCENOTRECOVERABLE:
+		return true
+	case VERIFIEDDISTINCT:
+		return true
+	case VERIFIEDEQUALITY:
 		return true
 	default:
 		return false
@@ -318,6 +510,72 @@ func (e HealthReadyStatus) Valid() bool {
 	case NotReady:
 		return true
 	case Ready:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IdentifierDerivation.
+const (
+	DIRECT       IdentifierDerivation = "DIRECT"
+	PHONEDERIVED IdentifierDerivation = "PHONE_DERIVED"
+)
+
+// Valid indicates whether the value is a known member of the IdentifierDerivation enum.
+func (e IdentifierDerivation) Valid() bool {
+	switch e {
+	case DIRECT:
+		return true
+	case PHONEDERIVED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IdentifierScheme.
+const (
+	BIAWIN            IdentifierScheme = "BIAWIN"
+	CRMCODE           IdentifierScheme = "CRM_CODE"
+	LEGACYAGGREGATEV1 IdentifierScheme = "LEGACY_AGGREGATE_V1"
+	LEGACYMAPV2       IdentifierScheme = "LEGACY_MAP_V2"
+	LEGACYWPACCOUNT   IdentifierScheme = "LEGACY_WP_ACCOUNT"
+	WOOCUSTOMER       IdentifierScheme = "WOO_CUSTOMER"
+)
+
+// Valid indicates whether the value is a known member of the IdentifierScheme enum.
+func (e IdentifierScheme) Valid() bool {
+	switch e {
+	case BIAWIN:
+		return true
+	case CRMCODE:
+		return true
+	case LEGACYAGGREGATEV1:
+		return true
+	case LEGACYMAPV2:
+		return true
+	case LEGACYWPACCOUNT:
+		return true
+	case WOOCUSTOMER:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IdentifierStatus.
+const (
+	IdentifierStatusACTIVE   IdentifierStatus = "ACTIVE"
+	IdentifierStatusCONFLICT IdentifierStatus = "CONFLICT"
+)
+
+// Valid indicates whether the value is a known member of the IdentifierStatus enum.
+func (e IdentifierStatus) Valid() bool {
+	switch e {
+	case IdentifierStatusACTIVE:
+		return true
+	case IdentifierStatusCONFLICT:
 		return true
 	default:
 		return false
@@ -564,6 +822,33 @@ func (e RefState) Valid() bool {
 	}
 }
 
+// Defines values for ResolutionState.
+const (
+	ResolutionStateCONFLICT       ResolutionState = "CONFLICT"
+	ResolutionStateNOTRECOVERABLE ResolutionState = "NOT_RECOVERABLE"
+	ResolutionStateRELATED        ResolutionState = "RELATED"
+	ResolutionStateRESOLVED       ResolutionState = "RESOLVED"
+	ResolutionStateUNKNOWN        ResolutionState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ResolutionState enum.
+func (e ResolutionState) Valid() bool {
+	switch e {
+	case ResolutionStateCONFLICT:
+		return true
+	case ResolutionStateNOTRECOVERABLE:
+		return true
+	case ResolutionStateRELATED:
+		return true
+	case ResolutionStateRESOLVED:
+		return true
+	case ResolutionStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SessionContextAuthMode.
 const (
 	DevStub SessionContextAuthMode = "dev_stub"
@@ -606,6 +891,27 @@ const (
 func (e SessionContextPrincipalSynthetic) Valid() bool {
 	switch e {
 	case True:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Strength.
+const (
+	MEDIUM Strength = "MEDIUM"
+	STRONG Strength = "STRONG"
+	WEAK   Strength = "WEAK"
+)
+
+// Valid indicates whether the value is a known member of the Strength enum.
+func (e Strength) Valid() bool {
+	switch e {
+	case MEDIUM:
+		return true
+	case STRONG:
+		return true
+	case WEAK:
 		return true
 	default:
 		return false
@@ -951,8 +1257,138 @@ type AssignmentListEnvelope struct {
 // Capability Slice 4 read capability vocabulary (<module>.<object>.<action>).
 type Capability string
 
+// CaseReason defines model for CaseReason.
+type CaseReason string
+
+// ContactPoint A masked contact point. Equal values on several customers are shown as ambiguity, never as identity.
+type ContactPoint struct {
+	// ContactPointId Target native identifier. Never a phone, e-mail, login or legacy key.
+	ContactPointId NativeID                  `json:"contact_point_id"`
+	Kind           ContactPointKind          `json:"kind"`
+	MaskedValue    string                    `json:"masked_value"`
+	Normalization  ContactPointNormalization `json:"normalization"`
+
+	// ObservedRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	ObservedRaw *RawText `json:"observed_raw"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance Provenance       `json:"provenance"`
+	Role       ContactPointRole `json:"role"`
+
+	// SharedWithCustomers Other present customers with the same comparison value (discovery only).
+	SharedWithCustomers int `json:"shared_with_customers"`
+
+	// ValidFromRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	ValidFromRaw *RawText `json:"valid_from_raw"`
+
+	// ValidToRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	ValidToRaw *RawText `json:"valid_to_raw"`
+}
+
+// ContactPointKind defines model for ContactPoint.Kind.
+type ContactPointKind string
+
+// ContactPointNormalization defines model for ContactPoint.Normalization.
+type ContactPointNormalization string
+
+// ContactPointRole defines model for ContactPoint.Role.
+type ContactPointRole string
+
+// ContactPointListEnvelope defines model for ContactPointListEnvelope.
+type ContactPointListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID   `json:"correlation_id"`
+	Items         *[]ContactPoint `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
 // CorrelationID Opaque request correlation identifier.
 type CorrelationID = string
+
+// CustomerDetail defines model for CustomerDetail.
+type CustomerDetail struct {
+	Customer    CustomerSummary `json:"customer"`
+	Identifiers []Identifier    `json:"identifiers"`
+	MergeCases  []MergeCase     `json:"merge_cases"`
+}
+
+// CustomerEnvelope defines model for CustomerEnvelope.
+type CustomerEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID   `json:"correlation_id"`
+	Data          *CustomerDetail `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// CustomerListEnvelope defines model for CustomerListEnvelope.
+type CustomerListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID      `json:"correlation_id"`
+	Items         *[]CustomerSummary `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// CustomerSummary defines model for CustomerSummary.
+type CustomerSummary struct {
+	ConflictCaseCount int `json:"conflict_case_count"`
+	ContactCount      int `json:"contact_count"`
+
+	// CustomerId Target native identifier. Never a phone, e-mail, login or legacy key.
+	CustomerId      NativeID `json:"customer_id"`
+	EvidenceCount   int      `json:"evidence_count"`
+	IdentifierCount int      `json:"identifier_count"`
+	NameMasked      *string  `json:"name_masked"`
+
+	// ObservedRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	ObservedRaw   *RawText `json:"observed_raw"`
+	OpenCaseCount int      `json:"open_case_count"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance       Provenance `json:"provenance"`
+	ResolutionReason string     `json:"resolution_reason"`
+
+	// ResolutionState RESOLVED (strong evidence; still never merged), RELATED (relationship
+	// without equality), UNKNOWN (insufficient evidence), CONFLICT
+	// (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
+	ResolutionState ResolutionState `json:"resolution_state"`
+
+	// SubjectKind The source subject this customer stands for (one legacy issued-to record each).
+	SubjectKind CustomerSummarySubjectKind `json:"subject_kind"`
+}
+
+// CustomerSummarySubjectKind The source subject this customer stands for (one legacy issued-to record each).
+type CustomerSummarySubjectKind string
 
 // EffectiveAccess Server-authoritative evaluation for the current principal (same evaluator as allowed_actions).
 type EffectiveAccess struct {
@@ -1034,6 +1470,58 @@ type Employment struct {
 
 // EmploymentStatus Statuses evidenced by the legacy HR UI; anything else is UNMAPPED (raw kept), a missing value is NOT_RECORDED.
 type EmploymentStatus string
+
+// Evidence defines model for Evidence.
+type Evidence struct {
+	// EvidenceId Target native identifier. Never a phone, e-mail, login or legacy key.
+	EvidenceId NativeID     `json:"evidence_id"`
+	Kind       EvidenceKind `json:"kind"`
+
+	// ObservedRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	ObservedRaw *RawText         `json:"observed_raw"`
+	Origin      EvidenceOrigin   `json:"origin"`
+	Polarity    EvidencePolarity `json:"polarity"`
+
+	// Presence Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+	Presence Presence `json:"presence"`
+
+	// RecordedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	RecordedAt   Timestamp `json:"recorded_at"`
+	Reference    string    `json:"reference"`
+	SourceSpec   string    `json:"source_spec"`
+	Strength     Strength  `json:"strength"`
+	SubjectCount int       `json:"subject_count"`
+}
+
+// EvidenceOrigin defines model for Evidence.Origin.
+type EvidenceOrigin string
+
+// EvidencePolarity defines model for Evidence.Polarity.
+type EvidencePolarity string
+
+// EvidenceKind defines model for EvidenceKind.
+type EvidenceKind string
+
+// EvidenceListEnvelope defines model for EvidenceListEnvelope.
+type EvidenceListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]Evidence   `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
 
 // FieldError defines model for FieldError.
 type FieldError struct {
@@ -1131,6 +1619,29 @@ type HistoryEntry struct {
 	RecordedRaw *RawText `json:"recorded_raw"`
 }
 
+// Identifier An external / legacy identifier claim (masked). Never a key.
+type Identifier struct {
+	Derivation IdentifierDerivation `json:"derivation"`
+
+	// IdentifierId Target native identifier. Never a phone, e-mail, login or legacy key.
+	IdentifierId NativeID `json:"identifier_id"`
+	MaskedValue  string   `json:"masked_value"`
+
+	// Provenance Source provenance of an imported shadow row.
+	Provenance Provenance       `json:"provenance"`
+	Scheme     IdentifierScheme `json:"scheme"`
+	Status     IdentifierStatus `json:"status"`
+}
+
+// IdentifierDerivation defines model for Identifier.Derivation.
+type IdentifierDerivation string
+
+// IdentifierScheme defines model for Identifier.Scheme.
+type IdentifierScheme string
+
+// IdentifierStatus defines model for Identifier.Status.
+type IdentifierStatus string
+
 // ItemOutcome Per-item outcome inside a ResultEnvelope; per-item classes are preserved.
 type ItemOutcome struct {
 	// ItemRef Domain-qualified native identifier (kernel/refs). Never a phone number.
@@ -1194,6 +1705,71 @@ type LookupRef struct {
 
 // ManagerState Current reporting parent. MULTIPLE and MISSING are conflicts; NONE is not a defect by itself.
 type ManagerState string
+
+// MergeCase A read-only candidate. No winner, no canonical choice, no merge (D-30 open).
+type MergeCase struct {
+	// CreatedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	CreatedAt         Timestamp      `json:"created_at"`
+	EvidenceKinds     []EvidenceKind `json:"evidence_kinds"`
+	MaxStrength       Strength       `json:"max_strength"`
+	MemberCustomerIds []NativeID     `json:"member_customer_ids"`
+
+	// MergeCaseId Target native identifier. Never a phone, e-mail, login or legacy key.
+	MergeCaseId NativeID `json:"merge_case_id"`
+
+	// Presence Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+	Presence Presence   `json:"presence"`
+	Reason   CaseReason `json:"reason"`
+
+	// RefreshedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	RefreshedAt Timestamp `json:"refreshed_at"`
+
+	// State RESOLVED (strong evidence; still never merged), RELATED (relationship
+	// without equality), UNKNOWN (insufficient evidence), CONFLICT
+	// (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
+	State       ResolutionState `json:"state"`
+	StateReason string          `json:"state_reason"`
+}
+
+// MergeCaseEnvelope defines model for MergeCaseEnvelope.
+type MergeCaseEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data A read-only candidate. No winner, no canonical choice, no merge (D-30 open).
+	Data *MergeCase `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// MergeCaseListEnvelope defines model for MergeCaseListEnvelope.
+type MergeCaseListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]MergeCase  `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
 
 // Money Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
 // decimal string so that no client parses it as a floating-point number.
@@ -1407,6 +1983,49 @@ type Reasons = []ReasonCode
 // RefState RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
 type RefState string
 
+// ResolutionReport Machine-readable resolution projection. phone_only_resolved_count and merge_count must be 0.
+type ResolutionReport struct {
+	Customers                        int            `json:"customers"`
+	CustomersByState                 map[string]int `json:"customers_by_state"`
+	CustomersPresent                 int            `json:"customers_present"`
+	DuplicateExternalIdConflictCount int            `json:"duplicate_external_id_conflict_count"`
+	MergeCasesByReason               map[string]int `json:"merge_cases_by_reason"`
+	MergeCasesByState                map[string]int `json:"merge_cases_by_state"`
+	MergeCount                       int            `json:"merge_count"`
+	OverlappingPhoneConflictCount    int            `json:"overlapping_phone_conflict_count"`
+	PhoneOnlyCandidateCount          int            `json:"phone_only_candidate_count"`
+	PhoneOnlyMergeCount              int            `json:"phone_only_merge_count"`
+	PhoneOnlyResolvedCount           int            `json:"phone_only_resolved_count"`
+	SourceSubjectsPresent            int            `json:"source_subjects_present"`
+	StrongEvidenceCount              int            `json:"strong_evidence_count"`
+	UnresolvedCount                  int            `json:"unresolved_count"`
+	WeakOnlyCustomerCount            int            `json:"weak_only_customer_count"`
+}
+
+// ResolutionReportEnvelope defines model for ResolutionReportEnvelope.
+type ResolutionReportEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data Machine-readable resolution projection. phone_only_resolved_count and merge_count must be 0.
+	Data *ResolutionReport `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// ResolutionState RESOLVED (strong evidence; still never merged), RELATED (relationship
+// without equality), UNKNOWN (insufficient evidence), CONFLICT
+// (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
+type ResolutionState string
+
 // ResultEnvelope Generic business result (Architecture V1 §23). Concrete envelopes add a
 // typed data property. An item-level mix aggregates to PARTIAL.
 type ResultEnvelope struct {
@@ -1439,7 +2058,9 @@ type SessionContext struct {
 	// Features Server feature switches for navigation only (Slice 4 rollback is
 	// flag-off). Never authority: every read is evaluated by the server.
 	Features *struct {
-		HrRead bool `json:"hr_read"`
+		// CustomersIdentity Slice 5 customer identity shadow read (flag customers.identity_shadow_read).
+		CustomersIdentity bool `json:"customers_identity"`
+		HrRead            bool `json:"hr_read"`
 	} `json:"features,omitempty"`
 	Principal *struct {
 		DisplayName string                           `json:"display_name"`
@@ -1472,6 +2093,9 @@ type SessionEnvelope struct {
 	Outcome Outcome      `json:"outcome"`
 	Reasons []ReasonCode `json:"reasons"`
 }
+
+// Strength defines model for Strength.
+type Strength string
 
 // Timestamp RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
 type Timestamp = time.Time
@@ -1553,6 +2177,15 @@ type UserSummaryLoginEnabled bool
 // Cursor defines model for Cursor.
 type Cursor = string
 
+// CustomerID Target native identifier. Never a phone, e-mail, login or legacy key.
+type CustomerID = NativeID
+
+// EvidenceStrength defines model for EvidenceStrength.
+type EvidenceStrength = Strength
+
+// HasConflict defines model for HasConflict.
+type HasConflict = bool
+
 // HasFindings defines model for HasFindings.
 type HasFindings = bool
 
@@ -1601,6 +2234,40 @@ type UserSort string
 // Denied Generic business result (Architecture V1 §23). Concrete envelopes add a
 // typed data property. An item-level mix aggregates to PARTIAL.
 type Denied = ResultEnvelope
+
+// ListMergeCasesParams defines parameters for ListMergeCases.
+type ListMergeCasesParams struct {
+	State *ResolutionState `form:"state,omitempty" json:"state,omitempty"`
+
+	// EvidenceStrength The strongest evidence of the case.
+	EvidenceStrength *EvidenceStrength `form:"evidence_strength,omitempty" json:"evidence_strength,omitempty"`
+	Reason           *CaseReason       `form:"reason,omitempty" json:"reason,omitempty"`
+	CustomerId       *CustomerID       `form:"customer_id,omitempty" json:"customer_id,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListCustomersParams defines parameters for ListCustomers.
+type ListCustomersParams struct {
+	State       *ResolutionState `form:"state,omitempty" json:"state,omitempty"`
+	HasConflict *HasConflict     `form:"has_conflict,omitempty" json:"has_conflict,omitempty"`
+	Presence    *Presence        `form:"presence,omitempty" json:"presence,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListCustomerEvidenceParams defines parameters for ListCustomerEvidence.
+type ListCustomerEvidenceParams struct {
+	Strength *Strength `form:"strength,omitempty" json:"strength,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
 
 // ListIdentityUsersParams defines parameters for ListIdentityUsers.
 type ListIdentityUsersParams struct {
@@ -1704,6 +2371,27 @@ type ServerInterface interface {
 	// GetEffectiveAccess Effective access of the current principal
 	// (GET /api/v1/authorization/effective-access)
 	GetEffectiveAccess(w http.ResponseWriter, r *http.Request)
+	// ListMergeCases Merge-case candidate queue (read only)
+	// (GET /api/v1/customer-identity/merge-cases)
+	ListMergeCases(w http.ResponseWriter, r *http.Request, params ListMergeCasesParams)
+	// GetMergeCase Get one merge-case candidate
+	// (GET /api/v1/customer-identity/merge-cases/{merge_case_id})
+	GetMergeCase(w http.ResponseWriter, r *http.Request, mergeCaseId NativeID)
+	// GetCustomerResolutionReport Customer identity resolution report
+	// (GET /api/v1/customer-identity/resolution-report)
+	GetCustomerResolutionReport(w http.ResponseWriter, r *http.Request)
+	// ListCustomers List shadow customers
+	// (GET /api/v1/customers)
+	ListCustomers(w http.ResponseWriter, r *http.Request, params ListCustomersParams)
+	// GetCustomer Get one shadow customer
+	// (GET /api/v1/customers/{customer_id})
+	GetCustomer(w http.ResponseWriter, r *http.Request, customerId NativeID)
+	// ListCustomerContactPoints List a customer's masked contact points
+	// (GET /api/v1/customers/{customer_id}/contact-points)
+	ListCustomerContactPoints(w http.ResponseWriter, r *http.Request, customerId NativeID)
+	// ListCustomerEvidence List identity evidence about a customer
+	// (GET /api/v1/customers/{customer_id}/evidence)
+	ListCustomerEvidence(w http.ResponseWriter, r *http.Request, customerId NativeID, params ListCustomerEvidenceParams)
 	// ListIdentityUsers List shadow user accounts
 	// (GET /api/v1/identity/users)
 	ListIdentityUsers(w http.ResponseWriter, r *http.Request, params ListIdentityUsersParams)
@@ -1756,6 +2444,349 @@ func (siw *ServerInterfaceWrapper) GetEffectiveAccess(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetEffectiveAccess(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMergeCases operation middleware
+func (siw *ServerInterfaceWrapper) ListMergeCases(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMergeCasesParams
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "evidence_strength" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "evidence_strength", r.URL.Query(), &params.EvidenceStrength, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "evidence_strength"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "evidence_strength", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "reason" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "reason", r.URL.Query(), &params.Reason, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "reason"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reason", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer_id", r.URL.Query(), &params.CustomerId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMergeCases(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMergeCase operation middleware
+func (siw *ServerInterfaceWrapper) GetMergeCase(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "merge_case_id" -------------
+	var mergeCaseId NativeID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "merge_case_id", r.PathValue("merge_case_id"), &mergeCaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "merge_case_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMergeCase(w, r, mergeCaseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCustomerResolutionReport operation middleware
+func (siw *ServerInterfaceWrapper) GetCustomerResolutionReport(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustomerResolutionReport(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCustomers operation middleware
+func (siw *ServerInterfaceWrapper) ListCustomers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCustomersParams
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "has_conflict" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "has_conflict", r.URL.Query(), &params.HasConflict, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has_conflict"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has_conflict", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCustomers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCustomer operation middleware
+func (siw *ServerInterfaceWrapper) GetCustomer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "customer_id" -------------
+	var customerId NativeID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customer_id", r.PathValue("customer_id"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustomer(w, r, customerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCustomerContactPoints operation middleware
+func (siw *ServerInterfaceWrapper) ListCustomerContactPoints(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "customer_id" -------------
+	var customerId NativeID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customer_id", r.PathValue("customer_id"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCustomerContactPoints(w, r, customerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCustomerEvidence operation middleware
+func (siw *ServerInterfaceWrapper) ListCustomerEvidence(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "customer_id" -------------
+	var customerId NativeID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customer_id", r.PathValue("customer_id"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCustomerEvidenceParams
+
+	// ------------- Optional query parameter "strength" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "strength", r.URL.Query(), &params.Strength, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "strength"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "strength", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCustomerEvidence(w, r, customerId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2587,6 +3618,13 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/assignments", wrapper.ListOrganizationAssignments)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/hierarchy-findings", wrapper.ListOrganizationHierarchyFindings)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/authorization/effective-access", wrapper.GetEffectiveAccess)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/customers", wrapper.ListCustomers)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/customers/{customer_id}", wrapper.GetCustomer)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/customers/{customer_id}/contact-points", wrapper.ListCustomerContactPoints)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/customers/{customer_id}/evidence", wrapper.ListCustomerEvidence)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/customer-identity/merge-cases", wrapper.ListMergeCases)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/customer-identity/merge-cases/{merge_case_id}", wrapper.GetMergeCase)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/customer-identity/resolution-report", wrapper.GetCustomerResolutionReport)
 
 	return m
 }
@@ -2670,6 +3708,753 @@ type GetEffectiveAccessdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetEffectiveAccessdefaultApplicationProblemPlusJSONResponse) VisitGetEffectiveAccessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMergeCasesRequestObject struct {
+	Params ListMergeCasesParams
+}
+
+type ListMergeCasesResponseObject interface {
+	VisitListMergeCasesResponse(w http.ResponseWriter) error
+}
+
+type ListMergeCases200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListMergeCases200JSONResponse struct {
+	Body    MergeCaseListEnvelope
+	Headers ListMergeCases200ResponseHeaders
+}
+
+func (response ListMergeCases200JSONResponse) VisitListMergeCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMergeCases400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListMergeCases400ApplicationProblemPlusJSONResponse) VisitListMergeCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMergeCases403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListMergeCases403JSONResponse) VisitListMergeCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMergeCasesdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListMergeCasesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListMergeCasesdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListMergeCasesdefaultApplicationProblemPlusJSONResponse) VisitListMergeCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMergeCaseRequestObject struct {
+	MergeCaseId NativeID `json:"merge_case_id"`
+}
+
+type GetMergeCaseResponseObject interface {
+	VisitGetMergeCaseResponse(w http.ResponseWriter) error
+}
+
+type GetMergeCase200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetMergeCase200JSONResponse struct {
+	Body    MergeCaseEnvelope
+	Headers GetMergeCase200ResponseHeaders
+}
+
+func (response GetMergeCase200JSONResponse) VisitGetMergeCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMergeCase400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetMergeCase400ApplicationProblemPlusJSONResponse) VisitGetMergeCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMergeCase403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetMergeCase403JSONResponse) VisitGetMergeCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMergeCase404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetMergeCase404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetMergeCase404ResponseHeaders
+}
+
+func (response GetMergeCase404ApplicationProblemPlusJSONResponse) VisitGetMergeCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMergeCasedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetMergeCasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetMergeCasedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetMergeCasedefaultApplicationProblemPlusJSONResponse) VisitGetMergeCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerResolutionReportRequestObject struct {
+}
+
+type GetCustomerResolutionReportResponseObject interface {
+	VisitGetCustomerResolutionReportResponse(w http.ResponseWriter) error
+}
+
+type GetCustomerResolutionReport200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustomerResolutionReport200JSONResponse struct {
+	Body    ResolutionReportEnvelope
+	Headers GetCustomerResolutionReport200ResponseHeaders
+}
+
+func (response GetCustomerResolutionReport200JSONResponse) VisitGetCustomerResolutionReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerResolutionReport400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCustomerResolutionReport400ApplicationProblemPlusJSONResponse) VisitGetCustomerResolutionReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerResolutionReport403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetCustomerResolutionReport403JSONResponse) VisitGetCustomerResolutionReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerResolutionReportdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustomerResolutionReportdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetCustomerResolutionReportdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetCustomerResolutionReportdefaultApplicationProblemPlusJSONResponse) VisitGetCustomerResolutionReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomersRequestObject struct {
+	Params ListCustomersParams
+}
+
+type ListCustomersResponseObject interface {
+	VisitListCustomersResponse(w http.ResponseWriter) error
+}
+
+type ListCustomers200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCustomers200JSONResponse struct {
+	Body    CustomerListEnvelope
+	Headers ListCustomers200ResponseHeaders
+}
+
+func (response ListCustomers200JSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomers400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListCustomers400ApplicationProblemPlusJSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomers403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListCustomers403JSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomersdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCustomersdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListCustomersdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListCustomersdefaultApplicationProblemPlusJSONResponse) VisitListCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerRequestObject struct {
+	CustomerId NativeID `json:"customer_id"`
+}
+
+type GetCustomerResponseObject interface {
+	VisitGetCustomerResponse(w http.ResponseWriter) error
+}
+
+type GetCustomer200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustomer200JSONResponse struct {
+	Body    CustomerEnvelope
+	Headers GetCustomer200ResponseHeaders
+}
+
+func (response GetCustomer200JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCustomer400ApplicationProblemPlusJSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetCustomer403JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustomer404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetCustomer404ResponseHeaders
+}
+
+func (response GetCustomer404ApplicationProblemPlusJSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustomerdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetCustomerdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetCustomerdefaultApplicationProblemPlusJSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerContactPointsRequestObject struct {
+	CustomerId NativeID `json:"customer_id"`
+}
+
+type ListCustomerContactPointsResponseObject interface {
+	VisitListCustomerContactPointsResponse(w http.ResponseWriter) error
+}
+
+type ListCustomerContactPoints200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCustomerContactPoints200JSONResponse struct {
+	Body    ContactPointListEnvelope
+	Headers ListCustomerContactPoints200ResponseHeaders
+}
+
+func (response ListCustomerContactPoints200JSONResponse) VisitListCustomerContactPointsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerContactPoints400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListCustomerContactPoints400ApplicationProblemPlusJSONResponse) VisitListCustomerContactPointsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerContactPoints403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListCustomerContactPoints403JSONResponse) VisitListCustomerContactPointsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerContactPoints404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCustomerContactPoints404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListCustomerContactPoints404ResponseHeaders
+}
+
+func (response ListCustomerContactPoints404ApplicationProblemPlusJSONResponse) VisitListCustomerContactPointsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerContactPointsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCustomerContactPointsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListCustomerContactPointsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListCustomerContactPointsdefaultApplicationProblemPlusJSONResponse) VisitListCustomerContactPointsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerEvidenceRequestObject struct {
+	CustomerId NativeID `json:"customer_id"`
+	Params     ListCustomerEvidenceParams
+}
+
+type ListCustomerEvidenceResponseObject interface {
+	VisitListCustomerEvidenceResponse(w http.ResponseWriter) error
+}
+
+type ListCustomerEvidence200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCustomerEvidence200JSONResponse struct {
+	Body    EvidenceListEnvelope
+	Headers ListCustomerEvidence200ResponseHeaders
+}
+
+func (response ListCustomerEvidence200JSONResponse) VisitListCustomerEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerEvidence400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListCustomerEvidence400ApplicationProblemPlusJSONResponse) VisitListCustomerEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerEvidence403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListCustomerEvidence403JSONResponse) VisitListCustomerEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerEvidence404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCustomerEvidence404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListCustomerEvidence404ResponseHeaders
+}
+
+func (response ListCustomerEvidence404ApplicationProblemPlusJSONResponse) VisitListCustomerEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerEvidencedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCustomerEvidencedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListCustomerEvidencedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListCustomerEvidencedefaultApplicationProblemPlusJSONResponse) VisitListCustomerEvidenceResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -3777,6 +5562,27 @@ type StrictServerInterface interface {
 	// GetEffectiveAccess Effective access of the current principal
 	// (GET /api/v1/authorization/effective-access)
 	GetEffectiveAccess(ctx context.Context, request GetEffectiveAccessRequestObject) (GetEffectiveAccessResponseObject, error)
+	// ListMergeCases Merge-case candidate queue (read only)
+	// (GET /api/v1/customer-identity/merge-cases)
+	ListMergeCases(ctx context.Context, request ListMergeCasesRequestObject) (ListMergeCasesResponseObject, error)
+	// GetMergeCase Get one merge-case candidate
+	// (GET /api/v1/customer-identity/merge-cases/{merge_case_id})
+	GetMergeCase(ctx context.Context, request GetMergeCaseRequestObject) (GetMergeCaseResponseObject, error)
+	// GetCustomerResolutionReport Customer identity resolution report
+	// (GET /api/v1/customer-identity/resolution-report)
+	GetCustomerResolutionReport(ctx context.Context, request GetCustomerResolutionReportRequestObject) (GetCustomerResolutionReportResponseObject, error)
+	// ListCustomers List shadow customers
+	// (GET /api/v1/customers)
+	ListCustomers(ctx context.Context, request ListCustomersRequestObject) (ListCustomersResponseObject, error)
+	// GetCustomer Get one shadow customer
+	// (GET /api/v1/customers/{customer_id})
+	GetCustomer(ctx context.Context, request GetCustomerRequestObject) (GetCustomerResponseObject, error)
+	// ListCustomerContactPoints List a customer's masked contact points
+	// (GET /api/v1/customers/{customer_id}/contact-points)
+	ListCustomerContactPoints(ctx context.Context, request ListCustomerContactPointsRequestObject) (ListCustomerContactPointsResponseObject, error)
+	// ListCustomerEvidence List identity evidence about a customer
+	// (GET /api/v1/customers/{customer_id}/evidence)
+	ListCustomerEvidence(ctx context.Context, request ListCustomerEvidenceRequestObject) (ListCustomerEvidenceResponseObject, error)
 	// ListIdentityUsers List shadow user accounts
 	// (GET /api/v1/identity/users)
 	ListIdentityUsers(ctx context.Context, request ListIdentityUsersRequestObject) (ListIdentityUsersResponseObject, error)
@@ -3871,6 +5677,187 @@ func (sh *strictHandler) GetEffectiveAccess(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetEffectiveAccessResponseObject); ok {
 		if err := validResponse.VisitGetEffectiveAccessResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMergeCases operation middleware
+func (sh *strictHandler) ListMergeCases(w http.ResponseWriter, r *http.Request, params ListMergeCasesParams) {
+	var request ListMergeCasesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMergeCases(ctx, request.(ListMergeCasesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMergeCases")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMergeCasesResponseObject); ok {
+		if err := validResponse.VisitListMergeCasesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMergeCase operation middleware
+func (sh *strictHandler) GetMergeCase(w http.ResponseWriter, r *http.Request, mergeCaseId NativeID) {
+	var request GetMergeCaseRequestObject
+
+	request.MergeCaseId = mergeCaseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMergeCase(ctx, request.(GetMergeCaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMergeCase")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMergeCaseResponseObject); ok {
+		if err := validResponse.VisitGetMergeCaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCustomerResolutionReport operation middleware
+func (sh *strictHandler) GetCustomerResolutionReport(w http.ResponseWriter, r *http.Request) {
+	var request GetCustomerResolutionReportRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCustomerResolutionReport(ctx, request.(GetCustomerResolutionReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCustomerResolutionReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCustomerResolutionReportResponseObject); ok {
+		if err := validResponse.VisitGetCustomerResolutionReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCustomers operation middleware
+func (sh *strictHandler) ListCustomers(w http.ResponseWriter, r *http.Request, params ListCustomersParams) {
+	var request ListCustomersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCustomers(ctx, request.(ListCustomersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCustomers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCustomersResponseObject); ok {
+		if err := validResponse.VisitListCustomersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCustomer operation middleware
+func (sh *strictHandler) GetCustomer(w http.ResponseWriter, r *http.Request, customerId NativeID) {
+	var request GetCustomerRequestObject
+
+	request.CustomerId = customerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCustomer(ctx, request.(GetCustomerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCustomer")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCustomerResponseObject); ok {
+		if err := validResponse.VisitGetCustomerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCustomerContactPoints operation middleware
+func (sh *strictHandler) ListCustomerContactPoints(w http.ResponseWriter, r *http.Request, customerId NativeID) {
+	var request ListCustomerContactPointsRequestObject
+
+	request.CustomerId = customerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCustomerContactPoints(ctx, request.(ListCustomerContactPointsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCustomerContactPoints")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCustomerContactPointsResponseObject); ok {
+		if err := validResponse.VisitListCustomerContactPointsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCustomerEvidence operation middleware
+func (sh *strictHandler) ListCustomerEvidence(w http.ResponseWriter, r *http.Request, customerId NativeID, params ListCustomerEvidenceParams) {
+	var request ListCustomerEvidenceRequestObject
+
+	request.CustomerId = customerId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCustomerEvidence(ctx, request.(ListCustomerEvidenceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCustomerEvidence")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCustomerEvidenceResponseObject); ok {
+		if err := validResponse.VisitListCustomerEvidenceResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

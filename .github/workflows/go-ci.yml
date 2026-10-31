@@ -73,7 +73,7 @@ jobs:
         run: go test -count=1 -race ./...
 
       - name: Architecture / import lint
-        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern|TestSliceThreeRules|TestAPIServerHasNoLegacyDependency|TestSliceFourRules|TestAPIServerHasNoImportDependency' -v ./internal/architecture/
+        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern|TestSliceThreeRules|TestAPIServerHasNoLegacyDependency|TestSliceFourRules|TestSliceFiveRules|TestAPIServerHasNoImportDependency' -v ./internal/architecture/
 
       - name: Kernel is standard-library only
         shell: bash
@@ -100,6 +100,9 @@ jobs:
 
       - name: Slice 4 identity / organization / authorization read gates (verbose; synthetic data only)
         run: go test -count=1 -v ./internal/identity/... ./internal/organization/... ./internal/authorization/... ./internal/integration/legacy/shadow/ ./internal/platform/apiserver/ ./internal/platform/pagination/
+
+      - name: Slice 5 customer identity shadow gates (verbose; synthetic data only; zero phone-only RESOLVED / merges)
+        run: go test -count=1 -v ./internal/customers/... ./internal/integration/legacy/shadow/ ./cmd/crm-legacy-import/ ./internal/architecture/
 
       - name: Slice 3 boundary — crm-api never reaches the legacy connector
         shell: bash
@@ -131,13 +134,27 @@ jobs:
           ! grep -q pending <<< "$status"
           grep -q 'applied  00001_integration_staging.sql' <<< "$status"
           stg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'integration' AND table_name LIKE 'stg\_%'")"
-          test "$stg" = "11" || { echo "expected 11 integration staging tables, got $stg"; exit 1; }
+          test "$stg" = "12" || { echo "expected 12 integration staging tables (Slice 3 + invoice issued-to), got $stg"; exit 1; }
+          grep -q 'applied  00003_integration_staging_invoice_issued_to.sql' <<< "$status"
           grep -q 'applied  00001_identity.sql' <<< "$status"
           grep -q 'applied  00001_organization.sql' <<< "$status"
           s4="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('identity', 'organization')")"
           test "$s4" = "22" || { echo "expected 22 identity/organization tables (incl. per-module outbox/inbox/idempotency), got $s4"; exit 1; }
           creds="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'identity' AND table_name IN ('credential', 'session')")"
           test "$creds" = "0" || { echo "Slice 4 must not create credential/session tables"; exit 1; }
+          # Slice 5 customer identity (shadow).
+          grep -q 'applied  00002_identity_customer_capabilities.sql' <<< "$status"
+          grep -q 'applied  00001_customers.sql' <<< "$status"
+          s5="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'customers'")"
+          test "$s5" = "14" || { echo "expected 14 customers tables (incl. outbox/inbox/idempotency), got $s5"; exit 1; }
+          # Gate-0: phone is never a key. No unique index or PK touches a phone/e-mail/normalized value.
+          phonekey="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_indexes WHERE schemaname = 'customers' AND indexdef ILIKE '%UNIQUE%' AND (indexdef ILIKE '%normalized%' OR indexdef ILIKE '%phone%' OR indexdef ILIKE '%email%')")"
+          test "$phonekey" = "0" || { echo "customers has a unique index on a phone/e-mail/normalized value"; exit 1; }
+          # Only the customers owner role is granted on customers tables, and never DELETE.
+          foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'customers' AND grantee NOT IN ('crm_owner_customers', current_user)")"
+          test "$foreign" = "0" || { echo "foreign role granted on customers tables"; exit 1; }
+          del="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'customers' AND grantee = 'crm_owner_customers' AND privilege_type IN ('DELETE', 'TRUNCATE')")"
+          test "$del" = "0" || { echo "customers owner must not hold DELETE/TRUNCATE"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

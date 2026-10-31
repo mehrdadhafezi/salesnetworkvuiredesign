@@ -273,11 +273,14 @@ SessionContext:
       description: |
         Server feature switches for navigation only (Slice 4 rollback is
         flag-off). Never authority: every read is evaluated by the server.
-      required: [hr_read]
+      required: [hr_read, customers_identity]
       additionalProperties: false
       properties:
         hr_read:
           type: boolean
+        customers_identity:
+          type: boolean
+          description: Slice 5 customer identity shadow read (flag customers.identity_shadow_read).
 
 SessionEnvelope:
   type: object

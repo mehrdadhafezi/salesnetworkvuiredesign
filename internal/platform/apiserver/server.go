@@ -34,6 +34,14 @@ var ContractPaths = map[string][]string{
 	"/api/v1/organization/assignments":         {http.MethodGet},
 	"/api/v1/organization/hierarchy-findings":  {http.MethodGet},
 	"/api/v1/authorization/effective-access":   {http.MethodGet},
+	// Slice 5 customer identity (read/shadow only).
+	"/api/v1/customers":                                     {http.MethodGet},
+	"/api/v1/customers/{customer_id}":                       {http.MethodGet},
+	"/api/v1/customers/{customer_id}/contact-points":        {http.MethodGet},
+	"/api/v1/customers/{customer_id}/evidence":              {http.MethodGet},
+	"/api/v1/customer-identity/merge-cases":                 {http.MethodGet},
+	"/api/v1/customer-identity/merge-cases/{merge_case_id}": {http.MethodGet},
+	"/api/v1/customer-identity/resolution-report":           {http.MethodGet},
 }
 
 // ContractQuery is the allowlist of query parameters per Slice 4 path. A
@@ -41,16 +49,38 @@ var ContractPaths = map[string][]string{
 // ignored (Architecture V1 §23). TestQueryAllowlistMatchesContract keeps it
 // equal to the contract.
 var ContractQuery = map[string][]string{
-	"/api/v1/identity/users":                   {"q", "presence", "sort", "cursor", "limit"},
-	"/api/v1/identity/users/{user_id}":         {},
-	"/api/v1/organization/persons":             {"q", "employment_status", "position_id", "level_id", "org_unit_id", "is_active", "has_findings", "sort", "cursor", "limit"},
-	"/api/v1/organization/persons/{person_id}": {},
-	"/api/v1/organization/positions":           {"cursor", "limit"},
-	"/api/v1/organization/levels":              {"cursor", "limit"},
-	"/api/v1/organization/org-units":           {"kind", "cursor", "limit"},
-	"/api/v1/organization/assignments":         {"person_id", "relation", "is_current", "relationship_kind", "has_findings", "cursor", "limit"},
-	"/api/v1/organization/hierarchy-findings":  {"kind", "severity", "subject_type", "person_id", "cursor", "limit"},
-	"/api/v1/authorization/effective-access":   {},
+	"/api/v1/identity/users":                                {"q", "presence", "sort", "cursor", "limit"},
+	"/api/v1/identity/users/{user_id}":                      {},
+	"/api/v1/organization/persons":                          {"q", "employment_status", "position_id", "level_id", "org_unit_id", "is_active", "has_findings", "sort", "cursor", "limit"},
+	"/api/v1/organization/persons/{person_id}":              {},
+	"/api/v1/organization/positions":                        {"cursor", "limit"},
+	"/api/v1/organization/levels":                           {"cursor", "limit"},
+	"/api/v1/organization/org-units":                        {"kind", "cursor", "limit"},
+	"/api/v1/organization/assignments":                      {"person_id", "relation", "is_current", "relationship_kind", "has_findings", "cursor", "limit"},
+	"/api/v1/organization/hierarchy-findings":               {"kind", "severity", "subject_type", "person_id", "cursor", "limit"},
+	"/api/v1/authorization/effective-access":                {},
+	"/api/v1/customers":                                     {"state", "has_conflict", "presence", "cursor", "limit"},
+	"/api/v1/customers/{customer_id}":                       {},
+	"/api/v1/customers/{customer_id}/contact-points":        {},
+	"/api/v1/customers/{customer_id}/evidence":              {"strength", "cursor", "limit"},
+	"/api/v1/customer-identity/merge-cases":                 {"state", "evidence_strength", "reason", "customer_id", "cursor", "limit"},
+	"/api/v1/customer-identity/merge-cases/{merge_case_id}": {},
+	"/api/v1/customer-identity/resolution-report":           {},
+}
+
+// CustomersAPI is the Slice 5 customer identity read surface (customers
+// module, composed by cmd/crm-api). Without one, every operation answers
+// BLOCKED / FEATURE_DISABLED.
+type CustomersAPI interface {
+	ListCustomers(ctx context.Context, request oapi.ListCustomersRequestObject) (oapi.ListCustomersResponseObject, error)
+	GetCustomer(ctx context.Context, request oapi.GetCustomerRequestObject) (oapi.GetCustomerResponseObject, error)
+	ListCustomerContactPoints(ctx context.Context, request oapi.ListCustomerContactPointsRequestObject) (oapi.ListCustomerContactPointsResponseObject, error)
+	ListCustomerEvidence(ctx context.Context, request oapi.ListCustomerEvidenceRequestObject) (oapi.ListCustomerEvidenceResponseObject, error)
+	ListMergeCases(ctx context.Context, request oapi.ListMergeCasesRequestObject) (oapi.ListMergeCasesResponseObject, error)
+	GetMergeCase(ctx context.Context, request oapi.GetMergeCaseRequestObject) (oapi.GetMergeCaseResponseObject, error)
+	GetCustomerResolutionReport(ctx context.Context, request oapi.GetCustomerResolutionReportRequestObject) (oapi.GetCustomerResolutionReportResponseObject, error)
+	// CustomersEnabled reports the Slice 5 flag for the session navigation hint.
+	CustomersEnabled(ctx context.Context) bool
 }
 
 // ReadAPI is the Slice 4 read surface (identity, organization,
@@ -77,6 +107,7 @@ const displayZone = oapi.SessionContextDisplayZone("Asia/Tehran")
 
 type api struct {
 	ReadAPI
+	CustomersAPI
 	clock   timeutil.Clock
 	devAuth bool
 }
@@ -123,8 +154,9 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 		}
 	}
 	data.Features = &struct {
-		HrRead bool `json:"hr_read"`
-	}{HrRead: a.ReadAPI.HRReadEnabled(ctx)}
+		CustomersIdentity bool `json:"customers_identity"`
+		HrRead            bool `json:"hr_read"`
+	}{CustomersIdentity: a.CustomersAPI.CustomersEnabled(ctx), HrRead: a.ReadAPI.HRReadEnabled(ctx)}
 	return oapi.GetSession200JSONResponse{Body: oapi.SessionEnvelope{
 		Outcome:       outcome,
 		Reasons:       []oapi.ReasonCode{},
@@ -135,13 +167,14 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 
 // NewHandler builds the full handler chain without a Slice 4 read surface.
 func NewHandler(cfg Config, clock timeutil.Clock, logger *slog.Logger) (http.Handler, error) {
-	return NewHandlerWith(cfg, clock, logger, nil)
+	return NewHandlerWith(cfg, clock, logger, nil, nil)
 }
 
 // NewHandlerWith builds the full handler chain:
 // Correlation → Recover → LimitBody → (dev auth stub) → query allowlist → routes.
-// read may be nil (every Slice 4 operation is then BLOCKED / FEATURE_DISABLED).
-func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read ReadAPI) (http.Handler, error) {
+// read and customers may be nil (their operations are then BLOCKED /
+// FEATURE_DISABLED).
+func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read ReadAPI, customers CustomersAPI) (http.Handler, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -151,9 +184,12 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 	if read == nil {
 		read = unconfigured{}
 	}
+	if customers == nil {
+		customers = unconfiguredCustomers{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},
@@ -186,29 +222,34 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 	return h, nil
 }
 
-// template returns the contract path template matching path, if any.
+// template returns the contract path template matching path, if any. When
+// several match, the one with the most literal segments wins (deterministic).
 func template(path string) (string, bool) {
 	if _, ok := ContractPaths[path]; ok {
 		return path, true
 	}
 	segs := strings.Split(path, "/")
+	best, bestLiterals := "", -1
 	for t := range ContractPaths {
 		ts := strings.Split(t, "/")
 		if len(ts) != len(segs) {
 			continue
 		}
-		match := true
-		for i := range ts {
-			if !(ts[i] == segs[i] || strings.HasPrefix(ts[i], "{") && segs[i] != "") {
+		match, literals := true, 0
+		for i := 0; i < len(ts) && match; i++ {
+			switch {
+			case ts[i] == segs[i]:
+				literals++
+			case strings.HasPrefix(ts[i], "{") && segs[i] != "":
+			default:
 				match = false
-				break
 			}
 		}
-		if match {
-			return t, true
+		if match && (literals > bestLiterals || literals == bestLiterals && t < best) {
+			best, bestLiterals = t, literals
 		}
 	}
-	return "", false
+	return best, best != ""
 }
 
 // queryAllowlist rejects query parameters a Slice 4 operation does not
@@ -255,12 +296,12 @@ func fallback(w http.ResponseWriter, r *http.Request) {
 
 // NewServer returns an *http.Server with the configured timeouts and limits.
 func NewServer(cfg Config, clock timeutil.Clock, logger *slog.Logger) (*http.Server, error) {
-	return NewServerWith(cfg, clock, logger, nil)
+	return NewServerWith(cfg, clock, logger, nil, nil)
 }
 
-// NewServerWith is NewServer with a Slice 4 read surface (may be nil).
-func NewServerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read ReadAPI) (*http.Server, error) {
-	h, err := NewHandlerWith(cfg, clock, logger, read)
+// NewServerWith is NewServer with the Slice 4 and Slice 5 read surfaces (either may be nil).
+func NewServerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read ReadAPI, customers CustomersAPI) (*http.Server, error) {
+	h, err := NewHandlerWith(cfg, clock, logger, read, customers)
 	if err != nil {
 		return nil, err
 	}

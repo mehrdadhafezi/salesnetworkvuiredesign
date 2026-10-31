@@ -390,7 +390,7 @@ func Reconcile(ctx context.Context, b *Batch, ident identityapi.Reader, org orga
 				unmapped = true
 			}
 		}
-		for _, cd := range identityapi.Capabilities() {
+		for _, cd := range identityapi.HRReadCapabilities() {
 			target := authorization.TargetUnknown
 			if imported {
 				target = authorization.TargetVerdictOf(authorization.Evaluate(authorization.Shadow, subject, authorization.Request{Capability: cd.Key}))

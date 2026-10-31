@@ -3,9 +3,13 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization"
 	authzhttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization/http"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers"
+	customershttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/http"
+	customersquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity"
 	identityhttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/http"
 	identityquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/query"
@@ -84,4 +88,81 @@ func NewReadAPI(identityRunner, organizationRunner, flags *db.Runner, devAuth bo
 		organizationHandlers:  organizationhttp.New(guard, organizationquery.New(organizationRunner)),
 		guard:                 guard,
 	}, nil
+}
+
+// Slice 5 customer identity read surface (optional; needs the flag store).
+const (
+	EnvCustomersReadURL = "CRM_CUSTOMERS_READ_DATABASE_URL"
+	// CustomersFlag is the Slice 5 rollback switch (default off).
+	CustomersFlag = "customers.identity_shadow_read"
+)
+
+// ErrCustomersConfig reports a customers DSN without the flag store DSN.
+var ErrCustomersConfig = errors.New("crm-api: " + EnvCustomersReadURL + " needs " + EnvFeatureFlagsURL)
+
+func flagFunc(flags *db.Runner, key string) authorization.FlagFunc {
+	return func(ctx context.Context) (bool, error) {
+		var on bool
+		err := flags.InTx(ctx, db.TxOptions{ReadOnly: true}, func(ctx context.Context, tx db.Tx) error {
+			var err error
+			on, err = featureflags.Enabled(ctx, tx, key)
+			return err
+		})
+		return on, err
+	}
+}
+
+// NewCustomersAPI composes the Slice 5 surface over a customers runner and
+// the flag store. devAuth selects synthetic DEV/TEST subjects.
+func NewCustomersAPI(customersRunner, flags *db.Runner, devAuth bool) (apiserver.CustomersAPI, error) {
+	if customersRunner.Module() != customers.Module || flags.Module() != owner.FeatureFlags {
+		return nil, errors.New("crm-api: customers runners bound to the wrong modules")
+	}
+	var subjects authorization.SubjectResolver = authorization.Anonymous{}
+	if devAuth {
+		subjects = authorization.DevSubjects{}
+	}
+	guard, err := authorization.NewGuard(flagFunc(flags, CustomersFlag), subjects)
+	if err != nil {
+		return nil, err
+	}
+	return customershttp.New(guard, customersquery.New(customersRunner)), nil
+}
+
+// openCustomers opens the Slice 5 pools when configured.
+func openCustomers(ctx context.Context, getenv func(string) string, devAuth bool) (apiserver.CustomersAPI, func(), error) {
+	cu, fu := getenv(EnvCustomersReadURL), getenv(EnvFeatureFlagsURL)
+	if cu == "" {
+		return nil, func() {}, nil
+	}
+	if fu == "" {
+		return nil, nil, ErrCustomersConfig
+	}
+	var pools []*db.Pool
+	closeAll := func() {
+		for _, p := range pools {
+			p.Close()
+		}
+	}
+	runners := map[owner.Module]*db.Runner{}
+	for m, u := range map[owner.Module]string{customers.Module: cu, owner.FeatureFlags: fu} {
+		cfg := db.DefaultConfig(u)
+		cfg.ApplicationName = "crm-api"
+		pool, err := db.Open(ctx, cfg)
+		if err != nil {
+			closeAll()
+			return nil, nil, fmt.Errorf("crm-api: %s read database: %w", m, err)
+		}
+		pools = append(pools, pool)
+		if runners[m], err = pool.Runner(m); err != nil {
+			closeAll()
+			return nil, nil, err
+		}
+	}
+	api, err := NewCustomersAPI(runners[customers.Module], runners[owner.FeatureFlags], devAuth)
+	if err != nil {
+		closeAll()
+		return nil, nil, err
+	}
+	return api, closeAll, nil
 }

@@ -1,0 +1,18 @@
+/* Customer identity read surfaces (Slice 5). Layout only, SN-207 tokens. */
+.cu-note{margin:0 0 12px}
+.cu-kv{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:6px 16px;margin:0}
+.cu-kv dt{color:var(--text-2)}
+.cu-kv dd{margin:0}
+.cu-ltr{direction:ltr;unicode-bidi:isolate}
+.cu-invariant{display:flex;align-items:center;gap:8px}
+.cu-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--gap);align-items:end}
+.cu-check{display:flex;align-items:center;gap:8px}
+.cu-table-wrap{overflow-x:auto}
+.cu-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.cu-table th,.cu-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.cu-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.cu-pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.cu-sections{display:grid;gap:12px}
+.cu-sections .card + .card{margin-top:0}
+.cu-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+@media (max-width:760px){.cu-filters{grid-template-columns:1fr}.cu-kv{grid-template-columns:1fr}}

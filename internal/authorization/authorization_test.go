@@ -17,8 +17,14 @@ func grant(r *identityapi.Role, st identityapi.GrantStatus) identityapi.Grant {
 func str(s string) *string { return &s }
 
 func TestAllowedOnlyByExplicitCapabilityGrant(t *testing.T) {
+	// The HR role carries exactly the HR read set; customer capabilities are
+	// denied to it (no evidence assigns them to any role).
+	hr := Subject{PrincipalID: "p-1", Grants: []identityapi.Grant{grant(role(identityapi.RoleHR), identityapi.GrantActive)}}
+	if d := Evaluate(Runtime, hr, Request{Capability: identityapi.CapCustomerRead}); d.Allowed {
+		t.Fatal("HR role reads customers")
+	}
 	s := Subject{PrincipalID: "p-1", Grants: []identityapi.Grant{grant(role(identityapi.RoleHR), identityapi.GrantActive)}}
-	for _, c := range identityapi.Capabilities() {
+	for _, c := range identityapi.HRReadCapabilities() {
 		d := Evaluate(Runtime, s, Request{Capability: c.Key})
 		if !d.Allowed || d.Outcome != result.Success || d.Scope != ScopeOrganization || len(d.Matched) != 1 || d.Matched[0].Role != identityapi.RoleHR {
 			t.Fatalf("%s: %+v", c.Key, d)
@@ -139,6 +145,37 @@ func TestVocabularyShape(t *testing.T) {
 		}
 		if r.Key != identityapi.RoleHR && len(r.Capabilities) != 0 {
 			t.Fatalf("role %s carries Slice 4 capabilities without evidence", r.Key)
+		}
+	}
+}
+
+// Direct capability sets count only on ACTIVE synthetic dev-stub grants.
+func TestDirectCapabilitiesOnlyForSyntheticDevGrants(t *testing.T) {
+	caps := []identityapi.Capability{identityapi.CapCustomerRead}
+	for _, g := range []identityapi.Grant{
+		{UserID: "u", Status: identityapi.GrantShadow, Basis: DevGrantBasis, Capabilities: caps},
+		{UserID: "u", Status: identityapi.GrantActive, Basis: "LEGACY_PROFILE_ROLE", Capabilities: caps},
+		{UserID: "u", Status: identityapi.GrantShadow, Basis: "LEGACY_PROFILE_ROLE", Capabilities: caps},
+	} {
+		for _, mode := range []Mode{Runtime, Shadow} {
+			if d := Evaluate(mode, Subject{PrincipalID: "p", Grants: []identityapi.Grant{g}}, Request{Capability: identityapi.CapCustomerRead}); d.Allowed {
+				t.Fatalf("direct capabilities honoured for %+v", g)
+			}
+		}
+	}
+	dev := Subject{PrincipalID: "dev", Grants: []identityapi.Grant{{UserID: "dev", Status: identityapi.GrantActive, Basis: DevGrantBasis, Capabilities: caps}}}
+	if d := Evaluate(Runtime, dev, Request{Capability: identityapi.CapCustomerRead}); !d.Allowed || d.Matched[0].Role != SyntheticDevRole {
+		t.Fatalf("synthetic dev grant: %+v", d)
+	}
+	if d := Evaluate(Runtime, dev, Request{Capability: identityapi.CapMergeCaseRead}); d.Allowed {
+		t.Fatal("direct grant widened beyond its set")
+	}
+	// No target role carries a customer capability.
+	for _, r := range identityapi.Roles() {
+		for _, c := range r.Capabilities {
+			if c == identityapi.CapCustomerRead || c == identityapi.CapMergeCaseRead || c == identityapi.CapIdentityReportRead {
+				t.Fatalf("role %s carries %s without evidence", r.Key, c)
+			}
 		}
 	}
 }

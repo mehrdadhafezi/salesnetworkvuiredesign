@@ -36,6 +36,15 @@ const (
 	CapAssignmentRead Capability = "org.assignment.read"
 )
 
+// Slice 5 customer read capabilities (same convention, module "customers").
+// No role bundle carries them: role assignment for customer identity is not
+// evidenced (D-30 open), so every non-synthetic subject is denied.
+const (
+	CapCustomerRead       Capability = "customers.customer.read"
+	CapMergeCaseRead      Capability = "customers.merge_case.read"
+	CapIdentityReportRead Capability = "customers.identity_report.read"
+)
+
 // CapabilityDef is one vocabulary entry.
 type CapabilityDef struct {
 	Key         Capability
@@ -49,7 +58,14 @@ var vocabulary = []CapabilityDef{
 	{CapPositionRead, "Read positions and levels"},
 	{CapUnitRead, "Read the organisation unit tree"},
 	{CapAssignmentRead, "Read reporting assignments, their history and hierarchy findings"},
+	{CapCustomerRead, "Read shadow customers, their masked contact points, identifiers and evidence"},
+	{CapMergeCaseRead, "Read the merge-case candidate queue (no merge authority)"},
+	{CapIdentityReportRead, "Read the customer identity resolution report"},
 }
+
+// HRReadCapabilities returns the Slice 4 HR read capabilities: the set the
+// legacy HR panel gate is compared against in the capability diff.
+func HRReadCapabilities() []CapabilityDef { return append([]CapabilityDef(nil), vocabulary[:6]...) }
 
 // Capabilities returns the Slice 4 vocabulary in a stable order.
 func Capabilities() []CapabilityDef { return append([]CapabilityDef(nil), vocabulary...) }
@@ -302,6 +318,10 @@ type Grant struct {
 	LegacyValue string // raw evidence
 	Status      GrantStatus
 	Basis       string
+	// Capabilities is a direct capability set honoured ONLY for synthetic
+	// DEV/TEST stub grants (authorization.DevGrantBasis, ACTIVE). Real
+	// grants are role bundles; this never comes from data.
+	Capabilities []Capability
 }
 
 // GrantReader lists stored grants (read-only).

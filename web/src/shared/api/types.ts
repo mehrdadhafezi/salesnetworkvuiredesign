@@ -34,3 +34,17 @@ export type Lookup = Schemas['Lookup']
 export type PersonRef = Schemas['PersonRef']
 export type EmploymentStatus = Schemas['EmploymentStatus']
 export type EffectiveAccess = Schemas['EffectiveAccess']
+
+// Slice 5 read-only customer identity (shadow) contract types. There is no
+// merge, resolve or edit type: the contract has none.
+export type ResolutionState = Schemas['ResolutionState']
+export type Strength = Schemas['Strength']
+export type CaseReason = Schemas['CaseReason']
+export type EvidenceKind = Schemas['EvidenceKind']
+export type CustomerSummary = Schemas['CustomerSummary']
+export type CustomerDetail = Schemas['CustomerDetail']
+export type ContactPoint = Schemas['ContactPoint']
+export type CustomerIdentifier = Schemas['Identifier']
+export type IdentityEvidence = Schemas['Evidence']
+export type MergeCase = Schemas['MergeCase']
+export type ResolutionReport = Schemas['ResolutionReport']

@@ -184,3 +184,46 @@ FindingSubject:
   required: false
   schema:
     $ref: './hr.yaml#/FindingSubject'
+
+ResolutionState:
+  name: state
+  in: query
+  required: false
+  schema:
+    $ref: './customers.yaml#/ResolutionState'
+
+HasConflict:
+  name: has_conflict
+  in: query
+  required: false
+  schema:
+    type: boolean
+
+EvidenceStrength:
+  name: evidence_strength
+  in: query
+  required: false
+  description: The strongest evidence of the case.
+  schema:
+    $ref: './customers.yaml#/Strength'
+
+Strength:
+  name: strength
+  in: query
+  required: false
+  schema:
+    $ref: './customers.yaml#/Strength'
+
+CaseReason:
+  name: reason
+  in: query
+  required: false
+  schema:
+    $ref: './customers.yaml#/CaseReason'
+
+CustomerID:
+  name: customer_id
+  in: query
+  required: false
+  schema:
+    $ref: './hr.yaml#/NativeID'

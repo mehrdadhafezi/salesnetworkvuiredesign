@@ -55,6 +55,8 @@ const EnvStagingURL = "CRM_STAGING_DATABASE_URL"
 const (
 	EnvIdentityURL     = "CRM_IDENTITY_DATABASE_URL"
 	EnvOrganizationURL = "CRM_ORGANIZATION_DATABASE_URL"
+	// EnvCustomersURL is the Slice 5 customers DSN (customers-owner login).
+	EnvCustomersURL = "CRM_CUSTOMERS_DATABASE_URL"
 )
 
 // ToolVersion is recorded on every batch.
@@ -69,7 +71,10 @@ const usage = `usage:
   crm-legacy-import import-identity <snapshot-id>
   crm-legacy-import import-organization <snapshot-id>
   crm-legacy-import reconcile-identity-org <snapshot-id>
-(` + EnvStagingURL + `; Slice 4 also ` + EnvIdentityURL + ` and ` + EnvOrganizationURL + `)`
+  crm-legacy-import import-customers <snapshot-id>
+  crm-legacy-import reconcile-customers <snapshot-id>
+(` + EnvStagingURL + `; Slice 4 also ` + EnvIdentityURL + ` and ` + EnvOrganizationURL + `;
+ Slice 5 also ` + EnvCustomersURL + `)`
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -133,7 +138,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 			}
 			return code
 		})
-	case "import-identity", "import-organization", "reconcile-identity-org":
+	case "import-identity", "import-organization", "reconcile-identity-org", "import-customers", "reconcile-customers":
 		if len(rest) != 1 {
 			break
 		}

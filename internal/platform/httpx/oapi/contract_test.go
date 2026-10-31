@@ -240,8 +240,13 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		}
 	}
 	sort.Strings(paths)
-	// Slice 2 technical surface + Slice 4 read-only identity/organization/authorization surface.
-	want := []string{"/api/v1/authorization/effective-access", "/api/v1/identity/users", "/api/v1/identity/users/{user_id}",
+	// Slice 2 technical surface + Slice 4 read-only identity/organization/authorization surface
+	// + Slice 5 read-only customer identity surface (no merge/resolve/write path).
+	want := []string{"/api/v1/authorization/effective-access",
+		"/api/v1/customer-identity/merge-cases", "/api/v1/customer-identity/merge-cases/{merge_case_id}",
+		"/api/v1/customer-identity/resolution-report", "/api/v1/customers", "/api/v1/customers/{customer_id}",
+		"/api/v1/customers/{customer_id}/contact-points", "/api/v1/customers/{customer_id}/evidence",
+		"/api/v1/identity/users", "/api/v1/identity/users/{user_id}",
 		"/api/v1/organization/assignments", "/api/v1/organization/hierarchy-findings", "/api/v1/organization/levels",
 		"/api/v1/organization/org-units", "/api/v1/organization/persons", "/api/v1/organization/persons/{person_id}",
 		"/api/v1/organization/positions", "/api/v1/session", "/health/live", "/health/ready"}

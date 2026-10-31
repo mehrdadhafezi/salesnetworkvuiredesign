@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers"
+	customersimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/imports"
+	customersquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity"
 	identityimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/imports"
 	identityquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/query"
@@ -39,6 +42,13 @@ type shadowResult struct {
 	Problem    string             `json:"problem,omitempty"`
 }
 
+func nonNil(m map[string]int64) map[string]int64 {
+	if m == nil {
+		return map[string]int64{}
+	}
+	return m
+}
+
 func openRunner(ctx context.Context, dsn string, m owner.Module) (*db.Runner, func(), error) {
 	cfg := db.DefaultConfig(dsn)
 	cfg.ApplicationName = "crm-legacy-import"
@@ -57,8 +67,15 @@ func openRunner(ctx context.Context, dsn string, m owner.Module) (*db.Runner, fu
 
 // shadowDSNs returns the DSNs a Slice 4 command needs, refusing any reuse.
 func shadowDSNs(cmd string, getenv func(string) string) (map[owner.Module]string, error) {
-	need := map[owner.Module]string{integration.Module: EnvStagingURL, identity.Module: EnvIdentityURL}
-	if cmd != "import-identity" {
+	need := map[owner.Module]string{integration.Module: EnvStagingURL}
+	switch cmd {
+	case "import-customers", "reconcile-customers":
+		// Slice 5 touches staging (read) and customers only.
+		need[customers.Module] = EnvCustomersURL
+	case "import-identity":
+		need[identity.Module] = EnvIdentityURL
+	default:
+		need[identity.Module] = EnvIdentityURL
 		need[organization.Module] = EnvOrganizationURL
 	}
 	out := map[owner.Module]string{}
@@ -113,6 +130,32 @@ func runShadow(ctx context.Context, cmd, snapshotID string, reg *spec.Registry, 
 	}
 	out.BatchID = b.BatchID
 	clk := clock.System{}
+	switch cmd {
+	case "import-customers":
+		// Staging was read in its own read-only transaction above; the
+		// customers command commits in one customers-only transaction.
+		in, mapping := shadow.CustomersCommand(b)
+		rep, err := customersimports.New(runners[customers.Module], clk).ImportCustomers(ctx, in)
+		out.Outcome, out.Replay, out.RunID, out.Mapping, out.Counts = rep.Outcome, rep.Replay, rep.RunID, mapping, nonNil(rep.Counts)
+		if err != nil {
+			fmt.Fprintln(stderr, "crm-legacy-import:", err)
+			emit(stdout, stderr, out, false)
+			return 1
+		}
+		if out.Outcome != result.Success && len(out.Reasons) == 0 {
+			out.Reasons = []reasoncodes.Code{reasoncodes.CoverageIncomplete}
+		}
+		return emit(stdout, stderr, out, out.Outcome == result.Success)
+	case "reconcile-customers":
+		rep, err := shadow.ReconcileCustomers(ctx, b, customersquery.New(runners[customers.Module]))
+		if err != nil {
+			fmt.Fprintln(stderr, "crm-legacy-import:", err)
+			return 1
+		}
+		// Non-zero exit on any invariant violation (phone-only RESOLVED or
+		// merge) and on any non-SUCCESS outcome.
+		return emit(stdout, stderr, rep, rep.Outcome == result.Success)
+	}
 	identQuery := identityquery.New(runners[identity.Module])
 	switch cmd {
 	case "import-identity":

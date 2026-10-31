@@ -113,6 +113,20 @@ func Evaluate(mode Mode, s Subject, r Request) Decision {
 	ignored := 0
 	for _, g := range s.Grants {
 		counts := g.Status == identityapi.GrantActive || (mode == Shadow && g.Status == identityapi.GrantShadow)
+		// Synthetic DEV/TEST stub grants may carry a direct capability set;
+		// any other grant's direct capabilities are ignored (roles only).
+		if counts && g.Basis == DevGrantBasis && g.Status == identityapi.GrantActive && len(g.Capabilities) > 0 {
+			hit := false
+			for _, c := range g.Capabilities {
+				if c == r.Capability {
+					hit = true
+				}
+			}
+			if hit {
+				matched = append(matched, MatchedGrant{Role: SyntheticDevRole, Basis: g.Basis, Status: g.Status})
+				continue
+			}
+		}
 		if !counts || g.RoleKey == nil {
 			ignored++
 			continue

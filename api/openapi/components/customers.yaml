@@ -1,0 +1,330 @@
+# Slice 5 customer identity (shadow) READ contract. Read/queue only: no
+# create, merge, resolve, unmerge or edit operation exists (D-30 open).
+# Contact and identifier values are MASKED; normalized values, raw names
+# and staging rows are never exposed. Phone is never identity.
+
+ResolutionState:
+  type: string
+  description: |
+    RESOLVED (strong evidence; still never merged), RELATED (relationship
+    without equality), UNKNOWN (insufficient evidence), CONFLICT
+    (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
+  enum: [RESOLVED, RELATED, UNKNOWN, CONFLICT, NOT_RECOVERABLE]
+
+Strength:
+  type: string
+  enum: [STRONG, MEDIUM, WEAK]
+
+CaseReason:
+  type: string
+  enum: [SHARED_PHONE, SHARED_ACCOUNT_REF, SHARED_EXCLUSIVE_IDENTIFIER, SUPPLIED_EVIDENCE]
+
+EvidenceKind:
+  type: string
+  enum: [PHONE_MATCH, ACCOUNT_REF_MATCH, SEQUENTIAL_PHONE_REUSE, OVERLAPPING_PHONE_OWNERSHIP, EXCLUSIVE_IDENTIFIER_SHARED,
+    OTP_CONTACT_CONTROL, VERIFIED_EQUALITY, VERIFIED_DISTINCT, SOURCE_NOT_RECOVERABLE]
+
+CustomerSummary:
+  type: object
+  required: [customer_id, subject_kind, resolution_state, resolution_reason, name_masked, observed_raw, contact_count,
+    identifier_count, evidence_count, open_case_count, conflict_case_count, provenance]
+  additionalProperties: false
+  properties:
+    customer_id:
+      $ref: './hr.yaml#/NativeID'
+    subject_kind:
+      type: string
+      description: The source subject this customer stands for (one legacy issued-to record each).
+      enum: [INVOICE_ISSUED_TO, SYNTHETIC_SUBJECT]
+    resolution_state:
+      $ref: '#/ResolutionState'
+    resolution_reason:
+      type: string
+      maxLength: 300
+    name_masked:
+      type: string
+      nullable: true
+      maxLength: 200
+    observed_raw:
+      $ref: './hr.yaml#/RawText'
+    contact_count:
+      type: integer
+      minimum: 0
+    identifier_count:
+      type: integer
+      minimum: 0
+    evidence_count:
+      type: integer
+      minimum: 0
+    open_case_count:
+      type: integer
+      minimum: 0
+    conflict_case_count:
+      type: integer
+      minimum: 0
+    provenance:
+      $ref: './hr.yaml#/Provenance'
+
+ContactPoint:
+  type: object
+  description: A masked contact point. Equal values on several customers are shown as ambiguity, never as identity.
+  required: [contact_point_id, kind, role, masked_value, normalization, shared_with_customers, valid_from_raw, valid_to_raw,
+    observed_raw, provenance]
+  additionalProperties: false
+  properties:
+    contact_point_id:
+      $ref: './hr.yaml#/NativeID'
+    kind:
+      type: string
+      enum: [PHONE, EMAIL]
+    role:
+      type: string
+      enum: [PRIMARY, SECONDARY]
+    masked_value:
+      type: string
+      maxLength: 200
+    normalization:
+      type: string
+      enum: [VALID, INVALID, EMPTY]
+    shared_with_customers:
+      type: integer
+      minimum: 0
+      description: Other present customers with the same comparison value (discovery only).
+    valid_from_raw:
+      $ref: './hr.yaml#/RawText'
+    valid_to_raw:
+      $ref: './hr.yaml#/RawText'
+    observed_raw:
+      $ref: './hr.yaml#/RawText'
+    provenance:
+      $ref: './hr.yaml#/Provenance'
+
+Identifier:
+  type: object
+  description: An external / legacy identifier claim (masked). Never a key.
+  required: [identifier_id, scheme, masked_value, derivation, status, provenance]
+  additionalProperties: false
+  properties:
+    identifier_id:
+      $ref: './hr.yaml#/NativeID'
+    scheme:
+      type: string
+      enum: [LEGACY_WP_ACCOUNT, WOO_CUSTOMER, BIAWIN, LEGACY_AGGREGATE_V1, LEGACY_MAP_V2, CRM_CODE]
+    masked_value:
+      type: string
+      maxLength: 120
+    derivation:
+      type: string
+      enum: [DIRECT, PHONE_DERIVED]
+    status:
+      type: string
+      enum: [ACTIVE, CONFLICT]
+    provenance:
+      $ref: './hr.yaml#/Provenance'
+
+Evidence:
+  type: object
+  required: [evidence_id, kind, strength, polarity, origin, reference, observed_raw, subject_count, source_spec, presence, recorded_at]
+  additionalProperties: false
+  properties:
+    evidence_id:
+      $ref: './hr.yaml#/NativeID'
+    kind:
+      $ref: '#/EvidenceKind'
+    strength:
+      $ref: '#/Strength'
+    polarity:
+      type: string
+      enum: [EQUALITY, RELATION, DISCOVERY, CONTRADICTION, MISSING]
+    origin:
+      type: string
+      enum: [DERIVED, SUPPLIED]
+    reference:
+      type: string
+      maxLength: 200
+    observed_raw:
+      $ref: './hr.yaml#/RawText'
+    subject_count:
+      type: integer
+      minimum: 1
+    source_spec:
+      type: string
+      maxLength: 80
+    presence:
+      $ref: './hr.yaml#/Presence'
+    recorded_at:
+      $ref: './schemas.yaml#/Timestamp'
+
+MergeCase:
+  type: object
+  description: A read-only candidate. No winner, no canonical choice, no merge (D-30 open).
+  required: [merge_case_id, reason, state, state_reason, max_strength, member_customer_ids, evidence_kinds, presence, created_at, refreshed_at]
+  additionalProperties: false
+  properties:
+    merge_case_id:
+      $ref: './hr.yaml#/NativeID'
+    reason:
+      $ref: '#/CaseReason'
+    state:
+      $ref: '#/ResolutionState'
+    state_reason:
+      type: string
+      maxLength: 300
+    max_strength:
+      $ref: '#/Strength'
+    member_customer_ids:
+      type: array
+      maxItems: 1000
+      items:
+        $ref: './hr.yaml#/NativeID'
+    evidence_kinds:
+      type: array
+      maxItems: 20
+      items:
+        $ref: '#/EvidenceKind'
+    presence:
+      $ref: './hr.yaml#/Presence'
+    created_at:
+      $ref: './schemas.yaml#/Timestamp'
+    refreshed_at:
+      $ref: './schemas.yaml#/Timestamp'
+
+CustomerDetail:
+  type: object
+  required: [customer, identifiers, merge_cases]
+  additionalProperties: false
+  properties:
+    customer:
+      $ref: '#/CustomerSummary'
+    identifiers:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/Identifier'
+    merge_cases:
+      type: array
+      maxItems: 200
+      items:
+        $ref: '#/MergeCase'
+
+ResolutionReport:
+  type: object
+  description: Machine-readable resolution projection. phone_only_resolved_count and merge_count must be 0.
+  required: [customers, customers_present, source_subjects_present, customers_by_state, merge_cases_by_state, merge_cases_by_reason,
+    phone_only_candidate_count, overlapping_phone_conflict_count, duplicate_external_id_conflict_count, strong_evidence_count,
+    weak_only_customer_count, unresolved_count, phone_only_resolved_count, phone_only_merge_count, merge_count]
+  additionalProperties: false
+  properties:
+    customers: {type: integer, minimum: 0}
+    customers_present: {type: integer, minimum: 0}
+    source_subjects_present: {type: integer, minimum: 0}
+    customers_by_state:
+      type: object
+      additionalProperties: {type: integer, minimum: 0}
+    merge_cases_by_state:
+      type: object
+      additionalProperties: {type: integer, minimum: 0}
+    merge_cases_by_reason:
+      type: object
+      additionalProperties: {type: integer, minimum: 0}
+    phone_only_candidate_count: {type: integer, minimum: 0}
+    overlapping_phone_conflict_count: {type: integer, minimum: 0}
+    duplicate_external_id_conflict_count: {type: integer, minimum: 0}
+    strong_evidence_count: {type: integer, minimum: 0}
+    weak_only_customer_count: {type: integer, minimum: 0}
+    unresolved_count: {type: integer, minimum: 0}
+    phone_only_resolved_count: {type: integer, minimum: 0}
+    phone_only_merge_count: {type: integer, minimum: 0}
+    merge_count: {type: integer}
+
+CustomerListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/CustomerSummary'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CustomerEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/CustomerDetail'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+ContactPointListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/ContactPoint'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+EvidenceListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/Evidence'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+MergeCaseListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/MergeCase'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+MergeCaseEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/MergeCase'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+ResolutionReportEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/ResolutionReport'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
