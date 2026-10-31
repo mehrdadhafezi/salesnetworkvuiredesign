@@ -130,9 +130,11 @@ describe('Sales read (Slice 6)', () => {
 
   it('distinguishes proven, conflicting and not-recoverable holders in the custody list', async () => {
     renderAt('/sales/custody', routes())
-    expect(await screen.findByText('نگهدار تأییدشده (منبع و رویدادها یکسان)')).toBeTruthy()
-    expect(screen.getByText('تعارض: منبع و رویدادها متفاوت‌اند')).toBeTruthy()
-    expect(screen.getByText('قابل بازیابی نیست')).toBeTruthy()
+    // Scope to the table: the same labels also appear as filter options.
+    const table = await screen.findByRole('table', { name: 'نگهداری' })
+    expect(within(table).getByText('نگهدار تأییدشده (منبع و رویدادها یکسان)')).toBeTruthy()
+    expect(within(table).getByText('تعارض: منبع و رویدادها متفاوت‌اند')).toBeTruthy()
+    expect(within(table).getByText('قابل بازیابی نیست')).toBeTruthy()
     noActions()
   })
 
