@@ -73,7 +73,7 @@ jobs:
         run: go test -count=1 -race ./...
 
       - name: Architecture / import lint
-        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern|TestSliceThreeRules|TestAPIServerHasNoLegacyDependency|TestSliceFourRules|TestSliceFiveRules|TestAPIServerHasNoImportDependency' -v ./internal/architecture/
+        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern|TestSliceThreeRules|TestAPIServerHasNoLegacyDependency|TestSliceFourRules|TestSliceFiveRules|TestSliceSixRules|TestAPIServerHasNoImportDependency' -v ./internal/architecture/
 
       - name: Kernel is standard-library only
         shell: bash
@@ -103,6 +103,9 @@ jobs:
 
       - name: Slice 5 customer identity shadow gates (verbose; synthetic data only; zero phone-only RESOLVED / merges)
         run: go test -count=1 -v ./internal/customers/... ./internal/integration/legacy/shadow/ ./cmd/crm-legacy-import/ ./internal/architecture/
+
+      - name: Slice 6 sales read shadow gates (verbose; synthetic data only; append-only custody, attribution immutability, parity)
+        run: go test -count=1 -v ./internal/cases/... ./internal/custody/... ./internal/integration/legacy/shadow/ ./cmd/crm-legacy-import/
 
       - name: Slice 3 boundary — crm-api never reaches the legacy connector
         shell: bash
@@ -134,8 +137,9 @@ jobs:
           ! grep -q pending <<< "$status"
           grep -q 'applied  00001_integration_staging.sql' <<< "$status"
           stg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'integration' AND table_name LIKE 'stg\_%'")"
-          test "$stg" = "12" || { echo "expected 12 integration staging tables (Slice 3 + invoice issued-to), got $stg"; exit 1; }
+          test "$stg" = "16" || { echo "expected 16 integration staging tables (Slice 3 + invoice issued-to + Slice 6 sales), got $stg"; exit 1; }
           grep -q 'applied  00003_integration_staging_invoice_issued_to.sql' <<< "$status"
+          grep -q 'applied  00004_integration_staging_sales.sql' <<< "$status"
           grep -q 'applied  00001_identity.sql' <<< "$status"
           grep -q 'applied  00001_organization.sql' <<< "$status"
           s4="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('identity', 'organization')")"
@@ -155,6 +159,22 @@ jobs:
           test "$foreign" = "0" || { echo "foreign role granted on customers tables"; exit 1; }
           del="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'customers' AND grantee = 'crm_owner_customers' AND privilege_type IN ('DELETE', 'TRUNCATE')")"
           test "$del" = "0" || { echo "customers owner must not hold DELETE/TRUNCATE"; exit 1; }
+          # Slice 6 sales read shadow (cases + custody).
+          grep -q 'applied  00003_identity_sales_capabilities.sql' <<< "$status"
+          for f in 00001_cases.sql 00002_cases_append_only_guards.sql 00001_custody.sql 00002_custody_append_only_guards.sql; do
+            grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
+          done
+          s6="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT string_agg(table_schema || '=' || n, ',' ORDER BY table_schema) FROM (SELECT table_schema, count(*) n FROM information_schema.tables WHERE table_schema IN ('cases', 'custody') GROUP BY 1) x")"
+          test "$s6" = "cases=10,custody=7" || { echo "expected cases=10,custody=7 tables, got $s6"; exit 1; }
+          # Append-only: no DELETE/TRUNCATE anywhere, no UPDATE (table or column) on events/history/snapshots.
+          bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema IN ('cases', 'custody') AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name IN ('custody_event', 'case_state_history', 'attribution_snapshot')))")"
+          test "$bad" = "0" || { echo "cases/custody grants allow mutating append-only history"; exit 1; }
+          col="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.column_privileges WHERE table_schema IN ('cases', 'custody') AND grantee <> current_user AND privilege_type = 'UPDATE' AND table_name IN ('custody_event', 'case_state_history', 'attribution_snapshot')")"
+          test "$col" = "0" || { echo "column UPDATE granted on append-only history"; exit 1; }
+          foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE (table_schema = 'cases' AND grantee NOT IN ('crm_owner_cases', current_user)) OR (table_schema = 'custody' AND grantee NOT IN ('crm_owner_custody', current_user))")"
+          test "$foreign" = "0" || { echo "foreign role granted on cases/custody"; exit 1; }
+          guards="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_name LIKE '%_append_only' AND trigger_schema IN ('cases', 'custody')")"
+          test "$guards" = "3" || { echo "append-only triggers missing: $guards"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

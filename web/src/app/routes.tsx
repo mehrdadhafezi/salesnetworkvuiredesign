@@ -19,6 +19,9 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { to: '/customers', label: 'مشتریان', feature: 'customers_identity' },
     { to: '/customers/merge-cases', label: 'پرونده‌های تطبیق', feature: 'customers_identity' },
     { to: '/customers/identity-report', label: 'گزارش تطبیق هویت', feature: 'customers_identity' },
+    { to: '/sales/cases', label: 'پرونده‌های فروش', feature: 'sales_read' },
+    { to: '/sales/custody', label: 'نگهداری پرونده‌ها', feature: 'sales_read' },
+    { to: '/sales/report', label: 'گزارش پوشش فروش', feature: 'sales_read' },
     { to: '/system', label: 'وضعیت سامانه' },
   ]
   const children: RouteObject[] = [
@@ -33,6 +36,11 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'customers/merge-cases', lazy: async () => ({ Component: (await import('../modules/customers/pages/MergeCasesPage')).MergeCasesPage }) },
     { path: 'customers/identity-report', lazy: async () => ({ Component: (await import('../modules/customers/pages/IdentityReportPage')).IdentityReportPage }) },
     { path: 'customers/:customerId', lazy: async () => ({ Component: (await import('../modules/customers/pages/CustomerPage')).CustomerPage }) },
+    // Slice 6 sales read (read-only; no action route).
+    { path: 'sales/cases', lazy: async () => ({ Component: (await import('../modules/sales/pages/CasesPage')).CasesPage }) },
+    { path: 'sales/cases/:caseId', lazy: async () => ({ Component: (await import('../modules/sales/pages/CasePage')).CasePage }) },
+    { path: 'sales/custody', lazy: async () => ({ Component: (await import('../modules/sales/pages/CustodyPage')).CustodyPage }) },
+    { path: 'sales/report', lazy: async () => ({ Component: (await import('../modules/sales/pages/SalesReportPage')).SalesReportPage }) },
   ]
   // import.meta.env.DEV is a build-time constant: production bundles drop this branch entirely.
   if (import.meta.env.DEV && config.devTools) {

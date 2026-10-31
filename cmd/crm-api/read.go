@@ -7,6 +7,12 @@ import (
 
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization"
 	authzhttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization/http"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases"
+	caseshttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/http"
+	casesquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/query"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody"
+	custodyhttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/http"
+	custodyquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers"
 	customershttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/http"
 	customersquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/query"
@@ -160,6 +166,84 @@ func openCustomers(ctx context.Context, getenv func(string) string, devAuth bool
 		}
 	}
 	api, err := NewCustomersAPI(runners[customers.Module], runners[owner.FeatureFlags], devAuth)
+	if err != nil {
+		closeAll()
+		return nil, nil, err
+	}
+	return api, closeAll, nil
+}
+
+// Slice 6 sales read surface (optional, all or none; needs the flag store).
+const (
+	EnvCasesReadURL   = "CRM_CASES_READ_DATABASE_URL"
+	EnvCustodyReadURL = "CRM_CUSTODY_READ_DATABASE_URL"
+	// SalesFlag is the Slice 6 rollback switch (default off).
+	SalesFlag = "sales.read_shadow"
+)
+
+// ErrSalesConfig reports a partial Slice 6 configuration.
+var ErrSalesConfig = errors.New("crm-api: " + EnvCasesReadURL + " and " + EnvCustodyReadURL + " are all-or-none and need " + EnvFeatureFlagsURL)
+
+// salesAPI composes the cases and custody read handlers. Each module keeps
+// its own runner; there is no cross-module transaction.
+type (
+	casesHandlers   = caseshttp.Handlers
+	custodyHandlers = custodyhttp.Handlers
+)
+
+type salesAPI struct {
+	*casesHandlers
+	*custodyHandlers
+}
+
+// NewSalesAPI composes the Slice 6 surface over the cases and custody
+// runners and the flag store. devAuth selects synthetic DEV/TEST subjects.
+func NewSalesAPI(casesRunner, custodyRunner, flags *db.Runner, devAuth bool) (apiserver.SalesAPI, error) {
+	if casesRunner.Module() != cases.Module || custodyRunner.Module() != custody.Module || flags.Module() != owner.FeatureFlags {
+		return nil, errors.New("crm-api: sales runners bound to the wrong modules")
+	}
+	var subjects authorization.SubjectResolver = authorization.Anonymous{}
+	if devAuth {
+		subjects = authorization.DevSubjects{}
+	}
+	guard, err := authorization.NewGuard(flagFunc(flags, SalesFlag), subjects)
+	if err != nil {
+		return nil, err
+	}
+	return salesAPI{caseshttp.New(guard, casesquery.New(casesRunner)), custodyhttp.New(guard, custodyquery.New(custodyRunner))}, nil
+}
+
+// openSales opens the Slice 6 pools when configured.
+func openSales(ctx context.Context, getenv func(string) string, devAuth bool) (apiserver.SalesAPI, func(), error) {
+	cu, su, fu := getenv(EnvCasesReadURL), getenv(EnvCustodyReadURL), getenv(EnvFeatureFlagsURL)
+	if cu == "" && su == "" {
+		return nil, func() {}, nil
+	}
+	if cu == "" || su == "" || fu == "" {
+		return nil, nil, ErrSalesConfig
+	}
+	var pools []*db.Pool
+	closeAll := func() {
+		for _, p := range pools {
+			p.Close()
+		}
+	}
+	runners := map[owner.Module]*db.Runner{}
+	for m, u := range map[owner.Module]string{cases.Module: cu, custody.Module: su, owner.FeatureFlags: fu} {
+		cfg := db.DefaultConfig(u)
+		cfg.ApplicationName = "crm-api"
+		pool, err := db.Open(ctx, cfg)
+		if err != nil {
+			closeAll()
+			return nil, nil, fmt.Errorf("crm-api: %s read database: %w", m, err)
+		}
+		pools = append(pools, pool)
+		if runners[m], err = pool.Runner(m); err != nil {
+			closeAll()
+			return nil, nil, err
+		}
+	}
+	api, err := NewSalesAPI(runners[cases.Module], runners[custody.Module], runners[owner.FeatureFlags], devAuth)
 	if err != nil {
 		closeAll()
 		return nil, nil, err

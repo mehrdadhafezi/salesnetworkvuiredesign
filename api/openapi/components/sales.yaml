@@ -1,0 +1,426 @@
+# Slice 6 sales read shadow: cases and custody (read only).
+# No phone, customer name or seller username appears anywhere: none is a
+# key and none is stored. Legacy keys are provenance only.
+
+WorkflowType:
+  type: string
+  description: Source work unit a Case stands for (one staged legacy row each).
+  enum: [LEGACY_LEAD, DISTRIBUTION_ITEM]
+
+StateMapping:
+  type: string
+  description: KNOWN = raw value is in the explicit verified mapping of its namespace; UNKNOWN = raw kept, nothing defaulted.
+  enum: [KNOWN, UNKNOWN]
+
+Facet:
+  type: string
+  description: Attribution facet (GATE-0 §4, Architecture V1 §7). Never collapsed with Current Custody or Next Actor.
+  enum: [ORIGINAL_OWNER, ORIGINAL_SELLER, CREDIT_OWNER]
+
+Parity:
+  type: string
+  description: |
+    Legacy current-holder evidence vs the holder derived from custody events.
+    MATCH (both agree, history consistent), TARGET_UNKNOWN (events cannot establish a holder),
+    LEGACY_UNKNOWN (legacy names none), CONFLICT (they differ), MULTIPLE_CURRENT (contradictory
+    equally-ordered holders), HISTORY_GAP (holder agrees but history has gaps), NOT_RECOVERABLE
+    (no evidence on either side).
+  enum: [MATCH, TARGET_UNKNOWN, LEGACY_UNKNOWN, CONFLICT, MULTIPLE_CURRENT, HISTORY_GAP, NOT_RECOVERABLE]
+
+Derivation:
+  type: string
+  enum: [DERIVED, RELEASED, UNKNOWN, MULTIPLE, NONE]
+
+EventKind:
+  type: string
+  description: Evidence-backed classification of a legacy action; UNKNOWN keeps the raw action.
+  enum: [HOLDER_ASSIGNED, HOLDER_RELEASED, NO_HOLDER_CHANGE, UNKNOWN]
+
+EventContext:
+  type: string
+  enum: [DISTRIBUTION, MIS, PAYMENT_WORKFLOW, REFERRAL, CONVERSION, SELLER_UPDATE, UNKNOWN]
+
+CustodyFindingKind:
+  type: string
+  enum: [MISSING_PRIOR_OWNER, MISSING_TARGET_OWNER, HISTORY_GAP, MULTIPLE_CURRENT, ORDERING_CONTRADICTION,
+    MISSING_EVENT_HISTORY, SOURCE_CURRENT_MISMATCH, UNKNOWN_ACTION]
+
+UserRef:
+  type: object
+  description: A legacy user reference and, when the identity module resolved it, the target user id (absent object = no reference).
+  required: [legacy_key, user_id]
+  additionalProperties: false
+  properties:
+    legacy_key: {$ref: './hr.yaml#/LegacyKey'}
+    user_id:
+      type: string
+      format: uuid
+      nullable: true
+
+CaseSource:
+  type: object
+  required: [source_system, source_spec, source_key, channel_raw, origin_ref_raw, first_batch_id, last_batch_id, presence, first_seen_at, last_seen_at]
+  additionalProperties: false
+  properties:
+    source_system: {type: string, maxLength: 16}
+    source_spec: {type: string, maxLength: 120}
+    source_key: {$ref: './hr.yaml#/LegacyKey'}
+    channel_raw: {$ref: './hr.yaml#/RawText'}
+    origin_ref_raw: {$ref: './hr.yaml#/RawText'}
+    first_batch_id: {$ref: './hr.yaml#/NativeID'}
+    last_batch_id: {$ref: './hr.yaml#/NativeID'}
+    presence: {$ref: './hr.yaml#/Presence'}
+    first_seen_at: {$ref: './schemas.yaml#/Timestamp'}
+    last_seen_at: {$ref: './schemas.yaml#/Timestamp'}
+
+CaseSummary:
+  type: object
+  required: [case_id, workflow_type, state_namespace, state_raw, state_mapping, customer_id, customer_link_state,
+    customer_link_reason, presence, source, alias_count, history_count, imported_at, refreshed_at]
+  additionalProperties: false
+  properties:
+    case_id: {$ref: './hr.yaml#/NativeID'}
+    workflow_type: {$ref: '#/WorkflowType'}
+    state_namespace: {type: string, maxLength: 80}
+    state_raw: {$ref: './hr.yaml#/RawText'}
+    state_mapping: {$ref: '#/StateMapping'}
+    customer_id:
+      type: string
+      format: uuid
+      nullable: true
+    customer_link_state: {$ref: './customers.yaml#/ResolutionState'}
+    customer_link_reason: {type: string, maxLength: 300}
+    presence: {$ref: './hr.yaml#/Presence'}
+    source: {$ref: '#/CaseSource'}
+    alias_count: {type: integer, format: int64, minimum: 0}
+    history_count: {type: integer, format: int64, minimum: 0}
+    imported_at: {$ref: './schemas.yaml#/Timestamp'}
+    refreshed_at: {$ref: './schemas.yaml#/Timestamp'}
+
+LeadFacts:
+  type: object
+  description: Raw legacy lead facts (the Legacy Leads Only grain). No phone or name.
+  required: [status_raw, lead_status_raw, destination_panel_raw, imported_at_raw, assigned_at_raw, updated_at_raw, presence]
+  additionalProperties: false
+  properties:
+    status_raw: {$ref: './hr.yaml#/RawText'}
+    lead_status_raw: {$ref: './hr.yaml#/RawText'}
+    destination_panel_raw: {$ref: './hr.yaml#/RawText'}
+    imported_at_raw: {$ref: './hr.yaml#/RawText'}
+    assigned_at_raw: {$ref: './hr.yaml#/RawText'}
+    updated_at_raw: {$ref: './hr.yaml#/RawText'}
+    presence: {$ref: './hr.yaml#/Presence'}
+
+CaseAlias:
+  type: object
+  description: An explicit native link between representations. Never a merge; continuation vs related-distinct is OPD-01.
+  required: [alias_id, case_id, related_case_id, related_source_spec, related_source_key, relation, resolution, basis, presence, recorded_at]
+  additionalProperties: false
+  properties:
+    alias_id: {$ref: './hr.yaml#/NativeID'}
+    case_id: {$ref: './hr.yaml#/NativeID'}
+    related_case_id:
+      type: string
+      format: uuid
+      nullable: true
+    related_source_spec: {type: string, maxLength: 120}
+    related_source_key: {$ref: './hr.yaml#/LegacyKey'}
+    relation: {type: string, enum: [CONVERSION_LINK]}
+    resolution: {$ref: './customers.yaml#/ResolutionState'}
+    basis: {type: string, maxLength: 300}
+    presence: {$ref: './hr.yaml#/Presence'}
+    recorded_at: {$ref: './schemas.yaml#/Timestamp'}
+
+CaseDetail:
+  type: object
+  required: [case, aliases]
+  additionalProperties: false
+  properties:
+    case: {$ref: '#/CaseSummary'}
+    lead: {$ref: '#/LeadFacts'}
+    aliases:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/CaseAlias'}
+
+StateHistoryEntry:
+  type: object
+  required: [history_id, source_spec, source_key, old_state_raw, new_state_raw, occurred_raw, recorded_at]
+  additionalProperties: false
+  properties:
+    history_id: {$ref: './hr.yaml#/NativeID'}
+    source_spec: {type: string, maxLength: 120}
+    source_key: {$ref: './hr.yaml#/LegacyKey'}
+    old_state_raw: {$ref: './hr.yaml#/RawText'}
+    new_state_raw: {$ref: './hr.yaml#/RawText'}
+    actor: {$ref: '#/UserRef'}
+    occurred_raw: {$ref: './hr.yaml#/RawText'}
+    recorded_at: {$ref: './schemas.yaml#/Timestamp'}
+
+AttributionSnapshot:
+  type: object
+  description: Immutable. Frozen from stored evidence at import; never recomputed from the current hierarchy.
+  required: [snapshot_id, facet, resolution, position_raw, basis, source_time_raw, evidence_spec, evidence_key, captured_batch_id, captured_at]
+  additionalProperties: false
+  properties:
+    snapshot_id: {$ref: './hr.yaml#/NativeID'}
+    facet: {$ref: '#/Facet'}
+    resolution: {$ref: './customers.yaml#/ResolutionState'}
+    subject: {$ref: '#/UserRef'}
+    position_raw: {$ref: './hr.yaml#/RawText'}
+    basis: {type: string, maxLength: 300}
+    source_time_raw: {$ref: './hr.yaml#/RawText'}
+    evidence_spec:
+      type: string
+      maxLength: 120
+      nullable: true
+    evidence_key:
+      type: string
+      maxLength: 20
+      nullable: true
+    captured_batch_id: {$ref: './hr.yaml#/NativeID'}
+    captured_at: {$ref: './schemas.yaml#/Timestamp'}
+
+CustodyAssignment:
+  type: object
+  description: Derived, reconcilable custody projection next to the legacy current-holder evidence.
+  required: [case_id, derivation, derived_position_raw, legacy_position_raw, legacy_source_spec,
+    parity, event_count, finding_count, presence, refreshed_at]
+  additionalProperties: false
+  properties:
+    case_id: {$ref: './hr.yaml#/NativeID'}
+    derivation: {$ref: '#/Derivation'}
+    derived_holder: {$ref: '#/UserRef'}
+    derived_position_raw: {$ref: './hr.yaml#/RawText'}
+    legacy_holder: {$ref: '#/UserRef'}
+    legacy_position_raw: {$ref: './hr.yaml#/RawText'}
+    legacy_source_spec: {type: string, maxLength: 120}
+    parity: {$ref: '#/Parity'}
+    event_count: {type: integer, minimum: 0}
+    finding_count: {type: integer, format: int64, minimum: 0}
+    presence: {$ref: './hr.yaml#/Presence'}
+    refreshed_at: {$ref: './schemas.yaml#/Timestamp'}
+
+CustodyEvent:
+  type: object
+  description: Append-only. The legacy action is shown raw next to its evidence-backed kind.
+  required: [event_id, source_spec, source_key, legacy_action, kind, context, from_position_raw, to_position_raw, occurred_raw, recorded_at]
+  additionalProperties: false
+  properties:
+    event_id: {$ref: './hr.yaml#/NativeID'}
+    source_spec: {type: string, maxLength: 120}
+    source_key: {$ref: './hr.yaml#/LegacyKey'}
+    legacy_action: {type: string, maxLength: 100}
+    kind: {$ref: '#/EventKind'}
+    context: {$ref: '#/EventContext'}
+    actor: {$ref: '#/UserRef'}
+    from: {$ref: '#/UserRef'}
+    to: {$ref: '#/UserRef'}
+    from_position_raw: {$ref: './hr.yaml#/RawText'}
+    to_position_raw: {$ref: './hr.yaml#/RawText'}
+    occurred_raw: {$ref: './hr.yaml#/RawText'}
+    recorded_at: {$ref: './schemas.yaml#/Timestamp'}
+
+CustodyFinding:
+  type: object
+  required: [finding_id, kind, detail, event_id, presence, recorded_at]
+  additionalProperties: false
+  properties:
+    finding_id: {$ref: './hr.yaml#/NativeID'}
+    kind: {$ref: '#/CustodyFindingKind'}
+    detail: {type: string, maxLength: 300}
+    event_id:
+      type: string
+      format: uuid
+      nullable: true
+    presence: {$ref: './hr.yaml#/Presence'}
+    recorded_at: {$ref: './schemas.yaml#/Timestamp'}
+
+CaseCustody:
+  type: object
+  required: [assignment, events, findings]
+  additionalProperties: false
+  properties:
+    assignment: {$ref: '#/CustodyAssignment'}
+    events:
+      type: array
+      maxItems: 1000
+      items: {$ref: '#/CustodyEvent'}
+    findings:
+      type: array
+      maxItems: 1000
+      items: {$ref: '#/CustodyFinding'}
+
+CountMap:
+  type: object
+  additionalProperties: {type: integer, format: int64}
+
+HonestMetric:
+  type: object
+  description: A metric with its exact label, definition, authority and evaluation state. A null count is not zero.
+  required: [code, label, status, count, definition, authority, coverage, reason]
+  additionalProperties: false
+  properties:
+    code: {type: string, enum: [F02, F03]}
+    label: {type: string, maxLength: 200}
+    status: {type: string, enum: [EVALUATED, PARTIAL, NOT_EVALUATED]}
+    count:
+      type: integer
+      format: int64
+      nullable: true
+    definition: {type: string, maxLength: 600}
+    authority: {type: string, maxLength: 300}
+    coverage: {type: string, maxLength: 300}
+    reason: {type: string, maxLength: 600}
+
+SalesCoverageReport:
+  type: object
+  required: [cases_total, cases_present, cases_by_source_spec, cases_by_workflow_type, cases_with_unknown_state_mapping,
+    sourceless_cases, aliases_by_resolution, status_history_rows, cases_with_status_history, attribution_by_facet_and_resolution,
+    customer_link_states, legacy_leads_only, total_cases, f02, source_coverage]
+  additionalProperties: false
+  properties:
+    cases_total: {type: integer, format: int64}
+    cases_present: {type: integer, format: int64}
+    cases_by_source_spec: {$ref: '#/CountMap'}
+    cases_by_workflow_type: {$ref: '#/CountMap'}
+    cases_with_unknown_state_mapping: {type: integer, format: int64}
+    sourceless_cases: {type: integer, format: int64}
+    aliases_by_resolution: {$ref: '#/CountMap'}
+    status_history_rows: {type: integer, format: int64}
+    cases_with_status_history: {type: integer, format: int64}
+    attribution_by_facet_and_resolution:
+      type: object
+      additionalProperties: {$ref: '#/CountMap'}
+    customer_link_states: {$ref: '#/CountMap'}
+    legacy_leads_only: {$ref: '#/HonestMetric'}
+    total_cases: {$ref: '#/HonestMetric'}
+    f02: {$ref: '#/HonestMetric'}
+    source_coverage:
+      type: object
+      additionalProperties: {type: string, maxLength: 200}
+
+CustodyParityReport:
+  type: object
+  required: [assignments_present, current_holder_parity, derivation_states, findings_by_kind, custody_events,
+    custody_events_by_kind, cases_with_custody_events, unknown_legacy_actions, full_parity, notes]
+  additionalProperties: false
+  properties:
+    assignments_present: {type: integer, format: int64}
+    current_holder_parity: {$ref: '#/CountMap'}
+    derivation_states: {$ref: '#/CountMap'}
+    findings_by_kind: {$ref: '#/CountMap'}
+    custody_events: {type: integer, format: int64}
+    custody_events_by_kind: {$ref: '#/CountMap'}
+    cases_with_custody_events: {type: integer, format: int64}
+    unknown_legacy_actions: {$ref: '#/CountMap'}
+    full_parity:
+      type: boolean
+      description: True only when every present projection is MATCH; never claimed on empty or partial evidence.
+    notes:
+      type: array
+      maxItems: 20
+      items: {type: string, maxLength: 300}
+
+CaseListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/CaseSummary'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CaseEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/CaseDetail'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+StateHistoryListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/StateHistoryEntry'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+AttributionListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/AttributionSnapshot'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CustodyAssignmentListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/CustodyAssignment'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CaseCustodyEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/CaseCustody'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+SalesCoverageReportEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/SalesCoverageReport'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CustodyParityReportEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/CustodyParityReport'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}

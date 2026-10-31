@@ -1,0 +1,22 @@
+/* Sales read surfaces (Slice 6). Layout only, SN-207 tokens. */
+.sa-note{margin:0 0 12px}
+.sa-kv{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:6px 16px;margin:0}
+.sa-kv dt{color:var(--text-2)}
+.sa-kv dd{margin:0}
+.sa-ltr{direction:ltr;unicode-bidi:isolate}
+.sa-invariant{display:flex;align-items:center;gap:8px}
+.sa-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--gap);align-items:end}
+.sa-check{display:flex;align-items:center;gap:8px}
+.sa-table-wrap{overflow-x:auto}
+.sa-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.sa-table th,.sa-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.sa-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.sa-pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.sa-sections{display:grid;gap:12px}
+.sa-sections .card + .card{margin-top:0}
+.sa-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+@media (max-width:760px){.sa-filters{grid-template-columns:1fr}.sa-kv{grid-template-columns:1fr}}
+.sa-owners{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--gap)}
+.sa-owner{border:1px solid var(--border);border-radius:8px;padding:10px}
+.sa-owner h3{font-size:var(--fs);margin:0 0 6px}
+.sa-sub{font-size:var(--fs);font-weight:600;margin:12px 0 4px}

@@ -15,7 +15,7 @@ import (
 const someID = "0b9c2f5e-1111-4111-8111-111111111111"
 
 func concrete(path string) string {
-	return strings.NewReplacer("{user_id}", someID, "{person_id}", someID, "{customer_id}", someID, "{merge_case_id}", someID).Replace(path)
+	return strings.NewReplacer("{user_id}", someID, "{person_id}", someID, "{customer_id}", someID, "{merge_case_id}", someID, "{case_id}", someID).Replace(path)
 }
 
 // The query allowlist is exactly the contract's query parameters.
@@ -45,7 +45,7 @@ func TestQueryAllowlistMatchesContract(t *testing.T) {
 			t.Fatalf("%s: contract %v, allowlist %v", path, got, want)
 		}
 	}
-	if len(ContractQuery) != 17 {
+	if len(ContractQuery) != 25 {
 		t.Fatalf("allowlist covers %d paths", len(ContractQuery))
 	}
 }
@@ -74,7 +74,7 @@ func TestSlice4UnconfiguredAndReadOnly(t *testing.T) {
 			t.Fatal(err)
 		}
 		if path == "/api/v1/authorization/effective-access" {
-			if env.Data == nil || env.Data.HRReadEnabled || len(env.Data.Decisions) != 9 {
+			if env.Data == nil || env.Data.HRReadEnabled || len(env.Data.Decisions) != 12 {
 				t.Fatalf("effective access = %s", rec.Body.String())
 			}
 			for _, d := range env.Data.Decisions {

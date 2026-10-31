@@ -459,7 +459,8 @@ Capability:
   type: string
   description: Slice 4 read capability vocabulary (<module>.<object>.<action>).
   enum: [identity.user.read, org.person.read, org.employment.read, org.position.read, org.unit.read, org.assignment.read,
-    customers.customer.read, customers.merge_case.read, customers.identity_report.read]
+    customers.customer.read, customers.merge_case.read, customers.identity_report.read,
+      cases.case.read, custody.custody.read, sales.report.read]
 
 AccessDecision:
   type: object

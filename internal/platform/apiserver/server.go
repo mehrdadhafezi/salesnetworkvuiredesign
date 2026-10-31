@@ -42,6 +42,15 @@ var ContractPaths = map[string][]string{
 	"/api/v1/customer-identity/merge-cases":                 {http.MethodGet},
 	"/api/v1/customer-identity/merge-cases/{merge_case_id}": {http.MethodGet},
 	"/api/v1/customer-identity/resolution-report":           {http.MethodGet},
+	// Slice 6 sales read shadow (read only; no action endpoint exists).
+	"/api/v1/cases":                       {http.MethodGet},
+	"/api/v1/cases/{case_id}":             {http.MethodGet},
+	"/api/v1/cases/{case_id}/history":     {http.MethodGet},
+	"/api/v1/cases/{case_id}/attribution": {http.MethodGet},
+	"/api/v1/custody/assignments":         {http.MethodGet},
+	"/api/v1/custody/cases/{case_id}":     {http.MethodGet},
+	"/api/v1/sales/coverage-report":       {http.MethodGet},
+	"/api/v1/sales/custody-parity":        {http.MethodGet},
 }
 
 // ContractQuery is the allowlist of query parameters per Slice 4 path. A
@@ -66,6 +75,14 @@ var ContractQuery = map[string][]string{
 	"/api/v1/customer-identity/merge-cases":                 {"state", "evidence_strength", "reason", "customer_id", "cursor", "limit"},
 	"/api/v1/customer-identity/merge-cases/{merge_case_id}": {},
 	"/api/v1/customer-identity/resolution-report":           {},
+	"/api/v1/cases":                                         {"workflow_type", "state_mapping", "customer_link_state", "presence", "cursor", "limit"},
+	"/api/v1/cases/{case_id}":                               {},
+	"/api/v1/cases/{case_id}/history":                       {"cursor", "limit"},
+	"/api/v1/cases/{case_id}/attribution":                   {},
+	"/api/v1/custody/assignments":                           {"parity", "derivation", "presence", "cursor", "limit"},
+	"/api/v1/custody/cases/{case_id}":                       {},
+	"/api/v1/sales/coverage-report":                         {},
+	"/api/v1/sales/custody-parity":                          {},
 }
 
 // CustomersAPI is the Slice 5 customer identity read surface (customers
@@ -81,6 +98,30 @@ type CustomersAPI interface {
 	GetCustomerResolutionReport(ctx context.Context, request oapi.GetCustomerResolutionReportRequestObject) (oapi.GetCustomerResolutionReportResponseObject, error)
 	// CustomersEnabled reports the Slice 5 flag for the session navigation hint.
 	CustomersEnabled(ctx context.Context) bool
+}
+
+// SalesAPI is the Slice 6 sales read surface (cases and custody modules,
+// composed by cmd/crm-api). Without one, every operation answers
+// BLOCKED / FEATURE_DISABLED. It has no write operation of any kind.
+type SalesAPI interface {
+	ListCases(ctx context.Context, request oapi.ListCasesRequestObject) (oapi.ListCasesResponseObject, error)
+	GetCase(ctx context.Context, request oapi.GetCaseRequestObject) (oapi.GetCaseResponseObject, error)
+	ListCaseHistory(ctx context.Context, request oapi.ListCaseHistoryRequestObject) (oapi.ListCaseHistoryResponseObject, error)
+	ListCaseAttribution(ctx context.Context, request oapi.ListCaseAttributionRequestObject) (oapi.ListCaseAttributionResponseObject, error)
+	ListCustodyAssignments(ctx context.Context, request oapi.ListCustodyAssignmentsRequestObject) (oapi.ListCustodyAssignmentsResponseObject, error)
+	GetCaseCustody(ctx context.Context, request oapi.GetCaseCustodyRequestObject) (oapi.GetCaseCustodyResponseObject, error)
+	GetSalesCoverageReport(ctx context.Context, request oapi.GetSalesCoverageReportRequestObject) (oapi.GetSalesCoverageReportResponseObject, error)
+	GetCustodyParityReport(ctx context.Context, request oapi.GetCustodyParityReportRequestObject) (oapi.GetCustodyParityReportResponseObject, error)
+	// SalesEnabled reports the Slice 6 flag for the session navigation hint.
+	SalesEnabled(ctx context.Context) bool
+}
+
+// Surfaces are the optional business read surfaces; nil ones answer
+// BLOCKED / FEATURE_DISABLED.
+type Surfaces struct {
+	Read      ReadAPI
+	Customers CustomersAPI
+	Sales     SalesAPI
 }
 
 // ReadAPI is the Slice 4 read surface (identity, organization,
@@ -108,6 +149,7 @@ const displayZone = oapi.SessionContextDisplayZone("Asia/Tehran")
 type api struct {
 	ReadAPI
 	CustomersAPI
+	SalesAPI
 	clock   timeutil.Clock
 	devAuth bool
 }
@@ -156,7 +198,8 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 	data.Features = &struct {
 		CustomersIdentity bool `json:"customers_identity"`
 		HrRead            bool `json:"hr_read"`
-	}{CustomersIdentity: a.CustomersAPI.CustomersEnabled(ctx), HrRead: a.ReadAPI.HRReadEnabled(ctx)}
+		SalesRead         bool `json:"sales_read"`
+	}{CustomersIdentity: a.CustomersAPI.CustomersEnabled(ctx), HrRead: a.ReadAPI.HRReadEnabled(ctx), SalesRead: a.SalesAPI.SalesEnabled(ctx)}
 	return oapi.GetSession200JSONResponse{Body: oapi.SessionEnvelope{
 		Outcome:       outcome,
 		Reasons:       []oapi.ReasonCode{},
@@ -175,6 +218,12 @@ func NewHandler(cfg Config, clock timeutil.Clock, logger *slog.Logger) (http.Han
 // read and customers may be nil (their operations are then BLOCKED /
 // FEATURE_DISABLED).
 func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read ReadAPI, customers CustomersAPI) (http.Handler, error) {
+	return NewHandlerWithSurfaces(cfg, clock, logger, Surfaces{Read: read, Customers: customers})
+}
+
+// NewHandlerWithSurfaces builds the full handler chain over every surface.
+func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logger, sf Surfaces) (http.Handler, error) {
+	read, customers, sales := sf.Read, sf.Customers, sf.Sales
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -187,9 +236,12 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 	if customers == nil {
 		customers = unconfiguredCustomers{}
 	}
+	if sales == nil {
+		sales = unconfiguredSales{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},
@@ -301,7 +353,12 @@ func NewServer(cfg Config, clock timeutil.Clock, logger *slog.Logger) (*http.Ser
 
 // NewServerWith is NewServer with the Slice 4 and Slice 5 read surfaces (either may be nil).
 func NewServerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read ReadAPI, customers CustomersAPI) (*http.Server, error) {
-	h, err := NewHandlerWith(cfg, clock, logger, read, customers)
+	return NewServerWithSurfaces(cfg, clock, logger, Surfaces{Read: read, Customers: customers})
+}
+
+// NewServerWithSurfaces builds the server over every surface.
+func NewServerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logger, sf Surfaces) (*http.Server, error) {
+	h, err := NewHandlerWithSurfaces(cfg, clock, logger, sf)
 	if err != nil {
 		return nil, err
 	}

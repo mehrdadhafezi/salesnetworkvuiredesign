@@ -55,7 +55,7 @@ func v1(entity, table string, cols []Column, ev []Evidence, notes ...string) Spe
 
 // V1 returns every published v1 spec for legacy 2.0.160: the Slice 3 set
 // and the Slice 5 extension (v1_customer_2_0_160.go).
-func V1() []Spec { return append(V1Slice3(), V1Slice5()...) }
+func V1() []Spec { return append(append(V1Slice3(), V1Slice5()...), V1Slice6()...) }
 
 // Default returns the registry of every published spec. It panics only if a
 // published spec is invalid, which the spec tests rule out.

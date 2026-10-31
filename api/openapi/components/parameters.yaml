@@ -227,3 +227,45 @@ CustomerID:
   required: false
   schema:
     $ref: './hr.yaml#/NativeID'
+
+WorkflowType:
+  name: workflow_type
+  in: query
+  required: false
+  schema:
+    $ref: './sales.yaml#/WorkflowType'
+
+StateMapping:
+  name: state_mapping
+  in: query
+  required: false
+  schema:
+    $ref: './sales.yaml#/StateMapping'
+
+CustomerLinkState:
+  name: customer_link_state
+  in: query
+  required: false
+  schema:
+    $ref: './customers.yaml#/ResolutionState'
+
+Parity:
+  name: parity
+  in: query
+  required: false
+  schema:
+    $ref: './sales.yaml#/Parity'
+
+Derivation:
+  name: derivation
+  in: query
+  required: false
+  schema:
+    $ref: './sales.yaml#/Derivation'
+
+CaseID:
+  name: case_id
+  in: path
+  required: true
+  schema:
+    $ref: './hr.yaml#/NativeID'

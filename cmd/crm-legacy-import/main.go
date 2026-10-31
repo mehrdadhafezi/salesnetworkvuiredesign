@@ -57,6 +57,9 @@ const (
 	EnvOrganizationURL = "CRM_ORGANIZATION_DATABASE_URL"
 	// EnvCustomersURL is the Slice 5 customers DSN (customers-owner login).
 	EnvCustomersURL = "CRM_CUSTOMERS_DATABASE_URL"
+	// EnvCasesURL / EnvCustodyURL are the Slice 6 module DSNs.
+	EnvCasesURL   = "CRM_CASES_DATABASE_URL"
+	EnvCustodyURL = "CRM_CUSTODY_DATABASE_URL"
 )
 
 // ToolVersion is recorded on every batch.
@@ -73,8 +76,11 @@ const usage = `usage:
   crm-legacy-import reconcile-identity-org <snapshot-id>
   crm-legacy-import import-customers <snapshot-id>
   crm-legacy-import reconcile-customers <snapshot-id>
+  crm-legacy-import import-sales <snapshot-id>
+  crm-legacy-import reconcile-sales <snapshot-id>
 (` + EnvStagingURL + `; Slice 4 also ` + EnvIdentityURL + ` and ` + EnvOrganizationURL + `;
- Slice 5 also ` + EnvCustomersURL + `)`
+ Slice 5 also ` + EnvCustomersURL + `;
+ Slice 6 also ` + EnvCasesURL + ` and ` + EnvCustodyURL + `)`
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -138,7 +144,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 			}
 			return code
 		})
-	case "import-identity", "import-organization", "reconcile-identity-org", "import-customers", "reconcile-customers":
+	case "import-identity", "import-organization", "reconcile-identity-org", "import-customers", "reconcile-customers", "import-sales", "reconcile-sales":
 		if len(rest) != 1 {
 			break
 		}

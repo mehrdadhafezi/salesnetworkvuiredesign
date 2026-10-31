@@ -38,6 +38,8 @@ tags:
     description: Slice 4 read evaluator (server-authoritative effective access).
   - name: customers
     description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
+  - name: sales
+    description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
 paths:
   /health/live:
     get:
@@ -618,6 +620,229 @@ paths:
             application/json:
               schema:
                 $ref: './components/customers.yaml#/ResolutionReportEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/cases:
+    get:
+      tags: [sales]
+      operationId: listCases
+      summary: List shadow cases
+      description: |
+        Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/WorkflowType'
+        - $ref: './components/parameters.yaml#/StateMapping'
+        - $ref: './components/parameters.yaml#/CustomerLinkState'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/sales.yaml#/CaseListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/cases/{case_id}:
+    get:
+      tags: [sales]
+      operationId: getCase
+      summary: Get one shadow case
+      description: |
+        Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CaseID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/sales.yaml#/CaseEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/cases/{case_id}/history:
+    get:
+      tags: [sales]
+      operationId: listCaseHistory
+      summary: List a case's append-only state history
+      description: |
+        Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CaseID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/sales.yaml#/StateHistoryListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/cases/{case_id}/attribution:
+    get:
+      tags: [sales]
+      operationId: listCaseAttribution
+      summary: List a case's immutable attribution snapshots
+      description: |
+        Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CaseID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/sales.yaml#/AttributionListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/custody/assignments:
+    get:
+      tags: [sales]
+      operationId: listCustodyAssignments
+      summary: List derived custody projections
+      description: |
+        Requires custody.custody.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Parity'
+        - $ref: './components/parameters.yaml#/Derivation'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/sales.yaml#/CustodyAssignmentListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/custody/cases/{case_id}:
+    get:
+      tags: [sales]
+      operationId: getCaseCustody
+      summary: Get the custody record of one case
+      description: |
+        Requires custody.custody.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CaseID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/sales.yaml#/CaseCustodyEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/sales/coverage-report:
+    get:
+      tags: [sales]
+      operationId: getSalesCoverageReport
+      summary: Sales read source coverage report (F02/F03 honest labels)
+      description: |
+        Requires sales.report.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/sales.yaml#/SalesCoverageReportEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/sales/custody-parity:
+    get:
+      tags: [sales]
+      operationId: getCustodyParityReport
+      summary: Custody current-holder parity report
+      description: |
+        Requires sales.report.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when sales.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/sales.yaml#/CustodyParityReportEnvelope'
         '400':
           $ref: './components/responses.yaml#/Problem'
         '403':
