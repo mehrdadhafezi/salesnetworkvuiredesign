@@ -230,21 +230,49 @@ func CasesCommand(b *Batch, users Users) (casesapi.CaseImport, map[string]int64)
 		} else if bad {
 			counts["conversion_link_unreadable"]++
 		}
-		in.Attributions = append(in.Attributions, itemAttribution(r.Key, logsByItem[r.Key], logs.Usable(), users)...)
+		in.Attributions = append(in.Attributions, itemAttribution(r.Key, logsByItem[r.Key], coverageOf(logs), users)...)
 	}
 	return in, counts
 }
 
+// logCoverage is how much of the distribution log source the batch holds.
+type logCoverage int
+
+const (
+	logsNotStaged logCoverage = iota
+	logsIncomplete
+	logsComplete
+)
+
+func coverageOf(e Entity) logCoverage {
+	switch {
+	case e.Complete():
+		return logsComplete
+	case e.Usable():
+		return logsIncomplete
+	}
+	return logsNotStaged
+}
+
 // itemAttribution freezes Original Owner / Original Seller from the item's
-// own log evidence. Credit Owner is never evaluated here (Slice 6 has no
-// financial evidence).
-func itemAttribution(item string, logs []Row, logsStaged bool, users Users) []casesapi.AttributionRecord {
+// own log evidence. A facet is RESOLVED only when the log source is
+// COMPLETE and no unmapped action precedes the chosen row: otherwise an
+// earlier (missing or unclassified) assignment could be the real origin,
+// so the facet is UNKNOWN. NOT_RECOVERABLE only when complete logs prove
+// there is no qualifying row. Credit Owner is never evaluated here.
+func itemAttribution(item string, logs []Row, cov logCoverage, users Users) []casesapi.AttributionRecord {
 	ref := casesapi.RowRef{Spec: SpecDistItem, Key: item}
 	sort.SliceStable(logs, func(i, j int) bool { return lessKey(logs[i].Key, logs[j].Key) })
 	var owner, seller *Row
+	unmappedBefore := map[*Row]bool{}
+	sawUnknown := false
 	for i := range logs {
 		r := &logs[i]
 		kind, _ := ClassifyAction(textOr(r.Get("action")))
+		if kind == custodyapi.KindUnknown {
+			sawUnknown = true
+			continue
+		}
 		if kind != custodyapi.HolderAssigned {
 			continue
 		}
@@ -252,31 +280,36 @@ func itemAttribution(item string, logs []Row, logsStaged bool, users Users) []ca
 			continue
 		}
 		if owner == nil {
-			owner = r
+			owner, unmappedBefore[r] = r, sawUnknown
 		}
 		if seller == nil && strings.EqualFold(textOr(r.Get("to_position")), "seller") {
-			seller = r
+			seller, unmappedBefore[r] = r, sawUnknown
 		}
 	}
-	missing := "no holder-assigning log row for this item"
-	if !logsStaged {
-		missing = "distribution item logs are not staged"
-	}
 	snap := func(facet casesapi.Facet, r *Row, basis string) casesapi.AttributionRecord {
-		if r == nil {
-			res := casesapi.Unknown
-			if logsStaged {
-				res = casesapi.NotRecoverable
-			}
-			return casesapi.AttributionRecord{Case: ref, Facet: facet, Resolution: res, Basis: missing}
+		switch {
+		case cov == logsNotStaged:
+			return casesapi.AttributionRecord{Case: ref, Facet: facet, Resolution: casesapi.Unknown, Basis: "distribution item logs are not staged"}
+		case cov == logsIncomplete:
+			return casesapi.AttributionRecord{Case: ref, Facet: facet, Resolution: casesapi.Unknown,
+				Basis: "distribution item logs are not COMPLETE; an earlier assignment may be missing"}
+		case r == nil && sawUnknown:
+			return casesapi.AttributionRecord{Case: ref, Facet: facet, Resolution: casesapi.Unknown,
+				Basis: "no mapped holder-assigning row; unmapped legacy actions may hide one"}
+		case r == nil:
+			return casesapi.AttributionRecord{Case: ref, Facet: facet, Resolution: casesapi.NotRecoverable,
+				Basis: "complete logs hold no holder-assigning row for this item"}
+		case unmappedBefore[r]:
+			return casesapi.AttributionRecord{Case: ref, Facet: facet, Resolution: casesapi.Unknown,
+				Basis: "an unmapped legacy action precedes the first mapped assignment"}
 		}
 		subject := users.casesRef(r.Get("to_user_id"))
 		return casesapi.AttributionRecord{Case: ref, Facet: facet, Resolution: casesapi.Resolved, Subject: subject, PositionRaw: r.Get("to_position"),
 			Basis: basis, SourceTimeRaw: r.Get("created_at"), Evidence: &casesapi.RowRef{Spec: SpecDistItemLog, Key: r.Key}}
 	}
 	return []casesapi.AttributionRecord{
-		snap(casesapi.OriginalOwner, owner, "first holder-assigning custody log row of the item"),
-		snap(casesapi.OriginalSeller, seller, "first holder-assigning custody log row to a seller position"),
+		snap(casesapi.OriginalOwner, owner, "first holder-assigning custody log row of the item (complete logs)"),
+		snap(casesapi.OriginalSeller, seller, "first holder-assigning custody log row to a seller position (complete logs)"),
 		{Case: ref, Facet: casesapi.CreditOwner, Resolution: casesapi.Unknown, Basis: "credit ownership needs financial evidence; not evaluated in Slice 6"},
 	}
 }
@@ -373,6 +406,7 @@ func ReconcileSales(ctx context.Context, b *Batch, cases casesapi.Reader, custod
 	// Per-row provenance: every staged lead/item must be a present Case
 	// last carried by THIS batch with the same checksum.
 	matched, missing, other := int64(0), int64(0), int64(0)
+	var stagedCases []string
 	for _, sp := range []string{SpecLead, SpecDistItem} {
 		e := b.Entity(sp)
 		keys := make([]string, 0, len(e.Rows))
@@ -393,8 +427,32 @@ func ReconcileSales(ctx context.Context, b *Batch, cases casesapi.Reader, custod
 			default:
 				matched++
 			}
+			if ok {
+				stagedCases = append(stagedCases, sc.CaseID)
+			}
 		}
 	}
+	// Custody coverage per staged Case: aggregate parity over existing
+	// projections cannot prove that THIS batch's Cases have custody.
+	covered, err := custody.CaseCoverage(ctx, stagedCases)
+	if err != nil {
+		return rep, err
+	}
+	custodyRun, err := custody.BatchImported(ctx, b.BatchID)
+	if err != nil {
+		return rep, err
+	}
+	noCustody, notMatch := int64(0), int64(0)
+	for _, id := range stagedCases {
+		switch p, ok := covered[id]; {
+		case !ok:
+			noCustody++
+		case p != "MATCH":
+			notMatch++
+		}
+	}
+	rep.Staged["cases_without_custody_projection"] = noCustody
+	rep.Staged["cases_custody_not_match"] = notMatch
 	rep.Staged["cases_matched_to_batch"] = matched
 	rep.Staged["cases_missing"] = missing
 	rep.Staged["cases_from_other_batch_or_changed"] = other
@@ -410,6 +468,9 @@ func ReconcileSales(ctx context.Context, b *Batch, cases casesapi.Reader, custod
 		"custody parity compares legacy holder columns with holders derived from append-only log rows; lead custody has no legacy log",
 		"no phone, name or username is staged, stored or used as a key",
 	}
+	if !custodyRun {
+		rep.Notes = append(rep.Notes, "no custody import run exists for this batch")
+	}
 	violated := false
 	for _, ok := range rep.Invariants {
 		violated = violated || !ok
@@ -421,7 +482,7 @@ func ReconcileSales(ctx context.Context, b *Batch, cases casesapi.Reader, custod
 	case !b.Entity(SpecLead).Usable() || !b.Entity(SpecDistItem).Usable():
 		rep.Outcome = result.Unknown
 		rep.Reasons = append(rep.Reasons, reasoncodes.SourceUnavailable)
-	case missing > 0 || other > 0 || !rep.Custody.FullParity:
+	case missing > 0 || other > 0 || noCustody > 0 || notMatch > 0 || !custodyRun || !rep.Custody.FullParity:
 		// Partial evidence or imperfect parity is reported, never hidden.
 		rep.Outcome = result.Partial
 		rep.Reasons = append(rep.Reasons, reasoncodes.CoverageIncomplete)

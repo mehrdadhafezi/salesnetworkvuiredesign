@@ -349,3 +349,40 @@ func (e *salesEnv) setSalesFlag(t *testing.T, on bool) {
 		t.Fatal(err)
 	}
 }
+
+// A staged Case without a custody projection is never reconciled as
+// SUCCESS, even when every existing projection MATCHes.
+func TestReconcileRequiresCustodyPerStagedCase(t *testing.T) {
+	e := setupSales(t)
+	ctx := context.Background()
+	clean := func(items []legacytest.Rec, logs []legacytest.Rec) []snapshot.EntityRows {
+		ents := legacytest.SalesScenario(snapshot.Complete)
+		ents = legacytest.With(ents, shadow.SpecLead, nil, snapshot.Complete)
+		ents = legacytest.With(ents, shadow.SpecLeadHistory, nil, snapshot.Complete)
+		ents = legacytest.With(ents, shadow.SpecDistItem, items, snapshot.Complete)
+		return legacytest.With(ents, shadow.SpecDistItemLog, logs, snapshot.Complete)
+	}
+	item501 := legacytest.DistItem("501", "5", "seller", "", "delivered_to_seller")
+	log501 := []legacytest.Rec{legacytest.DistLog("1", "501", "item_created_from_mis_pool", "", "5", "seller", "2025-02-01 08:00:00")}
+	b1 := e.stage(t, "syn-rec-1", clean([]legacytest.Rec{item501}, log501))
+	e.importSales(t, b1)
+	rep, err := shadow.ReconcileSales(ctx, b1, e.casesQ, e.custodyQ)
+	if err != nil || rep.Outcome != result.Success || !rep.Custody.FullParity {
+		t.Fatalf("fully matching batch: %+v %v", rep, err)
+	}
+	// Batch 2 adds item 505; only the cases import runs (custody failed).
+	b2 := e.stage(t, "syn-rec-2", clean([]legacytest.Rec{item501, legacytest.DistItem("505", "6", "seller", "", "delivered_to_seller")},
+		append(log501, legacytest.DistLog("2", "505", "item_created_from_mis_pool", "", "6", "seller", "2025-02-01 09:00:00"))))
+	users, _ := e.ident.ResolveUsers(ctx, shadow.SourceSystem, shadow.UserKeys(b2))
+	ci, _ := shadow.CasesCommand(b2, users)
+	if _, err := e.casesIn.ImportCases(ctx, ci); err != nil {
+		t.Fatal(err)
+	}
+	rep, err = shadow.ReconcileSales(ctx, b2, e.casesQ, e.custodyQ)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rep.Custody.FullParity || rep.Outcome != result.Partial || rep.Staged["cases_without_custody_projection"] != 1 {
+		t.Fatalf("missing custody must be PARTIAL: outcome %s staged %+v", rep.Outcome, rep.Staged)
+	}
+}

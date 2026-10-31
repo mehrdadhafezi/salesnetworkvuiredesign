@@ -7,6 +7,7 @@ import { ReadStates } from '../../../shared/read/ReadStates'
 import { Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/primitives'
 import { ParityPill, ReadOnlyNote, ResolutionPill, UserRefText } from '../components'
 import { blockedDetail, eventKindLabel, facetLabel, findingLabel, text, workflowLabel } from '../labels'
+import { Pager, useCursors } from '../pager'
 
 /**
  * Case detail (read only). The four owners (GATE-0 INV-004) are shown as
@@ -20,8 +21,11 @@ export function CasePage() {
   const { caseId = '' } = useParams()
   const api = useApi()
   const detail = useRead(`c:${caseId}`, async () => settle(await api.GET('/api/v1/cases/{case_id}', { params: { path: { case_id: caseId } } }), e => e.data))
-  const history = useRead(`h:${caseId}`, async () => settle(await api.GET('/api/v1/cases/{case_id}/history', {
-    params: { path: { case_id: caseId }, query: { limit: 100 } } }), e => e.items))
+  // History is paged with the server cursor (source order); nothing is truncated silently.
+  const hc = useCursors()
+  const history = useRead(`h:${caseId}:${hc.cursor ?? ''}`, async () => settle(await api.GET('/api/v1/cases/{case_id}/history', {
+    params: { path: { case_id: caseId }, query: { limit: 100, ...(hc.cursor ? { cursor: hc.cursor } : {}) } } }),
+  e => e.items && e.page ? { items: e.items, page: e.page } : undefined))
   const attribution = useRead(`a:${caseId}`, async () => settle(await api.GET('/api/v1/cases/{case_id}/attribution', {
     params: { path: { case_id: caseId } } }), e => e.items))
   const canCustody = detail.status === 'ok' && actionHint(detail.allowed, 'custody.custody.read').allowed
@@ -76,14 +80,15 @@ export function CasePage() {
         </Card>
         <Card title="سابقه وضعیت (فقط افزودنی)">
           <ReadStates state={history} what="سابقه" blockedDetail={blockedDetail} />
-          {history.status === 'ok' && (history.data.length === 0 ? <StateBlock kind="empty" title="سابقه وضعیتی ثبت نشده است" /> : (
+          {history.status === 'ok' && (history.data.items.length === 0 ? <StateBlock kind="empty" title="سابقه وضعیتی ثبت نشده است" /> : (
             <ol className="sa-list" aria-label="سابقه وضعیت">
-              {history.data.map(h => (
+              {history.data.items.map(h => (
                 <li key={h.history_id}><span className="sa-ltr">{`${text(h.old_state_raw)} → ${text(h.new_state_raw)}`}</span>
                   <span className="muted"> · {text(h.occurred_raw)} · </span><UserRefText user={h.actor} /></li>
               ))}
             </ol>
           ))}
+          {history.status === 'ok' && <Pager page={history.data.page} c={hc} />}
         </Card>
         <Card title="خط زمانی نگهداری (فقط افزودنی)">
           {!canCustody ? <StateBlock kind="locked" title="دسترسی به نگهداری ندارید" /> : (

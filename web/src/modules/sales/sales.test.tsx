@@ -39,7 +39,13 @@ function routes(over: Record<string, (req: Request) => Response> = {}, enabled =
     [`GET /api/v1/cases/${ID(1)}`]: () => json(env({ data: { case: caseRow(1), aliases: [{ alias_id: ID(60), case_id: ID(1), related_case_id: ID(2),
       related_source_spec: 'legacy.lead.v1', related_source_key: '101', relation: 'CONVERSION_LINK', resolution: 'RELATED',
       basis: 'explicit link; continuation vs related-distinct unresolved (OPD-01)', presence: 'PRESENT', recorded_at: '2026-10-31T09:00:00Z' }] } })),
-    [`GET /api/v1/cases/${ID(1)}/history`]: () => json(env({ items: [], page: { has_more: false } })),
+    [`GET /api/v1/cases/${ID(1)}/history`]: (req: Request) => {
+      const cursor = new URL(req.url).searchParams.get('cursor')
+      const entry = (n: number, from: string, to: string) => ({ history_id: ID(90 + n), source_spec: 'legacy.lead_status_history.v1', source_key: String(9000 + n),
+        old_state_raw: from, new_state_raw: to, occurred_raw: '2025-01-02 10:00:00', recorded_at: '2026-10-31T09:00:00Z' })
+      return json(env(cursor ? { items: [entry(2, 'assigned', 'callback')], page: { has_more: false } }
+        : { items: [entry(1, 'unassigned', 'assigned')], page: { has_more: true, next_cursor: 'h-2' } }))
+    },
     [`GET /api/v1/cases/${ID(1)}/attribution`]: () => json(env({ items: [
       { snapshot_id: ID(80), facet: 'ORIGINAL_OWNER', resolution: 'RESOLVED', subject: { legacy_key: '4', user_id: ID(704) }, position_raw: 'supervisor',
         basis: 'first holder-assigning custody log row', source_time_raw: '2025-02-01 08:00:00', evidence_spec: 'legacy.distribution_item_log.v1', evidence_key: '1',
@@ -125,6 +131,11 @@ describe('Sales read (Slice 6)', () => {
     expect(await screen.findByText('item_created_from_mis_pool')).toBeTruthy()
     expect(screen.getByText('نگهدار منبع با رویدادها نمی‌خواند')).toBeTruthy()
     expect(screen.getByText(/OPD-01/)).toBeTruthy()
+    // History is paged by the server cursor; later entries stay reachable.
+    const historyCard = screen.getByRole('region', { name: 'سابقه وضعیت (فقط افزودنی)' })
+    expect(await within(historyCard).findByText('unassigned → assigned')).toBeTruthy()
+    fireEvent.click(within(historyCard).getByRole('button', { name: 'صفحه بعد' }))
+    expect(await within(historyCard).findByText('assigned → callback')).toBeTruthy()
     noActions()
   })
 

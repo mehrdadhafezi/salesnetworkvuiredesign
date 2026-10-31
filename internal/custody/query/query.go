@@ -129,3 +129,28 @@ func (s *Service) ParityReport(ctx context.Context) (api.Parity, error) {
 	})
 	return r, err
 }
+
+// CaseCoverage implements api.Reader.
+func (s *Service) CaseCoverage(ctx context.Context, caseIDs []string) (map[string]string, error) {
+	var out map[string]string
+	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		var err error
+		out, err = store.CaseCoverage(ctx, tx, caseIDs)
+		return err
+	})
+	return out, err
+}
+
+// BatchImported implements api.Reader.
+func (s *Service) BatchImported(ctx context.Context, batchID string) (bool, error) {
+	if !uuidPattern.MatchString(batchID) {
+		return false, invalid("batch_id")
+	}
+	var ok bool
+	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		var err error
+		ok, err = store.BatchImported(ctx, tx, batchID)
+		return err
+	})
+	return ok, err
+}

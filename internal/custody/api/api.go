@@ -153,6 +153,11 @@ type Importer interface {
 // Reader is the published custody read surface for reconciliation.
 type Reader interface {
 	ParityReport(ctx context.Context) (Parity, error)
+	// CaseCoverage reports, per case id, the parity of its PRESENT custody
+	// projection (absent from the map = no present projection).
+	CaseCoverage(ctx context.Context, caseIDs []string) (map[string]string, error)
+	// BatchImported reports whether a custody import run exists for a batch.
+	BatchImported(ctx context.Context, batchID string) (bool, error)
 }
 
 // Parity is the machine-readable custody parity report.

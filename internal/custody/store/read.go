@@ -187,3 +187,37 @@ func ParityReport(ctx context.Context, tx db.Tx) (api.Parity, error) {
 	r.FullParity = r.Assignments > 0 && r.ByParity["MATCH"] == r.Assignments
 	return r, nil
 }
+
+// CaseCoverage maps case ids to the parity of their PRESENT projection.
+func CaseCoverage(ctx context.Context, tx db.Tx, caseIDs []string) (map[string]string, error) {
+	if err := ReadTx(tx); err != nil {
+		return nil, err
+	}
+	if caseIDs == nil {
+		caseIDs = []string{}
+	}
+	rows, err := tx.Query(ctx, `SELECT case_id::text, parity FROM custody.assignment WHERE presence = 'PRESENT' AND case_id = ANY($1::uuid[])`, caseIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var id, p string
+		if err := rows.Scan(&id, &p); err != nil {
+			return nil, err
+		}
+		out[id] = p
+	}
+	return out, rows.Err()
+}
+
+// BatchImported reports whether a custody import run exists for a batch.
+func BatchImported(ctx context.Context, tx db.Tx, batchID string) (bool, error) {
+	if err := ReadTx(tx); err != nil {
+		return false, err
+	}
+	var n int64
+	err := tx.QueryRow(ctx, `SELECT count(*) FROM custody.import_run WHERE batch_id = $1`, batchID).Scan(&n)
+	return n > 0, err
+}
