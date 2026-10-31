@@ -122,14 +122,18 @@ jobs:
           psql -h localhost -U crm_ci -d postgres -c 'CREATE DATABASE crm_migrate_ci'
           export CRM_MIGRATE_DATABASE_URL='postgres://crm_ci:crm_ci_only@localhost:5432/crm_migrate_ci?sslmode=disable'
           go run ./cmd/crm-migrate up
-          go run ./cmd/crm-migrate up | grep -q 'no pending migrations'
-          go run ./cmd/crm-migrate status
-          ! go run ./cmd/crm-migrate status | grep -q pending
-          go run ./cmd/crm-migrate status | grep -q 'applied  00001_integration_staging.sql'
+          # Capture output once: under pipefail, `cmd | grep -q` can kill cmd
+          # with SIGPIPE once grep has matched.
+          up="$(go run ./cmd/crm-migrate up)"
+          grep -q 'no pending migrations' <<< "$up"
+          status="$(go run ./cmd/crm-migrate status)"
+          echo "$status"
+          ! grep -q pending <<< "$status"
+          grep -q 'applied  00001_integration_staging.sql' <<< "$status"
           stg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'integration' AND table_name LIKE 'stg\_%'")"
           test "$stg" = "11" || { echo "expected 11 integration staging tables, got $stg"; exit 1; }
-          go run ./cmd/crm-migrate status | grep -q 'applied  00001_identity.sql'
-          go run ./cmd/crm-migrate status | grep -q 'applied  00001_organization.sql'
+          grep -q 'applied  00001_identity.sql' <<< "$status"
+          grep -q 'applied  00001_organization.sql' <<< "$status"
           s4="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('identity', 'organization')")"
           test "$s4" = "22" || { echo "expected 22 identity/organization tables (incl. per-module outbox/inbox/idempotency), got $s4"; exit 1; }
           creds="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'identity' AND table_name IN ('credential', 'session')")"
