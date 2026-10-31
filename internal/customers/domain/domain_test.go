@@ -17,7 +17,7 @@ func TestResolverRules(t *testing.T) {
 		want  string
 	}{
 		{nil, Unknown},
-		{[]string{PhoneMatch}, Unknown}, // phone-only never resolves
+		{[]string{PhoneMatch}, Unknown},                             // phone-only never resolves
 		{[]string{PhoneMatch, SequentialPhoneReuse}, Unknown},       // sequential reuse: distinct, no merge
 		{[]string{PhoneMatch, AccountRefMatch}, Related},            // weak relation, not equality
 		{[]string{PhoneMatch, OTPContactControl}, Related},          // OTP proves control only
