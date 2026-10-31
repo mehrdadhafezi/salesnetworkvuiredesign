@@ -75,7 +75,7 @@ func (e *env) server(t *testing.T, env authstub.Environment, devAuth bool) http.
 	cfg := apiserver.DefaultConfig()
 	cfg.Environment, cfg.DevAuth = env, devAuth
 	at, _ := timeutil.ParseRFC3339("2026-10-29T10:00:00Z")
-	h, err := apiserver.NewHandlerWith(cfg, timeutil.FixedClock{At: at}, slog.New(slog.NewTextHandler(io.Discard, nil)), read)
+	h, err := apiserver.NewHandlerWith(cfg, timeutil.FixedClock{At: at}, slog.New(slog.NewTextHandler(io.Discard, nil)), read, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -284,7 +284,8 @@ func TestReadAPIEndToEnd(t *testing.T) {
 
 	// Effective access: the same evaluator.
 	ea := get(t, h, "/api/v1/authorization/effective-access", "dev-user-001")
-	if strings.Count(ea.body, `"allowed":true`) != 6 || !strings.Contains(ea.body, `"matched_roles":["hr"]`) {
+	if strings.Count(ea.body, `"allowed":true`) != 9 || !strings.Contains(ea.body, `"matched_roles":["hr"]`) ||
+		!strings.Contains(ea.body, `"capability":"customers.customer.read","matched_roles":["synthetic_dev_stub"]`) {
 		t.Fatalf("effective access: %s", ea.body)
 	}
 	if ea := get(t, h, "/api/v1/authorization/effective-access", "dev-user-002"); strings.Contains(ea.body, `"allowed":true`) {

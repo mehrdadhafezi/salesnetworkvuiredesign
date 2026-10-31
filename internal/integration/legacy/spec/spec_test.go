@@ -18,39 +18,54 @@ var update = flag.Bool("update", false, "rewrite the published-spec golden file"
 
 const golden = "testdata/specs_v1_2.0.160.golden.json"
 
-func render(t *testing.T) []byte {
+// goldenSlice5 pins the Slice 5 extension separately, so the Slice 3 golden
+// stays byte-identical.
+const goldenSlice5 = "testdata/specs_v1_2.0.160_slice5.golden.json"
+
+// render encodes the given published set exactly as the registry orders it.
+func render(t *testing.T, set []Spec) []byte {
 	t.Helper()
+	r, err := NewRegistry(set...)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
-	if err := enc.Encode(Default().Specs()); err != nil {
+	if err := enc.Encode(r.Specs()); err != nil {
 		t.Fatal(err)
 	}
 	return buf.Bytes()
 }
 
 // TestPublishedSpecsAreImmutable freezes every published v1 spec byte for
-// byte. Changing a v1 spec fails here: publish a new version instead.
+// byte, one golden per published set. Changing a v1 spec fails here: publish
+// a new version instead.
 func TestPublishedSpecsAreImmutable(t *testing.T) {
-	got := render(t)
-	if *update {
-		if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil {
+	for file, set := range map[string][]Spec{golden: V1Slice3(), goldenSlice5: V1Slice5()} {
+		got := render(t, set)
+		if *update {
+			if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(file, got, 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		want, err := os.ReadFile(file)
+		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(golden, got, 0o644); err != nil {
-			t.Fatal(err)
+		if !bytes.Equal(got, want) {
+			t.Fatalf("%s: published v1 specs changed; v1 is immutable — add a v2 spec instead", file)
 		}
+		sum := sha256.Sum256(want)
+		t.Logf("%s sha256 %s", file, hex.EncodeToString(sum[:]))
 	}
-	want, err := os.ReadFile(golden)
-	if err != nil {
-		t.Fatal(err)
+	if len(Default().IDs()) != len(V1Slice3())+len(V1Slice5()) {
+		t.Fatal("registry must be exactly the published sets")
 	}
-	if !bytes.Equal(got, want) {
-		t.Fatalf("published v1 specs changed; v1 is immutable — add a v2 spec instead (or regenerate the golden only for a not-yet-published spec)")
-	}
-	sum := sha256.Sum256(want)
-	t.Logf("published spec set sha256 %s", hex.EncodeToString(sum[:]))
 }
 
 func TestDefaultRegistry(t *testing.T) {
@@ -58,7 +73,7 @@ func TestDefaultRegistry(t *testing.T) {
 	want := []string{
 		"legacy.hr_assignment.v1", "legacy.hr_assignment_history.v1", "legacy.hr_department.v1", "legacy.hr_level.v1",
 		"legacy.hr_position.v1", "legacy.hr_position_role_mapping.v1", "legacy.hr_profile.v1", "legacy.hr_team.v1",
-		"legacy.hr_unit.v1", "legacy.wp_user.v1", "legacy.wp_usermeta.v1",
+		"legacy.hr_unit.v1", "legacy.invoice_issued_to.v1", "legacy.wp_user.v1", "legacy.wp_usermeta.v1",
 	}
 	if got := r.IDs(); strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("ids = %v", got)

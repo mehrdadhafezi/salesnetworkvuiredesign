@@ -36,6 +36,8 @@ tags:
     description: Slice 4 read-only shadow organization model (HR read).
   - name: authorization
     description: Slice 4 read evaluator (server-authoritative effective access).
+  - name: customers
+    description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
 paths:
   /health/live:
     get:
@@ -404,6 +406,222 @@ paths:
                 $ref: './components/hr.yaml#/EffectiveAccessEnvelope'
         '400':
           $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/customers:
+    get:
+      tags: [customers]
+      operationId: listCustomers
+      summary: List shadow customers
+      description: |
+        Requires customers.customer.read. One customer per source subject; never merged.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/ResolutionState'
+        - $ref: './components/parameters.yaml#/HasConflict'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/customers.yaml#/CustomerListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/customers/{customer_id}:
+    get:
+      tags: [customers]
+      operationId: getCustomer
+      summary: Get one shadow customer
+      description: |
+        Requires customers.customer.read.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            $ref: './components/hr.yaml#/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/customers.yaml#/CustomerEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/customers/{customer_id}/contact-points:
+    get:
+      tags: [customers]
+      operationId: listCustomerContactPoints
+      summary: List a customer's masked contact points
+      description: |
+        Requires customers.customer.read. Values are masked; equal phones are ambiguity, never identity.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            $ref: './components/hr.yaml#/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/customers.yaml#/ContactPointListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/customers/{customer_id}/evidence:
+    get:
+      tags: [customers]
+      operationId: listCustomerEvidence
+      summary: List identity evidence about a customer
+      description: |
+        Requires customers.customer.read.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            $ref: './components/hr.yaml#/NativeID'
+        - $ref: './components/parameters.yaml#/Strength'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/customers.yaml#/EvidenceListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/customer-identity/merge-cases:
+    get:
+      tags: [customers]
+      operationId: listMergeCases
+      summary: Merge-case candidate queue (read only)
+      description: |
+        Requires customers.merge_case.read. No merge, resolve or winner selection exists (D-30 open).
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/ResolutionState'
+        - $ref: './components/parameters.yaml#/EvidenceStrength'
+        - $ref: './components/parameters.yaml#/CaseReason'
+        - $ref: './components/parameters.yaml#/CustomerID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/customers.yaml#/MergeCaseListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/customer-identity/merge-cases/{merge_case_id}:
+    get:
+      tags: [customers]
+      operationId: getMergeCase
+      summary: Get one merge-case candidate
+      description: |
+        Requires customers.merge_case.read.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: merge_case_id
+          in: path
+          required: true
+          schema:
+            $ref: './components/hr.yaml#/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/customers.yaml#/MergeCaseEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/customer-identity/resolution-report:
+    get:
+      tags: [customers]
+      operationId: getCustomerResolutionReport
+      summary: Customer identity resolution report
+      description: |
+        Requires customers.identity_report.read. Includes the invariants phone_only_resolved_count = 0 and merge_count = 0.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/customers.yaml#/ResolutionReportEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
         default:
           $ref: './components/responses.yaml#/Problem'
 components:

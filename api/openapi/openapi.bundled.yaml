@@ -36,6 +36,8 @@ tags:
     description: Slice 4 read-only shadow organization model (HR read).
   - name: authorization
     description: Slice 4 read evaluator (server-authoritative effective access).
+  - name: customers
+    description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
 paths:
   /health/live:
     get:
@@ -419,6 +421,229 @@ paths:
           $ref: '#/components/responses/Problem'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/customers:
+    get:
+      tags:
+        - customers
+      operationId: listCustomers
+      summary: List shadow customers
+      description: |
+        Requires customers.customer.read. One customer per source subject; never merged.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/ResolutionState'
+        - $ref: '#/components/parameters/HasConflict'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/customers/{customer_id}:
+    get:
+      tags:
+        - customers
+      operationId: getCustomer
+      summary: Get one shadow customer
+      description: |
+        Requires customers.customer.read.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/customers/{customer_id}/contact-points:
+    get:
+      tags:
+        - customers
+      operationId: listCustomerContactPoints
+      summary: List a customer's masked contact points
+      description: |
+        Requires customers.customer.read. Values are masked; equal phones are ambiguity, never identity.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactPointListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/customers/{customer_id}/evidence:
+    get:
+      tags:
+        - customers
+      operationId: listCustomerEvidence
+      summary: List identity evidence about a customer
+      description: |
+        Requires customers.customer.read.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/NativeID'
+        - $ref: '#/components/parameters/Strength'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/customer-identity/merge-cases:
+    get:
+      tags:
+        - customers
+      operationId: listMergeCases
+      summary: Merge-case candidate queue (read only)
+      description: |
+        Requires customers.merge_case.read. No merge, resolve or winner selection exists (D-30 open).
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/ResolutionState'
+        - $ref: '#/components/parameters/EvidenceStrength'
+        - $ref: '#/components/parameters/CaseReason'
+        - $ref: '#/components/parameters/CustomerID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MergeCaseListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/customer-identity/merge-cases/{merge_case_id}:
+    get:
+      tags:
+        - customers
+      operationId: getMergeCase
+      summary: Get one merge-case candidate
+      description: |
+        Requires customers.merge_case.read.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: merge_case_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/NativeID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MergeCaseEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/customer-identity/resolution-report:
+    get:
+      tags:
+        - customers
+      operationId: getCustomerResolutionReport
+      summary: Customer identity resolution report
+      description: |
+        Requires customers.identity_report.read. Includes the invariants phone_only_resolved_count = 0 and merge_count = 0.
+        Read-only (READ ONLY transaction); unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when the Slice 5 flag is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolutionReportEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
 components:
   parameters:
     CorrelationID:
@@ -597,6 +822,43 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/FindingSubject'
+    ResolutionState:
+      name: state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ResolutionState'
+    HasConflict:
+      name: has_conflict
+      in: query
+      required: false
+      schema:
+        type: boolean
+    Strength:
+      name: strength
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/Strength'
+    EvidenceStrength:
+      name: evidence_strength
+      in: query
+      required: false
+      description: The strongest evidence of the case.
+      schema:
+        $ref: '#/components/schemas/Strength'
+    CaseReason:
+      name: reason
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/CaseReason'
+    CustomerID:
+      name: customer_id
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/NativeID'
   headers:
     CorrelationID:
       description: Correlation id of this request (inbound value when valid, otherwise generated).
@@ -949,10 +1211,14 @@ components:
             flag-off). Never authority: every read is evaluated by the server.
           required:
             - hr_read
+            - customers_identity
           additionalProperties: false
           properties:
             hr_read:
               type: boolean
+            customers_identity:
+              type: boolean
+              description: Slice 5 customer identity shadow read (flag customers.identity_shadow_read).
     SessionEnvelope:
       type: object
       required:
@@ -1732,6 +1998,9 @@ components:
         - org.position.read
         - org.unit.read
         - org.assignment.read
+        - customers.customer.read
+        - customers.merge_case.read
+        - customers.identity_report.read
     AccessDecision:
       type: object
       required:
@@ -1796,3 +2065,508 @@ components:
           $ref: '#/components/schemas/CorrelationID'
         data:
           $ref: '#/components/schemas/EffectiveAccess'
+    ResolutionState:
+      type: string
+      description: |
+        RESOLVED (strong evidence; still never merged), RELATED (relationship
+        without equality), UNKNOWN (insufficient evidence), CONFLICT
+        (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
+      enum:
+        - RESOLVED
+        - RELATED
+        - UNKNOWN
+        - CONFLICT
+        - NOT_RECOVERABLE
+    CustomerSummary:
+      type: object
+      required:
+        - customer_id
+        - subject_kind
+        - resolution_state
+        - resolution_reason
+        - name_masked
+        - observed_raw
+        - contact_count
+        - identifier_count
+        - evidence_count
+        - open_case_count
+        - conflict_case_count
+        - provenance
+      additionalProperties: false
+      properties:
+        customer_id:
+          $ref: '#/components/schemas/NativeID'
+        subject_kind:
+          type: string
+          description: The source subject this customer stands for (one legacy issued-to record each).
+          enum:
+            - INVOICE_ISSUED_TO
+            - SYNTHETIC_SUBJECT
+        resolution_state:
+          $ref: '#/components/schemas/ResolutionState'
+        resolution_reason:
+          type: string
+          maxLength: 300
+        name_masked:
+          type: string
+          nullable: true
+          maxLength: 200
+        observed_raw:
+          $ref: '#/components/schemas/RawText'
+        contact_count:
+          type: integer
+          minimum: 0
+        identifier_count:
+          type: integer
+          minimum: 0
+        evidence_count:
+          type: integer
+          minimum: 0
+        open_case_count:
+          type: integer
+          minimum: 0
+        conflict_case_count:
+          type: integer
+          minimum: 0
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    CustomerListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CustomerSummary'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    Identifier:
+      type: object
+      description: An external / legacy identifier claim (masked). Never a key.
+      required:
+        - identifier_id
+        - scheme
+        - masked_value
+        - derivation
+        - status
+        - provenance
+      additionalProperties: false
+      properties:
+        identifier_id:
+          $ref: '#/components/schemas/NativeID'
+        scheme:
+          type: string
+          enum:
+            - LEGACY_WP_ACCOUNT
+            - WOO_CUSTOMER
+            - BIAWIN
+            - LEGACY_AGGREGATE_V1
+            - LEGACY_MAP_V2
+            - CRM_CODE
+        masked_value:
+          type: string
+          maxLength: 120
+        derivation:
+          type: string
+          enum:
+            - DIRECT
+            - PHONE_DERIVED
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - CONFLICT
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    CaseReason:
+      type: string
+      enum:
+        - SHARED_PHONE
+        - SHARED_ACCOUNT_REF
+        - SHARED_EXCLUSIVE_IDENTIFIER
+        - SUPPLIED_EVIDENCE
+    Strength:
+      type: string
+      enum:
+        - STRONG
+        - MEDIUM
+        - WEAK
+    EvidenceKind:
+      type: string
+      enum:
+        - PHONE_MATCH
+        - ACCOUNT_REF_MATCH
+        - SEQUENTIAL_PHONE_REUSE
+        - OVERLAPPING_PHONE_OWNERSHIP
+        - EXCLUSIVE_IDENTIFIER_SHARED
+        - OTP_CONTACT_CONTROL
+        - VERIFIED_EQUALITY
+        - VERIFIED_DISTINCT
+        - SOURCE_NOT_RECOVERABLE
+    MergeCase:
+      type: object
+      description: A read-only candidate. No winner, no canonical choice, no merge (D-30 open).
+      required:
+        - merge_case_id
+        - reason
+        - state
+        - state_reason
+        - max_strength
+        - member_customer_ids
+        - evidence_kinds
+        - presence
+        - created_at
+        - refreshed_at
+      additionalProperties: false
+      properties:
+        merge_case_id:
+          $ref: '#/components/schemas/NativeID'
+        reason:
+          $ref: '#/components/schemas/CaseReason'
+        state:
+          $ref: '#/components/schemas/ResolutionState'
+        state_reason:
+          type: string
+          maxLength: 300
+        max_strength:
+          $ref: '#/components/schemas/Strength'
+        member_customer_ids:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/NativeID'
+        evidence_kinds:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/EvidenceKind'
+        presence:
+          $ref: '#/components/schemas/Presence'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        refreshed_at:
+          $ref: '#/components/schemas/Timestamp'
+    CustomerDetail:
+      type: object
+      required:
+        - customer
+        - identifiers
+        - merge_cases
+      additionalProperties: false
+      properties:
+        customer:
+          $ref: '#/components/schemas/CustomerSummary'
+        identifiers:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Identifier'
+        merge_cases:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/MergeCase'
+    CustomerEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/CustomerDetail'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ContactPoint:
+      type: object
+      description: A masked contact point. Equal values on several customers are shown as ambiguity, never as identity.
+      required:
+        - contact_point_id
+        - kind
+        - role
+        - masked_value
+        - normalization
+        - shared_with_customers
+        - valid_from_raw
+        - valid_to_raw
+        - observed_raw
+        - provenance
+      additionalProperties: false
+      properties:
+        contact_point_id:
+          $ref: '#/components/schemas/NativeID'
+        kind:
+          type: string
+          enum:
+            - PHONE
+            - EMAIL
+        role:
+          type: string
+          enum:
+            - PRIMARY
+            - SECONDARY
+        masked_value:
+          type: string
+          maxLength: 200
+        normalization:
+          type: string
+          enum:
+            - VALID
+            - INVALID
+            - EMPTY
+        shared_with_customers:
+          type: integer
+          minimum: 0
+          description: Other present customers with the same comparison value (discovery only).
+        valid_from_raw:
+          $ref: '#/components/schemas/RawText'
+        valid_to_raw:
+          $ref: '#/components/schemas/RawText'
+        observed_raw:
+          $ref: '#/components/schemas/RawText'
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+    ContactPointListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ContactPoint'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    Evidence:
+      type: object
+      required:
+        - evidence_id
+        - kind
+        - strength
+        - polarity
+        - origin
+        - reference
+        - observed_raw
+        - subject_count
+        - source_spec
+        - presence
+        - recorded_at
+      additionalProperties: false
+      properties:
+        evidence_id:
+          $ref: '#/components/schemas/NativeID'
+        kind:
+          $ref: '#/components/schemas/EvidenceKind'
+        strength:
+          $ref: '#/components/schemas/Strength'
+        polarity:
+          type: string
+          enum:
+            - EQUALITY
+            - RELATION
+            - DISCOVERY
+            - CONTRADICTION
+            - MISSING
+        origin:
+          type: string
+          enum:
+            - DERIVED
+            - SUPPLIED
+        reference:
+          type: string
+          maxLength: 200
+        observed_raw:
+          $ref: '#/components/schemas/RawText'
+        subject_count:
+          type: integer
+          minimum: 1
+        source_spec:
+          type: string
+          maxLength: 80
+        presence:
+          $ref: '#/components/schemas/Presence'
+        recorded_at:
+          $ref: '#/components/schemas/Timestamp'
+    EvidenceListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Evidence'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    MergeCaseListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/MergeCase'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    MergeCaseEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/MergeCase'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ResolutionReport:
+      type: object
+      description: Machine-readable resolution projection. phone_only_resolved_count and merge_count must be 0.
+      required:
+        - customers
+        - customers_present
+        - source_subjects_present
+        - customers_by_state
+        - merge_cases_by_state
+        - merge_cases_by_reason
+        - phone_only_candidate_count
+        - overlapping_phone_conflict_count
+        - duplicate_external_id_conflict_count
+        - strong_evidence_count
+        - weak_only_customer_count
+        - unresolved_count
+        - phone_only_resolved_count
+        - phone_only_merge_count
+        - merge_count
+      additionalProperties: false
+      properties:
+        customers:
+          type: integer
+          minimum: 0
+        customers_present:
+          type: integer
+          minimum: 0
+        source_subjects_present:
+          type: integer
+          minimum: 0
+        customers_by_state:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        merge_cases_by_state:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        merge_cases_by_reason:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        phone_only_candidate_count:
+          type: integer
+          minimum: 0
+        overlapping_phone_conflict_count:
+          type: integer
+          minimum: 0
+        duplicate_external_id_conflict_count:
+          type: integer
+          minimum: 0
+        strong_evidence_count:
+          type: integer
+          minimum: 0
+        weak_only_customer_count:
+          type: integer
+          minimum: 0
+        unresolved_count:
+          type: integer
+          minimum: 0
+        phone_only_resolved_count:
+          type: integer
+          minimum: 0
+        phone_only_merge_count:
+          type: integer
+          minimum: 0
+        merge_count:
+          type: integer
+    ResolutionReportEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/ResolutionReport'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'

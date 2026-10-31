@@ -49,6 +49,59 @@ func stagingDDL(s spec.Spec) string {
 	return b.String()
 }
 
+// slice3Specs returns the Slice 3 published set in registry (ID) order: the
+// tables of 00001. Later published sets get their own migrations.
+func slice3Specs(t *testing.T) []spec.Spec {
+	t.Helper()
+	r, err := spec.NewRegistry(spec.V1Slice3()...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r.Specs()
+}
+
+const slice5File = "sql/00003_integration_staging_invoice_issued_to.sql"
+
+// renderSlice5 renders the Slice 5 staging migration: the raw staging table
+// of every Slice 5 spec, generated exactly like 00001's tables.
+func renderSlice5(t *testing.T) string {
+	t.Helper()
+	r, err := spec.NewRegistry(spec.V1Slice5()...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b strings.Builder
+	b.WriteString("-- Integration raw staging, Slice 5 extension: invoice ISSUED-TO identity\n")
+	b.WriteString("-- evidence only (Architecture V1 §10, §24.3). Generated from the published\n")
+	b.WriteString("-- Slice 5 specs; regenerate with the package -update flag.\n\n")
+	b.WriteString("-- +goose Up\n")
+	var down []string
+	for _, s := range r.Specs() {
+		b.WriteString(stagingDDL(s))
+		down = append(down, "DROP TABLE integration."+s.StagingTable+";\n")
+	}
+	b.WriteString("\n-- +goose Down\n")
+	b.WriteString(strings.Join(down, ""))
+	return b.String()
+}
+
+// TestRenderedSliceFiveMigration proves 00003 is exactly the generated DDL.
+func TestRenderedSliceFiveMigration(t *testing.T) {
+	want := renderSlice5(t)
+	if *update {
+		if err := os.WriteFile(slice5File, []byte(want), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := os.ReadFile(slice5File)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Fatalf("%s is stale: regenerate with -update", slice5File)
+	}
+}
+
 func renderExpected(t *testing.T) (body, rendered string) {
 	t.Helper()
 	raw, err := os.ReadFile(bodyFile)
@@ -61,7 +114,7 @@ func renderExpected(t *testing.T) (body, rendered string) {
 		t.Fatalf("%s: generated-section markers missing", bodyFile)
 	}
 	var gen strings.Builder
-	for _, s := range spec.Default().Specs() {
+	for _, s := range slice3Specs(t) {
 		gen.WriteString(stagingDDL(s))
 	}
 	body = src[:i+len(genBegin)] + "\n" + gen.String() + src[j:]
@@ -102,7 +155,8 @@ func TestSourceValidates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) != 2 || names[0] != filepath.Base(renderedFile) || names[1] != "00002_integration_staging_guards.sql" {
+	if len(names) != 3 || names[0] != filepath.Base(renderedFile) || names[1] != "00002_integration_staging_guards.sql" ||
+		names[2] != filepath.Base(slice5File) {
 		t.Fatalf("migration files = %v", names)
 	}
 	if Source().Table == migrations.PlatformTable {

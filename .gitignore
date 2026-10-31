@@ -25,6 +25,9 @@
 !internal/identity/migrations/body/*.sql
 !internal/organization/migrations/sql/*.sql
 !internal/organization/migrations/body/*.sql
+# Slice 5: customers shadow model and identity capability reference data.
+!internal/customers/migrations/sql/*.sql
+!internal/customers/migrations/body/*.sql
 
 # Legacy snapshot packages may contain PII: never committed (Slice 3, D-23).
 # Tests build synthetic packages in temporary directories only.

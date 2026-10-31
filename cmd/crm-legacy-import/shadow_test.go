@@ -5,11 +5,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers"
+	customersmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity"
 	identitymigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/legacytest"
 	integrationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/migrations"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/snapshot"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization"
 	organizationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/migrations"
@@ -77,5 +80,41 @@ func TestShadowCommandsAgainstDisposablePostgres(t *testing.T) {
 	}
 	if code, out, _ := call(t, env(vars), "import-identity", "synthetic-missing-0001"); code != 3 || !strings.Contains(out, `"SOURCE_UNAVAILABLE"`) {
 		t.Fatalf("missing batch: %d %s", code, out)
+	}
+}
+
+// Slice 5: staging and customers only; reconcile fails on any invariant.
+func TestCustomerCommandsAgainstDisposablePostgres(t *testing.T) {
+	e := pgtest.New(t)
+	for _, src := range []migrations.Source{integrationmigrations.Source(), customersmigrations.Source()} {
+		if _, err := migrations.Up(context.Background(), e.DSN, src); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if code, _, stderr := call(t, env(map[string]string{EnvStagingURL: e.LoginDSN(t, integration.Module)}), "import-customers", "synthetic-cust-0001"); code != 2 ||
+		!strings.Contains(stderr, EnvCustomersURL) {
+		t.Fatalf("no customers DSN: %d %q", code, stderr)
+	}
+	vars := map[string]string{EnvStagingURL: e.LoginDSN(t, integration.Module), EnvCustomersURL: e.LoginDSN(t, customers.Module)}
+	dir := legacytest.Write(t, "synthetic-cust-0001", t0, legacytest.CustomerScenario(snapshot.Complete))
+	if code, out, stderr := call(t, env(vars), "load", dir); code != 0 && code != 3 {
+		t.Fatalf("load: %d %s %s", code, out, stderr)
+	}
+	code, out, stderr := call(t, env(vars), "import-customers", "synthetic-cust-0001")
+	if (code != 0 && code != 3) || !strings.Contains(out, `"phone_derived_account_refs": 2`) || !strings.Contains(out, `"subjects_not_recoverable": 1`) {
+		t.Fatalf("import-customers: %d %s %s", code, out, stderr)
+	}
+	code, out, _ = call(t, env(vars), "reconcile-customers", "synthetic-cust-0001")
+	if code != 0 || !strings.Contains(out, `"phone_only_resolved_count": 0`) || !strings.Contains(out, `"phone_only_merge_count": 0`) ||
+		!strings.Contains(out, `"phone_only_merge_count_is_zero": true`) || !strings.Contains(out, `"outcome": "SUCCESS"`) {
+		t.Fatalf("reconcile-customers: %d %s", code, out)
+	}
+	for _, marker := range []string{"09000000101", "Synthetic Customer", "SYN-INV-"} {
+		if strings.Contains(out, marker) {
+			t.Fatalf("report leaks %q", marker)
+		}
+	}
+	if code, out, _ := call(t, env(vars), "import-customers", "synthetic-cust-0001"); !strings.Contains(out, `"replay": true`) {
+		t.Fatalf("replay: %d %s", code, out)
 	}
 }

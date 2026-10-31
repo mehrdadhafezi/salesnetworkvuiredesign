@@ -46,6 +46,18 @@
 //   - read-path-import: read handlers (internal/<m>/http), the API server
 //     and cmd/crm-api never import an import command (internal/<m>/imports).
 //
+// Slice 5 rules (customer identity shadow; Gate-0 phone invariants):
+//
+//   - module-boundary also covers customers: it imports no other business
+//     module except identity/api (the capability vocabulary, from its http
+//     adapter) and the authorization evaluator (from its http adapter); no
+//     other module imports customers except through customers/api.
+//   - foreign-schema-write covers the customers schema (customers only).
+//   - merge-path: no identifier anywhere (tests included) names a merge,
+//     winner-selection or phone-canonicalisation operation
+//     (ResolveMerge, MergeCustomers, ApplyMerge, CanonicalizeByPhone, ...).
+//     Slice 5 is read/shadow only and D-30 (merge policy) is open.
+//
 // Test files are composition roots for module-boundary (as cmd/ is); every
 // other rule applies to them as before.
 package architecture
@@ -93,21 +105,27 @@ const (
 	RuleModuleBoundary   = "module-boundary"
 	RuleForeignWrite     = "foreign-schema-write"
 	RuleReadPathImport   = "read-path-import"
+	RuleMergePath        = "merge-path"
 )
 
+// mergePath matches identifiers of forbidden merge / canonicalisation
+// operations (Slice 5; D-30 open). Matching is case-insensitive.
+var mergePath = regexp.MustCompile(`(?i)^(resolvemerge|mergecustomers?|applymerge|canonicali[sz]ebyphone|canonicali[sz]ecustomers?|selectcanonical|pickwinner|mergebyphone|collapsecandidates?|reassigncustomer)`)
+
 // slice4Modules are the business modules of Slice 4.
-var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true}
+var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true, "customers": true}
 
 // schemaOwners maps a module schema to the only tree allowed to write it.
 var schemaOwners = map[string]string{
 	"identity":              "internal/identity",
 	"organization":          "internal/organization",
+	"customers":             "internal/customers",
 	"integration":           "internal/integration",
 	"audit":                 "internal/platform/audit",
 	"platform_featureflags": "internal/platform/featureflags",
 }
 
-var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|integration|audit|platform_featureflags)\.`)
+var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|integration|audit|platform_featureflags)\.`)
 
 // readPathDirs never import an import command.
 var readPathDirs = []string{"internal/platform/apiserver", "cmd/crm-api"}
@@ -125,6 +143,8 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 		return true
 	case top == "identity" && other == "organization":
 		return false
+	case top == "customers" && other == "identity":
+		return rest == "api" && under(rel, "internal/customers/http")
 	case other == "authorization" && (rest == "" || rest == "http"):
 		return under(rel, "internal/"+top+"/http")
 	case top == "authorization" || top == "organization" && other == "identity":
@@ -322,6 +342,9 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 				}
 			}
 		case *ast.Ident:
+			if !under(rel, architectureDir) && mergePath.MatchString(x.Name) {
+				add(RuleMergePath, x.Pos(), "merge/canonicalisation identifier "+x.Name+" (Slice 5 is read/shadow only; D-30 open)")
+			}
 			if inKernel && (x.Name == "float32" || x.Name == "float64") {
 				add(RuleKernelFloat, x.Pos(), x.Name+" in kernel")
 			}

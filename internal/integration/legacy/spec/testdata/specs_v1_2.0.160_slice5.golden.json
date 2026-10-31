@@ -1,0 +1,94 @@
+[
+  {
+    "id": "legacy.invoice_issued_to.v1",
+    "entity": "invoice_issued_to",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_invoices",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:276 (table definition)"
+      },
+      {
+        "name": "invoice_code",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:277 (table definition); :359 (UNIQUE KEY)",
+        "note": "legacy invoice reference; evidence reference only, never a customer identifier"
+      },
+      {
+        "name": "customer_wp_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:283 (table definition); :543 (ADD COLUMN statement)",
+        "note": "legacy customer account id; PHONE-DERIVED (class-sn-plugin.php:5023-5048 get_or_create_customer_account looks the account up by normalized phone; :4479-4481, :4949-4951 write it); never independent identity evidence"
+      },
+      {
+        "name": "customer_name",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NOT_NULL",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-activator.php:284 (table definition)",
+        "note": "issued-to name as typed; raw"
+      },
+      {
+        "name": "customer_phone",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NOT_NULL",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-activator.php:285 (table definition)",
+        "note": "raw; discovery evidence only, never identity"
+      },
+      {
+        "name": "customer_phone_secondary",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NULLABLE",
+        "classification": "PERSONAL",
+        "evidence": "plugin/current/includes/class-sn-activator.php:286 (table definition)",
+        "note": "raw; discovery evidence only, never identity"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:356 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_invoice_issued_to_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "275-362",
+        "note": "table definition of sn_invoices (issued-to columns only)"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "542-544",
+        "note": "customer_wp_id added on upgraded installs"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "4479-4481, 4949-4951, 5023-5048",
+        "note": "customer_wp_id is the account found/created by normalized phone"
+      }
+    ],
+    "notes": [
+      "issued-to identity evidence only; amounts, statuses, payment, card, address and postal columns are deliberately NOT extracted (billing is Slice 7)"
+    ]
+  }
+]

@@ -26,7 +26,8 @@ func (unconfigured) HRReadEnabled(context.Context) bool { return false }
 func (unconfigured) GetEffectiveAccess(ctx context.Context, _ oapi.GetEffectiveAccessRequestObject) (oapi.GetEffectiveAccessResponseObject, error) {
 	data := oapi.EffectiveAccess{Decisions: []oapi.AccessDecision{}}
 	reason := oapi.ReasonCode(reasoncodes.FeatureDisabled)
-	for _, c := range []oapi.Capability{oapi.IdentityUserRead, oapi.OrgPersonRead, oapi.OrgEmploymentRead, oapi.OrgPositionRead, oapi.OrgUnitRead, oapi.OrgAssignmentRead} {
+	for _, c := range []oapi.Capability{oapi.IdentityUserRead, oapi.OrgPersonRead, oapi.OrgEmploymentRead, oapi.OrgPositionRead, oapi.OrgUnitRead,
+		oapi.OrgAssignmentRead, oapi.CustomersCustomerRead, oapi.CustomersMergeCaseRead, oapi.CustomersIdentityReportRead} {
 		data.Decisions = append(data.Decisions, oapi.AccessDecision{Capability: c, Outcome: oapi.Outcome(result.Blocked.String()),
 			ReasonCode: &reason, Scope: oapi.AccessDecisionScopeNONE, MatchedRoles: []string{}})
 	}
@@ -77,4 +78,47 @@ func (unconfigured) ListOrganizationAssignments(ctx context.Context, _ oapi.List
 func (unconfigured) ListOrganizationHierarchyFindings(ctx context.Context, _ oapi.ListOrganizationHierarchyFindingsRequestObject) (oapi.ListOrganizationHierarchyFindingsResponseObject, error) {
 	o, r, c := blocked(ctx)
 	return oapi.ListOrganizationHierarchyFindings200JSONResponse{Body: oapi.FindingListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+// unconfiguredCustomers is the Slice 5 surface without a customers module:
+// every operation is BLOCKED / FEATURE_DISABLED.
+type unconfiguredCustomers struct{}
+
+var _ CustomersAPI = unconfiguredCustomers{}
+
+func (unconfiguredCustomers) CustomersEnabled(context.Context) bool { return false }
+
+func (unconfiguredCustomers) ListCustomers(ctx context.Context, _ oapi.ListCustomersRequestObject) (oapi.ListCustomersResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCustomers200JSONResponse{Body: oapi.CustomerListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredCustomers) GetCustomer(ctx context.Context, _ oapi.GetCustomerRequestObject) (oapi.GetCustomerResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCustomer200JSONResponse{Body: oapi.CustomerEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredCustomers) ListCustomerContactPoints(ctx context.Context, _ oapi.ListCustomerContactPointsRequestObject) (oapi.ListCustomerContactPointsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCustomerContactPoints200JSONResponse{Body: oapi.ContactPointListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredCustomers) ListCustomerEvidence(ctx context.Context, _ oapi.ListCustomerEvidenceRequestObject) (oapi.ListCustomerEvidenceResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCustomerEvidence200JSONResponse{Body: oapi.EvidenceListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredCustomers) ListMergeCases(ctx context.Context, _ oapi.ListMergeCasesRequestObject) (oapi.ListMergeCasesResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListMergeCases200JSONResponse{Body: oapi.MergeCaseListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredCustomers) GetMergeCase(ctx context.Context, _ oapi.GetMergeCaseRequestObject) (oapi.GetMergeCaseResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetMergeCase200JSONResponse{Body: oapi.MergeCaseEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredCustomers) GetCustomerResolutionReport(ctx context.Context, _ oapi.GetCustomerResolutionReportRequestObject) (oapi.GetCustomerResolutionReportResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCustomerResolutionReport200JSONResponse{Body: oapi.ResolutionReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
 }

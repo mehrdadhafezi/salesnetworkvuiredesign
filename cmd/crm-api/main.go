@@ -12,6 +12,10 @@
 // feature flag organization.hr_read_shadow (default off). Without them the
 // surface answers BLOCKED / FEATURE_DISABLED.
 //
+// Slice 5 customer identity read surface (optional): CRM_CUSTOMERS_READ_DATABASE_URL
+// (a customers-dedicated login) plus CRM_FEATUREFLAGS_DATABASE_URL; behind
+// the flag customers.identity_shadow_read (default off).
+//
 // It never runs migrations, never imports legacy data and never writes.
 package main
 
@@ -51,7 +55,12 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closeRead()
-	srv, err := apiserver.NewServerWith(cfg, clock.System{}, logger, read)
+	cust, closeCustomers, err := openCustomers(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closeCustomers()
+	srv, err := apiserver.NewServerWith(cfg, clock.System{}, logger, read, cust)
 	if err != nil {
 		return err
 	}

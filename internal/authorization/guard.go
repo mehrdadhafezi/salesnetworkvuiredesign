@@ -29,15 +29,24 @@ func (Anonymous) Subject(context.Context) Subject { return Subject{} }
 type DevSubjects struct{}
 
 // devGrants are the synthetic grants per stub identity:
-//   - dev-user-001 ("Dev Operator"): the HR role (Slice 4 HR read);
-//   - dev-user-002 ("Dev Viewer"): nothing (every HR read is denied).
+//   - dev-user-001 ("Dev Operator"): the HR role (Slice 4 HR read) and a
+//     direct synthetic grant of the Slice 5 customer read capabilities (no
+//     target role carries them; D-30 is open);
+//   - dev-user-002 ("Dev Viewer"): nothing (every read is denied).
 var devGrants = map[string][]identityapi.Role{
 	"dev-user-001": {identityapi.RoleHR},
 	"dev-user-002": nil,
 }
 
+var devCapabilities = map[string][]identityapi.Capability{
+	"dev-user-001": {identityapi.CapCustomerRead, identityapi.CapMergeCaseRead, identityapi.CapIdentityReportRead},
+}
+
 // DevGrantBasis marks synthetic dev/test grants.
 const DevGrantBasis = "SYNTHETIC_DEV_STUB"
+
+// SyntheticDevRole names a matched synthetic direct-capability grant.
+const SyntheticDevRole identityapi.Role = "synthetic_dev_stub"
 
 // Subject implements SubjectResolver.
 func (DevSubjects) Subject(ctx context.Context) Subject {
@@ -49,6 +58,10 @@ func (DevSubjects) Subject(ctx context.Context) Subject {
 	for _, r := range devGrants[p.ID] {
 		role := r
 		s.Grants = append(s.Grants, identityapi.Grant{UserID: p.ID, RoleKey: &role, LegacyValue: "synthetic", Status: identityapi.GrantActive, Basis: DevGrantBasis})
+	}
+	if caps := devCapabilities[p.ID]; len(caps) > 0 {
+		s.Grants = append(s.Grants, identityapi.Grant{UserID: p.ID, LegacyValue: "synthetic", Status: identityapi.GrantActive, Basis: DevGrantBasis,
+			Capabilities: append([]identityapi.Capability(nil), caps...)})
 	}
 	return s
 }

@@ -174,7 +174,7 @@ func TestConfigValidation(t *testing.T) {
 
 func TestCentralProblems(t *testing.T) {
 	h := handler(t, authstub.Production, false)
-	rec := do(h, http.MethodGet, "/api/v1/customers", nil)
+	rec := do(h, http.MethodGet, "/api/v1/invoices", nil)
 	if rec.Code != 404 || rec.Header().Get("Content-Type") != httpx.ProblemContentType {
 		t.Fatalf("unknown path = %d %s", rec.Code, rec.Body.String())
 	}
