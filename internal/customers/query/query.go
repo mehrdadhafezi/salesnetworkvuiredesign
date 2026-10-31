@@ -248,3 +248,29 @@ func (s *Service) ResolutionReport(ctx context.Context) (api.Resolution, error) 
 	})
 	return r, err
 }
+
+// SubjectProvenance implements api.Reader.
+func (s *Service) SubjectProvenance(ctx context.Context, system string, kind api.SubjectKind, keys []string) (map[string]api.Provenance, error) {
+	out := map[string]api.Provenance{}
+	if keys == nil {
+		keys = []string{}
+	}
+	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		rows, err := tx.Query(ctx, `SELECT source_key, source_batch_id::text, source_row_sha256, presence = 'PRESENT'
+			FROM customers.customer WHERE source_system = $1 AND subject_kind = $2 AND source_key = ANY($3::text[])`, system, string(kind), keys)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var k string
+			var p api.Provenance
+			if err := rows.Scan(&k, &p.BatchID, &p.RowSHA256, &p.Present); err != nil {
+				return err
+			}
+			out[k] = p
+		}
+		return rows.Err()
+	})
+	return out, err
+}

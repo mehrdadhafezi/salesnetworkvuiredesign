@@ -14,6 +14,7 @@ package shadow
 // sn_customer_id_map_v2 are not ingested (not an approved overlay source).
 
 import (
+	"bytes"
 	"context"
 	"strings"
 
@@ -124,6 +125,38 @@ func ReconcileCustomers(ctx context.Context, b *Batch, reader customersapi.Reade
 		return rep, err
 	}
 	rep.Resolution = res
+	// Per-row provenance: every staged row must be a PRESENT customer last
+	// carried by THIS batch with the same row checksum. Global counts alone
+	// cannot show that the requested batch was applied.
+	keys := make([]string, 0, len(e.Rows))
+	for _, r := range e.Rows {
+		keys = append(keys, r.Key)
+	}
+	prov, err := reader.SubjectProvenance(ctx, SourceSystem, customersapi.IssuedTo, keys)
+	if err != nil {
+		return rep, err
+	}
+	var matched, missing, absent, otherBatch, checksum int64
+	for _, r := range e.Rows {
+		p, ok := prov[r.Key]
+		switch {
+		case !ok:
+			missing++
+		case !p.Present:
+			absent++
+		case p.BatchID != b.BatchID:
+			otherBatch++
+		case !bytes.Equal(p.RowSHA256, r.SHA):
+			checksum++
+		default:
+			matched++
+		}
+	}
+	rep.Staged["subjects_matched"] = matched
+	rep.Staged["subjects_not_imported"] = missing
+	rep.Staged["subjects_absent_in_target"] = absent
+	rep.Staged["subjects_from_other_batch"] = otherBatch
+	rep.Staged["subjects_checksum_mismatch"] = checksum
 	rep.Invariants = map[string]bool{
 		"phone_only_resolved_count_is_zero": res.PhoneOnlyResolved == 0,
 		"phone_only_merge_count_is_zero":    res.PhoneOnlyMerges == 0,
@@ -140,6 +173,10 @@ func ReconcileCustomers(ctx context.Context, b *Batch, reader customersapi.Reade
 	case !e.Usable():
 		rep.Outcome = result.Unknown
 		rep.Reasons = append(rep.Reasons, reasoncodes.SourceUnavailable)
+	case matched != int64(len(e.Rows)):
+		rep.Outcome = result.Partial
+		rep.Reasons = append(rep.Reasons, reasoncodes.CoverageIncomplete)
+		rep.Notes = append(rep.Notes, "not every staged row is a present customer imported from this batch with the same checksum")
 	case !e.Complete() || res.SubjectsPresent != int64(len(e.Rows)):
 		rep.Outcome = result.Partial
 		rep.Reasons = append(rep.Reasons, reasoncodes.CoverageIncomplete)

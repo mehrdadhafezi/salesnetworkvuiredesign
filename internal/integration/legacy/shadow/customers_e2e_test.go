@@ -268,3 +268,40 @@ func TestCustomersAbsenceOnlyFromCompleteBatch(t *testing.T) {
 		t.Fatalf("complete empty batch left %d present", n)
 	}
 }
+
+// Reconciling a staged batch that was never imported is not SUCCESS, even
+// when its row count equals the imported batch's: provenance is per row.
+func TestReconcileRequiresThisBatchProvenance(t *testing.T) {
+	e := setupCustomers(t)
+	ctx := context.Background()
+	a := e.stage(t, "syn-customers-rec-a", legacytest.CustomerScenario(snapshot.Complete))
+	e.importBatch(t, a)
+	if rep, err := shadow.ReconcileCustomers(ctx, a, e.q); err != nil || rep.Outcome != result.Success || rep.Staged["subjects_matched"] != 5 {
+		t.Fatalf("imported batch: %+v %v", rep, err)
+	}
+	// Same five keys, different content, staged but never imported.
+	changed := legacytest.CustomerScenario(snapshot.Complete)
+	for i := range changed[0].Rows {
+		for j, c := range changed[0].Rows[i] {
+			if !c.Null && strings.HasPrefix(c.Text, "2025-") {
+				changed[0].Rows[i][j] = legacytest.T("2026-" + c.Text[5:]) // every row's content differs
+			}
+		}
+	}
+	b := e.stage(t, "syn-customers-rec-b", changed)
+	rep, err := shadow.ReconcileCustomers(ctx, b, e.q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Outcome != result.Partial || rep.Staged["subjects_matched"] != 0 || rep.Staged["subjects_from_other_batch"] != 5 {
+		t.Fatalf("unimported batch reconciled as %s: %+v", rep.Outcome, rep.Staged)
+	}
+	// Importing B makes it reconcile; A no longer does.
+	e.importBatch(t, b)
+	if rep, _ := shadow.ReconcileCustomers(ctx, b, e.q); rep.Outcome != result.Success {
+		t.Fatalf("after import: %s %+v", rep.Outcome, rep.Staged)
+	}
+	if rep, _ := shadow.ReconcileCustomers(ctx, a, e.q); rep.Outcome != result.Partial {
+		t.Fatalf("superseded batch: %s %+v", rep.Outcome, rep.Staged)
+	}
+}

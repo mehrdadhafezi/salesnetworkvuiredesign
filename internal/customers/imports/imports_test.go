@@ -286,3 +286,54 @@ func TestSchemaHasNoPhoneKeys(t *testing.T) {
 	}
 	_ = fmt.Sprint
 }
+
+// Supplied evidence is withdrawn only by a COMPLETE command for its own
+// source spec; an incomplete command (or one for another spec) that omits it
+// never downgrades a CONFLICT or drops an OTP relation.
+func TestSuppliedEvidenceSurvivesOmission(t *testing.T) {
+	e := setup(t)
+	subjects := func(b string) []api.SubjectRecord {
+		return []api.SubjectRecord{subject(b, "1", "09000000021", nil, nil), subject(b, "2", "09000000022", nil, nil),
+			subject(b, "3", "09000000023", nil, nil), subject(b, "4", "09000000023", nil, nil)}
+	}
+	e.run(t, api.CustomerImport{Complete: true, Subjects: subjects(batch1), Evidence: []api.EvidenceRecord{
+		{Kind: api.VerifiedDistinct, Source: src(batch1, "911"), SubjectKeys: []string{"1", "2"}},
+		{Kind: api.OTPContactControl, Source: src(batch1, "912"), SubjectKeys: []string{"3"}, ContactRaw: str("09000000023")}}})
+	check := func(stage string, conflict, related int64) {
+		t.Helper()
+		if n := e.count(t, `SELECT count(*) FROM customers.merge_case WHERE presence = 'PRESENT' AND reason = 'SUPPLIED_EVIDENCE' AND state = 'CONFLICT'`); n != conflict {
+			t.Fatalf("%s: present distinct cases = %d, want %d", stage, n, conflict)
+		}
+		if n := e.count(t, `SELECT count(*) FROM customers.customer WHERE resolution_state = 'CONFLICT'`); n != 2*conflict {
+			t.Fatalf("%s: CONFLICT customers = %d, want %d", stage, n, 2*conflict)
+		}
+		if n := e.count(t, `SELECT count(*) FROM customers.merge_case WHERE presence = 'PRESENT' AND reason = 'SHARED_PHONE' AND state = 'RELATED'`); n != related {
+			t.Fatalf("%s: OTP-related phone cases = %d, want %d", stage, n, related)
+		}
+	}
+	check("initial", 1, 1)
+
+	// Incomplete command omitting both records: nothing is withdrawn.
+	const batch2 = "22222222-2222-4222-8222-222222222222"
+	e.run(t, api.CustomerImport{BatchID: batch2, Complete: false, Subjects: subjects(batch2)})
+	check("incomplete", 1, 1)
+
+	// COMPLETE command carrying evidence of another spec only: untouched.
+	const batch3 = "33333333-3333-4333-8333-333333333333"
+	other := src(batch3, "913")
+	other.Spec = "synthetic.other_source.v1"
+	e.run(t, api.CustomerImport{BatchID: batch3, Complete: true, Subjects: subjects(batch3), Evidence: []api.EvidenceRecord{
+		{Kind: api.OTPContactControl, Source: other, SubjectKeys: []string{"1"}, ContactRaw: str("09000000021")}}})
+	check("other spec", 1, 1)
+
+	// COMPLETE command for the same spec that no longer carries them: withdrawn
+	// (marked absent, never deleted).
+	const batch4 = "44444444-4444-4444-8444-444444444444"
+	e.run(t, api.CustomerImport{BatchID: batch4, Complete: true, Subjects: subjects(batch4), Evidence: []api.EvidenceRecord{
+		{Kind: api.OTPContactControl, Source: src(batch4, "914"), SubjectKeys: []string{"2"}, ContactRaw: str("09000000022")}}})
+	check("withdrawn", 0, 0)
+	if n := e.count(t, `SELECT count(*) FROM customers.identity_evidence WHERE origin = 'SUPPLIED' AND source_key IN ('911', '912') AND presence = 'ABSENT_IN_LATEST'`); n != 2 {
+		t.Fatalf("withdrawn supplied evidence kept = %d, want 2 (absent, not deleted)", n)
+	}
+	e.report(t)
+}

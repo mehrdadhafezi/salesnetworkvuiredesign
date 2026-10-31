@@ -110,6 +110,10 @@ CREATE TABLE customers.identity_evidence (
     origin             text        NOT NULL,
     reference          text        NOT NULL,
     observed_raw       text        NULL,
+    -- Normalized contact a supplied OTP_CONTACT_CONTROL record is about, so
+    -- the case projection can be rebuilt from stored evidence. Internal
+    -- only: never exposed by any read model; never a key.
+    contact_normalized text        NULL,
     source_system      text        NOT NULL,
     source_spec        text        NOT NULL,
     source_key         text        NULL,

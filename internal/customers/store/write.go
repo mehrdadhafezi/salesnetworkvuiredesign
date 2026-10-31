@@ -327,6 +327,8 @@ type EvidenceInput struct {
 	Spec        string
 	SourceKey   *string
 	Subjects    []string // customer ids
+	// Contact is the normalized contact of a supplied OTP record (internal).
+	Contact *string
 }
 
 // RecordEvidence appends evidence once (by key) and marks it seen; existing
@@ -341,10 +343,10 @@ func RecordEvidence(ctx context.Context, tx db.Tx, e EvidenceInput, batchID stri
 		return "", false, err
 	}
 	tag, err := tx.Exec(ctx, `INSERT INTO customers.identity_evidence (evidence_id, evidence_key, kind, strength, polarity, origin, reference,
-		observed_raw, source_system, source_spec, source_key, first_batch_id, recorded_at, last_seen_batch_id, last_seen_at, presence)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $12, $13, 'PRESENT')
+		observed_raw, source_system, source_spec, source_key, first_batch_id, recorded_at, last_seen_batch_id, last_seen_at, presence, contact_normalized)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $12, $13, 'PRESENT', $14)
 		ON CONFLICT (evidence_key) DO NOTHING`,
-		id, e.Key, e.Kind, e.Strength, e.Polarity, e.Origin, e.Reference, e.ObservedRaw, e.System, e.Spec, e.SourceKey, batchID, now)
+		id, e.Key, e.Kind, e.Strength, e.Polarity, e.Origin, e.Reference, e.ObservedRaw, e.System, e.Spec, e.SourceKey, batchID, now, e.Contact)
 	if err != nil {
 		return "", false, err
 	}
@@ -363,6 +365,56 @@ func RecordEvidence(ctx context.Context, tx db.Tx, e EvidenceInput, batchID stri
 	_, err = tx.Exec(ctx, `UPDATE customers.identity_evidence SET last_seen_batch_id = $2, last_seen_at = $3, presence = 'PRESENT'
 		WHERE evidence_id = $1 AND (last_seen_batch_id, presence) IS DISTINCT FROM ($2::uuid, 'PRESENT')`, id, batchID, now)
 	return id, presence != "PRESENT", err
+}
+
+// MarkAbsentSupplied flags supplied evidence of the given source specs that
+// a COMPLETE command did not carry. Specs the command does not carry are
+// left untouched: omission from another source is not withdrawal.
+func MarkAbsentSupplied(ctx context.Context, tx db.Tx, system string, specs, seen []string) (int64, error) {
+	if err := writable(tx); err != nil {
+		return 0, err
+	}
+	if len(specs) == 0 {
+		return 0, nil
+	}
+	if seen == nil {
+		seen = []string{}
+	}
+	tag, err := tx.Exec(ctx, `UPDATE customers.identity_evidence SET presence = 'ABSENT_IN_LATEST'
+		WHERE origin = 'SUPPLIED' AND presence = 'PRESENT' AND source_system = $1 AND source_spec = ANY($2::text[])
+		AND NOT (evidence_id = ANY($3::uuid[]))`, system, specs, seen)
+	return tag.RowsAffected(), err
+}
+
+// SuppliedRow is one PRESENT supplied evidence record with its subjects.
+type SuppliedRow struct {
+	ID, Kind, System, Spec string
+	SourceKey              *string
+	Contact                *string
+	Subjects               []string // customer ids, sorted
+}
+
+// PresentSupplied returns every PRESENT supplied evidence record, so the
+// case projection never depends on which records one command carried.
+func PresentSupplied(ctx context.Context, tx db.Tx) ([]SuppliedRow, error) {
+	rows, err := tx.Query(ctx, `SELECT e.evidence_id::text, e.kind, e.source_system, e.source_spec, e.source_key, e.contact_normalized,
+		array_agg(s.customer_id::text ORDER BY s.customer_id::text)
+		FROM customers.identity_evidence e JOIN customers.evidence_subject s USING (evidence_id)
+		WHERE e.origin = 'SUPPLIED' AND e.presence = 'PRESENT'
+		GROUP BY e.evidence_id ORDER BY e.evidence_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SuppliedRow
+	for rows.Next() {
+		var r SuppliedRow
+		if err := rows.Scan(&r.ID, &r.Kind, &r.System, &r.Spec, &r.SourceKey, &r.Contact, &r.Subjects); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
 }
 
 // MarkAbsentEvidence flags evidence of an origin not seen in this run.

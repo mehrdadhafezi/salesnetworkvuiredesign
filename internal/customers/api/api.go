@@ -257,6 +257,16 @@ type Importer interface {
 // Reader is the published read surface used by reconciliation.
 type Reader interface {
 	ResolutionReport(ctx context.Context) (Resolution, error)
+	// SubjectProvenance returns, per source key, the stored provenance of
+	// the customer standing for that subject (absent keys have no customer).
+	SubjectProvenance(ctx context.Context, system string, kind SubjectKind, keys []string) (map[string]Provenance, error)
+}
+
+// Provenance is the stored source provenance of one customer.
+type Provenance struct {
+	BatchID   string // last batch that carried the subject
+	RowSHA256 []byte
+	Present   bool
 }
 
 // Resolution is the machine-readable resolution projection summary.

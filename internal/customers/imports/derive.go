@@ -131,9 +131,7 @@ func derive(ctx context.Context, tx db.Tx, snap store.Snapshot, sup []supplied, 
 		for _, s := range sup {
 			if s.rec.Kind == api.OTPContactControl && s.contact != nil && *s.contact == phone {
 				k := domain.Catalogue[domain.OTPContactControl]
-				for _, sid := range seenSupplied(ctx, tx, s) {
-					evIDs = append(evIDs, sid)
-				}
+				evIDs = append(evIDs, s.id)
 				ev = append(ev, domain.Evidence{Kind: domain.OTPContactControl, Strength: k.Strength, Polarity: k.Polarity})
 			}
 		}
@@ -188,7 +186,7 @@ func derive(ctx context.Context, tx db.Tx, snap store.Snapshot, sup []supplied, 
 			continue
 		}
 		k := domain.Catalogue[string(s.rec.Kind)]
-		addCase("SUPPLIED_EVIDENCE", s.subjects, seenSupplied(ctx, tx, s),
+		addCase("SUPPLIED_EVIDENCE", s.subjects, []string{s.id},
 			[]domain.Evidence{{Kind: string(s.rec.Kind), Strength: k.Strength, Polarity: k.Polarity}},
 			"supplied", s.rec.Source.Spec, s.rec.Source.Key)
 	}
@@ -213,14 +211,4 @@ func derive(ctx context.Context, tx db.Tx, snap store.Snapshot, sup []supplied, 
 	}
 	bump("evidence_derived_marked_absent", n)
 	return cases, conflicting, nil
-}
-
-// seenSupplied returns the evidence id of a supplied record (by its key).
-func seenSupplied(ctx context.Context, tx db.Tx, s supplied) []string {
-	var id string
-	key := domain.Key("SUPPLIED", string(s.rec.Kind), s.rec.Source.Spec, s.rec.Source.Key, strings.Join(s.subjects, ","))
-	if err := tx.QueryRow(ctx, `SELECT evidence_id::text FROM customers.identity_evidence WHERE evidence_key = $1`, key).Scan(&id); err != nil {
-		return nil
-	}
-	return []string{id}
 }

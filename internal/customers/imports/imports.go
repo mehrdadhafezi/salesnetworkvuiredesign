@@ -45,6 +45,7 @@ func New(runner *db.Runner, clock timeutil.Clock) *Command {
 }
 
 type supplied struct {
+	id       string // stored evidence id
 	rec      api.EvidenceRecord
 	subjects []string // customer ids
 	contact  *string  // normalized contact for OTP
@@ -143,6 +144,7 @@ func (c *Command) ImportCustomers(ctx context.Context, in api.CustomerImport) (a
 		// 2. Supplied evidence (never from legacy in Slice 5).
 		var sup []supplied
 		var seenSupplied []string
+		suppliedSpecs := map[string]bool{}
 		for _, e := range in.Evidence {
 			var subj []string
 			missing := false
@@ -178,7 +180,7 @@ func (c *Command) ImportCustomers(ctx context.Context, in api.CustomerImport) (a
 			eid, isNew, err := store.RecordEvidence(ctx, tx, store.EvidenceInput{
 				Key: domain.Key("SUPPLIED", string(e.Kind), e.Source.Spec, e.Source.Key, strings.Join(subj, ",")), Kind: string(e.Kind),
 				Strength: kind.Strength, Polarity: kind.Polarity, Origin: "SUPPLIED", Reference: ref, ObservedRaw: e.ObservedRaw,
-				System: e.Source.System, Spec: e.Source.Spec, SourceKey: &key, Subjects: subj}, in.BatchID, now)
+				System: e.Source.System, Spec: e.Source.Spec, SourceKey: &key, Subjects: subj, Contact: contact}, in.BatchID, now)
 			if err != nil {
 				return err
 			}
@@ -186,10 +188,15 @@ func (c *Command) ImportCustomers(ctx context.Context, in api.CustomerImport) (a
 				bump("evidence_supplied_new", 1)
 			}
 			seenSupplied = append(seenSupplied, eid)
-			sup = append(sup, supplied{rec: e, subjects: subj, contact: contact})
+			suppliedSpecs[e.Source.Spec] = true
 		}
 		if in.Complete {
-			n, err := store.MarkAbsentEvidence(ctx, tx, "SUPPLIED", seenSupplied)
+			specs := make([]string, 0, len(suppliedSpecs))
+			for sp := range suppliedSpecs {
+				specs = append(specs, sp)
+			}
+			sort.Strings(specs)
+			n, err := store.MarkAbsentSupplied(ctx, tx, in.SourceSystem, specs, seenSupplied)
 			if err != nil {
 				return err
 			}
@@ -200,6 +207,31 @@ func (c *Command) ImportCustomers(ctx context.Context, in api.CustomerImport) (a
 		snap, err := store.LoadSnapshot(ctx, tx)
 		if err != nil {
 			return err
+		}
+		// Every PRESENT supplied record counts, not only those this command
+		// carried: an incomplete (or other-source) command never withdraws
+		// evidence by omission. Records whose subjects are no longer all
+		// present are kept stored but not projected.
+		stored, err := store.PresentSupplied(ctx, tx)
+		if err != nil {
+			return err
+		}
+		for _, r := range stored {
+			all := true
+			for _, id := range r.Subjects {
+				if _, ok := snap.Customers[id]; !ok {
+					all = false
+				}
+			}
+			if !all {
+				rep.Counts["supplied_evidence_subject_absent"]++
+				continue
+			}
+			src := api.SourceRef{System: r.System, Spec: r.Spec}
+			if r.SourceKey != nil {
+				src.Key = *r.SourceKey
+			}
+			sup = append(sup, supplied{id: r.ID, rec: api.EvidenceRecord{Kind: api.EvidenceKind(r.Kind), Source: src}, subjects: r.Subjects, contact: r.Contact})
 		}
 		cases, conflictingIDs, err := derive(ctx, tx, snap, sup, in, now, bump, func(k string, n int64) { rep.Counts[k] += n })
 		if err != nil {
