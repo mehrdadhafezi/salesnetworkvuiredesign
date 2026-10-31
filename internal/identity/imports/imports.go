@@ -67,8 +67,8 @@ func (c *Command) ImportIdentity(ctx context.Context, in api.IdentityImport) (ap
 		}
 		changed := int64(0)
 		userIDs := map[string]string{}
-		var keys []string
-		system := ""
+		keys := []string{} // never nil: a nil array reaches SQL as NULL
+		system := in.SourceSystem
 		for _, u := range in.Users {
 			id, ch, err := store.UpsertUser(ctx, tx, u, now)
 			if err != nil {
@@ -76,14 +76,13 @@ func (c *Command) ImportIdentity(ctx context.Context, in api.IdentityImport) (ap
 			}
 			userIDs[u.Source.Key] = id
 			keys = append(keys, u.Source.Key)
-			system = u.Source.System
 			rep.Counts["users_"+string(ch)]++
 			if ch != store.Unchanged {
 				changed++
 			}
 		}
 		rep.Counts["users_staged"] = int64(len(in.Users))
-		if in.UsersComplete && system != "" {
+		if in.UsersComplete {
 			n, err := store.MarkAbsentUsers(ctx, tx, system, keys, now)
 			if err != nil {
 				return err
@@ -99,7 +98,7 @@ func (c *Command) ImportIdentity(ctx context.Context, in api.IdentityImport) (ap
 				missing = append(missing, e.UserKey)
 			}
 		}
-		if len(missing) > 0 && system != "" {
+		if len(missing) > 0 {
 			found, err := store.UserIDsByKey(ctx, tx, system, missing)
 			if err != nil {
 				return err
@@ -108,13 +107,20 @@ func (c *Command) ImportIdentity(ctx context.Context, in api.IdentityImport) (ap
 				userIDs[k] = v
 			}
 		}
-		var evidenceKeys []string
+		evidenceKeys := []string{}
 		for _, e := range in.RoleEvidence {
 			evidenceKeys = append(evidenceKeys, e.Evidence.Key)
 			uid, ok := userIDs[e.UserKey]
 			if !ok {
 				rep.Counts["role_evidence_user_missing"]++
 				addIssue(&rep, api.Issue{Kind: "ROLE_EVIDENCE_USER_MISSING", SourceKey: e.Evidence.Key, Detail: "role evidence references an account that is not imported (account key " + e.UserKey + ")"})
+				// A grant this evidence produced earlier for another account is withdrawn.
+				n, err := store.WithdrawGrant(ctx, tx, e.Evidence.Key, in.BatchID, now)
+				if err != nil {
+					return err
+				}
+				rep.Counts["shadow_grants_withdrawn_unresolved"] += n
+				changed += n
 				continue
 			}
 			ch, err := store.UpsertShadowGrant(ctx, tx, e, uid, now)

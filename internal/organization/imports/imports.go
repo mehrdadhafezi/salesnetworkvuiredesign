@@ -99,11 +99,7 @@ func (c *Command) ImportOrganization(ctx context.Context, in api.OrganizationImp
 			}
 		}
 		present := map[api.Entity][]string{}
-		system := map[api.Entity]string{}
-		track := func(e api.Entity, s api.SourceRef) {
-			present[e] = append(present[e], s.Key)
-			system[e] = s.System
-		}
+		track := func(e api.Entity, s api.SourceRef) { present[e] = append(present[e], s.Key) }
 
 		for _, r := range in.Positions {
 			_, ch, err := store.UpsertPosition(ctx, tx, r, now)
@@ -244,10 +240,14 @@ func (c *Command) ImportOrganization(ctx context.Context, in api.OrganizationImp
 				complete = false
 				continue
 			}
-			if e == api.EntityHistory || system[e] == "" {
+			if e == api.EntityHistory {
 				continue
 			}
-			n, err := store.MarkAbsent(ctx, tx, e, system[e], present[e], now)
+			keys := present[e]
+			if keys == nil {
+				keys = []string{} // COMPLETE and empty: every prior row is absent (nil would reach SQL as NULL)
+			}
+			n, err := store.MarkAbsent(ctx, tx, e, in.SourceSystem, keys, now)
 			if err != nil {
 				return err
 			}

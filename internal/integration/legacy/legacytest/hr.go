@@ -158,3 +158,52 @@ func HRScenario() []snapshot.EntityRows {
 		rows("legacy.hr_assignment.v1", assignments), rows("legacy.hr_assignment_history.v1", history),
 	}
 }
+
+// MinimalHRScenario is a SYNTHETIC organisation with no hierarchy conflict:
+// an HR lead and one seller reporting to them, a consistent unit tree, one
+// history row matching the current assignment and one position-role row.
+func MinimalHRScenario() []snapshot.EntityRows {
+	users := []Rec{
+		{"ID": "1", "user_login": "dev-min-001", "display_name": "Synthetic Minimal 001", "user_registered": "2025-01-01 00:00:00"},
+		{"ID": "2", "user_login": "dev-min-002", "display_name": "Synthetic Minimal 002", "user_registered": "2025-01-01 00:00:00"},
+	}
+	return []snapshot.EntityRows{
+		rows("legacy.wp_user.v1", users), rows("legacy.wp_usermeta.v1", nil),
+		rows("legacy.hr_position.v1", []Rec{lookup("1", "hr", "Synthetic HR"), lookup("2", "seller", "Synthetic Seller")}),
+		rows("legacy.hr_level.v1", []Rec{lookup("1", "junior", "Synthetic Junior")}),
+		rows("legacy.hr_profile.v1", []Rec{
+			profile("101", "1", "Synthetic Minimal Lead", "1", "1", "active", "sn_hr", "1", "1", "1"),
+			profile("102", "2", "Synthetic Minimal Seller", "2", "1", "active", "sn_seller", "1", "1", "1"),
+		}),
+		rows("legacy.hr_position_role_mapping.v1", []Rec{{"id": "401", "legacy_role": "sn_hr", "position_id": "1", "is_active": "1",
+			"created_at": "2025-01-01 00:00:00", "updated_at": "2025-01-01 00:00:00"}}),
+		rows("legacy.hr_department.v1", []Rec{unit("1", "", "", "sales")}),
+		rows("legacy.hr_unit.v1", []Rec{unit("1", "department_id", "1", "sales-east")}),
+		rows("legacy.hr_team.v1", []Rec{unit("1", "unit_id", "1", "east-team")}),
+		rows("legacy.hr_assignment.v1", []Rec{assignment("201", "102", "101", "reports_to", "2026-01-01 00:00:00", "", "1")}),
+		rows("legacy.hr_assignment_history.v1", []Rec{{"id": "301", "assignment_id": "201", "child_profile_id": "102",
+			"new_parent_profile_id": "101", "actor_user_id": "1", "action": "synthetic_assign", "created_at": "2026-01-01 00:00:00"}}),
+	}
+}
+
+// Without returns ents minus the given spec, and Replace swaps one spec's rows.
+func Without(ents []snapshot.EntityRows, specID string) []snapshot.EntityRows {
+	var out []snapshot.EntityRows
+	for _, e := range ents {
+		if e.SpecID != specID {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+// With returns ents with the rows (and completeness) of specID replaced.
+func With(ents []snapshot.EntityRows, specID string, recs []Rec, c snapshot.Completeness) []snapshot.EntityRows {
+	out := Without(ents, specID)
+	e := rows(specID, recs)
+	e.Completeness = c
+	return append(out, e)
+}
+
+// Profile exposes the synthetic profile row builder.
+var Profile = profile

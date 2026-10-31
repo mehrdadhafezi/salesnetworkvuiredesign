@@ -204,6 +204,19 @@ func UpsertShadowGrant(ctx context.Context, tx db.Tx, e api.RoleEvidence, userID
 	return Unchanged, nil
 }
 
+// WithdrawGrant marks the shadow grant of one evidence row ABSENT_IN_LATEST
+// when its evidence no longer resolves to an imported account, so a stale
+// association never keeps evaluating as authority.
+func WithdrawGrant(ctx context.Context, tx db.Tx, evidenceKey string, batchID string, now time.Time) (int64, error) {
+	if err := writable(tx); err != nil {
+		return 0, err
+	}
+	tag, err := tx.Exec(ctx, `UPDATE identity.role_grant SET presence = 'ABSENT_IN_LATEST', source_batch_id = $3, refreshed_at = $4,
+		version = version + 1 WHERE basis = $1 AND evidence_key = $2 AND presence = 'PRESENT'`,
+		GrantBasisLegacyProfileRole, evidenceKey, batchID, now)
+	return tag.RowsAffected(), err
+}
+
 // MarkAbsentGrants flags shadow grants whose evidence key is not in present.
 func MarkAbsentGrants(ctx context.Context, tx db.Tx, present []string, now time.Time) (int64, error) {
 	if err := writable(tx); err != nil {

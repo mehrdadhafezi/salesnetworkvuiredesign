@@ -77,8 +77,9 @@ func (e *env) stage(t *testing.T, id string, ents []snapshot.EntityRows) *shadow
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep, err := e.loader.Load(ctx, p); err != nil || rep.Outcome != result.Success {
-		t.Fatalf("stage: %+v %v", rep, err)
+	// INCOMPLETE entities stage as PARTIAL (LOADED_INCOMPLETE); anything else is a setup error.
+	if rep, err := e.loader.Load(ctx, p); err != nil || (rep.Outcome != result.Success && rep.Outcome != result.Partial) {
+		t.Fatalf("stage: %s %v", rep.Outcome, err)
 	}
 	b, err := shadow.ReadBatch(ctx, e.staged, spec.Default(), id)
 	if err != nil {

@@ -189,6 +189,9 @@ func Entities() []Entity {
 type OrganizationImport struct {
 	BatchID    string
 	SnapshotID string
+	// SourceSystem is the legacy system of every row (and of the absence
+	// update when an entity is COMPLETE but empty).
+	SourceSystem string
 	// UserSystem is the source system of the account keys (identity refs).
 	UserSystem  string
 	Complete    map[Entity]bool
@@ -209,12 +212,12 @@ func (in OrganizationImport) Validate() error {
 		if err := s.Validate(); err != nil {
 			return err
 		}
-		if s.BatchID != in.BatchID {
-			return fmt.Errorf("%w: row from another batch", ErrInvalidImport)
+		if s.BatchID != in.BatchID || s.System != in.SourceSystem {
+			return fmt.Errorf("%w: row from another batch or system", ErrInvalidImport)
 		}
 		return nil
 	}
-	if in.SnapshotID == "" || in.UserSystem == "" {
+	if in.SnapshotID == "" || in.UserSystem == "" || in.SourceSystem == "" {
 		return fmt.Errorf("%w: snapshot/user system", ErrInvalidImport)
 	}
 	for _, r := range append(append([]LookupRecord{}, in.Positions...), in.Levels...) {

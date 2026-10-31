@@ -201,6 +201,9 @@ type RoleEvidence struct {
 type IdentityImport struct {
 	BatchID    string
 	SnapshotID string
+	// SourceSystem is the legacy system of every row (and of the absence
+	// update when an entity is COMPLETE but empty).
+	SourceSystem string
 	// UsersComplete marks the staged user entity COMPLETE: only then may
 	// previously imported accounts missing from this batch be marked
 	// ABSENT_IN_LATEST (never deleted).
@@ -212,16 +215,16 @@ type IdentityImport struct {
 
 // Validate checks the command.
 func (in IdentityImport) Validate() error {
-	if !uuidPattern.MatchString(in.BatchID) || in.SnapshotID == "" {
-		return fmt.Errorf("%w: batch/snapshot", ErrInvalidImport)
+	if !uuidPattern.MatchString(in.BatchID) || in.SnapshotID == "" || !sysPattern.MatchString(in.SourceSystem) {
+		return fmt.Errorf("%w: batch/snapshot/source system", ErrInvalidImport)
 	}
 	seen := map[string]bool{}
 	for _, u := range in.Users {
 		if err := u.Source.Validate(); err != nil {
 			return err
 		}
-		if u.Source.BatchID != in.BatchID {
-			return fmt.Errorf("%w: user row from another batch", ErrInvalidImport)
+		if u.Source.BatchID != in.BatchID || u.Source.System != in.SourceSystem {
+			return fmt.Errorf("%w: user row from another batch or system", ErrInvalidImport)
 		}
 		if seen[u.Source.System+"/"+u.Source.Key] {
 			return fmt.Errorf("%w: duplicate user key %s", ErrInvalidImport, u.Source.Key)
@@ -232,6 +235,9 @@ func (in IdentityImport) Validate() error {
 	for _, e := range in.RoleEvidence {
 		if err := e.Evidence.Validate(); err != nil {
 			return err
+		}
+		if e.Evidence.BatchID != in.BatchID || e.Evidence.System != in.SourceSystem {
+			return fmt.Errorf("%w: role evidence from another batch or system", ErrInvalidImport)
 		}
 		if !ValidKey(e.UserKey) || e.LegacyValue == "" || len(e.LegacyValue) > 120 {
 			return fmt.Errorf("%w: role evidence %s", ErrInvalidImport, e.Evidence.Key)

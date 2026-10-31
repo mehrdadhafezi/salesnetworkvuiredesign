@@ -3,6 +3,7 @@ package shadow
 import (
 	"context"
 	"sort"
+	"strings"
 
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization"
 	identityapi "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/api"
@@ -20,7 +21,7 @@ func IdentityCommand(b *Batch) (identityapi.IdentityImport, map[string]int64) {
 	counts := map[string]int64{}
 	users := b.Entity(SpecUser)
 	profiles := b.Entity(SpecProfile)
-	in := identityapi.IdentityImport{BatchID: b.BatchID, SnapshotID: b.SnapshotID,
+	in := identityapi.IdentityImport{BatchID: b.BatchID, SnapshotID: b.SnapshotID, SourceSystem: SourceSystem,
 		UsersComplete: users.Complete(), EvidenceComplete: profiles.Complete()}
 	for _, r := range users.Rows {
 		// user_email and every credential column are not imported.
@@ -63,7 +64,7 @@ func OrganizationCommand(b *Batch) (organizationapi.OrganizationImport, map[stri
 		}
 		return k
 	}
-	in := organizationapi.OrganizationImport{BatchID: b.BatchID, SnapshotID: b.SnapshotID, UserSystem: SourceSystem,
+	in := organizationapi.OrganizationImport{BatchID: b.BatchID, SnapshotID: b.SnapshotID, SourceSystem: SourceSystem, UserSystem: SourceSystem,
 		Complete: map[organizationapi.Entity]bool{}}
 	lookup := func(specID string) []organizationapi.LookupRecord {
 		var out []organizationapi.LookupRecord
@@ -291,18 +292,45 @@ func Reconcile(ctx context.Context, b *Batch, ident identityapi.Reader, org orga
 			}
 		}
 	}
+	// Coverage of every consumed organization entity, then counts. History
+	// is append-only across batches, so the stored total may exceed the
+	// staged rows but never fall short of them.
+	var unavailable, incomplete []string
+	for _, specID := range []string{SpecProfile, SpecPosition, SpecLevel, SpecDepartment, SpecUnit, SpecTeam,
+		SpecAssignment, SpecAssignmentHist, SpecRoleMapping} {
+		switch e := b.Entity(specID); {
+		case !e.Usable():
+			unavailable = append(unavailable, specID)
+		case !e.Complete():
+			incomplete = append(incomplete, specID)
+		}
+	}
 	countMismatch := staged["hr_profile_rows"] != ocounts["persons"] || staged["hr_profile_rows"] != ocounts["employments"] ||
 		staged["hr_position_rows"] != ocounts["positions"] || staged["hr_level_rows"] != ocounts["levels"] ||
 		staged["hr_department_rows"] != ocounts["departments"] || staged["hr_unit_rows"] != ocounts["units"] ||
-		staged["hr_team_rows"] != ocounts["teams"]
+		staged["hr_team_rows"] != ocounts["teams"] || staged["hr_assignment_rows"] != ocounts["assignments"] ||
+		staged["hr_position_role_mapping_rows"] != ocounts["position_role_defaults"] ||
+		staged["hr_assignment_history_rows"] > ocounts["assignment_history"]
+	if len(unavailable) > 0 {
+		rep.Organization.Notes = append(rep.Organization.Notes, "not staged (coverage UNKNOWN): "+strings.Join(unavailable, ", "))
+	}
+	if len(incomplete) > 0 {
+		rep.Organization.Notes = append(rep.Organization.Notes, "staged but not COMPLETE: "+strings.Join(incomplete, ", "))
+	}
+	if countMismatch {
+		rep.Organization.Notes = append(rep.Organization.Notes, "staged and target counts differ")
+	}
 	switch {
-	case !profiles.Usable():
+	case len(unavailable) > 0:
 		rep.Organization.Outcome = result.Unknown
 		rep.Organization.Reasons = append(rep.Organization.Reasons, reasoncodes.SourceUnavailable)
 	case conflicts > 0:
 		rep.Organization.Outcome = result.Conflict
 		rep.Organization.Reasons = append(rep.Organization.Reasons, reasoncodes.LinkageConflict)
-	case countMismatch || unknowns > 0:
+		if countMismatch || len(incomplete) > 0 || unknowns > 0 {
+			rep.Organization.Reasons = append(rep.Organization.Reasons, reasoncodes.CoverageIncomplete)
+		}
+	case countMismatch || len(incomplete) > 0 || unknowns > 0:
 		rep.Organization.Outcome = result.Partial
 		rep.Organization.Reasons = append(rep.Organization.Reasons, reasoncodes.CoverageIncomplete)
 	default:
