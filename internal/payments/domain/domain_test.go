@@ -57,4 +57,3 @@ func TestSumByUnitSeparatesUnitsAndChecksOverflow(t *testing.T) {
 		t.Fatal("no rows is no sum (absent is not zero)")
 	}
 }
-
