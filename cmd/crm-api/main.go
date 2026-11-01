@@ -20,6 +20,11 @@
 // and CRM_CUSTODY_READ_DATABASE_URL (module-dedicated logins) plus
 // CRM_FEATUREFLAGS_DATABASE_URL; behind the flag sales.read_shadow (default off).
 //
+// Slice 7 billing + payments read surface (optional, all or none):
+// CRM_BILLING_READ_DATABASE_URL and CRM_PAYMENTS_READ_DATABASE_URL
+// (module-dedicated logins) plus CRM_FEATUREFLAGS_DATABASE_URL; behind the
+// flag billing_payments.read_shadow (default off).
+//
 // It never runs migrations, never imports legacy data and never writes.
 package main
 
@@ -69,7 +74,12 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closeSales()
-	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales})
+	bill, closeBilling, err := openBilling(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closeBilling()
+	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill})
 	if err != nil {
 		return err
 	}

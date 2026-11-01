@@ -49,6 +49,12 @@ const (
 	CapCaseRead        Capability = "cases.case.read"
 	CapCustodyRead     Capability = "custody.custody.read"
 	CapSalesReportRead Capability = "sales.report.read"
+	// Slice 7 billing + payments read shadow. No role receives them: no
+	// frozen Finance/seller/supervisor row-scope policy exists (D-25, D-26,
+	// D-28 open), so they fail closed for every real account.
+	CapInvoiceRead        Capability = "billing.invoice.read"
+	CapPaymentAttemptRead Capability = "payments.attempt.read"
+	CapBillingReportRead  Capability = "billing.reconciliation.read"
 )
 
 // CapabilityDef is one vocabulary entry.
@@ -70,6 +76,9 @@ var vocabulary = []CapabilityDef{
 	{CapCaseRead, "Read shadow cases, their lineage, state history and attribution snapshots"},
 	{CapCustodyRead, "Read derived custody projections, custody events and findings"},
 	{CapSalesReportRead, "Read the sales source coverage and custody parity reports"},
+	{CapInvoiceRead, "Read shadow invoices, lines, payment stages, state and total evidence"},
+	{CapPaymentAttemptRead, "Read shadow payment attempts, gateway evidence (hashed) and receipt reference metadata"},
+	{CapBillingReportRead, "Read the billing and payments coverage report"},
 }
 
 // HRReadCapabilities returns the Slice 4 HR read capabilities: the set the

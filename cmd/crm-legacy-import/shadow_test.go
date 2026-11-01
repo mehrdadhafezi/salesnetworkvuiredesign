@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing"
+	billingmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases"
 	casesmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody"
@@ -19,6 +21,8 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/snapshot"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization"
 	organizationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/migrations"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments"
+	paymentsmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/pgtest"
 )
@@ -158,5 +162,53 @@ func TestSalesCommandsAgainstDisposablePostgres(t *testing.T) {
 	}
 	if code, out, _ := call(t, env(vars), "import-sales", "synthetic-sales-cli-0001"); code != 0 || !strings.Contains(out, `"replay": true`) {
 		t.Fatalf("replay: %d %s", code, out)
+	}
+}
+
+// Slice 7: staging; identity, customers, cases (read); billing then
+// payments. Reconcile is honest and never prints a row value.
+func TestBillingCommandsAgainstDisposablePostgres(t *testing.T) {
+	e := pgtest.New(t)
+	for _, src := range []migrations.Source{integrationmigrations.Source(), identitymigrations.Source(), organizationmigrations.Source(),
+		customersmigrations.Source(), casesmigrations.Source(), custodymigrations.Source(), billingmigrations.Source(), paymentsmigrations.Source()} {
+		if _, err := migrations.Up(context.Background(), e.DSN, src); err != nil {
+			t.Fatal(err)
+		}
+	}
+	base := map[string]string{EnvStagingURL: e.LoginDSN(t, integration.Module)}
+	if code, _, stderr := call(t, env(base), "import-billing", "synthetic-bill-cli-0001"); code != 2 || !strings.Contains(stderr, "is not set") {
+		t.Fatalf("missing DSNs: %d %q", code, stderr)
+	}
+	vars := map[string]string{
+		EnvStagingURL: e.LoginDSN(t, integration.Module), EnvIdentityURL: e.LoginDSN(t, identity.Module), EnvOrganizationURL: e.LoginDSN(t, organization.Module),
+		EnvCustomersURL: e.LoginDSN(t, customers.Module), EnvCasesURL: e.LoginDSN(t, cases.Module), EnvCustodyURL: e.LoginDSN(t, custody.Module),
+		EnvBillingURL: e.LoginDSN(t, billing.Module), EnvPaymentsURL: e.LoginDSN(t, payments.Module),
+	}
+	ents := append(legacytest.HRScenario(), legacytest.SalesScenario(snapshot.Complete)...)
+	ents = append(ents, legacytest.BillingScenario(snapshot.Complete)...)
+	dir := legacytest.Write(t, "synthetic-bill-cli-0001", t0, ents)
+	if code, out, stderr := call(t, env(vars), "load", dir); code != 0 && code != 3 {
+		t.Fatalf("load: %d %s %s", code, out, stderr)
+	}
+	call(t, env(vars), "import-identity", "synthetic-bill-cli-0001")
+	call(t, env(vars), "import-sales", "synthetic-bill-cli-0001")
+	code, out, stderr := call(t, env(vars), "import-billing", "synthetic-bill-cli-0001")
+	// Payment 9 names an unstaged invoice: PARTIAL, non-zero exit.
+	if code != 3 || !strings.Contains(out, `"billing.invoices_inserted": 4`) || !strings.Contains(out, `"payments.attempts_inserted": 5`) ||
+		!strings.Contains(out, `"payments.attempts_invoice_unresolved": 1`) || !strings.Contains(out, `"billing.invoice_state_unknown_MAIN": 1`) {
+		t.Fatalf("import-billing: %d %s %s", code, out, stderr)
+	}
+	code, out, _ = call(t, env(vars), "reconcile-billing", "synthetic-bill-cli-0001")
+	if code == 0 || !strings.Contains(out, `"outcome": "PARTIAL"`) || !strings.Contains(out, `"status": "NOT_EVALUATED"`) ||
+		!strings.Contains(out, `"approved_raw_count": 2`) || !strings.Contains(out, `"reconcile_error_raw_count": 1`) {
+		t.Fatalf("reconcile-billing: %d %s", code, out)
+	}
+	for _, marker := range []string{"SYN-AUTH", "files.example.test/uploads", "receipt-2003", "SYN-INV-", "Synthetic product"} {
+		if strings.Contains(out, marker) {
+			t.Fatalf("report leaks %q", marker)
+		}
+	}
+	if _, out, _ := call(t, env(vars), "import-billing", "synthetic-bill-cli-0001"); !strings.Contains(out, `"replay": true`) {
+		t.Fatalf("replay: %s", out)
 	}
 }

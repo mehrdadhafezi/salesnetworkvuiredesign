@@ -1,0 +1,703 @@
+[
+  {
+    "id": "legacy.invoice.v2",
+    "entity": "invoice",
+    "version": 2,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_invoices",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:276 (table definition)"
+      },
+      {
+        "name": "invoice_code",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:277 (table definition)",
+        "note": "legacy invoice reference (UNIQUE :359); provenance only"
+      },
+      {
+        "name": "seller_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:280 (table definition)",
+        "note": "legacy seller user reference"
+      },
+      {
+        "name": "issued_by_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:281 (table definition)",
+        "note": "legacy issuer user reference"
+      },
+      {
+        "name": "lead_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:282 (table definition)",
+        "note": "explicit native link to sn_leads.id"
+      },
+      {
+        "name": "product_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:291 (table definition)",
+        "note": "legacy product reference (live catalog is not historical truth)"
+      },
+      {
+        "name": "product_price",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:292 (table definition)",
+        "note": "raw decimal text in Toman (class-sn-plugin.php:31200); never converted in staging"
+      },
+      {
+        "name": "pay_method",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:295 (table definition)",
+        "note": "raw legacy pay method"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:300 (table definition)",
+        "note": "legacy MAIN status (default 'pending'); raw"
+      },
+      {
+        "name": "invoice_status",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:301 (table definition)",
+        "note": "legacy invoice status; raw (:549 ADD COLUMN)"
+      },
+      {
+        "name": "payment_status",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:302 (table definition)",
+        "note": "legacy payment status; raw (:552 ADD COLUMN)"
+      },
+      {
+        "name": "receipt_url",
+        "raw_type": "VARCHAR(500)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:303 (table definition)",
+        "note": "receipt reference (compatibility projection); raw"
+      },
+      {
+        "name": "receipt_file",
+        "raw_type": "VARCHAR(500)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:304 (table definition)",
+        "note": "receipt reference; raw (:554 ADD COLUMN)"
+      },
+      {
+        "name": "receipt_urls",
+        "raw_type": "LONGTEXT",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:305 (table definition)",
+        "note": "JSON array of receipt URLs (class-sn-helpers.php:527-539); raw"
+      },
+      {
+        "name": "receipt_source",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:306 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "payment_source",
+        "raw_type": "VARCHAR(50)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:307 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "paid_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:318 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "approved_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:320 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "financial_reviewed_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:325 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "original_total",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:336 (table definition)",
+        "note": "raw decimal text in Toman (class-sn-plugin.php:31200); never converted in staging"
+      },
+      {
+        "name": "discount_total",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:337 (table definition)",
+        "note": "raw decimal text in Toman (class-sn-plugin.php:31200); never converted in staging"
+      },
+      {
+        "name": "final_total",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:338 (table definition)",
+        "note": "raw decimal text in Toman (class-sn-plugin.php:31200); never converted in staging"
+      },
+      {
+        "name": "payment_plan",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:339 (table definition)",
+        "note": "raw (default 'full')"
+      },
+      {
+        "name": "payment_total_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:340 (table definition)",
+        "note": "raw decimal text in Toman (class-sn-plugin.php:31200); never converted in staging"
+      },
+      {
+        "name": "current_due_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:341 (table definition)",
+        "note": "raw decimal text in Toman (class-sn-plugin.php:31200); never converted in staging"
+      },
+      {
+        "name": "paid_total_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:342 (table definition)",
+        "note": "raw decimal text in Toman (class-sn-plugin.php:31200); never converted in staging"
+      },
+      {
+        "name": "remaining_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:343 (table definition)",
+        "note": "raw decimal text in Toman (class-sn-plugin.php:31200); never converted in staging"
+      },
+      {
+        "name": "current_payment_stage",
+        "raw_type": "INT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:344 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "payment_workflow_status",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:345 (table definition)",
+        "note": "legacy payment workflow status (default 'awaiting_payment'); raw"
+      },
+      {
+        "name": "payment_completed_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:347 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "financial_return_state",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:353 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:356 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:357 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_invoice_v2",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "275-365",
+        "note": "table definition of sn_invoices"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "543-604",
+        "note": "columns ensured on upgraded installs"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "31200",
+        "note": "amounts are kept in Toman"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-invoice-review.php",
+        "lines": "8-12",
+        "note": "legacy TOTAL and STATUS display expressions (evidence only; TAD #19/#20 deferred)"
+      }
+    ],
+    "notes": [
+      "invoice header, status, amount and receipt-reference columns only; customer PII, tokens, card data and free text are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.invoice_item.v1",
+    "entity": "invoice_item",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_invoice_items",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:413 (table definition)"
+      },
+      {
+        "name": "invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:414 (table definition)"
+      },
+      {
+        "name": "product_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:415 (table definition)",
+        "note": "legacy product reference"
+      },
+      {
+        "name": "product_name",
+        "raw_type": "VARCHAR(255)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:416 (table definition)",
+        "note": "title SNAPSHOT at issuance; historical truth, not the live title"
+      },
+      {
+        "name": "product_type",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:417 (table definition)",
+        "note": "raw line kind"
+      },
+      {
+        "name": "qty",
+        "raw_type": "INT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:418 (table definition)"
+      },
+      {
+        "name": "unit_price",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:419 (table definition)",
+        "note": "raw decimal text in Toman"
+      },
+      {
+        "name": "total_price",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:420 (table definition)",
+        "note": "raw decimal text in Toman"
+      },
+      {
+        "name": "is_free",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:421 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:422 (table definition)",
+        "note": "raw legacy DATETIME; zone not asserted"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_invoice_item_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "412-426",
+        "note": "table definition of sn_invoice_items"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "894-908",
+        "note": "re-ensured definition"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "legacy.invoice_payment_stage.v1",
+    "entity": "invoice_payment_stage",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_invoice_payment_stages",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:368 (table definition)"
+      },
+      {
+        "name": "invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:369 (table definition)"
+      },
+      {
+        "name": "stage_no",
+        "raw_type": "INT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:370 (table definition)",
+        "note": "stage order; (invoice_id, stage_no) UNIQUE at :386"
+      },
+      {
+        "name": "stage_type",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:371 (table definition)",
+        "note": "raw (default 'full')"
+      },
+      {
+        "name": "requested_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:372 (table definition)",
+        "note": "raw decimal text in Toman"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:373 (table definition)",
+        "note": "legacy STAGE status (default 'pending'); raw"
+      },
+      {
+        "name": "pay_method",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:374 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "payment_source",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:375 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "receipt_urls",
+        "raw_type": "LONGTEXT",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:377 (table definition)",
+        "note": "JSON array of receipt URLs; raw"
+      },
+      {
+        "name": "issued_by_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:378 (table definition)",
+        "note": "legacy user reference"
+      },
+      {
+        "name": "approved_by_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:379 (table definition)",
+        "note": "legacy user reference recorded on approval"
+      },
+      {
+        "name": "approved_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:380 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "paid_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:381 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:383 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:384 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_invoice_payment_stage_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "367-389",
+        "note": "table definition of sn_invoice_payment_stages"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "690-712",
+        "note": "re-ensured definition"
+      }
+    ],
+    "notes": [
+      "payment_ref_id (gateway reference duplicate) and note are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.payment.v1",
+    "entity": "payment",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_payments",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:392 (table definition)"
+      },
+      {
+        "name": "invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:393 (table definition)"
+      },
+      {
+        "name": "payment_stage_no",
+        "raw_type": "INT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:394 (table definition); :636 (ADD COLUMN statement)",
+        "note": "raw stage number"
+      },
+      {
+        "name": "authority",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NULLABLE",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:395 (table definition)",
+        "note": "gateway transaction reference; present only on gateway attempts (class-sn-payment-transactions.php:16); exposed hashed only"
+      },
+      {
+        "name": "ref_id",
+        "raw_type": "VARCHAR(191)",
+        "nullability": "NULLABLE",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:396 (table definition)",
+        "note": "gateway reference id; exposed hashed only"
+      },
+      {
+        "name": "amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:397 (table definition)",
+        "note": "raw decimal text in Toman"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:398 (table definition)",
+        "note": "legacy ATTEMPT status (default 'pending'); 'approved' and 'reconcile_error' preserved raw"
+      },
+      {
+        "name": "pay_method",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:399 (table definition); :639 (ADD COLUMN statement)",
+        "note": "raw"
+      },
+      {
+        "name": "payment_source",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:400 (table definition); :642 (ADD COLUMN statement)",
+        "note": "raw (gateway provider or upload source)"
+      },
+      {
+        "name": "uploaded_by_type",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:403 (table definition); :645 (ADD COLUMN statement)",
+        "note": "raw"
+      },
+      {
+        "name": "uploaded_by_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:404 (table definition); :648 (ADD COLUMN statement)",
+        "note": "legacy user reference"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:405 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-activator.php:406 (table definition); :651 (ADD COLUMN statement)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_payment_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "391-410",
+        "note": "table definition of sn_payments"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-activator.php",
+        "lines": "634-657",
+        "note": "columns ensured on upgraded installs"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "7155-7198",
+        "note": "gateway callback writes approved / reconcile_error / cancelled (D-25 gateway_auto)"
+      }
+    ],
+    "notes": [
+      "proof_data (manual proof JSON with account owner and card fragments) and submission_key are deliberately NOT extracted"
+    ]
+  }
+]

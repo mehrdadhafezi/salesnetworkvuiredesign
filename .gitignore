@@ -33,6 +33,11 @@
 !internal/cases/migrations/body/*.sql
 !internal/custody/migrations/sql/*.sql
 !internal/custody/migrations/body/*.sql
+# Slice 7: billing and payments shadow models.
+!internal/billing/migrations/sql/*.sql
+!internal/billing/migrations/body/*.sql
+!internal/payments/migrations/sql/*.sql
+!internal/payments/migrations/body/*.sql
 
 # Legacy snapshot packages may contain PII: never committed (Slice 3, D-23).
 # Tests build synthetic packages in temporary directories only.

@@ -595,6 +595,259 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List shadow invoices
+         * @description Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listInvoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one shadow invoice with separate state and declared amount evidence
+         * @description Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getInvoice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an invoice's lines (issuance snapshots)
+         * @description Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listInvoiceItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/stages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an invoice's payment stages
+         * @description Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listInvoiceStages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/totals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Per-unit total evidence of an invoice (no canonical total)
+         * @description Requires billing.invoice.read and payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Declared totals, item sum, stage sum and accepted-attempt sum are compared per unit; no winner is chosen (TAD #19).
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getInvoiceTotals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an invoice's payment attempts
+         * @description Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listInvoicePaymentAttempts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an invoice's receipt reference metadata
+         * @description Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listInvoiceReceipts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List shadow payment attempts
+         * @description Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listPaymentAttempts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one shadow payment attempt
+         * @description Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getPaymentAttempt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/attempts/{attempt_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an attempt's append-only observed state changes
+         * @description Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listPaymentAttemptHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/receipts/{receipt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one receipt reference (metadata only)
+         * @description Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getReceiptReference"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/reconciliation-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Billing and payments coverage report (F02 honest label)
+         * @description Requires billing.reconciliation.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getBillingReconciliationReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -741,6 +994,8 @@ export interface components {
                 customers_identity: boolean;
                 /** @description Slice 6 sales read shadow (flag sales.read_shadow). */
                 sales_read: boolean;
+                /** @description Slice 7 billing + payments read shadow (flag billing_payments.read_shadow). */
+                billing_read: boolean;
             };
         };
         SessionEnvelope: {
@@ -1025,7 +1280,7 @@ export interface components {
          * @description Slice 4 read capability vocabulary (<module>.<object>.<action>).
          * @enum {string}
          */
-        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read";
+        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read";
         AccessDecision: {
             capability: components["schemas"]["Capability"];
             allowed: boolean;
@@ -1507,6 +1762,392 @@ export interface components {
             data?: components["schemas"]["CustodyParityReport"];
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
+        /**
+         * @description Always UNKNOWN in Slice 7 — no canonical invoice lifecycle is claimed (TAD
+         * @enum {string}
+         */
+        InvoiceLifecycle: "UNKNOWN";
+        /** @description An explicit link to another module's aggregate (never phone-derived). */
+        BillingLink: {
+            /** Format: uuid */
+            id: string | null;
+            state: components["schemas"]["ResolutionState"];
+            basis: string;
+        };
+        BillingSource: {
+            source_system: string;
+            source_spec: string;
+            source_key: components["schemas"]["LegacyKey"];
+            first_batch_id: components["schemas"]["NativeID"];
+            last_batch_id: components["schemas"]["NativeID"];
+            presence: components["schemas"]["Presence"];
+            first_seen_at: components["schemas"]["Timestamp"];
+            last_seen_at: components["schemas"]["Timestamp"];
+        };
+        InvoiceSummary: {
+            invoice_id: components["schemas"]["NativeID"];
+            code_raw: components["schemas"]["RawText"];
+            lifecycle_state: components["schemas"]["InvoiceLifecycle"];
+            customer: components["schemas"]["BillingLink"];
+            case: components["schemas"]["BillingLink"];
+            seller?: components["schemas"]["UserRef"];
+            issued_by?: components["schemas"]["UserRef"];
+            items_source_complete: boolean;
+            stages_source_complete: boolean;
+            /** Format: int64 */
+            item_count: number;
+            /** Format: int64 */
+            stage_count: number;
+            /** Format: int64 */
+            unknown_state_count: number;
+            issued_at_raw: components["schemas"]["RawText"];
+            source: components["schemas"]["BillingSource"];
+        };
+        InvoiceListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["InvoiceSummary"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description Legacy invoice status field the evidence comes from (each field is kept separately).
+         * @enum {string}
+         */
+        InvoiceStateField: "MAIN" | "INVOICE" | "PAYMENT" | "WORKFLOW" | "RETURN" | "LEGACY_DISPLAY";
+        /**
+         * @description Membership of the raw value in the evidenced vocabulary of its field. There is no target mapping:
+         *     the canonical invoice status resolver is deferred (TAD #20). LEGACY_DERIVED marks the legacy display
+         *     fallback expression, shown as evidence only.
+         * @enum {string}
+         */
+        InvoiceVocabulary: "KNOWN_VOCABULARY" | "UNKNOWN" | "EMPTY" | "LEGACY_DERIVED";
+        InvoiceStateEvidence: {
+            field: components["schemas"]["InvoiceStateField"];
+            namespace: string;
+            raw: components["schemas"]["RawText"];
+            mapping: components["schemas"]["InvoiceVocabulary"];
+        };
+        /**
+         * @description REPRESENTABLE = exact int64 in the unit; UNREPRESENTABLE = raw kept (fraction, malformed, overflow); ABSENT = no value (never zero).
+         * @enum {string}
+         */
+        AmountRepresentation: "REPRESENTABLE" | "UNREPRESENTABLE" | "ABSENT";
+        /** @description Raw legacy decimal text beside the exact money it represents (absent money = not representable; never zero). */
+        BillingAmount: {
+            raw: components["schemas"]["RawText"];
+            representation: components["schemas"]["AmountRepresentation"];
+            money?: components["schemas"]["Money"];
+        };
+        InvoiceDeclaredAmount: {
+            kind: string;
+            amount: components["schemas"]["BillingAmount"];
+        };
+        InvoiceDetail: {
+            invoice: components["schemas"]["InvoiceSummary"];
+            product_ref_raw: components["schemas"]["RawText"];
+            pay_method_raw: components["schemas"]["RawText"];
+            payment_plan_raw: components["schemas"]["RawText"];
+            current_stage_raw: components["schemas"]["RawText"];
+            updated_at_raw: components["schemas"]["RawText"];
+            states: components["schemas"]["InvoiceStateEvidence"][];
+            declared: components["schemas"]["InvoiceDeclaredAmount"][];
+        };
+        InvoiceEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["InvoiceDetail"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        InvoiceLine: {
+            item_id: components["schemas"]["NativeID"];
+            product_ref_raw: components["schemas"]["RawText"];
+            /** @description Product title SNAPSHOT at issuance (historical truth, not the live catalog). */
+            title_snapshot: string | null;
+            kind_raw: components["schemas"]["RawText"];
+            qty_raw: components["schemas"]["RawText"];
+            unit_price: components["schemas"]["BillingAmount"];
+            line_total: components["schemas"]["BillingAmount"];
+            is_free_raw: components["schemas"]["RawText"];
+            created_at_raw: components["schemas"]["RawText"];
+            source: components["schemas"]["BillingSource"];
+        };
+        InvoiceLineListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["InvoiceLine"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description MAPPED = raw value explicitly mapped from a verified writer; UNKNOWN = raw kept, no target; EMPTY = no raw value.
+         * @enum {string}
+         */
+        TargetMapping: "MAPPED" | "UNKNOWN" | "EMPTY";
+        PaymentStage: {
+            stage_id: components["schemas"]["NativeID"];
+            stage_no_raw: components["schemas"]["RawText"];
+            stage_type_raw: components["schemas"]["RawText"];
+            requested: components["schemas"]["BillingAmount"];
+            state_namespace: string;
+            state_raw: components["schemas"]["RawText"];
+            state_mapping: components["schemas"]["TargetMapping"];
+            /** @enum {string|null} */
+            state: "PENDING" | "AWAITING_REVIEW" | "ACCEPTED" | "REJECTED" | "CANCELLED" | null;
+            pay_method_raw: components["schemas"]["RawText"];
+            payment_source_raw: components["schemas"]["RawText"];
+            issued_by?: components["schemas"]["UserRef"];
+            approved_by?: components["schemas"]["UserRef"];
+            approved_at_raw: components["schemas"]["RawText"];
+            paid_at_raw: components["schemas"]["RawText"];
+            created_at_raw: components["schemas"]["RawText"];
+            source: components["schemas"]["BillingSource"];
+        };
+        PaymentStageListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["PaymentStage"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description COMPLETE, INCOMPLETE (some contribution unknown), NONE (no contribution; not zero), OVERFLOW (no value claimed).
+         * @enum {string}
+         */
+        SumState: "COMPLETE" | "INCOMPLETE" | "NONE" | "OVERFLOW";
+        BillingSum: {
+            state: components["schemas"]["SumState"];
+            rows: number;
+            money?: components["schemas"]["Money"];
+        };
+        /**
+         * @description Agreement of the total evidence of one invoice in one unit. MATCH / MISMATCH compare declared and computed
+         *     values; INCOMPLETE when any evidence is incomplete; CONFLICT when declared totals disagree; UNKNOWN when
+         *     nothing corroborates. No winner is chosen.
+         * @enum {string}
+         */
+        TotalClass: "MATCH" | "MISMATCH" | "UNKNOWN" | "INCOMPLETE" | "CONFLICT";
+        /** @description Total evidence of one invoice in ONE unit (units are never combined; UNATTRIBUTED = no unit could be attributed). */
+        InvoiceUnitTotals: {
+            /** @enum {string} */
+            unit: "IRR" | "IRT" | "UNATTRIBUTED";
+            declared: {
+                kind: string;
+                money: components["schemas"]["Money"];
+            }[];
+            item_sum: components["schemas"]["BillingSum"];
+            stage_sum: components["schemas"]["BillingSum"];
+            payment_sum: components["schemas"]["BillingSum"];
+            class: components["schemas"]["TotalClass"];
+        };
+        InvoiceTotals: {
+            invoice_id: components["schemas"]["NativeID"];
+            compared_declared: string[];
+            payment_evidence_complete: boolean;
+            /** Format: int64 */
+            unclassified_attempts: number;
+            units: components["schemas"]["InvoiceUnitTotals"][];
+        };
+        InvoiceTotalsEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["InvoiceTotals"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @enum {string} */
+        PaymentChannel: "GATEWAY" | "MANUAL_CARD" | "UNKNOWN";
+        /**
+         * @description Who/what accepted the attempt, as evidenced. GATEWAY_AUTO is the legacy gateway auto-approval and is
+         *     never a Finance review (D-25 open). LEGACY_MANUAL_APPROVAL is the legacy manual approval path.
+         * @enum {string}
+         */
+        ApprovalProvenance: "GATEWAY_AUTO" | "LEGACY_MANUAL_APPROVAL" | "NOT_APPROVED" | "UNKNOWN";
+        /** @description Gateway evidence of an attempt. References are never exposed (only whether a hashed one exists). */
+        GatewayEvidence: {
+            provider_raw: components["schemas"]["RawText"];
+            has_authority_reference: boolean;
+            has_gateway_reference: boolean;
+            state_raw: components["schemas"]["RawText"];
+            state_mapping: components["schemas"]["TargetMapping"];
+            /** @enum {string|null} */
+            state: "INITIATED" | "VERIFIED" | "CANCELLED_AT_GATEWAY" | null;
+        };
+        PaymentAttempt: {
+            attempt_id: components["schemas"]["NativeID"];
+            /** Format: uuid */
+            invoice_id: string | null;
+            /** @enum {string} */
+            invoice_link_state: "RESOLVED" | "UNKNOWN";
+            stage_no_raw: components["schemas"]["RawText"];
+            channel: components["schemas"]["PaymentChannel"];
+            pay_method_raw: components["schemas"]["RawText"];
+            payment_source_raw: components["schemas"]["RawText"];
+            amount: components["schemas"]["BillingAmount"];
+            state_namespace: string;
+            state_raw: components["schemas"]["RawText"];
+            state_mapping: components["schemas"]["TargetMapping"];
+            /** @enum {string|null} */
+            state: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "RECONCILIATION_REQUIRED" | null;
+            approval_provenance: components["schemas"]["ApprovalProvenance"];
+            uploaded_by_type_raw: components["schemas"]["RawText"];
+            uploaded_by?: components["schemas"]["UserRef"];
+            created_at_raw: components["schemas"]["RawText"];
+            updated_at_raw: components["schemas"]["RawText"];
+            /** Format: int64 */
+            version: number;
+            gateway?: components["schemas"]["GatewayEvidence"];
+            source: components["schemas"]["BillingSource"];
+        };
+        PaymentAttemptListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["PaymentAttempt"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description REFERENCE_ONLY = a reference exists (no file was checked); never AVAILABLE in Slice 7.
+         * @enum {string}
+         */
+        ReceiptState: "REFERENCE_ONLY" | "AVAILABLE" | "MISSING" | "NOT_RECOVERABLE" | "UNKNOWN";
+        /** @description Receipt reference metadata only — never a URL, path or file. */
+        ReceiptReference: {
+            receipt_id: components["schemas"]["NativeID"];
+            /** Format: uuid */
+            invoice_id: string | null;
+            /** @enum {string} */
+            owner_kind: "STAGE" | "INVOICE";
+            stage_no_raw: components["schemas"]["RawText"];
+            ref_index: number;
+            has_reference: boolean;
+            host: string | null;
+            extension: string | null;
+            state: components["schemas"]["ReceiptState"];
+            source: components["schemas"]["BillingSource"];
+        };
+        ReceiptReferenceListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["ReceiptReference"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description Payment ATTEMPT state (only when explicitly mapped). ACCEPTED is not Finance-reviewed, settled or posted.
+         * @enum {string}
+         */
+        AttemptState: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "RECONCILIATION_REQUIRED";
+        PaymentAttemptEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["PaymentAttempt"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        AttemptHistoryEntry: {
+            history_id: components["schemas"]["NativeID"];
+            old_state_raw: components["schemas"]["RawText"];
+            new_state_raw: components["schemas"]["RawText"];
+            /** @description True when an attempt that was ACCEPTED is no longer ACCEPTED. */
+            regression: boolean;
+            batch_id: components["schemas"]["NativeID"];
+            recorded_at: components["schemas"]["Timestamp"];
+        };
+        AttemptHistoryListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["AttemptHistoryEntry"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        ReceiptReferenceEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["ReceiptReference"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        BillingCoverage: {
+            /** Format: int64 */
+            invoices_present: number;
+            /** Format: int64 */
+            items_present: number;
+            /** Format: int64 */
+            stages_present: number;
+            /** Format: int64 */
+            invoices_without_items: number;
+            /** Format: int64 */
+            invoices_without_stages: number;
+            invoice_state_vocabulary_by_field: {
+                [key: string]: components["schemas"]["CountMap"];
+            };
+            unknown_raw_states: {
+                [key: string]: components["schemas"]["CountMap"];
+            };
+            stage_state_mapping: components["schemas"]["CountMap"];
+            unknown_stage_raw_states: components["schemas"]["CountMap"];
+            customer_link_states: components["schemas"]["CountMap"];
+            case_link_states: components["schemas"]["CountMap"];
+            /** Format: int64 */
+            unrepresentable_amounts: number;
+            /**
+             * Format: int64
+             * @description Raw evidence only (a raw 'pre_invoice' value in any status field); NOT the F02 metric.
+             */
+            invoices_with_raw_pre_invoice_value: number;
+        };
+        PaymentsCoverage: {
+            /** Format: int64 */
+            attempts_present: number;
+            attempts_by_channel: components["schemas"]["CountMap"];
+            attempt_state_mapping: components["schemas"]["CountMap"];
+            attempt_states: components["schemas"]["CountMap"];
+            unknown_raw_attempt_states: components["schemas"]["CountMap"];
+            /**
+             * Format: int64
+             * @description Attempts whose raw legacy status is 'approved' (not Finance-reviewed, settled or posted).
+             */
+            approved_raw_count: number;
+            /** Format: int64 */
+            reconcile_error_raw_count: number;
+            approval_provenance: components["schemas"]["CountMap"];
+            /** Format: int64 */
+            gateway_attempts: number;
+            gateway_states: components["schemas"]["CountMap"];
+            /** Format: int64 */
+            attempts_without_invoice: number;
+            /** Format: int64 */
+            unrepresentable_amounts: number;
+            /** Format: int64 */
+            attempt_state_regressions: number;
+            /** Format: int64 */
+            receipts_referenced: number;
+            /** Format: int64 */
+            receipts_unknown: number;
+            /** Format: int64 */
+            receipts_missing: number;
+        };
+        BillingReconciliationReport: {
+            billing: components["schemas"]["BillingCoverage"];
+            payments: components["schemas"]["PaymentsCoverage"];
+            f02: components["schemas"]["HonestMetric"];
+            notes: string[];
+        };
+        BillingReconciliationReportEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["BillingReconciliationReport"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
     };
     responses: {
         /** @description RFC 9457 problem details (transport, contract or server error). */
@@ -1584,6 +2225,17 @@ export interface components {
         CaseID: components["schemas"]["NativeID"];
         Parity: components["schemas"]["Parity"];
         Derivation: components["schemas"]["Derivation"];
+        CaseLinkState: components["schemas"]["ResolutionState"];
+        /** @description Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state. */
+        HasUnknownStatus: boolean;
+        InvoiceID: components["schemas"]["NativeID"];
+        PaymentChannel: components["schemas"]["PaymentChannel"];
+        TargetMapping: components["schemas"]["TargetMapping"];
+        AttemptState: components["schemas"]["AttemptState"];
+        ApprovalProvenance: components["schemas"]["ApprovalProvenance"];
+        InvoiceLinkState: "RESOLVED" | "UNKNOWN";
+        AttemptID: components["schemas"]["NativeID"];
+        ReceiptID: components["schemas"]["NativeID"];
     };
     requestBodies: never;
     headers: {
@@ -2390,6 +3042,360 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustodyParityReportEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listInvoices: {
+        parameters: {
+            query?: {
+                presence?: components["parameters"]["Presence"];
+                customer_link_state?: components["parameters"]["CustomerLinkState"];
+                case_link_state?: components["parameters"]["CaseLinkState"];
+                /** @description Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state. */
+                has_unknown_status?: components["parameters"]["HasUnknownStatus"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listInvoiceItems: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                invoice_id: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceLineListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listInvoiceStages: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                invoice_id: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentStageListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInvoiceTotals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceTotalsEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listInvoicePaymentAttempts: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                invoice_id: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentAttemptListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listInvoiceReceipts: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                invoice_id: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptReferenceListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPaymentAttempts: {
+        parameters: {
+            query?: {
+                channel?: components["parameters"]["PaymentChannel"];
+                state_mapping?: components["parameters"]["TargetMapping"];
+                state?: components["parameters"]["AttemptState"];
+                approval_provenance?: components["parameters"]["ApprovalProvenance"];
+                presence?: components["parameters"]["Presence"];
+                invoice_link_state?: components["parameters"]["InvoiceLinkState"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentAttemptListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPaymentAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: components["parameters"]["AttemptID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentAttemptEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPaymentAttemptHistory: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                attempt_id: components["parameters"]["AttemptID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptHistoryListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getReceiptReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: components["parameters"]["ReceiptID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptReferenceEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getBillingReconciliationReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingReconciliationReportEnvelope"];
                 };
             };
             400: components["responses"]["Problem"];

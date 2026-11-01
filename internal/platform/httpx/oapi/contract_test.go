@@ -243,6 +243,8 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 	// Slice 2 technical surface + Slice 4 read-only identity/organization/authorization surface
 	// + Slice 5 read-only customer identity surface (no merge/resolve/write path).
 	want := []string{"/api/v1/authorization/effective-access",
+		// Slice 7 billing + payments read shadow: GET only, no action path.
+		"/api/v1/billing/reconciliation-report",
 		// Slice 6 sales read shadow: GET only, no action path.
 		"/api/v1/cases", "/api/v1/cases/{case_id}", "/api/v1/cases/{case_id}/attribution", "/api/v1/cases/{case_id}/history",
 		"/api/v1/custody/assignments", "/api/v1/custody/cases/{case_id}",
@@ -250,9 +252,13 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		"/api/v1/customer-identity/resolution-report", "/api/v1/customers", "/api/v1/customers/{customer_id}",
 		"/api/v1/customers/{customer_id}/contact-points", "/api/v1/customers/{customer_id}/evidence",
 		"/api/v1/identity/users", "/api/v1/identity/users/{user_id}",
+		"/api/v1/invoices", "/api/v1/invoices/{invoice_id}", "/api/v1/invoices/{invoice_id}/items", "/api/v1/invoices/{invoice_id}/payments",
+		"/api/v1/invoices/{invoice_id}/receipts", "/api/v1/invoices/{invoice_id}/stages", "/api/v1/invoices/{invoice_id}/totals",
 		"/api/v1/organization/assignments", "/api/v1/organization/hierarchy-findings", "/api/v1/organization/levels",
 		"/api/v1/organization/org-units", "/api/v1/organization/persons", "/api/v1/organization/persons/{person_id}",
-		"/api/v1/organization/positions", "/api/v1/sales/coverage-report", "/api/v1/sales/custody-parity",
+		"/api/v1/organization/positions",
+		"/api/v1/payments/attempts", "/api/v1/payments/attempts/{attempt_id}", "/api/v1/payments/attempts/{attempt_id}/history",
+		"/api/v1/payments/receipts/{receipt_id}", "/api/v1/sales/coverage-report", "/api/v1/sales/custody-parity",
 		"/api/v1/session", "/health/live", "/health/ready"}
 	if strings.Join(paths, ",") != strings.Join(want, ",") {
 		t.Fatalf("paths = %v", paths)

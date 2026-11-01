@@ -273,7 +273,7 @@ SessionContext:
       description: |
         Server feature switches for navigation only (Slice 4 rollback is
         flag-off). Never authority: every read is evaluated by the server.
-      required: [hr_read, customers_identity, sales_read]
+      required: [hr_read, customers_identity, sales_read, billing_read]
       additionalProperties: false
       properties:
         hr_read:
@@ -284,6 +284,9 @@ SessionContext:
         sales_read:
           type: boolean
           description: Slice 6 sales read shadow (flag sales.read_shadow).
+        billing_read:
+          type: boolean
+          description: Slice 7 billing + payments read shadow (flag billing_payments.read_shadow).
 
 SessionEnvelope:
   type: object

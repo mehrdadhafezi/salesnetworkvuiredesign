@@ -40,6 +40,8 @@ tags:
     description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
   - name: sales
     description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
+  - name: billing
+    description: Slice 7 billing + payments read shadow — invoices, lines, stages, attempts, receipt references (read only; no actions).
 paths:
   /health/live:
     get:
@@ -843,6 +845,357 @@ paths:
             application/json:
               schema:
                 $ref: './components/sales.yaml#/CustodyParityReportEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/invoices:
+    get:
+      tags: [billing]
+      operationId: listInvoices
+      summary: List shadow invoices
+      description: |
+        Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/CustomerLinkState'
+        - $ref: './components/parameters.yaml#/CaseLinkState'
+        - $ref: './components/parameters.yaml#/HasUnknownStatus'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/InvoiceListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/invoices/{invoice_id}:
+    get:
+      tags: [billing]
+      operationId: getInvoice
+      summary: Get one shadow invoice with separate state and declared amount evidence
+      description: |
+        Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/InvoiceID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/InvoiceEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/invoices/{invoice_id}/items:
+    get:
+      tags: [billing]
+      operationId: listInvoiceItems
+      summary: List an invoice's lines (issuance snapshots)
+      description: |
+        Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/InvoiceID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/InvoiceLineListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/invoices/{invoice_id}/stages:
+    get:
+      tags: [billing]
+      operationId: listInvoiceStages
+      summary: List an invoice's payment stages
+      description: |
+        Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/InvoiceID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/PaymentStageListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/invoices/{invoice_id}/totals:
+    get:
+      tags: [billing]
+      operationId: getInvoiceTotals
+      summary: Per-unit total evidence of an invoice (no canonical total)
+      description: |
+        Requires billing.invoice.read and payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Declared totals, item sum, stage sum and accepted-attempt sum are compared per unit; no winner is chosen (TAD #19).
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/InvoiceID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/InvoiceTotalsEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/invoices/{invoice_id}/payments:
+    get:
+      tags: [billing]
+      operationId: listInvoicePaymentAttempts
+      summary: List an invoice's payment attempts
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/InvoiceID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/PaymentAttemptListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/invoices/{invoice_id}/receipts:
+    get:
+      tags: [billing]
+      operationId: listInvoiceReceipts
+      summary: List an invoice's receipt reference metadata
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/InvoiceID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/ReceiptReferenceListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/payments/attempts:
+    get:
+      tags: [billing]
+      operationId: listPaymentAttempts
+      summary: List shadow payment attempts
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/PaymentChannel'
+        - $ref: './components/parameters.yaml#/TargetMapping'
+        - $ref: './components/parameters.yaml#/AttemptState'
+        - $ref: './components/parameters.yaml#/ApprovalProvenance'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/InvoiceLinkState'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/PaymentAttemptListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/payments/attempts/{attempt_id}:
+    get:
+      tags: [billing]
+      operationId: getPaymentAttempt
+      summary: Get one shadow payment attempt
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/AttemptID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/PaymentAttemptEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/payments/attempts/{attempt_id}/history:
+    get:
+      tags: [billing]
+      operationId: listPaymentAttemptHistory
+      summary: List an attempt's append-only observed state changes
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/AttemptID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/AttemptHistoryListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/payments/receipts/{receipt_id}:
+    get:
+      tags: [billing]
+      operationId: getReceiptReference
+      summary: Get one receipt reference (metadata only)
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/ReceiptID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/ReceiptReferenceEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/billing/reconciliation-report:
+    get:
+      tags: [billing]
+      operationId: getBillingReconciliationReport
+      summary: Billing and payments coverage report (F02 honest label)
+      description: |
+        Requires billing.reconciliation.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/billing.yaml#/BillingReconciliationReportEnvelope'
         '400':
           $ref: './components/responses.yaml#/Problem'
         '403':

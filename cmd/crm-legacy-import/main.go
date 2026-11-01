@@ -12,6 +12,8 @@
 //	crm-legacy-import import-identity <snapshot-id>          Slice 4: staging → identity shadow model
 //	crm-legacy-import import-organization <snapshot-id>      Slice 4: staging → organization shadow model
 //	crm-legacy-import reconcile-identity-org <snapshot-id>   Slice 4: counts, hierarchy findings, capability diff (read-only)
+//	crm-legacy-import import-billing <snapshot-id>           Slice 7: staging → billing, then payments (separate transactions)
+//	crm-legacy-import reconcile-billing <snapshot-id>        Slice 7: per-row provenance, totals and state evidence (read-only)
 //
 // load and reconcile need CRM_STAGING_DATABASE_URL: a login dedicated to the
 // integration owner role (the platform runner refuses any other). It must
@@ -60,6 +62,9 @@ const (
 	// EnvCasesURL / EnvCustodyURL are the Slice 6 module DSNs.
 	EnvCasesURL   = "CRM_CASES_DATABASE_URL"
 	EnvCustodyURL = "CRM_CUSTODY_DATABASE_URL"
+	// EnvBillingURL / EnvPaymentsURL are the Slice 7 module DSNs.
+	EnvBillingURL  = "CRM_BILLING_DATABASE_URL"
+	EnvPaymentsURL = "CRM_PAYMENTS_DATABASE_URL"
 )
 
 // ToolVersion is recorded on every batch.
@@ -78,9 +83,12 @@ const usage = `usage:
   crm-legacy-import reconcile-customers <snapshot-id>
   crm-legacy-import import-sales <snapshot-id>
   crm-legacy-import reconcile-sales <snapshot-id>
+  crm-legacy-import import-billing <snapshot-id>
+  crm-legacy-import reconcile-billing <snapshot-id>
 (` + EnvStagingURL + `; Slice 4 also ` + EnvIdentityURL + ` and ` + EnvOrganizationURL + `;
  Slice 5 also ` + EnvCustomersURL + `;
- Slice 6 also ` + EnvCasesURL + ` and ` + EnvCustodyURL + `)`
+ Slice 6 also ` + EnvCasesURL + ` and ` + EnvCustodyURL + `;
+ Slice 7 also ` + EnvBillingURL + ` and ` + EnvPaymentsURL + `, with identity, customers and cases for references)`
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -144,7 +152,8 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 			}
 			return code
 		})
-	case "import-identity", "import-organization", "reconcile-identity-org", "import-customers", "reconcile-customers", "import-sales", "reconcile-sales":
+	case "import-identity", "import-organization", "reconcile-identity-org", "import-customers", "reconcile-customers", "import-sales", "reconcile-sales",
+		"import-billing", "reconcile-billing":
 		if len(rest) != 1 {
 			break
 		}

@@ -1,0 +1,21 @@
+/* Billing + payments read surfaces (Slice 7). Layout only, SN-207 tokens. */
+.bi-note{margin:0 0 12px}
+.bi-kv{display:grid;grid-template-columns:minmax(140px,max-content) 1fr;gap:6px 16px;margin:0}
+.bi-kv dt{color:var(--text-2)}
+.bi-kv dd{margin:0}
+.bi-ltr{direction:ltr;unicode-bidi:isolate}
+.bi-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--gap);align-items:end}
+.bi-table-wrap{overflow-x:auto}
+.bi-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.bi-table th,.bi-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.bi-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.bi-pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.bi-sections{display:grid;gap:12px}
+.bi-states{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--gap)}
+.bi-state{border:1px solid var(--border);border-radius:8px;padding:10px}
+.bi-state h3{font-size:var(--fs);margin:0 0 6px}
+.bi-units{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--gap)}
+.bi-unit{border:1px solid var(--border);border-radius:8px;padding:10px}
+.bi-unit h3{font-size:var(--fs);margin:0 0 6px}
+.bi-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+@media (max-width:760px){.bi-filters{grid-template-columns:1fr}.bi-kv{grid-template-columns:1fr}}

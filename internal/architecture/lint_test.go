@@ -62,12 +62,14 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RulePgtestImport:     2,  // pgtest from platform/bad; legacytest from the import tool
 		RuleForeignStore:     3,  // sales imports billing/store; authorization imports organization/store; connector imports customers/store
 		RuleLegacyImport:     3,  // sales, crm-api and crm-migrate (non-migrations) import the connector
-		RuleModuleBoundary:   10, // + custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
-		RuleForeignWrite:     3,  // connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*
+		RuleModuleBoundary:   12, // + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
+		RuleForeignWrite:     4,  // connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*
 		RuleReadPathImport:   4,  // organization/http, customers/http, cases/http and crm-api import an import command
 		RuleMergePath:        2,  // customers MergeCustomers, canonicalizeByPhone
-		RuleAppendOnlyWrite:  1,  // custody UPDATE custody.custody_event
-		RulePhoneKey:         1,  // custody customer_phone join
+		RuleAppendOnlyWrite:  2,  // custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history
+		RulePhoneKey:         2,  // custody and payments customer_phone joins
+		RuleStatusFallback:   2,  // billing COALESCE status chain and resolveMainStatus
+		RuleUnitConversion:   2,  // payments toRial and toman * 10
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -407,6 +409,53 @@ func TestAPIServerHasNoImportDependency(t *testing.T) {
 		}
 		if strings.HasSuffix(p, "/imports") || strings.HasSuffix(p, "/migrations") {
 			t.Errorf("crm-api depends on %s", p)
+		}
+	}
+}
+
+func TestSliceSevenRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct {
+		file, rule string
+		n          int
+	}{
+		{"internal/payments/bad.go", RuleModuleBoundary, 1},
+		{"internal/payments/bad.go", RuleAppendOnlyWrite, 1},
+		{"internal/payments/bad.go", RuleForeignWrite, 1},
+		{"internal/payments/bad.go", RulePhoneKey, 1},
+		{"internal/payments/bad.go", RuleUnitConversion, 2},
+		{"internal/billing/query/status.go", RuleStatusFallback, 2},
+		{"internal/billing/query/status.go", RuleModuleBoundary, 1},
+	}
+	for _, w := range want {
+		n := 0
+		for _, v := range vs {
+			if v.File == w.file && v.Rule == w.rule {
+				n++
+			}
+		}
+		if n != w.n {
+			t.Errorf("rule %s fired %d times in %s, want %d", w.rule, n, w.file, w.n)
+		}
+	}
+	allowed, err := Check(filepath.Join("testdata", "allowed"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range allowed {
+		t.Errorf("allowed fixture flagged: %s", v)
+	}
+	for _, name := range []string{"resolveMainStatus", "CanonicalInvoiceStatus", "effectiveStatus", "deriveInvoiceStatus", "mainStatusFallback"} {
+		if !statusResolver.MatchString(name) {
+			t.Errorf("%s not detected", name)
+		}
+	}
+	for _, name := range []string{"stageState", "StateRaw", "legacyDisplayStatus", "StatusPill", "InvoiceStateField", "statusLabel"} {
+		if statusResolver.MatchString(name) {
+			t.Errorf("%s falsely detected", name)
 		}
 	}
 }
