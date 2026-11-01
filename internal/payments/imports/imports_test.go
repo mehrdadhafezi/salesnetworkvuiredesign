@@ -35,7 +35,10 @@ const (
 
 // billingStub is the published billing read surface; invoice key 3 is
 // unknown to billing.
-type billingStub struct{ calls int }
+type billingStub struct {
+	calls int
+	extra map[string]string // invoice keys resolved later
+}
 
 func (b *billingStub) ResolveInvoices(_ context.Context, _, spec string, keys []string) (map[string]billingapi.SourceInvoice, error) {
 	b.calls++
@@ -46,6 +49,8 @@ func (b *billingStub) ResolveInvoices(_ context.Context, _, spec string, keys []
 			out[k] = billingapi.SourceInvoice{InvoiceID: inv1, Present: true}
 		case spec == invSpec && k == "2":
 			out[k] = billingapi.SourceInvoice{InvoiceID: inv2, Present: true}
+		case spec == invSpec && b.extra[k] != "":
+			out[k] = billingapi.SourceInvoice{InvoiceID: b.extra[k], Present: true}
 		}
 	}
 	return out, nil
@@ -61,9 +66,10 @@ func (b *billingStub) Coverage(context.Context) (billingapi.Coverage, error) {
 
 type env struct {
 	*pgtest.Env
-	admin *pgx.Conn
-	cmd   *imports.Command
-	q     *query.Service
+	admin   *pgx.Conn
+	cmd     *imports.Command
+	q       *query.Service
+	billing *billingStub
 }
 
 func setup(t *testing.T) *env {
@@ -80,7 +86,8 @@ func setup(t *testing.T) *env {
 	t.Cleanup(func() { admin.Close(context.Background()) })
 	at, _ := timeutil.ParseRFC3339("2026-10-31T09:00:00Z")
 	r := e.Runner(t, payments.Module)
-	return &env{Env: e, admin: admin, cmd: imports.New(r, &billingStub{}, timeutil.FixedClock{At: at}), q: query.New(r)}
+	stub := &billingStub{extra: map[string]string{}}
+	return &env{Env: e, admin: admin, cmd: imports.New(r, stub, timeutil.FixedClock{At: at}), q: query.New(r), billing: stub}
 }
 
 func (e *env) count(t *testing.T, q string, args ...any) int64 {
@@ -333,4 +340,37 @@ func TestPagination(t *testing.T) {
 
 func (b *billingStub) TotalClasses(context.Context, []string, map[string]billingapi.PaymentEvidence) (map[string]map[string]string, error) {
 	return nil, nil
+}
+
+// Projections refresh independently of the source checksum: an attempt
+// whose invoice is imported later gains its link on replay, and a receipt
+// whose stage moved to another invoice follows it with the same reference.
+func TestReplayRefreshesLinksAndReceiptOwnership(t *testing.T) {
+	e := setup(t)
+	e.run(t, base(b1))
+	if e.count(t, `SELECT count(*) FROM payments.payment_attempt WHERE source_key = '6' AND invoice_link_state = 'UNKNOWN'`) != 1 {
+		t.Fatal("precondition: attempt 6 unresolved")
+	}
+	inv3 := "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3"
+	e.billing.extra["3"] = inv3
+	in := base(b1)
+	in.Receipts[0].Invoice = api.RowRef{Spec: invSpec, Key: "2"}
+	in.Receipts[0].StageNoRaw = str("2")
+	r := e.run(t, in)
+	if r.Counts["attempts_refreshed"] != 1 || r.Counts["receipts_refreshed"] != 1 || r.Outcome != result.Success {
+		t.Fatalf("refresh: %+v", r)
+	}
+	if e.count(t, `SELECT count(*) FROM payments.payment_attempt WHERE source_key = '6' AND invoice_id = $1 AND invoice_link_state = 'RESOLVED'`, inv3) != 1 {
+		t.Fatal("attempt link must be repaired on replay")
+	}
+	if e.count(t, `SELECT count(*) FROM payments.receipt WHERE ref_index = 0 AND invoice_id = $1 AND stage_no_raw = '2'`, inv2) != 1 {
+		t.Fatal("receipt ownership must follow the source row")
+	}
+	if e.count(t, `SELECT count(*) FROM payments.attempt_state_history`) != 0 {
+		t.Fatal("a link refresh is not a state change")
+	}
+	fp := e.fingerprint(t)
+	if r := e.run(t, in); !r.Replay || e.fingerprint(t) != fp {
+		t.Fatalf("second replay must change nothing: %+v", r)
+	}
 }

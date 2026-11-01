@@ -127,6 +127,25 @@ func upsert(ctx context.Context, tx db.Tx, t table, src api.SourceRef, cols map[
 		_, err = tx.Exec(ctx, `UPDATE `+t.name+` SET `+strings.Join(sets, ", ")+` WHERE `+t.id+` = $1`, args...)
 		return id, Refreshed, err
 	}
+	// Unchanged source row: raw columns are equal by checksum, so any column
+	// that differs is an externally resolved projection (customer/case link,
+	// identity user id) resolved since the last import. Refresh it in place;
+	// a replay with nothing newly resolved changes nothing.
+	sets := []string{"last_batch_id = $2", "last_seen_at = $3", "presence = 'PRESENT'"}
+	var diffs []string
+	args := []any{id, src.BatchID, now}
+	for _, n := range names {
+		args = append(args, cols[n])
+		sets = append(sets, fmt.Sprintf("%s = $%d", n, len(args)))
+		diffs = append(diffs, fmt.Sprintf("%s IS DISTINCT FROM $%d", n, len(args)))
+	}
+	tag, err := tx.Exec(ctx, `UPDATE `+t.name+` SET `+strings.Join(sets, ", ")+` WHERE `+t.id+` = $1 AND (`+strings.Join(diffs, " OR ")+`)`, args...)
+	if err != nil {
+		return "", "", err
+	}
+	if tag.RowsAffected() > 0 {
+		return id, Refreshed, nil
+	}
 	if _, err := tx.Exec(ctx, `UPDATE `+t.name+` SET last_batch_id = $2, last_seen_at = $3, presence = 'PRESENT' WHERE `+t.id+` = $1
 		AND (last_batch_id, presence) IS DISTINCT FROM ($2::uuid, 'PRESENT')`, id, src.BatchID, now); err != nil {
 		return "", "", err

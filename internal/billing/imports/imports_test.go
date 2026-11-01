@@ -391,3 +391,25 @@ func TestPaginationBeyondPageSize(t *testing.T) {
 }
 
 func timeNow() time.Time { return time.Date(2026, 10, 31, 9, 0, 0, 0, time.UTC) }
+
+// A link resolved after the first import (customers/cases imported later)
+// is refreshed by a replay even though the source row is unchanged.
+func TestReplayRefreshesResolvedLinks(t *testing.T) {
+	e := setup(t)
+	e.run(t, base(b1))
+	in := base(b1)
+	cust, cs := "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+	in.Invoices[0].Customer = api.Link{ID: &cust, State: "RESOLVED", Basis: "subject customer"}
+	in.Invoices[0].Case = api.Link{ID: &cs, State: "RESOLVED", Basis: "lead case"}
+	r := e.run(t, in)
+	if r.Replay || r.Counts["invoices_refreshed"] != 1 {
+		t.Fatalf("link refresh: %+v", r)
+	}
+	if e.count(t, `SELECT count(*) FROM billing.invoice WHERE source_key = '1' AND customer_id = $1 AND case_id = $2 AND customer_link_state = 'RESOLVED' AND version = 2`, cust, cs) != 1 {
+		t.Fatal("resolved links must be refreshed on an unchanged row")
+	}
+	fp := e.fingerprint(t)
+	if r := e.run(t, in); !r.Replay || e.fingerprint(t) != fp {
+		t.Fatalf("second replay must change nothing: %+v", r)
+	}
+}

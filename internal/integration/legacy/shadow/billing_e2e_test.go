@@ -430,3 +430,21 @@ func TestBillingHTTPReadOnly(t *testing.T) {
 		t.Fatal("a GET changed billing/payments state")
 	}
 }
+
+// An empty stage status is EMPTY (not UNKNOWN) in both the connector's
+// expectation and the store: a faithful complete import is not a CONFLICT.
+func TestReconcileEmptyStageStatusIsNotConflict(t *testing.T) {
+	e := setupBilling(t)
+	ents := legacytest.With(cleanBilling(snapshot.Complete, "1000.00"), shadow.SpecPaymentStage,
+		[]legacytest.Rec{legacytest.Stage("41", "2001", "1", "1000", "", "")}, snapshot.Complete)
+	b := e.prepare(t, "syn-bill-empty", ents)
+	e.importBillingOnly(t, b)
+	e.importPaymentsOnly(t, b)
+	rep, err := shadow.ReconcileBilling(context.Background(), b, e.billingQ, e.paymentsQ)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Outcome == result.Conflict || !rep.Invariants["unknown_stage_states_preserved"] || rep.Expected["stage_state_empty"] != 1 {
+		t.Fatalf("empty stage status: %s %+v %+v", rep.Outcome, rep.Invariants, rep.Expected)
+	}
+}

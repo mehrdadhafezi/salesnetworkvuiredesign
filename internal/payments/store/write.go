@@ -168,6 +168,20 @@ func UpsertAttempt(ctx context.Context, tx db.Tx, invoiceID *string, a api.Attem
 		}
 		ch = Refreshed
 	default:
+		// Unchanged source row: refresh only the externally resolved fields
+		// (invoice link via the billing API, uploader user id via identity),
+		// so a later replay repairs links resolved since the last import.
+		tag, err := tx.Exec(ctx, `UPDATE payments.payment_attempt SET invoice_id = $2, invoice_link_state = $3, uploaded_by_user_id = $4,
+			last_batch_id = $5, last_seen_at = $6, presence = 'PRESENT', version = version + 1
+			WHERE attempt_id = $1 AND (invoice_id IS DISTINCT FROM $2::uuid OR uploaded_by_user_id IS DISTINCT FROM $4::uuid)`,
+			id, str(invoiceID), link, upUser, a.Source.BatchID, now)
+		if err != nil {
+			return "", "", false, err
+		}
+		if tag.RowsAffected() > 0 {
+			ch = Refreshed
+			break
+		}
 		if _, err := tx.Exec(ctx, `UPDATE payments.payment_attempt SET last_batch_id = $2, last_seen_at = $3, presence = 'PRESENT'
 			WHERE attempt_id = $1 AND (last_batch_id, presence) IS DISTINCT FROM ($2::uuid, 'PRESENT')`, id, a.Source.BatchID, now); err != nil {
 			return "", "", false, err
@@ -216,9 +230,8 @@ func UpsertReceipt(ctx context.Context, tx db.Tx, invoiceID *string, r api.Recei
 	}
 	key := ReceiptKey(r)
 	var id, batch, presence string
-	var ref []byte
-	err := tx.QueryRow(ctx, `SELECT receipt_id::text, last_batch_id::text, presence, ref_sha256 FROM payments.receipt WHERE receipt_key = $1 FOR UPDATE`, key).
-		Scan(&id, &batch, &presence, &ref)
+	err := tx.QueryRow(ctx, `SELECT receipt_id::text, last_batch_id::text, presence FROM payments.receipt WHERE receipt_key = $1 FOR UPDATE`, key).
+		Scan(&id, &batch, &presence)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 		if id, err = ids.NewUUID(); err != nil {
@@ -233,11 +246,19 @@ func UpsertReceipt(ctx context.Context, tx db.Tx, invoiceID *string, r api.Recei
 	case err != nil:
 		return "", "", err
 	}
-	if !bytes.Equal(ref, r.RefSHA256) {
-		_, err = tx.Exec(ctx, `UPDATE payments.receipt SET invoice_id = $2, stage_no_raw = $3, ref_sha256 = $4, host = $5, extension = $6, state = $7,
-			last_batch_id = $8, last_seen_at = $9, presence = 'PRESENT' WHERE receipt_id = $1`,
-			id, str(invoiceID), str(r.StageNoRaw), r.RefSHA256, str(r.Host), str(r.Extension), r.State, r.Source.BatchID, now)
-		return id, Refreshed, err
+	// The projection is refreshed when the reference OR its ownership
+	// (invoice link, stage, owner kind) or metadata changed: an unchanged
+	// reference hash is not an unchanged receipt.
+	tag, err := tx.Exec(ctx, `UPDATE payments.receipt SET invoice_id = $2, stage_no_raw = $3, ref_sha256 = $4, host = $5, extension = $6, state = $7,
+		owner_kind = $10, last_batch_id = $8, last_seen_at = $9, presence = 'PRESENT' WHERE receipt_id = $1
+		AND (invoice_id IS DISTINCT FROM $2::uuid OR stage_no_raw IS DISTINCT FROM $3 OR ref_sha256 IS DISTINCT FROM $4 OR host IS DISTINCT FROM $5
+		     OR extension IS DISTINCT FROM $6 OR state IS DISTINCT FROM $7 OR owner_kind IS DISTINCT FROM $10)`,
+		id, str(invoiceID), str(r.StageNoRaw), r.RefSHA256, str(r.Host), str(r.Extension), r.State, r.Source.BatchID, now, r.OwnerKind)
+	if err != nil {
+		return "", "", err
+	}
+	if tag.RowsAffected() > 0 {
+		return id, Refreshed, nil
 	}
 	_, err = tx.Exec(ctx, `UPDATE payments.receipt SET last_batch_id = $2, last_seen_at = $3, presence = 'PRESENT' WHERE receipt_id = $1
 		AND (last_batch_id, presence) IS DISTINCT FROM ($2::uuid, 'PRESENT')`, id, r.Source.BatchID, now)

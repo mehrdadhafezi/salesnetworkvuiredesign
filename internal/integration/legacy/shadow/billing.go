@@ -300,7 +300,12 @@ func BillingCommand(b *Batch, users Users, customers, cases map[string]string) (
 		}
 		raw := r.Get("status")
 		t := target(raw, stageTargets)
-		if t == nil {
+		// Same classification as the store: an empty status is EMPTY, not
+		// UNKNOWN; only a non-empty unmapped value is UNKNOWN.
+		switch {
+		case raw == nil || *raw == "":
+			counts["stage_state_empty"]++
+		case t == nil:
 			counts["stage_state_unknown"]++
 		}
 		in.Stages = append(in.Stages, billingapi.StageRecord{Source: billingSrc(b, SpecPaymentStage, r),
@@ -411,7 +416,11 @@ func PaymentsCommand(b *Batch, users Users) (paymentsapi.PaymentsImport, map[str
 		switch {
 		case t == nil:
 			prov = paymentsapi.ProvUnknown
-			counts["attempt_state_unknown"]++
+			if raw == nil || *raw == "" {
+				counts["attempt_state_empty"]++
+			} else {
+				counts["attempt_state_unknown"]++
+			}
 		case *t == "ACCEPTED" && channel == paymentsapi.ChannelGateway:
 			prov = paymentsapi.ProvGatewayAuto
 		case *t == "ACCEPTED" && channel == paymentsapi.ChannelManualCard:
