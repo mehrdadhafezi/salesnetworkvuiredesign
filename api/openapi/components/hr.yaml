@@ -462,7 +462,8 @@ Capability:
     customers.customer.read, customers.merge_case.read, customers.identity_report.read,
     cases.case.read, custody.custody.read, sales.report.read,
     billing.invoice.read, payments.attempt.read, billing.reconciliation.read,
-    reporting.metrics.read, reporting.mis.read, reporting.invoice_review.read]
+    reporting.metrics.read, reporting.mis.read, reporting.invoice_review.read,
+    finance.shadow.read, finance.ledger.read, finance.reconciliation.read]
 
 AccessDecision:
   type: object

@@ -1,0 +1,17 @@
+/* Finance SHADOW ledger read surfaces (Slice 9). Layout only, SN-207 tokens. */
+.fn-banner{border:2px dashed var(--border);border-radius:8px;padding:10px 12px;margin:0 0 12px;display:grid;gap:4px;background:var(--surface-2)}
+.fn-banner strong{letter-spacing:.08em}
+.fn-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}
+.fn-ltr{direction:ltr;unicode-bidi:isolate}
+.fn-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--gap);align-items:end}
+.fn-table-wrap{overflow-x:auto}
+.fn-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.fn-table th,.fn-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.fn-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.fn-sections{display:grid;gap:12px}
+.fn-counts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--gap)}
+.fn-count{border:1px solid var(--border);border-radius:8px;padding:10px;display:grid;gap:6px}
+.fn-count h3{font-size:var(--fs);margin:0}
+.fn-list{margin:0;padding:0;list-style:none;display:grid;gap:4px}
+.fn-pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+@media (max-width:760px){.fn-filters{grid-template-columns:1fr}}

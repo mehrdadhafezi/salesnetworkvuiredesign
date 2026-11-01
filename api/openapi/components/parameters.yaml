@@ -446,3 +446,100 @@ ReportAttemptState:
   schema:
     type: string
     enum: [PENDING, ACCEPTED, REJECTED, CANCELLED, RECONCILIATION_REQUIRED, UNMAPPED]
+
+# --- Slice 9 finance shadow ledger (server-validated; no free query) ---------
+
+FinanceRunID:
+  name: run_id
+  in: query
+  required: false
+  description: Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used.
+  schema:
+    type: string
+    format: uuid
+
+ShadowBasis:
+  name: basis
+  in: query
+  required: false
+  schema:
+    $ref: './finance.yaml#/ShadowBasis'
+
+FinanceUnit:
+  name: unit
+  in: query
+  required: false
+  schema:
+    $ref: './schemas.yaml#/Unit'
+
+ReconciliationUnit:
+  name: unit
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [IRR, IRT, UNKNOWN]
+
+ReconciliationState:
+  name: state
+  in: query
+  required: false
+  schema:
+    $ref: './finance.yaml#/ReconciliationState'
+
+BalanceState:
+  name: state
+  in: query
+  required: false
+  description: The legacy comparison state of the balance, or NOT_COMPARABLE when no legacy figure exists.
+  schema:
+    type: string
+    enum: [MATCH, MISMATCH, UNKNOWN, INCOMPLETE, CONFLICT, NOT_RECOVERABLE, NOT_COMPARABLE]
+
+EntryState:
+  name: state
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [CONSISTENT, CONFLICT, UNRESOLVED_CORRECTION]
+
+SourceType:
+  name: source_type
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [billing.invoice, payments.attempt, legacy.wallet_transaction]
+
+AccountCategory:
+  name: account_category
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [customer_receivable, revenue_by_product_kind, cash_bank_clearing, commission_payable, legacy_wallet_unclassified, legacy_wallet_contra]
+
+SubjectType:
+  name: subject_type
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [legacy_wallet, invoice]
+
+EffectiveFrom:
+  name: effective_from
+  in: query
+  required: false
+  description: Entries whose evidenced effective time is at or after (UTC). Entries with an unknown effective time never match a date range.
+  schema:
+    $ref: './schemas.yaml#/Timestamp'
+
+EffectiveTo:
+  name: effective_to
+  in: query
+  required: false
+  description: Entries whose evidenced effective time is before (UTC).
+  schema:
+    $ref: './schemas.yaml#/Timestamp'

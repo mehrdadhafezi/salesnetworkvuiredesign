@@ -251,6 +251,10 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		"/api/v1/customer-identity/merge-cases", "/api/v1/customer-identity/merge-cases/{merge_case_id}",
 		"/api/v1/customer-identity/resolution-report", "/api/v1/customers", "/api/v1/customers/{customer_id}",
 		"/api/v1/customers/{customer_id}/contact-points", "/api/v1/customers/{customer_id}/evidence",
+		// Slice 9 finance SHADOW ledger read: GET only; no post / approve /
+		// reverse / settle / refund / credit / debit path.
+		"/api/v1/finance/accounts", "/api/v1/finance/accounts/{account_id}", "/api/v1/finance/balances", "/api/v1/finance/ledger",
+		"/api/v1/finance/ledger/{entry_id}", "/api/v1/finance/reconciliation", "/api/v1/finance/shadow-runs", "/api/v1/finance/shadow-runs/{run_id}",
 		"/api/v1/identity/users", "/api/v1/identity/users/{user_id}",
 		"/api/v1/invoice-review", "/api/v1/invoice-review/{invoice_id}",
 		"/api/v1/invoices", "/api/v1/invoices/{invoice_id}", "/api/v1/invoices/{invoice_id}/items", "/api/v1/invoices/{invoice_id}/payments",

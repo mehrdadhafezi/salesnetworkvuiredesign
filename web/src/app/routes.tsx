@@ -32,6 +32,10 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { to: '/reports/custody', label: 'گزارش نگهداری', feature: 'reporting_read' },
     { to: '/reports/invoices', label: 'گزارش فاکتورها', feature: 'reporting_read' },
     { to: '/reports/payments', label: 'گزارش پرداخت‌ها', feature: 'reporting_read' },
+    { to: '/finance', label: 'دفتر سایه مالی', feature: 'finance_shadow_read' },
+    { to: '/finance/ledger', label: 'دفتر روزنامه سایه', feature: 'finance_shadow_read' },
+    { to: '/finance/balances', label: 'مانده‌های سایه', feature: 'finance_shadow_read' },
+    { to: '/finance/reconciliation', label: 'تطبیق سایه', feature: 'finance_shadow_read' },
     { to: '/system', label: 'وضعیت سامانه' },
   ]
   const children: RouteObject[] = [
@@ -61,6 +65,11 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'mis/source-quality', lazy: async () => ({ Component: (await import('../modules/reporting/pages/SourceQualityPage')).SourceQualityPage }) },
     { path: 'mis/reconciliation', lazy: async () => ({ Component: (await import('../modules/reporting/pages/ReconciliationPage')).ReconciliationPage }) },
     { path: 'reports/:report', lazy: async () => ({ Component: (await import('../modules/reporting/pages/ReportPage')).ReportPage }) },
+    // Slice 9 finance SHADOW ledger (read only; no mutation route or control).
+    { path: 'finance', lazy: async () => ({ Component: (await import('../modules/finance/pages/FinanceDashboardPage')).FinanceDashboardPage }) },
+    { path: 'finance/ledger', lazy: async () => ({ Component: (await import('../modules/finance/pages/LedgerPage')).LedgerPage }) },
+    { path: 'finance/balances', lazy: async () => ({ Component: (await import('../modules/finance/pages/BalancesPage')).BalancesPage }) },
+    { path: 'finance/reconciliation', lazy: async () => ({ Component: (await import('../modules/finance/pages/FinanceReconciliationPage')).FinanceReconciliationPage }) },
   ]
   // import.meta.env.DEV is a build-time constant: production bundles drop this branch entirely.
   if (import.meta.env.DEV && config.devTools) {

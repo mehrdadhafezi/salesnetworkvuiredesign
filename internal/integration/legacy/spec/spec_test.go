@@ -27,6 +27,7 @@ const goldenSlice6 = "testdata/specs_v1_2.0.160_slice6.golden.json"
 
 // goldenSlice7 pins the Slice 7 extension (billing + payments sources).
 const goldenSlice7 = "testdata/specs_v1_2.0.160_slice7.golden.json"
+const goldenSlice9 = "testdata/specs_v1_2.0.160_slice9.golden.json"
 
 // render encodes the given published set exactly as the registry orders it.
 func render(t *testing.T, set []Spec) []byte {
@@ -49,7 +50,7 @@ func render(t *testing.T, set []Spec) []byte {
 // byte, one golden per published set. Changing a v1 spec fails here: publish
 // a new version instead.
 func TestPublishedSpecsAreImmutable(t *testing.T) {
-	for file, set := range map[string][]Spec{golden: V1Slice3(), goldenSlice5: V1Slice5(), goldenSlice6: V1Slice6(), goldenSlice7: V1Slice7()} {
+	for file, set := range map[string][]Spec{golden: V1Slice3(), goldenSlice5: V1Slice5(), goldenSlice6: V1Slice6(), goldenSlice7: V1Slice7(), goldenSlice9: V1Slice9()} {
 		got := render(t, set)
 		if *update {
 			if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
@@ -69,7 +70,7 @@ func TestPublishedSpecsAreImmutable(t *testing.T) {
 		sum := sha256.Sum256(want)
 		t.Logf("%s sha256 %s", file, hex.EncodeToString(sum[:]))
 	}
-	if len(Default().IDs()) != len(V1Slice3())+len(V1Slice5())+len(V1Slice6())+len(V1Slice7()) {
+	if len(Default().IDs()) != len(V1Slice3())+len(V1Slice5())+len(V1Slice6())+len(V1Slice7())+len(V1Slice9()) {
 		t.Fatal("registry must be exactly the published sets")
 	}
 }
@@ -82,7 +83,7 @@ func TestDefaultRegistry(t *testing.T) {
 		"legacy.hr_position.v1", "legacy.hr_position_role_mapping.v1", "legacy.hr_profile.v1", "legacy.hr_team.v1",
 		"legacy.hr_unit.v1", "legacy.invoice.v2", "legacy.invoice_issued_to.v1", "legacy.invoice_item.v1", "legacy.invoice_payment_stage.v1",
 		"legacy.lead.v1", "legacy.lead_status_history.v1", "legacy.payment.v1",
-		"legacy.wp_user.v1", "legacy.wp_usermeta.v1",
+		"legacy.wallet.v1", "legacy.wallet_transaction.v1", "legacy.wp_user.v1", "legacy.wp_usermeta.v1",
 	}
 	if got := r.IDs(); strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("ids = %v", got)

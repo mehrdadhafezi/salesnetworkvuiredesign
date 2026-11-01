@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -85,7 +86,9 @@ type Batch struct {
 	State         string
 	LegacyVersion string
 	TablePrefix   *string
-	Entities      map[string]Entity
+	// ExtractedAt is the snapshot's extraction time (the source cutoff).
+	ExtractedAt time.Time
+	Entities    map[string]Entity
 	// UsermetaRows / UsermetaCapabilityRows count wp_usermeta rows and rows
 	// whose meta_key is the prefixed capabilities key. meta_value is never read.
 	UsermetaRows           int64
@@ -104,8 +107,8 @@ func (b *Batch) Entity(specID string) Entity {
 func ReadBatch(ctx context.Context, staged *db.Runner, reg *spec.Registry, snapshotID string) (*Batch, error) {
 	b := &Batch{SnapshotID: snapshotID, Entities: map[string]Entity{}}
 	err := staged.InTx(ctx, db.TxOptions{ReadOnly: true, Isolation: db.RepeatableRead}, func(ctx context.Context, tx db.Tx) error {
-		err := tx.QueryRow(ctx, `SELECT batch_id::text, state, legacy_version, source_table_prefix FROM integration.import_batch WHERE snapshot_id = $1`,
-			snapshotID).Scan(&b.BatchID, &b.State, &b.LegacyVersion, &b.TablePrefix)
+		err := tx.QueryRow(ctx, `SELECT batch_id::text, state, legacy_version, source_table_prefix, extracted_at FROM integration.import_batch WHERE snapshot_id = $1`,
+			snapshotID).Scan(&b.BatchID, &b.State, &b.LegacyVersion, &b.TablePrefix, &b.ExtractedAt)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrBatchNotFound
 		}
@@ -131,7 +134,7 @@ func ReadBatch(ctx context.Context, staged *db.Runner, reg *spec.Registry, snaps
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		for _, id := range append(append(append(ConsumedSpecs(), CustomerSpecs()...), SalesSpecs()...), BillingSpecs()...) {
+		for _, id := range append(append(append(append(ConsumedSpecs(), CustomerSpecs()...), SalesSpecs()...), BillingSpecs()...), FinanceSpecs()...) {
 			e, ok := b.Entities[id]
 			if !ok || !e.Usable() {
 				continue

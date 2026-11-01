@@ -38,19 +38,37 @@ func (e AccessDecisionScope) Valid() bool {
 
 // Defines values for AmountRepresentation.
 const (
-	ABSENT          AmountRepresentation = "ABSENT"
-	REPRESENTABLE   AmountRepresentation = "REPRESENTABLE"
-	UNREPRESENTABLE AmountRepresentation = "UNREPRESENTABLE"
+	AmountRepresentationABSENT          AmountRepresentation = "ABSENT"
+	AmountRepresentationREPRESENTABLE   AmountRepresentation = "REPRESENTABLE"
+	AmountRepresentationUNREPRESENTABLE AmountRepresentation = "UNREPRESENTABLE"
 )
 
 // Valid indicates whether the value is a known member of the AmountRepresentation enum.
 func (e AmountRepresentation) Valid() bool {
 	switch e {
-	case ABSENT:
+	case AmountRepresentationABSENT:
 		return true
-	case REPRESENTABLE:
+	case AmountRepresentationREPRESENTABLE:
 		return true
-	case UNREPRESENTABLE:
+	case AmountRepresentationUNREPRESENTABLE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AmountState.
+const (
+	AmountStateOVERFLOW      AmountState = "OVERFLOW"
+	AmountStateREPRESENTABLE AmountState = "REPRESENTABLE"
+)
+
+// Valid indicates whether the value is a known member of the AmountState enum.
+func (e AmountState) Valid() bool {
+	switch e {
+	case AmountStateOVERFLOW:
+		return true
+	case AmountStateREPRESENTABLE:
 		return true
 	default:
 		return false
@@ -171,6 +189,9 @@ const (
 	CustomersCustomerRead       Capability = "customers.customer.read"
 	CustomersIdentityReportRead Capability = "customers.identity_report.read"
 	CustomersMergeCaseRead      Capability = "customers.merge_case.read"
+	FinanceLedgerRead           Capability = "finance.ledger.read"
+	FinanceReconciliationRead   Capability = "finance.reconciliation.read"
+	FinanceShadowRead           Capability = "finance.shadow.read"
 	IdentityUserRead            Capability = "identity.user.read"
 	OrgAssignmentRead           Capability = "org.assignment.read"
 	OrgEmploymentRead           Capability = "org.employment.read"
@@ -200,6 +221,12 @@ func (e Capability) Valid() bool {
 	case CustomersIdentityReportRead:
 		return true
 	case CustomersMergeCaseRead:
+		return true
+	case FinanceLedgerRead:
+		return true
+	case FinanceReconciliationRead:
+		return true
+	case FinanceShadowRead:
 		return true
 	case IdentityUserRead:
 		return true
@@ -633,6 +660,81 @@ func (e Facet) Valid() bool {
 	}
 }
 
+// Defines values for FinanceCoverage.
+const (
+	FinanceCoverageAVAILABLE      FinanceCoverage = "AVAILABLE"
+	FinanceCoverageMISSING        FinanceCoverage = "MISSING"
+	FinanceCoverageNOTRECOVERABLE FinanceCoverage = "NOT_RECOVERABLE"
+	FinanceCoveragePARTIAL        FinanceCoverage = "PARTIAL"
+	FinanceCoverageSTALE          FinanceCoverage = "STALE"
+	FinanceCoverageUNKNOWN        FinanceCoverage = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the FinanceCoverage enum.
+func (e FinanceCoverage) Valid() bool {
+	switch e {
+	case FinanceCoverageAVAILABLE:
+		return true
+	case FinanceCoverageMISSING:
+		return true
+	case FinanceCoverageNOTRECOVERABLE:
+		return true
+	case FinanceCoveragePARTIAL:
+		return true
+	case FinanceCoverageSTALE:
+		return true
+	case FinanceCoverageUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FinanceFreshness.
+const (
+	FinanceFreshnessFRESH   FinanceFreshness = "FRESH"
+	FinanceFreshnessSTALE   FinanceFreshness = "STALE"
+	FinanceFreshnessUNKNOWN FinanceFreshness = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the FinanceFreshness enum.
+func (e FinanceFreshness) Valid() bool {
+	switch e {
+	case FinanceFreshnessFRESH:
+		return true
+	case FinanceFreshnessSTALE:
+		return true
+	case FinanceFreshnessUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FinanceRunSourceSource.
+const (
+	FinanceRunSourceSourceBilling                  FinanceRunSourceSource = "billing"
+	FinanceRunSourceSourceLegacyWalletTransactions FinanceRunSourceSource = "legacy_wallet_transactions"
+	FinanceRunSourceSourceLegacyWallets            FinanceRunSourceSource = "legacy_wallets"
+	FinanceRunSourceSourcePayments                 FinanceRunSourceSource = "payments"
+)
+
+// Valid indicates whether the value is a known member of the FinanceRunSourceSource enum.
+func (e FinanceRunSourceSource) Valid() bool {
+	switch e {
+	case FinanceRunSourceSourceBilling:
+		return true
+	case FinanceRunSourceSourceLegacyWalletTransactions:
+		return true
+	case FinanceRunSourceSourceLegacyWallets:
+		return true
+	case FinanceRunSourceSourcePayments:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FindingKind.
 const (
 	FindingKindCURRENTFLAGINCONSISTENT  FindingKind = "CURRENT_FLAG_INCONSISTENT"
@@ -1056,6 +1158,156 @@ func (e InvoiceVocabulary) Valid() bool {
 	case InvoiceVocabularyLEGACYDERIVED:
 		return true
 	case InvoiceVocabularyUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LedgerAccountCategory.
+const (
+	LedgerAccountCategoryCashBankClearing         LedgerAccountCategory = "cash_bank_clearing"
+	LedgerAccountCategoryCommissionPayable        LedgerAccountCategory = "commission_payable"
+	LedgerAccountCategoryCustomerReceivable       LedgerAccountCategory = "customer_receivable"
+	LedgerAccountCategoryLegacyWalletContra       LedgerAccountCategory = "legacy_wallet_contra"
+	LedgerAccountCategoryLegacyWalletUnclassified LedgerAccountCategory = "legacy_wallet_unclassified"
+	LedgerAccountCategoryRevenueByProductKind     LedgerAccountCategory = "revenue_by_product_kind"
+)
+
+// Valid indicates whether the value is a known member of the LedgerAccountCategory enum.
+func (e LedgerAccountCategory) Valid() bool {
+	switch e {
+	case LedgerAccountCategoryCashBankClearing:
+		return true
+	case LedgerAccountCategoryCommissionPayable:
+		return true
+	case LedgerAccountCategoryCustomerReceivable:
+		return true
+	case LedgerAccountCategoryLegacyWalletContra:
+		return true
+	case LedgerAccountCategoryLegacyWalletUnclassified:
+		return true
+	case LedgerAccountCategoryRevenueByProductKind:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LedgerAccountCustomerLink.
+const (
+	LedgerAccountCustomerLinkCONFLICT       LedgerAccountCustomerLink = "CONFLICT"
+	LedgerAccountCustomerLinkNOTRECOVERABLE LedgerAccountCustomerLink = "NOT_RECOVERABLE"
+	LedgerAccountCustomerLinkRELATED        LedgerAccountCustomerLink = "RELATED"
+	LedgerAccountCustomerLinkRESOLVED       LedgerAccountCustomerLink = "RESOLVED"
+	LedgerAccountCustomerLinkUNKNOWN        LedgerAccountCustomerLink = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the LedgerAccountCustomerLink enum.
+func (e LedgerAccountCustomerLink) Valid() bool {
+	switch e {
+	case LedgerAccountCustomerLinkCONFLICT:
+		return true
+	case LedgerAccountCustomerLinkNOTRECOVERABLE:
+		return true
+	case LedgerAccountCustomerLinkRELATED:
+		return true
+	case LedgerAccountCustomerLinkRESOLVED:
+		return true
+	case LedgerAccountCustomerLinkUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LedgerAccountNormalSide.
+const (
+	LedgerAccountNormalSideCREDIT LedgerAccountNormalSide = "CREDIT"
+	LedgerAccountNormalSideDEBIT  LedgerAccountNormalSide = "DEBIT"
+)
+
+// Valid indicates whether the value is a known member of the LedgerAccountNormalSide enum.
+func (e LedgerAccountNormalSide) Valid() bool {
+	switch e {
+	case LedgerAccountNormalSideCREDIT:
+		return true
+	case LedgerAccountNormalSideDEBIT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LedgerEntryFinanceReview.
+const (
+	NOTFINANCEREVIEWED LedgerEntryFinanceReview = "NOT_FINANCE_REVIEWED"
+)
+
+// Valid indicates whether the value is a known member of the LedgerEntryFinanceReview enum.
+func (e LedgerEntryFinanceReview) Valid() bool {
+	switch e {
+	case NOTFINANCEREVIEWED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LedgerEntryReconciliationStatus.
+const (
+	LedgerEntryReconciliationStatusCONFLICT             LedgerEntryReconciliationStatus = "CONFLICT"
+	LedgerEntryReconciliationStatusCONSISTENT           LedgerEntryReconciliationStatus = "CONSISTENT"
+	LedgerEntryReconciliationStatusUNRESOLVEDCORRECTION LedgerEntryReconciliationStatus = "UNRESOLVED_CORRECTION"
+)
+
+// Valid indicates whether the value is a known member of the LedgerEntryReconciliationStatus enum.
+func (e LedgerEntryReconciliationStatus) Valid() bool {
+	switch e {
+	case LedgerEntryReconciliationStatusCONFLICT:
+		return true
+	case LedgerEntryReconciliationStatusCONSISTENT:
+		return true
+	case LedgerEntryReconciliationStatusUNRESOLVEDCORRECTION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LedgerEntryTimeEvidence.
+const (
+	BUSINESSTIMEABSENT       LedgerEntryTimeEvidence = "BUSINESS_TIME_ABSENT"
+	SOURCETIMEUTC            LedgerEntryTimeEvidence = "SOURCE_TIME_UTC"
+	SOURCETIMEZONEUNASSERTED LedgerEntryTimeEvidence = "SOURCE_TIME_ZONE_UNASSERTED"
+)
+
+// Valid indicates whether the value is a known member of the LedgerEntryTimeEvidence enum.
+func (e LedgerEntryTimeEvidence) Valid() bool {
+	switch e {
+	case BUSINESSTIMEABSENT:
+		return true
+	case SOURCETIMEUTC:
+		return true
+	case SOURCETIMEZONEUNASSERTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LedgerLineSide.
+const (
+	LedgerLineSideCREDIT LedgerLineSide = "CREDIT"
+	LedgerLineSideDEBIT  LedgerLineSide = "DEBIT"
+)
+
+// Valid indicates whether the value is a known member of the LedgerLineSide enum.
+func (e LedgerLineSide) Valid() bool {
+	switch e {
+	case LedgerLineSideCREDIT:
+		return true
+	case LedgerLineSideDEBIT:
 		return true
 	default:
 		return false
@@ -1536,6 +1788,135 @@ func (e ReceiptState) Valid() bool {
 	}
 }
 
+// Defines values for ReconciliationRowLegacyFigure.
+const (
+	INVOICEPAID      ReconciliationRowLegacyFigure = "INVOICE_PAID"
+	INVOICEREMAINING ReconciliationRowLegacyFigure = "INVOICE_REMAINING"
+	WALLETBALANCE    ReconciliationRowLegacyFigure = "WALLET_BALANCE"
+)
+
+// Valid indicates whether the value is a known member of the ReconciliationRowLegacyFigure enum.
+func (e ReconciliationRowLegacyFigure) Valid() bool {
+	switch e {
+	case INVOICEPAID:
+		return true
+	case INVOICEREMAINING:
+		return true
+	case WALLETBALANCE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReconciliationRowLegacyRepr.
+const (
+	ReconciliationRowLegacyReprABSENT          ReconciliationRowLegacyRepr = "ABSENT"
+	ReconciliationRowLegacyReprOTHERUNIT       ReconciliationRowLegacyRepr = "OTHER_UNIT"
+	ReconciliationRowLegacyReprREPRESENTABLE   ReconciliationRowLegacyRepr = "REPRESENTABLE"
+	ReconciliationRowLegacyReprUNREPRESENTABLE ReconciliationRowLegacyRepr = "UNREPRESENTABLE"
+)
+
+// Valid indicates whether the value is a known member of the ReconciliationRowLegacyRepr enum.
+func (e ReconciliationRowLegacyRepr) Valid() bool {
+	switch e {
+	case ReconciliationRowLegacyReprABSENT:
+		return true
+	case ReconciliationRowLegacyReprOTHERUNIT:
+		return true
+	case ReconciliationRowLegacyReprREPRESENTABLE:
+		return true
+	case ReconciliationRowLegacyReprUNREPRESENTABLE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReconciliationRowSubjectDomain.
+const (
+	ReconciliationRowSubjectDomainInvoice      ReconciliationRowSubjectDomain = "invoice"
+	ReconciliationRowSubjectDomainLegacyWallet ReconciliationRowSubjectDomain = "legacy_wallet"
+)
+
+// Valid indicates whether the value is a known member of the ReconciliationRowSubjectDomain enum.
+func (e ReconciliationRowSubjectDomain) Valid() bool {
+	switch e {
+	case ReconciliationRowSubjectDomainInvoice:
+		return true
+	case ReconciliationRowSubjectDomainLegacyWallet:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReconciliationRowUnit.
+const (
+	ReconciliationRowUnitIRR     ReconciliationRowUnit = "IRR"
+	ReconciliationRowUnitIRT     ReconciliationRowUnit = "IRT"
+	ReconciliationRowUnitUNKNOWN ReconciliationRowUnit = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ReconciliationRowUnit enum.
+func (e ReconciliationRowUnit) Valid() bool {
+	switch e {
+	case ReconciliationRowUnitIRR:
+		return true
+	case ReconciliationRowUnitIRT:
+		return true
+	case ReconciliationRowUnitUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReconciliationState.
+const (
+	ReconciliationStateCONFLICT       ReconciliationState = "CONFLICT"
+	ReconciliationStateINCOMPLETE     ReconciliationState = "INCOMPLETE"
+	ReconciliationStateMATCH          ReconciliationState = "MATCH"
+	ReconciliationStateMISMATCH       ReconciliationState = "MISMATCH"
+	ReconciliationStateNOTRECOVERABLE ReconciliationState = "NOT_RECOVERABLE"
+	ReconciliationStateUNKNOWN        ReconciliationState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ReconciliationState enum.
+func (e ReconciliationState) Valid() bool {
+	switch e {
+	case ReconciliationStateCONFLICT:
+		return true
+	case ReconciliationStateINCOMPLETE:
+		return true
+	case ReconciliationStateMATCH:
+		return true
+	case ReconciliationStateMISMATCH:
+		return true
+	case ReconciliationStateNOTRECOVERABLE:
+		return true
+	case ReconciliationStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RecordKind.
+const (
+	SHADOW RecordKind = "SHADOW"
+)
+
+// Valid indicates whether the value is a known member of the RecordKind enum.
+func (e RecordKind) Valid() bool {
+	switch e {
+	case SHADOW:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RefState.
 const (
 	RefStateMISSING     RefState = "MISSING"
@@ -1559,22 +1940,22 @@ func (e RefState) Valid() bool {
 
 // Defines values for ReportQueryReport.
 const (
-	Cases    ReportQueryReport = "cases"
-	Custody  ReportQueryReport = "custody"
-	Invoices ReportQueryReport = "invoices"
-	Payments ReportQueryReport = "payments"
+	ReportQueryReportCases    ReportQueryReport = "cases"
+	ReportQueryReportCustody  ReportQueryReport = "custody"
+	ReportQueryReportInvoices ReportQueryReport = "invoices"
+	ReportQueryReportPayments ReportQueryReport = "payments"
 )
 
 // Valid indicates whether the value is a known member of the ReportQueryReport enum.
 func (e ReportQueryReport) Valid() bool {
 	switch e {
-	case Cases:
+	case ReportQueryReportCases:
 		return true
-	case Custody:
+	case ReportQueryReportCustody:
 		return true
-	case Invoices:
+	case ReportQueryReportInvoices:
 		return true
-	case Payments:
+	case ReportQueryReportPayments:
 		return true
 	default:
 		return false
@@ -1686,6 +2067,60 @@ const (
 func (e SessionContextPrincipalSynthetic) Valid() bool {
 	switch e {
 	case True:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ShadowBasis.
+const (
+	ACCRUALSHADOW      ShadowBasis = "ACCRUAL_SHADOW"
+	CASHSHADOW         ShadowBasis = "CASH_SHADOW"
+	WALLETMIRRORSHADOW ShadowBasis = "WALLET_MIRROR_SHADOW"
+)
+
+// Valid indicates whether the value is a known member of the ShadowBasis enum.
+func (e ShadowBasis) Valid() bool {
+	switch e {
+	case ACCRUALSHADOW:
+		return true
+	case CASHSHADOW:
+		return true
+	case WALLETMIRRORSHADOW:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ShadowNotice.
+const (
+	SHADOWDerivedForArchitectureValidationAndReconciliationOnlyNotTheFinancialSystemOfRecordNotSettledBankConfirmedOrFinanceApprovedMoneyNotAnOfficialOrAccountingBalance ShadowNotice = "SHADOW: derived for architecture validation and reconciliation only. Not the financial system of record; not settled, bank-confirmed or Finance-approved money; not an official or accounting balance."
+)
+
+// Valid indicates whether the value is a known member of the ShadowNotice enum.
+func (e ShadowNotice) Valid() bool {
+	switch e {
+	case SHADOWDerivedForArchitectureValidationAndReconciliationOnlyNotTheFinancialSystemOfRecordNotSettledBankConfirmedOrFinanceApprovedMoneyNotAnOfficialOrAccountingBalance:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ShadowRunOutcome.
+const (
+	ShadowRunOutcomePARTIAL ShadowRunOutcome = "PARTIAL"
+	ShadowRunOutcomeSUCCESS ShadowRunOutcome = "SUCCESS"
+)
+
+// Valid indicates whether the value is a known member of the ShadowRunOutcome enum.
+func (e ShadowRunOutcome) Valid() bool {
+	switch e {
+	case ShadowRunOutcomePARTIAL:
+		return true
+	case ShadowRunOutcomeSUCCESS:
 		return true
 	default:
 		return false
@@ -1911,6 +2346,90 @@ func (e WorkflowType) Valid() bool {
 	}
 }
 
+// Defines values for AccountCategory.
+const (
+	AccountCategoryCashBankClearing         AccountCategory = "cash_bank_clearing"
+	AccountCategoryCommissionPayable        AccountCategory = "commission_payable"
+	AccountCategoryCustomerReceivable       AccountCategory = "customer_receivable"
+	AccountCategoryLegacyWalletContra       AccountCategory = "legacy_wallet_contra"
+	AccountCategoryLegacyWalletUnclassified AccountCategory = "legacy_wallet_unclassified"
+	AccountCategoryRevenueByProductKind     AccountCategory = "revenue_by_product_kind"
+)
+
+// Valid indicates whether the value is a known member of the AccountCategory enum.
+func (e AccountCategory) Valid() bool {
+	switch e {
+	case AccountCategoryCashBankClearing:
+		return true
+	case AccountCategoryCommissionPayable:
+		return true
+	case AccountCategoryCustomerReceivable:
+		return true
+	case AccountCategoryLegacyWalletContra:
+		return true
+	case AccountCategoryLegacyWalletUnclassified:
+		return true
+	case AccountCategoryRevenueByProductKind:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BalanceState.
+const (
+	BalanceStateCONFLICT       BalanceState = "CONFLICT"
+	BalanceStateINCOMPLETE     BalanceState = "INCOMPLETE"
+	BalanceStateMATCH          BalanceState = "MATCH"
+	BalanceStateMISMATCH       BalanceState = "MISMATCH"
+	BalanceStateNOTCOMPARABLE  BalanceState = "NOT_COMPARABLE"
+	BalanceStateNOTRECOVERABLE BalanceState = "NOT_RECOVERABLE"
+	BalanceStateUNKNOWN        BalanceState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the BalanceState enum.
+func (e BalanceState) Valid() bool {
+	switch e {
+	case BalanceStateCONFLICT:
+		return true
+	case BalanceStateINCOMPLETE:
+		return true
+	case BalanceStateMATCH:
+		return true
+	case BalanceStateMISMATCH:
+		return true
+	case BalanceStateNOTCOMPARABLE:
+		return true
+	case BalanceStateNOTRECOVERABLE:
+		return true
+	case BalanceStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EntryState.
+const (
+	EntryStateCONFLICT             EntryState = "CONFLICT"
+	EntryStateCONSISTENT           EntryState = "CONSISTENT"
+	EntryStateUNRESOLVEDCORRECTION EntryState = "UNRESOLVED_CORRECTION"
+)
+
+// Valid indicates whether the value is a known member of the EntryState enum.
+func (e EntryState) Valid() bool {
+	switch e {
+	case EntryStateCONFLICT:
+		return true
+	case EntryStateCONSISTENT:
+		return true
+	case EntryStateUNRESOLVEDCORRECTION:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InvoiceLinkState.
 const (
 	InvoiceLinkStateRESOLVED InvoiceLinkState = "RESOLVED"
@@ -2052,6 +2571,27 @@ func (e PersonSort) Valid() bool {
 	}
 }
 
+// Defines values for ReconciliationUnit.
+const (
+	ReconciliationUnitIRR     ReconciliationUnit = "IRR"
+	ReconciliationUnitIRT     ReconciliationUnit = "IRT"
+	ReconciliationUnitUNKNOWN ReconciliationUnit = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ReconciliationUnit enum.
+func (e ReconciliationUnit) Valid() bool {
+	switch e {
+	case ReconciliationUnitIRR:
+		return true
+	case ReconciliationUnitIRT:
+		return true
+	case ReconciliationUnitUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Relation.
 const (
 	RelationCHILD  Relation = "CHILD"
@@ -2133,6 +2673,45 @@ func (e ReportScope) Valid() bool {
 	}
 }
 
+// Defines values for SourceType.
+const (
+	SourceTypeBillingInvoice          SourceType = "billing.invoice"
+	SourceTypeLegacyWalletTransaction SourceType = "legacy.wallet_transaction"
+	SourceTypePaymentsAttempt         SourceType = "payments.attempt"
+)
+
+// Valid indicates whether the value is a known member of the SourceType enum.
+func (e SourceType) Valid() bool {
+	switch e {
+	case SourceTypeBillingInvoice:
+		return true
+	case SourceTypeLegacyWalletTransaction:
+		return true
+	case SourceTypePaymentsAttempt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SubjectType.
+const (
+	SubjectTypeInvoice      SubjectType = "invoice"
+	SubjectTypeLegacyWallet SubjectType = "legacy_wallet"
+)
+
+// Valid indicates whether the value is a known member of the SubjectType enum.
+func (e SubjectType) Valid() bool {
+	switch e {
+	case SubjectTypeInvoice:
+		return true
+	case SubjectTypeLegacyWallet:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UserSort.
 const (
 	UserSortDisplayName      UserSort = "display_name"
@@ -2145,6 +2724,210 @@ func (e UserSort) Valid() bool {
 	case UserSortDisplayName:
 		return true
 	case UserSortMinusDisplayName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListFinanceAccountsParamsAccountCategory.
+const (
+	ListFinanceAccountsParamsAccountCategoryCashBankClearing         ListFinanceAccountsParamsAccountCategory = "cash_bank_clearing"
+	ListFinanceAccountsParamsAccountCategoryCommissionPayable        ListFinanceAccountsParamsAccountCategory = "commission_payable"
+	ListFinanceAccountsParamsAccountCategoryCustomerReceivable       ListFinanceAccountsParamsAccountCategory = "customer_receivable"
+	ListFinanceAccountsParamsAccountCategoryLegacyWalletContra       ListFinanceAccountsParamsAccountCategory = "legacy_wallet_contra"
+	ListFinanceAccountsParamsAccountCategoryLegacyWalletUnclassified ListFinanceAccountsParamsAccountCategory = "legacy_wallet_unclassified"
+	ListFinanceAccountsParamsAccountCategoryRevenueByProductKind     ListFinanceAccountsParamsAccountCategory = "revenue_by_product_kind"
+)
+
+// Valid indicates whether the value is a known member of the ListFinanceAccountsParamsAccountCategory enum.
+func (e ListFinanceAccountsParamsAccountCategory) Valid() bool {
+	switch e {
+	case ListFinanceAccountsParamsAccountCategoryCashBankClearing:
+		return true
+	case ListFinanceAccountsParamsAccountCategoryCommissionPayable:
+		return true
+	case ListFinanceAccountsParamsAccountCategoryCustomerReceivable:
+		return true
+	case ListFinanceAccountsParamsAccountCategoryLegacyWalletContra:
+		return true
+	case ListFinanceAccountsParamsAccountCategoryLegacyWalletUnclassified:
+		return true
+	case ListFinanceAccountsParamsAccountCategoryRevenueByProductKind:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListFinanceBalancesParamsAccountCategory.
+const (
+	ListFinanceBalancesParamsAccountCategoryCashBankClearing         ListFinanceBalancesParamsAccountCategory = "cash_bank_clearing"
+	ListFinanceBalancesParamsAccountCategoryCommissionPayable        ListFinanceBalancesParamsAccountCategory = "commission_payable"
+	ListFinanceBalancesParamsAccountCategoryCustomerReceivable       ListFinanceBalancesParamsAccountCategory = "customer_receivable"
+	ListFinanceBalancesParamsAccountCategoryLegacyWalletContra       ListFinanceBalancesParamsAccountCategory = "legacy_wallet_contra"
+	ListFinanceBalancesParamsAccountCategoryLegacyWalletUnclassified ListFinanceBalancesParamsAccountCategory = "legacy_wallet_unclassified"
+	ListFinanceBalancesParamsAccountCategoryRevenueByProductKind     ListFinanceBalancesParamsAccountCategory = "revenue_by_product_kind"
+)
+
+// Valid indicates whether the value is a known member of the ListFinanceBalancesParamsAccountCategory enum.
+func (e ListFinanceBalancesParamsAccountCategory) Valid() bool {
+	switch e {
+	case ListFinanceBalancesParamsAccountCategoryCashBankClearing:
+		return true
+	case ListFinanceBalancesParamsAccountCategoryCommissionPayable:
+		return true
+	case ListFinanceBalancesParamsAccountCategoryCustomerReceivable:
+		return true
+	case ListFinanceBalancesParamsAccountCategoryLegacyWalletContra:
+		return true
+	case ListFinanceBalancesParamsAccountCategoryLegacyWalletUnclassified:
+		return true
+	case ListFinanceBalancesParamsAccountCategoryRevenueByProductKind:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListFinanceBalancesParamsState.
+const (
+	ListFinanceBalancesParamsStateCONFLICT       ListFinanceBalancesParamsState = "CONFLICT"
+	ListFinanceBalancesParamsStateINCOMPLETE     ListFinanceBalancesParamsState = "INCOMPLETE"
+	ListFinanceBalancesParamsStateMATCH          ListFinanceBalancesParamsState = "MATCH"
+	ListFinanceBalancesParamsStateMISMATCH       ListFinanceBalancesParamsState = "MISMATCH"
+	ListFinanceBalancesParamsStateNOTCOMPARABLE  ListFinanceBalancesParamsState = "NOT_COMPARABLE"
+	ListFinanceBalancesParamsStateNOTRECOVERABLE ListFinanceBalancesParamsState = "NOT_RECOVERABLE"
+	ListFinanceBalancesParamsStateUNKNOWN        ListFinanceBalancesParamsState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ListFinanceBalancesParamsState enum.
+func (e ListFinanceBalancesParamsState) Valid() bool {
+	switch e {
+	case ListFinanceBalancesParamsStateCONFLICT:
+		return true
+	case ListFinanceBalancesParamsStateINCOMPLETE:
+		return true
+	case ListFinanceBalancesParamsStateMATCH:
+		return true
+	case ListFinanceBalancesParamsStateMISMATCH:
+		return true
+	case ListFinanceBalancesParamsStateNOTCOMPARABLE:
+		return true
+	case ListFinanceBalancesParamsStateNOTRECOVERABLE:
+		return true
+	case ListFinanceBalancesParamsStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListFinanceLedgerParamsState.
+const (
+	ListFinanceLedgerParamsStateCONFLICT             ListFinanceLedgerParamsState = "CONFLICT"
+	ListFinanceLedgerParamsStateCONSISTENT           ListFinanceLedgerParamsState = "CONSISTENT"
+	ListFinanceLedgerParamsStateUNRESOLVEDCORRECTION ListFinanceLedgerParamsState = "UNRESOLVED_CORRECTION"
+)
+
+// Valid indicates whether the value is a known member of the ListFinanceLedgerParamsState enum.
+func (e ListFinanceLedgerParamsState) Valid() bool {
+	switch e {
+	case ListFinanceLedgerParamsStateCONFLICT:
+		return true
+	case ListFinanceLedgerParamsStateCONSISTENT:
+		return true
+	case ListFinanceLedgerParamsStateUNRESOLVEDCORRECTION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListFinanceLedgerParamsSourceType.
+const (
+	ListFinanceLedgerParamsSourceTypeBillingInvoice          ListFinanceLedgerParamsSourceType = "billing.invoice"
+	ListFinanceLedgerParamsSourceTypeLegacyWalletTransaction ListFinanceLedgerParamsSourceType = "legacy.wallet_transaction"
+	ListFinanceLedgerParamsSourceTypePaymentsAttempt         ListFinanceLedgerParamsSourceType = "payments.attempt"
+)
+
+// Valid indicates whether the value is a known member of the ListFinanceLedgerParamsSourceType enum.
+func (e ListFinanceLedgerParamsSourceType) Valid() bool {
+	switch e {
+	case ListFinanceLedgerParamsSourceTypeBillingInvoice:
+		return true
+	case ListFinanceLedgerParamsSourceTypeLegacyWalletTransaction:
+		return true
+	case ListFinanceLedgerParamsSourceTypePaymentsAttempt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListFinanceLedgerParamsAccountCategory.
+const (
+	ListFinanceLedgerParamsAccountCategoryCashBankClearing         ListFinanceLedgerParamsAccountCategory = "cash_bank_clearing"
+	ListFinanceLedgerParamsAccountCategoryCommissionPayable        ListFinanceLedgerParamsAccountCategory = "commission_payable"
+	ListFinanceLedgerParamsAccountCategoryCustomerReceivable       ListFinanceLedgerParamsAccountCategory = "customer_receivable"
+	ListFinanceLedgerParamsAccountCategoryLegacyWalletContra       ListFinanceLedgerParamsAccountCategory = "legacy_wallet_contra"
+	ListFinanceLedgerParamsAccountCategoryLegacyWalletUnclassified ListFinanceLedgerParamsAccountCategory = "legacy_wallet_unclassified"
+	ListFinanceLedgerParamsAccountCategoryRevenueByProductKind     ListFinanceLedgerParamsAccountCategory = "revenue_by_product_kind"
+)
+
+// Valid indicates whether the value is a known member of the ListFinanceLedgerParamsAccountCategory enum.
+func (e ListFinanceLedgerParamsAccountCategory) Valid() bool {
+	switch e {
+	case ListFinanceLedgerParamsAccountCategoryCashBankClearing:
+		return true
+	case ListFinanceLedgerParamsAccountCategoryCommissionPayable:
+		return true
+	case ListFinanceLedgerParamsAccountCategoryCustomerReceivable:
+		return true
+	case ListFinanceLedgerParamsAccountCategoryLegacyWalletContra:
+		return true
+	case ListFinanceLedgerParamsAccountCategoryLegacyWalletUnclassified:
+		return true
+	case ListFinanceLedgerParamsAccountCategoryRevenueByProductKind:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListFinanceReconciliationParamsUnit.
+const (
+	ListFinanceReconciliationParamsUnitIRR     ListFinanceReconciliationParamsUnit = "IRR"
+	ListFinanceReconciliationParamsUnitIRT     ListFinanceReconciliationParamsUnit = "IRT"
+	ListFinanceReconciliationParamsUnitUNKNOWN ListFinanceReconciliationParamsUnit = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ListFinanceReconciliationParamsUnit enum.
+func (e ListFinanceReconciliationParamsUnit) Valid() bool {
+	switch e {
+	case ListFinanceReconciliationParamsUnitIRR:
+		return true
+	case ListFinanceReconciliationParamsUnitIRT:
+		return true
+	case ListFinanceReconciliationParamsUnitUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListFinanceReconciliationParamsSubjectType.
+const (
+	ListFinanceReconciliationParamsSubjectTypeInvoice      ListFinanceReconciliationParamsSubjectType = "invoice"
+	ListFinanceReconciliationParamsSubjectTypeLegacyWallet ListFinanceReconciliationParamsSubjectType = "legacy_wallet"
+)
+
+// Valid indicates whether the value is a known member of the ListFinanceReconciliationParamsSubjectType enum.
+func (e ListFinanceReconciliationParamsSubjectType) Valid() bool {
+	switch e {
+	case ListFinanceReconciliationParamsSubjectTypeInvoice:
+		return true
+	case ListFinanceReconciliationParamsSubjectTypeLegacyWallet:
 		return true
 	default:
 		return false
@@ -2697,6 +3480,79 @@ type AccessDecision struct {
 // AccessDecisionScope defines model for AccessDecision.Scope.
 type AccessDecisionScope string
 
+// AccountBalance Derived from ledger lines at read time (never stored); one account, basis and unit. No combined total exists.
+type AccountBalance struct {
+	// Account Identity is a category plus a stable target / native reference (never a phone, name or email). customer_id is set only
+	// when the customer link is RESOLVED; an unresolved link stays explicit.
+	Account LedgerAccount `json:"account"`
+
+	// Basis ACCRUAL_SHADOW and CASH_SHADOW are computed side by side (D-41 unresolved: neither is canonical, preferred or final).
+	// WALLET_MIRROR_SHADOW mirrors legacy wallet postings (neither accrual nor cash).
+	Basis ShadowBasis `json:"basis"`
+
+	// Credits An exact shadow amount in its unit, or no money with OVERFLOW (never zero for unknown).
+	Credits ShadowAmount `json:"credits"`
+
+	// Debits An exact shadow amount in its unit, or no money with OVERFLOW (never zero for unknown).
+	Debits ShadowAmount `json:"debits"`
+
+	// Legacy One legacy figure vs one shadow amount for one subject, basis and unit in one run. difference = shadow - legacy and is
+	// present only for MATCH / MISMATCH / a complete CONFLICT. Units are never compared across.
+	Legacy *ReconciliationRow `json:"legacy,omitempty"`
+	Lines  int64              `json:"lines"`
+
+	// Net An exact shadow amount in its unit, or no money with OVERFLOW (never zero for unknown).
+	Net ShadowAmount `json:"net"`
+
+	// Unit Explicit monetary unit. IRR and IRT are distinct; there is no conversion.
+	Unit Unit `json:"unit"`
+}
+
+// AccountEnvelope defines model for AccountEnvelope.
+type AccountEnvelope struct {
+	// Account Identity is a category plus a stable target / native reference (never a phone, name or email). customer_id is set only
+	// when the customer link is RESOLVED; an unresolved link stays explicit.
+	Account *LedgerAccount `json:"account,omitempty"`
+
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions   `json:"allowed_actions,omitempty"`
+	Balances       *[]AccountBalance `json:"balances,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Meta          *FinanceMeta  `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// AccountListEnvelope defines model for AccountListEnvelope.
+type AccountListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID    `json:"correlation_id"`
+	Items         *[]LedgerAccount `json:"items,omitempty"`
+	Meta          *FinanceMeta     `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo     `json:"page,omitempty"`
+	Reasons Reasons       `json:"reasons"`
+	Summary *[]GroupCount `json:"summary,omitempty"`
+}
+
 // AllowedAction defines model for AllowedAction.
 type AllowedAction struct {
 	Allowed bool `json:"allowed"`
@@ -2711,6 +3567,9 @@ type AllowedActions map[string]AllowedAction
 
 // AmountRepresentation REPRESENTABLE = exact int64 in the unit; UNREPRESENTABLE = raw kept (fraction, malformed, overflow); ABSENT = no value (never zero).
 type AmountRepresentation string
+
+// AmountState REPRESENTABLE = exact int64 value given; OVERFLOW = the int64 sum overflowed and no value is claimed.
+type AmountState string
 
 // ApprovalProvenance Who/what accepted the attempt, as evidenced. GATEWAY_AUTO is the legacy gateway auto-approval and is
 // never a Finance review (D-25 open). LEGACY_MANUAL_APPROVAL is the legacy manual approval path.
@@ -2872,6 +3731,29 @@ type AttributionSnapshot struct {
 
 	// Subject A legacy user reference and, when the identity module resolved it, the target user id (absent object = no reference).
 	Subject *UserRef `json:"subject,omitempty"`
+}
+
+// BalanceListEnvelope defines model for BalanceListEnvelope.
+type BalanceListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID     `json:"correlation_id"`
+	Items         *[]AccountBalance `json:"items,omitempty"`
+	Meta          *FinanceMeta      `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo     `json:"page,omitempty"`
+	Reasons Reasons       `json:"reasons"`
+	Summary *[]GroupCount `json:"summary,omitempty"`
 }
 
 // BillingAmount Raw legacy decimal text beside the exact money it represents (absent money = not representable; never zero).
@@ -3736,6 +4618,49 @@ type FieldError struct {
 	ReasonCode ReasonCode `json:"reason_code"`
 }
 
+// FinanceCoverage defines model for FinanceCoverage.
+type FinanceCoverage string
+
+// FinanceFreshness FRESH / STALE against a 24h SLA; UNKNOWN when no time is known.
+type FinanceFreshness string
+
+// FinanceMeta defines model for FinanceMeta.
+type FinanceMeta struct {
+	// Notice Fixed SHADOW notice repeated on every finance answer.
+	Notice ShadowNotice `json:"notice"`
+
+	// Query The normalised query; run_id is the run every part of the answer comes from.
+	Query      FinanceQuery `json:"query"`
+	RecordKind RecordKind   `json:"record_kind"`
+	Run        ShadowRun    `json:"run"`
+}
+
+// FinanceQuery The normalised query; run_id is the run every part of the answer comes from.
+type FinanceQuery struct {
+	Filters map[string]string  `json:"filters"`
+	RunId   openapi_types.UUID `json:"run_id"`
+}
+
+// FinanceRunSource defines model for FinanceRunSource.
+type FinanceRunSource struct {
+	// Freshness FRESH / STALE against a 24h SLA; UNKNOWN when no time is known.
+	Freshness FinanceFreshness `json:"freshness"`
+
+	// ReadAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	ReadAt     Timestamp              `json:"read_at"`
+	Reason     string                 `json:"reason"`
+	RowsRead   *int64                 `json:"rows_read,omitempty"`
+	SnapshotId *string                `json:"snapshot_id,omitempty"`
+	Source     FinanceRunSourceSource `json:"source"`
+
+	// SourceCutoff RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	SourceCutoff *Timestamp      `json:"source_cutoff,omitempty"`
+	Status       FinanceCoverage `json:"status"`
+}
+
+// FinanceRunSourceSource defines model for FinanceRunSource.Source.
+type FinanceRunSourceSource string
+
 // Finding A hierarchy finding. Reported, never auto-fixed. Detail names keys and reasons only.
 type Finding struct {
 	Detail string `json:"detail"`
@@ -3802,6 +4727,15 @@ type GatewayEvidence struct {
 
 // GatewayEvidenceState defines model for GatewayEvidence.State.
 type GatewayEvidenceState string
+
+// GroupCount defines model for GroupCount.
+type GroupCount struct {
+	Basis  *string `json:"basis,omitempty"`
+	Count  int64   `json:"count"`
+	Reason *string `json:"reason,omitempty"`
+	State  *string `json:"state,omitempty"`
+	Unit   *string `json:"unit,omitempty"`
+}
 
 // HealthLive defines model for HealthLive.
 type HealthLive struct {
@@ -4314,6 +5248,161 @@ type LeadFacts struct {
 
 	// UpdatedAtRaw Raw legacy value kept verbatim as evidence (not interpreted).
 	UpdatedAtRaw *RawText `json:"updated_at_raw"`
+}
+
+// LedgerAccount Identity is a category plus a stable target / native reference (never a phone, name or email). customer_id is set only
+// when the customer link is RESOLVED; an unresolved link stays explicit.
+type LedgerAccount struct {
+	AccountId     openapi_types.UUID         `json:"account_id"`
+	AccountKey    string                     `json:"account_key"`
+	Category      LedgerAccountCategory      `json:"category"`
+	CustomerId    *openapi_types.UUID        `json:"customer_id,omitempty"`
+	CustomerLink  *LedgerAccountCustomerLink `json:"customer_link,omitempty"`
+	HolderKey     *string                    `json:"holder_key,omitempty"`
+	HolderUserId  *openapi_types.UUID        `json:"holder_user_id,omitempty"`
+	NormalSide    LedgerAccountNormalSide    `json:"normal_side"`
+	Provenance    *string                    `json:"provenance,omitempty"`
+	Route         *string                    `json:"route,omitempty"`
+	SubjectDomain string                     `json:"subject_domain"`
+	SubjectRef    string                     `json:"subject_ref"`
+	WalletTypeRaw *string                    `json:"wallet_type_raw,omitempty"`
+}
+
+// LedgerAccountCategory defines model for LedgerAccount.Category.
+type LedgerAccountCategory string
+
+// LedgerAccountCustomerLink defines model for LedgerAccount.CustomerLink.
+type LedgerAccountCustomerLink string
+
+// LedgerAccountNormalSide defines model for LedgerAccount.NormalSide.
+type LedgerAccountNormalSide string
+
+// LedgerEntry One balanced, single-unit SHADOW entry (debits == credits). Corrections are separate entries linked by
+// reverses_entry_id; the original never changes. effective_at / posted_at are absent when no UTC business time is
+// evidenced (never an import time); source_time_raw keeps the legacy text with its zone unasserted.
+type LedgerEntry struct {
+	// Basis ACCRUAL_SHADOW and CASH_SHADOW are computed side by side (D-41 unresolved: neither is canonical, preferred or final).
+	// WALLET_MIRROR_SHADOW mirrors legacy wallet postings (neither accrual nor cash).
+	Basis       ShadowBasis `json:"basis"`
+	BusinessKey string      `json:"business_key"`
+
+	// Credits Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	Credits Money `json:"credits"`
+
+	// Debits Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	Debits     Money  `json:"debits"`
+	EffectKind string `json:"effect_kind"`
+
+	// EffectiveAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	EffectiveAt   *Timestamp               `json:"effective_at,omitempty"`
+	EntryId       openapi_types.UUID       `json:"entry_id"`
+	EntrySeq      int64                    `json:"entry_seq"`
+	FinanceReview LedgerEntryFinanceReview `json:"finance_review"`
+	Lines         []LedgerLine             `json:"lines"`
+
+	// PostedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	PostedAt *Timestamp `json:"posted_at,omitempty"`
+
+	// Provenance Evidence provenance (e.g. GATEWAY_AUTO stays GATEWAY_AUTO). Never FINANCE_REVIEWED in Slice 9.
+	Provenance           string                          `json:"provenance"`
+	ReconciliationStatus LedgerEntryReconciliationStatus `json:"reconciliation_status"`
+	RecordKind           RecordKind                      `json:"record_kind"`
+	ReversedByEntryId    *openapi_types.UUID             `json:"reversed_by_entry_id,omitempty"`
+	ReversesEntryId      *openapi_types.UUID             `json:"reverses_entry_id,omitempty"`
+	SourceRefs           []SourceRef                     `json:"source_refs"`
+	SourceTimeRaw        *string                         `json:"source_time_raw,omitempty"`
+	TimeEvidence         LedgerEntryTimeEvidence         `json:"time_evidence"`
+
+	// Unit Explicit monetary unit. IRR and IRT are distinct; there is no conversion.
+	Unit Unit `json:"unit"`
+}
+
+// LedgerEntryFinanceReview defines model for LedgerEntry.FinanceReview.
+type LedgerEntryFinanceReview string
+
+// LedgerEntryReconciliationStatus defines model for LedgerEntry.ReconciliationStatus.
+type LedgerEntryReconciliationStatus string
+
+// LedgerEntryTimeEvidence defines model for LedgerEntry.TimeEvidence.
+type LedgerEntryTimeEvidence string
+
+// LedgerEntryEnvelope defines model for LedgerEntryEnvelope.
+type LedgerEntryEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Entry One balanced, single-unit SHADOW entry (debits == credits). Corrections are separate entries linked by
+	// reverses_entry_id; the original never changes. effective_at / posted_at are absent when no UTC business time is
+	// evidenced (never an import time); source_time_raw keeps the legacy text with its zone unasserted.
+	Entry *LedgerEntry `json:"entry,omitempty"`
+	Meta  *FinanceMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// LedgerGroup defines model for LedgerGroup.
+type LedgerGroup struct {
+	// Basis ACCRUAL_SHADOW and CASH_SHADOW are computed side by side (D-41 unresolved: neither is canonical, preferred or final).
+	// WALLET_MIRROR_SHADOW mirrors legacy wallet postings (neither accrual nor cash).
+	Basis ShadowBasis `json:"basis"`
+
+	// Debits An exact shadow amount in its unit, or no money with OVERFLOW (never zero for unknown).
+	Debits  ShadowAmount `json:"debits"`
+	Entries int64        `json:"entries"`
+
+	// Unit Explicit monetary unit. IRR and IRT are distinct; there is no conversion.
+	Unit               Unit  `json:"unit"`
+	UnknownEffectiveAt int64 `json:"unknown_effective_at"`
+}
+
+// LedgerLine defines model for LedgerLine.
+type LedgerLine struct {
+	AccountId  openapi_types.UUID `json:"account_id"`
+	AccountKey string             `json:"account_key"`
+
+	// Amount Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	Amount    Money          `json:"amount"`
+	Category  string         `json:"category"`
+	LineNo    int            `json:"line_no"`
+	Side      LedgerLineSide `json:"side"`
+	SourceRef *string        `json:"source_ref,omitempty"`
+}
+
+// LedgerLineSide defines model for LedgerLine.Side.
+type LedgerLineSide string
+
+// LedgerListEnvelope defines model for LedgerListEnvelope.
+type LedgerListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID  `json:"correlation_id"`
+	Items         *[]LedgerEntry `json:"items,omitempty"`
+	Meta          *FinanceMeta   `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo      `json:"page,omitempty"`
+	Reasons Reasons        `json:"reasons"`
+	Summary *[]LedgerGroup `json:"summary,omitempty"`
 }
 
 // LegacyKey Legacy source key (provenance only, never identity).
@@ -5147,6 +6236,79 @@ type ReceiptReferenceListEnvelope struct {
 // ReceiptState REFERENCE_ONLY = a reference exists (no file was checked); never AVAILABLE in Slice 7.
 type ReceiptState string
 
+// ReconciliationListEnvelope defines model for ReconciliationListEnvelope.
+type ReconciliationListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID        `json:"correlation_id"`
+	Items         *[]ReconciliationRow `json:"items,omitempty"`
+	Meta          *FinanceMeta         `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo     `json:"page,omitempty"`
+	Reasons Reasons       `json:"reasons"`
+	Summary *[]GroupCount `json:"summary,omitempty"`
+}
+
+// ReconciliationRow One legacy figure vs one shadow amount for one subject, basis and unit in one run. difference = shadow - legacy and is
+// present only for MATCH / MISMATCH / a complete CONFLICT. Units are never compared across.
+type ReconciliationRow struct {
+	AccountId *openapi_types.UUID `json:"account_id,omitempty"`
+
+	// Basis ACCRUAL_SHADOW and CASH_SHADOW are computed side by side (D-41 unresolved: neither is canonical, preferred or final).
+	// WALLET_MIRROR_SHADOW mirrors legacy wallet postings (neither accrual nor cash).
+	Basis    ShadowBasis     `json:"basis"`
+	Coverage FinanceCoverage `json:"coverage"`
+
+	// Difference Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	Difference *Money `json:"difference,omitempty"`
+
+	// LegacyAmount Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	LegacyAmount *Money                        `json:"legacy_amount,omitempty"`
+	LegacyFigure ReconciliationRowLegacyFigure `json:"legacy_figure"`
+	LegacyRaw    *string                       `json:"legacy_raw,omitempty"`
+	LegacyRepr   ReconciliationRowLegacyRepr   `json:"legacy_repr"`
+	Reasons      []string                      `json:"reasons"`
+
+	// ShadowAmount Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	ShadowAmount   *Money                         `json:"shadow_amount,omitempty"`
+	SourceSnapshot *string                        `json:"source_snapshot,omitempty"`
+	State          ReconciliationState            `json:"state"`
+	SubjectDomain  ReconciliationRowSubjectDomain `json:"subject_domain"`
+	SubjectRef     string                         `json:"subject_ref"`
+	Unit           ReconciliationRowUnit          `json:"unit"`
+}
+
+// ReconciliationRowLegacyFigure defines model for ReconciliationRow.LegacyFigure.
+type ReconciliationRowLegacyFigure string
+
+// ReconciliationRowLegacyRepr defines model for ReconciliationRow.LegacyRepr.
+type ReconciliationRowLegacyRepr string
+
+// ReconciliationRowSubjectDomain defines model for ReconciliationRow.SubjectDomain.
+type ReconciliationRowSubjectDomain string
+
+// ReconciliationRowUnit defines model for ReconciliationRow.Unit.
+type ReconciliationRowUnit string
+
+// ReconciliationState defines model for ReconciliationState.
+type ReconciliationState string
+
+// RecordKind defines model for RecordKind.
+type RecordKind string
+
 // RefState RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
 type RefState string
 
@@ -5330,6 +6492,9 @@ type SessionContext struct {
 
 		// CustomersIdentity Slice 5 customer identity shadow read (flag customers.identity_shadow_read).
 		CustomersIdentity bool `json:"customers_identity"`
+
+		// FinanceShadowRead Slice 9 finance SHADOW ledger read (flag finance.shadow_ledger_read). Read only; never a financial system of record.
+		FinanceShadowRead bool `json:"finance_shadow_read"`
 		HrRead            bool `json:"hr_read"`
 
 		// ReportingRead Slice 8 MIS / reporting read (flag reporting.read_shadow). Never shows an Invoice Review page.
@@ -5368,6 +6533,100 @@ type SessionEnvelope struct {
 	// distinct from BLOCKED.
 	Outcome Outcome      `json:"outcome"`
 	Reasons []ReasonCode `json:"reasons"`
+}
+
+// ShadowAmount An exact shadow amount in its unit, or no money with OVERFLOW (never zero for unknown).
+type ShadowAmount struct {
+	// Money Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	Money *Money `json:"money,omitempty"`
+
+	// State REPRESENTABLE = exact int64 value given; OVERFLOW = the int64 sum overflowed and no value is claimed.
+	State AmountState `json:"state"`
+}
+
+// ShadowBasis ACCRUAL_SHADOW and CASH_SHADOW are computed side by side (D-41 unresolved: neither is canonical, preferred or final).
+// WALLET_MIRROR_SHADOW mirrors legacy wallet postings (neither accrual nor cash).
+type ShadowBasis string
+
+// ShadowNotice Fixed SHADOW notice repeated on every finance answer.
+type ShadowNotice string
+
+// ShadowRun defines model for ShadowRun.
+type ShadowRun struct {
+	Bases []ShadowBasis `json:"bases"`
+
+	// CompletedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	CompletedAt       Timestamp        `json:"completed_at"`
+	DerivationVersion int              `json:"derivation_version"`
+	FactCounts        map[string]int64 `json:"fact_counts"`
+	FactsSha256       string           `json:"facts_sha256"`
+
+	// Freshness FRESH / STALE against a 24h SLA; UNKNOWN when no time is known.
+	Freshness FinanceFreshness `json:"freshness"`
+
+	// Outcome Technical run outcome only (PARTIAL when any required source is not AVAILABLE). Never a financial reconciliation result.
+	Outcome    ShadowRunOutcome   `json:"outcome"`
+	Reasons    Reasons            `json:"reasons"`
+	RecordKind RecordKind         `json:"record_kind"`
+	RunId      openapi_types.UUID `json:"run_id"`
+	RunSeq     int64              `json:"run_seq"`
+
+	// SourceCutoff RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	SourceCutoff Timestamp          `json:"source_cutoff"`
+	Sources      []FinanceRunSource `json:"sources"`
+
+	// StartedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	StartedAt Timestamp `json:"started_at"`
+}
+
+// ShadowRunOutcome Technical run outcome only (PARTIAL when any required source is not AVAILABLE). Never a financial reconciliation result.
+type ShadowRunOutcome string
+
+// ShadowRunEnvelope defines model for ShadowRunEnvelope.
+type ShadowRunEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId  CorrelationID `json:"correlation_id"`
+	FindingSummary *[]GroupCount `json:"finding_summary,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every finance answer.
+	Notice ShadowNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome               Outcome       `json:"outcome"`
+	Reasons               Reasons       `json:"reasons"`
+	ReconciliationSummary *[]GroupCount `json:"reconciliation_summary,omitempty"`
+	Run                   *ShadowRun    `json:"run,omitempty"`
+}
+
+// ShadowRunListEnvelope defines model for ShadowRunListEnvelope.
+type ShadowRunListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]ShadowRun  `json:"items,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every finance answer.
+	Notice ShadowNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
 }
 
 // SourceContribution defines model for SourceContribution.
@@ -5416,6 +6675,13 @@ type SourceQualityRow struct {
 	Source              string        `json:"source"`
 	Unknown             *int64        `json:"unknown,omitempty"`
 	Valid               *int64        `json:"valid,omitempty"`
+}
+
+// SourceRef defines model for SourceRef.
+type SourceRef struct {
+	Domain string `json:"domain"`
+	Ref    string `json:"ref"`
+	Role   string `json:"role"`
 }
 
 // StateCell defines model for StateCell.
@@ -5589,11 +6855,17 @@ type UserSummaryLoginEnabled bool
 // WorkflowType Source work unit a Case stands for (one staged legacy row each).
 type WorkflowType string
 
+// AccountCategory defines model for AccountCategory.
+type AccountCategory string
+
 // AsOf RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
 type AsOf = Timestamp
 
 // AttemptID Target native identifier. Never a phone, e-mail, login or legacy key.
 type AttemptID = NativeID
+
+// BalanceState defines model for BalanceState.
+type BalanceState string
 
 // CaseID Target native identifier. Never a phone, e-mail, login or legacy key.
 type CaseID = NativeID
@@ -5614,8 +6886,23 @@ type CustomerID = NativeID
 // (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
 type CustomerLinkState = ResolutionState
 
+// EffectiveFrom RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+type EffectiveFrom = Timestamp
+
+// EffectiveTo RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+type EffectiveTo = Timestamp
+
+// EntryState defines model for EntryState.
+type EntryState string
+
 // EvidenceStrength defines model for EvidenceStrength.
 type EvidenceStrength = Strength
+
+// FinanceRunID defines model for FinanceRunID.
+type FinanceRunID = openapi_types.UUID
+
+// FinanceUnit Explicit monetary unit. IRR and IRT are distinct; there is no conversion.
+type FinanceUnit = Unit
 
 // HasConflict defines model for HasConflict.
 type HasConflict = bool
@@ -5689,6 +6976,9 @@ type RangeTo = Timestamp
 // ReceiptID Target native identifier. Never a phone, e-mail, login or legacy key.
 type ReceiptID = NativeID
 
+// ReconciliationUnit defines model for ReconciliationUnit.
+type ReconciliationUnit string
+
 // Relation defines model for Relation.
 type Relation string
 
@@ -5703,6 +6993,12 @@ type ReportScope string
 
 // RunID Target native identifier. Never a phone, e-mail, login or legacy key.
 type RunID = NativeID
+
+// SourceType defines model for SourceType.
+type SourceType string
+
+// SubjectType defines model for SubjectType.
+type SubjectType string
 
 // UserSort defines model for UserSort.
 type UserSort string
@@ -5770,6 +7066,111 @@ type ListCustomersParams struct {
 type ListCustomerEvidenceParams struct {
 	Strength *Strength `form:"strength,omitempty" json:"strength,omitempty"`
 
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListFinanceAccountsParams defines parameters for ListFinanceAccounts.
+type ListFinanceAccountsParams struct {
+	// RunId Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used.
+	RunId           *FinanceRunID                             `form:"run_id,omitempty" json:"run_id,omitempty"`
+	AccountCategory *ListFinanceAccountsParamsAccountCategory `form:"account_category,omitempty" json:"account_category,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListFinanceAccountsParamsAccountCategory defines parameters for ListFinanceAccounts.
+type ListFinanceAccountsParamsAccountCategory string
+
+// GetFinanceAccountParams defines parameters for GetFinanceAccount.
+type GetFinanceAccountParams struct {
+	// RunId Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used.
+	RunId *FinanceRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+}
+
+// ListFinanceBalancesParams defines parameters for ListFinanceBalances.
+type ListFinanceBalancesParams struct {
+	// RunId Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used.
+	RunId           *FinanceRunID                             `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Basis           *ShadowBasis                              `form:"basis,omitempty" json:"basis,omitempty"`
+	Unit            *FinanceUnit                              `form:"unit,omitempty" json:"unit,omitempty"`
+	AccountCategory *ListFinanceBalancesParamsAccountCategory `form:"account_category,omitempty" json:"account_category,omitempty"`
+
+	// State The legacy comparison state of the balance, or NOT_COMPARABLE when no legacy figure exists.
+	State *ListFinanceBalancesParamsState `form:"state,omitempty" json:"state,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListFinanceBalancesParamsAccountCategory defines parameters for ListFinanceBalances.
+type ListFinanceBalancesParamsAccountCategory string
+
+// ListFinanceBalancesParamsState defines parameters for ListFinanceBalances.
+type ListFinanceBalancesParamsState string
+
+// ListFinanceLedgerParams defines parameters for ListFinanceLedger.
+type ListFinanceLedgerParams struct {
+	// RunId Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used.
+	RunId           *FinanceRunID                           `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Basis           *ShadowBasis                            `form:"basis,omitempty" json:"basis,omitempty"`
+	Unit            *FinanceUnit                            `form:"unit,omitempty" json:"unit,omitempty"`
+	State           *ListFinanceLedgerParamsState           `form:"state,omitempty" json:"state,omitempty"`
+	SourceType      *ListFinanceLedgerParamsSourceType      `form:"source_type,omitempty" json:"source_type,omitempty"`
+	AccountCategory *ListFinanceLedgerParamsAccountCategory `form:"account_category,omitempty" json:"account_category,omitempty"`
+
+	// EffectiveFrom Entries whose evidenced effective time is at or after (UTC). Entries with an unknown effective time never match a date range.
+	EffectiveFrom *EffectiveFrom `form:"effective_from,omitempty" json:"effective_from,omitempty"`
+
+	// EffectiveTo Entries whose evidenced effective time is before (UTC).
+	EffectiveTo *EffectiveTo `form:"effective_to,omitempty" json:"effective_to,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListFinanceLedgerParamsState defines parameters for ListFinanceLedger.
+type ListFinanceLedgerParamsState string
+
+// ListFinanceLedgerParamsSourceType defines parameters for ListFinanceLedger.
+type ListFinanceLedgerParamsSourceType string
+
+// ListFinanceLedgerParamsAccountCategory defines parameters for ListFinanceLedger.
+type ListFinanceLedgerParamsAccountCategory string
+
+// GetFinanceLedgerEntryParams defines parameters for GetFinanceLedgerEntry.
+type GetFinanceLedgerEntryParams struct {
+	// RunId Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used.
+	RunId *FinanceRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+}
+
+// ListFinanceReconciliationParams defines parameters for ListFinanceReconciliation.
+type ListFinanceReconciliationParams struct {
+	// RunId Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used.
+	RunId       *FinanceRunID                               `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Basis       *ShadowBasis                                `form:"basis,omitempty" json:"basis,omitempty"`
+	Unit        *ListFinanceReconciliationParamsUnit        `form:"unit,omitempty" json:"unit,omitempty"`
+	State       *ReconciliationState                        `form:"state,omitempty" json:"state,omitempty"`
+	SubjectType *ListFinanceReconciliationParamsSubjectType `form:"subject_type,omitempty" json:"subject_type,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListFinanceReconciliationParamsUnit defines parameters for ListFinanceReconciliation.
+type ListFinanceReconciliationParamsUnit string
+
+// ListFinanceReconciliationParamsSubjectType defines parameters for ListFinanceReconciliation.
+type ListFinanceReconciliationParamsSubjectType string
+
+// ListFinanceShadowRunsParams defines parameters for ListFinanceShadowRuns.
+type ListFinanceShadowRunsParams struct {
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
@@ -6308,6 +7709,30 @@ type ServerInterface interface {
 	// ListCustomerEvidence List identity evidence about a customer
 	// (GET /api/v1/customers/{customer_id}/evidence)
 	ListCustomerEvidence(w http.ResponseWriter, r *http.Request, customerId NativeID, params ListCustomerEvidenceParams)
+	// ListFinanceAccounts Shadow ledger accounts of one run
+	// (GET /api/v1/finance/accounts)
+	ListFinanceAccounts(w http.ResponseWriter, r *http.Request, params ListFinanceAccountsParams)
+	// GetFinanceAccount One shadow account with its per-basis, per-unit balances (same run)
+	// (GET /api/v1/finance/accounts/{account_id})
+	GetFinanceAccount(w http.ResponseWriter, r *http.Request, accountId openapi_types.UUID, params GetFinanceAccountParams)
+	// ListFinanceBalances Derived shadow balances per account, basis and unit with the comparable legacy figure
+	// (GET /api/v1/finance/balances)
+	ListFinanceBalances(w http.ResponseWriter, r *http.Request, params ListFinanceBalancesParams)
+	// ListFinanceLedger Shadow journal entries with lines (one run)
+	// (GET /api/v1/finance/ledger)
+	ListFinanceLedger(w http.ResponseWriter, r *http.Request, params ListFinanceLedgerParams)
+	// GetFinanceLedgerEntry One shadow journal entry with its lines (same run)
+	// (GET /api/v1/finance/ledger/{entry_id})
+	GetFinanceLedgerEntry(w http.ResponseWriter, r *http.Request, entryId openapi_types.UUID, params GetFinanceLedgerEntryParams)
+	// ListFinanceReconciliation Legacy vs shadow reconciliation (one run, per basis and unit)
+	// (GET /api/v1/finance/reconciliation)
+	ListFinanceReconciliation(w http.ResponseWriter, r *http.Request, params ListFinanceReconciliationParams)
+	// ListFinanceShadowRuns Shadow derivation runs (newest first)
+	// (GET /api/v1/finance/shadow-runs)
+	ListFinanceShadowRuns(w http.ResponseWriter, r *http.Request, params ListFinanceShadowRunsParams)
+	// GetFinanceShadowRun One shadow run with its source manifest and reconciliation summary
+	// (GET /api/v1/finance/shadow-runs/{run_id})
+	GetFinanceShadowRun(w http.ResponseWriter, r *http.Request, runId openapi_types.UUID)
 	// ListIdentityUsers List shadow user accounts
 	// (GET /api/v1/identity/users)
 	ListIdentityUsers(w http.ResponseWriter, r *http.Request, params ListIdentityUsersParams)
@@ -7117,6 +8542,606 @@ func (siw *ServerInterfaceWrapper) ListCustomerEvidence(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListCustomerEvidence(w, r, customerId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFinanceAccounts operation middleware
+func (siw *ServerInterfaceWrapper) ListFinanceAccounts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFinanceAccountsParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "account_category" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "account_category", r.URL.Query(), &params.AccountCategory, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "account_category"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "account_category", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFinanceAccounts(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFinanceAccount operation middleware
+func (siw *ServerInterfaceWrapper) GetFinanceAccount(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "account_id" -------------
+	var accountId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "account_id", r.PathValue("account_id"), &accountId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "account_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetFinanceAccountParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFinanceAccount(w, r, accountId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFinanceBalances operation middleware
+func (siw *ServerInterfaceWrapper) ListFinanceBalances(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFinanceBalancesParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "basis", r.URL.Query(), &params.Basis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unit", r.URL.Query(), &params.Unit, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "account_category" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "account_category", r.URL.Query(), &params.AccountCategory, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "account_category"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "account_category", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFinanceBalances(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFinanceLedger operation middleware
+func (siw *ServerInterfaceWrapper) ListFinanceLedger(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFinanceLedgerParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "basis", r.URL.Query(), &params.Basis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unit", r.URL.Query(), &params.Unit, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "source_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "source_type", r.URL.Query(), &params.SourceType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "source_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "source_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "account_category" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "account_category", r.URL.Query(), &params.AccountCategory, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "account_category"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "account_category", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "effective_from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "effective_from", r.URL.Query(), &params.EffectiveFrom, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "effective_from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "effective_from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "effective_to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "effective_to", r.URL.Query(), &params.EffectiveTo, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "effective_to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "effective_to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFinanceLedger(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFinanceLedgerEntry operation middleware
+func (siw *ServerInterfaceWrapper) GetFinanceLedgerEntry(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "entry_id" -------------
+	var entryId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entry_id", r.PathValue("entry_id"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entry_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetFinanceLedgerEntryParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFinanceLedgerEntry(w, r, entryId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFinanceReconciliation operation middleware
+func (siw *ServerInterfaceWrapper) ListFinanceReconciliation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFinanceReconciliationParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "basis", r.URL.Query(), &params.Basis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unit", r.URL.Query(), &params.Unit, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "subject_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subject_type", r.URL.Query(), &params.SubjectType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subject_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFinanceReconciliation(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFinanceShadowRuns operation middleware
+func (siw *ServerInterfaceWrapper) ListFinanceShadowRuns(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFinanceShadowRunsParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFinanceShadowRuns(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFinanceShadowRun operation middleware
+func (siw *ServerInterfaceWrapper) GetFinanceShadowRun(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "run_id" -------------
+	var runId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "run_id", r.PathValue("run_id"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFinanceShadowRun(w, r, runId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10447,6 +12472,14 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/mis/reconciliation", wrapper.GetMisReconciliation)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/invoice-review", wrapper.ListInvoiceReview)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/invoice-review/{invoice_id}", wrapper.GetInvoiceReview)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/shadow-runs", wrapper.ListFinanceShadowRuns)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/shadow-runs/{run_id}", wrapper.GetFinanceShadowRun)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/accounts", wrapper.ListFinanceAccounts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/accounts/{account_id}", wrapper.GetFinanceAccount)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/ledger", wrapper.ListFinanceLedger)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/ledger/{entry_id}", wrapper.GetFinanceLedgerEntry)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/balances", wrapper.ListFinanceBalances)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/reconciliation", wrapper.ListFinanceReconciliation)
 
 	return m
 }
@@ -12024,6 +14057,824 @@ type ListCustomerEvidencedefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response ListCustomerEvidencedefaultApplicationProblemPlusJSONResponse) VisitListCustomerEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceAccountsRequestObject struct {
+	Params ListFinanceAccountsParams
+}
+
+type ListFinanceAccountsResponseObject interface {
+	VisitListFinanceAccountsResponse(w http.ResponseWriter) error
+}
+
+type ListFinanceAccounts200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceAccounts200JSONResponse struct {
+	Body    AccountListEnvelope
+	Headers ListFinanceAccounts200ResponseHeaders
+}
+
+func (response ListFinanceAccounts200JSONResponse) VisitListFinanceAccountsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceAccounts400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFinanceAccounts400ApplicationProblemPlusJSONResponse) VisitListFinanceAccountsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceAccounts403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListFinanceAccounts403JSONResponse) VisitListFinanceAccountsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceAccountsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceAccountsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListFinanceAccountsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListFinanceAccountsdefaultApplicationProblemPlusJSONResponse) VisitListFinanceAccountsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceAccountRequestObject struct {
+	AccountId openapi_types.UUID `json:"account_id"`
+	Params    GetFinanceAccountParams
+}
+
+type GetFinanceAccountResponseObject interface {
+	VisitGetFinanceAccountResponse(w http.ResponseWriter) error
+}
+
+type GetFinanceAccount200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceAccount200JSONResponse struct {
+	Body    AccountEnvelope
+	Headers GetFinanceAccount200ResponseHeaders
+}
+
+func (response GetFinanceAccount200JSONResponse) VisitGetFinanceAccountResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceAccount400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetFinanceAccount400ApplicationProblemPlusJSONResponse) VisitGetFinanceAccountResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceAccount403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetFinanceAccount403JSONResponse) VisitGetFinanceAccountResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceAccount404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceAccount404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetFinanceAccount404ResponseHeaders
+}
+
+func (response GetFinanceAccount404ApplicationProblemPlusJSONResponse) VisitGetFinanceAccountResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceAccountdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceAccountdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetFinanceAccountdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetFinanceAccountdefaultApplicationProblemPlusJSONResponse) VisitGetFinanceAccountResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceBalancesRequestObject struct {
+	Params ListFinanceBalancesParams
+}
+
+type ListFinanceBalancesResponseObject interface {
+	VisitListFinanceBalancesResponse(w http.ResponseWriter) error
+}
+
+type ListFinanceBalances200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceBalances200JSONResponse struct {
+	Body    BalanceListEnvelope
+	Headers ListFinanceBalances200ResponseHeaders
+}
+
+func (response ListFinanceBalances200JSONResponse) VisitListFinanceBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceBalances400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFinanceBalances400ApplicationProblemPlusJSONResponse) VisitListFinanceBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceBalances403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListFinanceBalances403JSONResponse) VisitListFinanceBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceBalancesdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceBalancesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListFinanceBalancesdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListFinanceBalancesdefaultApplicationProblemPlusJSONResponse) VisitListFinanceBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceLedgerRequestObject struct {
+	Params ListFinanceLedgerParams
+}
+
+type ListFinanceLedgerResponseObject interface {
+	VisitListFinanceLedgerResponse(w http.ResponseWriter) error
+}
+
+type ListFinanceLedger200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceLedger200JSONResponse struct {
+	Body    LedgerListEnvelope
+	Headers ListFinanceLedger200ResponseHeaders
+}
+
+func (response ListFinanceLedger200JSONResponse) VisitListFinanceLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceLedger400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFinanceLedger400ApplicationProblemPlusJSONResponse) VisitListFinanceLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceLedger403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListFinanceLedger403JSONResponse) VisitListFinanceLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceLedgerdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceLedgerdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListFinanceLedgerdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListFinanceLedgerdefaultApplicationProblemPlusJSONResponse) VisitListFinanceLedgerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceLedgerEntryRequestObject struct {
+	EntryId openapi_types.UUID `json:"entry_id"`
+	Params  GetFinanceLedgerEntryParams
+}
+
+type GetFinanceLedgerEntryResponseObject interface {
+	VisitGetFinanceLedgerEntryResponse(w http.ResponseWriter) error
+}
+
+type GetFinanceLedgerEntry200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceLedgerEntry200JSONResponse struct {
+	Body    LedgerEntryEnvelope
+	Headers GetFinanceLedgerEntry200ResponseHeaders
+}
+
+func (response GetFinanceLedgerEntry200JSONResponse) VisitGetFinanceLedgerEntryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceLedgerEntry400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetFinanceLedgerEntry400ApplicationProblemPlusJSONResponse) VisitGetFinanceLedgerEntryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceLedgerEntry403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetFinanceLedgerEntry403JSONResponse) VisitGetFinanceLedgerEntryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceLedgerEntry404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceLedgerEntry404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetFinanceLedgerEntry404ResponseHeaders
+}
+
+func (response GetFinanceLedgerEntry404ApplicationProblemPlusJSONResponse) VisitGetFinanceLedgerEntryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceLedgerEntrydefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceLedgerEntrydefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetFinanceLedgerEntrydefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetFinanceLedgerEntrydefaultApplicationProblemPlusJSONResponse) VisitGetFinanceLedgerEntryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceReconciliationRequestObject struct {
+	Params ListFinanceReconciliationParams
+}
+
+type ListFinanceReconciliationResponseObject interface {
+	VisitListFinanceReconciliationResponse(w http.ResponseWriter) error
+}
+
+type ListFinanceReconciliation200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceReconciliation200JSONResponse struct {
+	Body    ReconciliationListEnvelope
+	Headers ListFinanceReconciliation200ResponseHeaders
+}
+
+func (response ListFinanceReconciliation200JSONResponse) VisitListFinanceReconciliationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceReconciliation400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFinanceReconciliation400ApplicationProblemPlusJSONResponse) VisitListFinanceReconciliationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceReconciliation403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListFinanceReconciliation403JSONResponse) VisitListFinanceReconciliationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceReconciliationdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceReconciliationdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListFinanceReconciliationdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListFinanceReconciliationdefaultApplicationProblemPlusJSONResponse) VisitListFinanceReconciliationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceShadowRunsRequestObject struct {
+	Params ListFinanceShadowRunsParams
+}
+
+type ListFinanceShadowRunsResponseObject interface {
+	VisitListFinanceShadowRunsResponse(w http.ResponseWriter) error
+}
+
+type ListFinanceShadowRuns200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceShadowRuns200JSONResponse struct {
+	Body    ShadowRunListEnvelope
+	Headers ListFinanceShadowRuns200ResponseHeaders
+}
+
+func (response ListFinanceShadowRuns200JSONResponse) VisitListFinanceShadowRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceShadowRuns400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFinanceShadowRuns400ApplicationProblemPlusJSONResponse) VisitListFinanceShadowRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceShadowRuns403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListFinanceShadowRuns403JSONResponse) VisitListFinanceShadowRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceShadowRunsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceShadowRunsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListFinanceShadowRunsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListFinanceShadowRunsdefaultApplicationProblemPlusJSONResponse) VisitListFinanceShadowRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceShadowRunRequestObject struct {
+	RunId openapi_types.UUID `json:"run_id"`
+}
+
+type GetFinanceShadowRunResponseObject interface {
+	VisitGetFinanceShadowRunResponse(w http.ResponseWriter) error
+}
+
+type GetFinanceShadowRun200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceShadowRun200JSONResponse struct {
+	Body    ShadowRunEnvelope
+	Headers GetFinanceShadowRun200ResponseHeaders
+}
+
+func (response GetFinanceShadowRun200JSONResponse) VisitGetFinanceShadowRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceShadowRun400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetFinanceShadowRun400ApplicationProblemPlusJSONResponse) VisitGetFinanceShadowRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceShadowRun403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetFinanceShadowRun403JSONResponse) VisitGetFinanceShadowRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceShadowRun404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceShadowRun404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetFinanceShadowRun404ResponseHeaders
+}
+
+func (response GetFinanceShadowRun404ApplicationProblemPlusJSONResponse) VisitGetFinanceShadowRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceShadowRundefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceShadowRundefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetFinanceShadowRundefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetFinanceShadowRundefaultApplicationProblemPlusJSONResponse) VisitGetFinanceShadowRunResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -16142,6 +18993,30 @@ type StrictServerInterface interface {
 	// ListCustomerEvidence List identity evidence about a customer
 	// (GET /api/v1/customers/{customer_id}/evidence)
 	ListCustomerEvidence(ctx context.Context, request ListCustomerEvidenceRequestObject) (ListCustomerEvidenceResponseObject, error)
+	// ListFinanceAccounts Shadow ledger accounts of one run
+	// (GET /api/v1/finance/accounts)
+	ListFinanceAccounts(ctx context.Context, request ListFinanceAccountsRequestObject) (ListFinanceAccountsResponseObject, error)
+	// GetFinanceAccount One shadow account with its per-basis, per-unit balances (same run)
+	// (GET /api/v1/finance/accounts/{account_id})
+	GetFinanceAccount(ctx context.Context, request GetFinanceAccountRequestObject) (GetFinanceAccountResponseObject, error)
+	// ListFinanceBalances Derived shadow balances per account, basis and unit with the comparable legacy figure
+	// (GET /api/v1/finance/balances)
+	ListFinanceBalances(ctx context.Context, request ListFinanceBalancesRequestObject) (ListFinanceBalancesResponseObject, error)
+	// ListFinanceLedger Shadow journal entries with lines (one run)
+	// (GET /api/v1/finance/ledger)
+	ListFinanceLedger(ctx context.Context, request ListFinanceLedgerRequestObject) (ListFinanceLedgerResponseObject, error)
+	// GetFinanceLedgerEntry One shadow journal entry with its lines (same run)
+	// (GET /api/v1/finance/ledger/{entry_id})
+	GetFinanceLedgerEntry(ctx context.Context, request GetFinanceLedgerEntryRequestObject) (GetFinanceLedgerEntryResponseObject, error)
+	// ListFinanceReconciliation Legacy vs shadow reconciliation (one run, per basis and unit)
+	// (GET /api/v1/finance/reconciliation)
+	ListFinanceReconciliation(ctx context.Context, request ListFinanceReconciliationRequestObject) (ListFinanceReconciliationResponseObject, error)
+	// ListFinanceShadowRuns Shadow derivation runs (newest first)
+	// (GET /api/v1/finance/shadow-runs)
+	ListFinanceShadowRuns(ctx context.Context, request ListFinanceShadowRunsRequestObject) (ListFinanceShadowRunsResponseObject, error)
+	// GetFinanceShadowRun One shadow run with its source manifest and reconciliation summary
+	// (GET /api/v1/finance/shadow-runs/{run_id})
+	GetFinanceShadowRun(ctx context.Context, request GetFinanceShadowRunRequestObject) (GetFinanceShadowRunResponseObject, error)
 	// ListIdentityUsers List shadow user accounts
 	// (GET /api/v1/identity/users)
 	ListIdentityUsers(ctx context.Context, request ListIdentityUsersRequestObject) (ListIdentityUsersResponseObject, error)
@@ -16682,6 +19557,216 @@ func (sh *strictHandler) ListCustomerEvidence(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListCustomerEvidenceResponseObject); ok {
 		if err := validResponse.VisitListCustomerEvidenceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFinanceAccounts operation middleware
+func (sh *strictHandler) ListFinanceAccounts(w http.ResponseWriter, r *http.Request, params ListFinanceAccountsParams) {
+	var request ListFinanceAccountsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFinanceAccounts(ctx, request.(ListFinanceAccountsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFinanceAccounts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFinanceAccountsResponseObject); ok {
+		if err := validResponse.VisitListFinanceAccountsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFinanceAccount operation middleware
+func (sh *strictHandler) GetFinanceAccount(w http.ResponseWriter, r *http.Request, accountId openapi_types.UUID, params GetFinanceAccountParams) {
+	var request GetFinanceAccountRequestObject
+
+	request.AccountId = accountId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFinanceAccount(ctx, request.(GetFinanceAccountRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFinanceAccount")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFinanceAccountResponseObject); ok {
+		if err := validResponse.VisitGetFinanceAccountResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFinanceBalances operation middleware
+func (sh *strictHandler) ListFinanceBalances(w http.ResponseWriter, r *http.Request, params ListFinanceBalancesParams) {
+	var request ListFinanceBalancesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFinanceBalances(ctx, request.(ListFinanceBalancesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFinanceBalances")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFinanceBalancesResponseObject); ok {
+		if err := validResponse.VisitListFinanceBalancesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFinanceLedger operation middleware
+func (sh *strictHandler) ListFinanceLedger(w http.ResponseWriter, r *http.Request, params ListFinanceLedgerParams) {
+	var request ListFinanceLedgerRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFinanceLedger(ctx, request.(ListFinanceLedgerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFinanceLedger")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFinanceLedgerResponseObject); ok {
+		if err := validResponse.VisitListFinanceLedgerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFinanceLedgerEntry operation middleware
+func (sh *strictHandler) GetFinanceLedgerEntry(w http.ResponseWriter, r *http.Request, entryId openapi_types.UUID, params GetFinanceLedgerEntryParams) {
+	var request GetFinanceLedgerEntryRequestObject
+
+	request.EntryId = entryId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFinanceLedgerEntry(ctx, request.(GetFinanceLedgerEntryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFinanceLedgerEntry")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFinanceLedgerEntryResponseObject); ok {
+		if err := validResponse.VisitGetFinanceLedgerEntryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFinanceReconciliation operation middleware
+func (sh *strictHandler) ListFinanceReconciliation(w http.ResponseWriter, r *http.Request, params ListFinanceReconciliationParams) {
+	var request ListFinanceReconciliationRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFinanceReconciliation(ctx, request.(ListFinanceReconciliationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFinanceReconciliation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFinanceReconciliationResponseObject); ok {
+		if err := validResponse.VisitListFinanceReconciliationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFinanceShadowRuns operation middleware
+func (sh *strictHandler) ListFinanceShadowRuns(w http.ResponseWriter, r *http.Request, params ListFinanceShadowRunsParams) {
+	var request ListFinanceShadowRunsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFinanceShadowRuns(ctx, request.(ListFinanceShadowRunsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFinanceShadowRuns")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFinanceShadowRunsResponseObject); ok {
+		if err := validResponse.VisitListFinanceShadowRunsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFinanceShadowRun operation middleware
+func (sh *strictHandler) GetFinanceShadowRun(w http.ResponseWriter, r *http.Request, runId openapi_types.UUID) {
+	var request GetFinanceShadowRunRequestObject
+
+	request.RunId = runId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFinanceShadowRun(ctx, request.(GetFinanceShadowRunRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFinanceShadowRun")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFinanceShadowRunResponseObject); ok {
+		if err := validResponse.VisitGetFinanceShadowRunResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -45,3 +45,11 @@ func TestReportingSurfaceNeedsFlagStore(t *testing.T) {
 		t.Fatalf("partial reporting config: %v", err)
 	}
 }
+
+func TestFinanceSurfaceNeedsFlagStore(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	partial := map[string]string{"CRM_ENV": "test", EnvFinanceReadURL: "postgres://x@127.0.0.1:1/x"}
+	if err := run(context.Background(), env(partial), logger); !errors.Is(err, ErrFinanceConfig) {
+		t.Fatalf("partial finance config: %v", err)
+	}
+}

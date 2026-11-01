@@ -62,17 +62,23 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RulePgtestImport:     2,  // pgtest from platform/bad; legacytest from the import tool
 		RuleForeignStore:     3,  // sales imports billing/store; authorization imports organization/store; connector imports customers/store
 		RuleLegacyImport:     3,  // sales, crm-api and crm-migrate (non-migrations) import the connector
-		RuleModuleBoundary:   15, // + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
-		RuleForeignWrite:     4,  // connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*
-		RuleReadPathImport:   5,  // organization/http, customers/http, cases/http and crm-api import an import command; reporting/http imports the projection rebuild
+		RuleModuleBoundary:   17, // + finance→billing/query, commission→finance/api; + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
+		RuleForeignWrite:     6,  // connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*; finance UPDATE billing.*; commission INSERT INTO finance.*
+		RuleReadPathImport:   6,  // organization/http, customers/http, cases/http and crm-api import an import command; reporting/http imports the projection rebuild; finance/http imports the shadow rebuild
 		RuleMergePath:        2,  // customers MergeCustomers, canonicalizeByPhone
-		RuleAppendOnlyWrite:  3,  // custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact
-		RulePhoneKey:         3,  // custody, payments and reporting customer_phone joins
+		RuleAppendOnlyWrite:  4,  // custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact; finance DELETE FROM finance.ledger_entry
+		RulePhoneKey:         6,  // custody, payments and reporting customer_phone joins; finance phone key literal + byPhone and mobileKey identifiers
 		RuleStatusFallback:   2,  // billing COALESCE status chain and resolveMainStatus
-		RuleUnitConversion:   2,  // payments toRial and toman * 10
+		RuleUnitConversion:   5,  // payments toRial and toman * 10; finance ratioOf, toRial and v * 10
 		RuleReportingRead:    1,  // reporting SELECT FROM billing.invoice
 		RuleMetricFormula:    1,  // reporting count( outside the query spec
 		RuleExportEndpoint:   1,  // reporting /invoice-review/export
+		RuleFinanceRead:      1,  // finance SELECT FROM payments.payment_attempt
+		RuleFinanceReadWrite: 1,  // finance/http INSERT INTO finance.shadow_run
+		RuleFinanceRoute:     1,  // finance/http /ledger/{entry_id}/reverse
+		RuleFinanceFloat:     2,  // finance float64 parameter and result
+		RuleCrossUnitSum:     1,  // finance sum( without unit
+		RuleBusinessKey:      1,  // finance/domain Entry literal without BusinessKey
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -410,7 +416,10 @@ func TestAPIServerHasNoImportDependency(t *testing.T) {
 		if !strings.HasPrefix(p, mod+"/internal/") {
 			continue
 		}
-		if strings.HasSuffix(p, "/imports") || strings.HasSuffix(p, "/migrations") || strings.HasSuffix(p, "/projections") {
+		// No import command, migration, projection rebuild or finance shadow
+		// rebuild is reachable from the API server (a GET never derives).
+		if strings.HasSuffix(p, "/imports") || strings.HasSuffix(p, "/migrations") || strings.HasSuffix(p, "/projections") ||
+			strings.HasSuffix(p, "/finance/shadow") || strings.Contains(p, "/integration/legacy/") {
 			t.Errorf("crm-api depends on %s", p)
 		}
 	}
@@ -508,6 +517,54 @@ func TestSliceEightRules(t *testing.T) {
 	for _, s := range []string{"/api/v1/invoice-review", "exported_at", "/api/v1/reports/invoices"} {
 		if exportLiteral.MatchString(s) {
 			t.Errorf("%q falsely detected", s)
+		}
+	}
+}
+
+func TestSliceNineRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct {
+		file, rule string
+		n          int
+	}{
+		{"internal/finance/bad.go", RuleModuleBoundary, 1},
+		{"internal/finance/bad.go", RuleFinanceRead, 1},
+		{"internal/finance/bad.go", RuleForeignWrite, 1},
+		{"internal/finance/bad.go", RuleAppendOnlyWrite, 1},
+		{"internal/finance/bad.go", RuleCrossUnitSum, 1},
+		{"internal/finance/bad.go", RulePhoneKey, 3},
+		{"internal/finance/bad.go", RuleFinanceFloat, 2},
+		{"internal/finance/bad.go", RuleUnitConversion, 3},
+		{"internal/finance/http/handler.go", RuleReadPathImport, 1},
+		{"internal/finance/http/handler.go", RuleFinanceReadWrite, 1},
+		{"internal/finance/http/handler.go", RuleFinanceRoute, 1},
+		{"internal/finance/domain/entry.go", RuleBusinessKey, 1},
+		{"internal/commission/bad.go", RuleModuleBoundary, 1},
+		{"internal/commission/bad.go", RuleForeignWrite, 1},
+	}
+	for _, w := range want {
+		n := 0
+		for _, v := range vs {
+			if v.File == w.file && v.Rule == w.rule {
+				n++
+			}
+		}
+		if n != w.n {
+			t.Errorf("rule %s fired %d times in %s, want %d", w.rule, n, w.file, w.n)
+		}
+	}
+	for _, s := range []string{"/api/v1/finance/post", "/api/v1/finance/approve", "/api/v1/finance/ledger/{entry_id}/reverse", "/api/v1/finance/settle",
+		"/api/v1/finance/refund", "/api/v1/finance/credit", "/api/v1/finance/debit"} {
+		if !financeWriteRoute.MatchString(s) {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	for _, s := range []string{"/api/v1/finance/ledger", "/api/v1/finance/balances", "/api/v1/finance/reconciliation", "/api/v1/finance/shadow-runs/{run_id}"} {
+		if financeWriteRoute.MatchString(s) {
+			t.Errorf("%q wrongly flagged", s)
 		}
 	}
 }

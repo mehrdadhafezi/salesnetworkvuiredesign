@@ -30,6 +30,11 @@
 // off). CRM_AUDIT_DATABASE_URL enables the audited Invoice Review query;
 // without it the Invoice Review fails closed. GET never rebuilds projections.
 //
+// Slice 9 finance SHADOW ledger read surface (optional): CRM_FINANCE_READ_DATABASE_URL
+// plus CRM_FEATUREFLAGS_DATABASE_URL, behind finance.shadow_ledger_read
+// (default off). GET only; the shadow ledger is rebuilt offline by
+// crm-finance-shadow and is never a financial system of record.
+//
 // It never runs migrations, never imports legacy data and never writes.
 package main
 
@@ -89,8 +94,13 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closeReporting()
+	fin, closeFinance, err := openFinance(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closeFinance()
 	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill,
-		Reporting: rep})
+		Reporting: rep, Finance: fin})
 	if err != nil {
 		return err
 	}

@@ -273,7 +273,7 @@ SessionContext:
       description: |
         Server feature switches for navigation only (Slice 4 rollback is
         flag-off). Never authority: every read is evaluated by the server.
-      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read]
+      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read, finance_shadow_read]
       additionalProperties: false
       properties:
         hr_read:
@@ -290,6 +290,9 @@ SessionContext:
         reporting_read:
           type: boolean
           description: Slice 8 MIS / reporting read (flag reporting.read_shadow). Never shows an Invoice Review page.
+        finance_shadow_read:
+          type: boolean
+          description: Slice 9 finance SHADOW ledger read (flag finance.shadow_ledger_read). Read only; never a financial system of record.
 
 SessionEnvelope:
   type: object

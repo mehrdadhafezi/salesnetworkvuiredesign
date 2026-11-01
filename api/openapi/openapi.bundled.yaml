@@ -40,6 +40,8 @@ tags:
     description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
   - name: sales
     description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
+  - name: finance
+    description: Slice 9 finance SHADOW ledger read (GET only). Derived shadow journal, balances and reconciliation against legacy balances; not the financial system of record, not settled, bank-confirmed or Finance-approved money.
   - name: reporting
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: billing
@@ -1771,6 +1773,284 @@ paths:
           $ref: '#/components/responses/Problem'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/finance/shadow-runs:
+    get:
+      tags:
+        - finance
+      operationId: listFinanceShadowRuns
+      summary: Shadow derivation runs (newest first)
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShadowRunListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/finance/shadow-runs/{run_id}:
+    get:
+      tags:
+        - finance
+      operationId: getFinanceShadowRun
+      summary: One shadow run with its source manifest and reconciliation summary
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          description: The shadow run.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShadowRunEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/finance/accounts:
+    get:
+      tags:
+        - finance
+      operationId: listFinanceAccounts
+      summary: Shadow ledger accounts of one run
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/FinanceRunID'
+        - $ref: '#/components/parameters/AccountCategory'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/finance/accounts/{account_id}:
+    get:
+      tags:
+        - finance
+      operationId: getFinanceAccount
+      summary: One shadow account with its per-basis, per-unit balances (same run)
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          description: The account (run-local id).
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/FinanceRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/finance/ledger:
+    get:
+      tags:
+        - finance
+      operationId: listFinanceLedger
+      summary: Shadow journal entries with lines (one run)
+      description: |
+        Requires finance.ledger.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+        The summary covers the full filtered set (pagination never changes it).
+      parameters:
+        - $ref: '#/components/parameters/FinanceRunID'
+        - $ref: '#/components/parameters/ShadowBasis'
+        - $ref: '#/components/parameters/FinanceUnit'
+        - $ref: '#/components/parameters/EntryState'
+        - $ref: '#/components/parameters/SourceType'
+        - $ref: '#/components/parameters/AccountCategory'
+        - $ref: '#/components/parameters/EffectiveFrom'
+        - $ref: '#/components/parameters/EffectiveTo'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/finance/ledger/{entry_id}:
+    get:
+      tags:
+        - finance
+      operationId: getFinanceLedgerEntry
+      summary: One shadow journal entry with its lines (same run)
+      description: |
+        Requires finance.ledger.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: entry_id
+          in: path
+          required: true
+          description: The entry (run-local id).
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/FinanceRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerEntryEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/finance/balances:
+    get:
+      tags:
+        - finance
+      operationId: listFinanceBalances
+      summary: Derived shadow balances per account, basis and unit with the comparable legacy figure
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+        Accrual and cash are separate rows; no basis is preferred; no total across units, accounts or bases exists.
+      parameters:
+        - $ref: '#/components/parameters/FinanceRunID'
+        - $ref: '#/components/parameters/ShadowBasis'
+        - $ref: '#/components/parameters/FinanceUnit'
+        - $ref: '#/components/parameters/AccountCategory'
+        - $ref: '#/components/parameters/BalanceState'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/finance/reconciliation:
+    get:
+      tags:
+        - finance
+      operationId: listFinanceReconciliation
+      summary: Legacy vs shadow reconciliation (one run, per basis and unit)
+      description: |
+        Requires finance.reconciliation.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+        The summary counts the full filtered set (pagination never changes it).
+      parameters:
+        - $ref: '#/components/parameters/FinanceRunID'
+        - $ref: '#/components/parameters/ShadowBasis'
+        - $ref: '#/components/parameters/ReconciliationUnit'
+        - $ref: '#/components/parameters/ReconciliationState'
+        - $ref: '#/components/parameters/SubjectType'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconciliationListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
 components:
   parameters:
     CorrelationID:
@@ -2200,6 +2480,113 @@ components:
           - IRT
           - IRR
           - NONE
+    FinanceRunID:
+      name: run_id
+      in: query
+      required: false
+      description: Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used.
+      schema:
+        type: string
+        format: uuid
+    AccountCategory:
+      name: account_category
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - customer_receivable
+          - revenue_by_product_kind
+          - cash_bank_clearing
+          - commission_payable
+          - legacy_wallet_unclassified
+          - legacy_wallet_contra
+    ShadowBasis:
+      name: basis
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ShadowBasis'
+    FinanceUnit:
+      name: unit
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/Unit'
+    EntryState:
+      name: state
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - CONSISTENT
+          - CONFLICT
+          - UNRESOLVED_CORRECTION
+    SourceType:
+      name: source_type
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - billing.invoice
+          - payments.attempt
+          - legacy.wallet_transaction
+    EffectiveFrom:
+      name: effective_from
+      in: query
+      required: false
+      description: Entries whose evidenced effective time is at or after (UTC). Entries with an unknown effective time never match a date range.
+      schema:
+        $ref: '#/components/schemas/Timestamp'
+    EffectiveTo:
+      name: effective_to
+      in: query
+      required: false
+      description: Entries whose evidenced effective time is before (UTC).
+      schema:
+        $ref: '#/components/schemas/Timestamp'
+    BalanceState:
+      name: state
+      in: query
+      required: false
+      description: The legacy comparison state of the balance, or NOT_COMPARABLE when no legacy figure exists.
+      schema:
+        type: string
+        enum:
+          - MATCH
+          - MISMATCH
+          - UNKNOWN
+          - INCOMPLETE
+          - CONFLICT
+          - NOT_RECOVERABLE
+          - NOT_COMPARABLE
+    ReconciliationUnit:
+      name: unit
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - IRR
+          - IRT
+          - UNKNOWN
+    ReconciliationState:
+      name: state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ReconciliationState'
+    SubjectType:
+      name: subject_type
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - legacy_wallet
+          - invoice
   headers:
     CorrelationID:
       description: Correlation id of this request (inbound value when valid, otherwise generated).
@@ -2556,6 +2943,7 @@ components:
             - sales_read
             - billing_read
             - reporting_read
+            - finance_shadow_read
           additionalProperties: false
           properties:
             hr_read:
@@ -2572,6 +2960,9 @@ components:
             reporting_read:
               type: boolean
               description: Slice 8 MIS / reporting read (flag reporting.read_shadow). Never shows an Invoice Review page.
+            finance_shadow_read:
+              type: boolean
+              description: Slice 9 finance SHADOW ledger read (flag finance.shadow_ledger_read). Read only; never a financial system of record.
     SessionEnvelope:
       type: object
       required:
@@ -3363,6 +3754,9 @@ components:
         - reporting.metrics.read
         - reporting.mis.read
         - reporting.invoice_review.read
+        - finance.shadow.read
+        - finance.ledger.read
+        - finance.reconciliation.read
     AccessDecision:
       type: object
       required:
@@ -6725,5 +7119,781 @@ components:
           $ref: '#/components/schemas/ReportMeta'
         data:
           $ref: '#/components/schemas/InvoiceFactRow'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ShadowNotice:
+      type: string
+      description: Fixed SHADOW notice repeated on every finance answer.
+      enum:
+        - 'SHADOW: derived for architecture validation and reconciliation only. Not the financial system of record; not settled, bank-confirmed or Finance-approved money; not an official or accounting balance.'
+    RecordKind:
+      type: string
+      enum:
+        - SHADOW
+    ShadowBasis:
+      type: string
+      description: |
+        ACCRUAL_SHADOW and CASH_SHADOW are computed side by side (D-41 unresolved: neither is canonical, preferred or final).
+        WALLET_MIRROR_SHADOW mirrors legacy wallet postings (neither accrual nor cash).
+      enum:
+        - ACCRUAL_SHADOW
+        - CASH_SHADOW
+        - WALLET_MIRROR_SHADOW
+    FinanceCoverage:
+      type: string
+      enum:
+        - AVAILABLE
+        - PARTIAL
+        - MISSING
+        - UNKNOWN
+        - NOT_RECOVERABLE
+        - STALE
+    FinanceFreshness:
+      type: string
+      description: FRESH / STALE against a 24h SLA; UNKNOWN when no time is known.
+      enum:
+        - FRESH
+        - STALE
+        - UNKNOWN
+    FinanceRunSource:
+      type: object
+      required:
+        - source
+        - status
+        - read_at
+        - reason
+        - freshness
+      additionalProperties: false
+      properties:
+        source:
+          type: string
+          enum:
+            - billing
+            - payments
+            - legacy_wallets
+            - legacy_wallet_transactions
+        status:
+          $ref: '#/components/schemas/FinanceCoverage'
+        rows_read:
+          type: integer
+          format: int64
+          nullable: true
+        snapshot_id:
+          type: string
+          maxLength: 128
+          nullable: true
+        source_cutoff:
+          $ref: '#/components/schemas/Timestamp'
+        read_at:
+          $ref: '#/components/schemas/Timestamp'
+        reason:
+          type: string
+          maxLength: 300
+        freshness:
+          $ref: '#/components/schemas/FinanceFreshness'
+    ShadowRun:
+      type: object
+      required:
+        - record_kind
+        - run_id
+        - run_seq
+        - derivation_version
+        - bases
+        - source_cutoff
+        - started_at
+        - completed_at
+        - outcome
+        - reasons
+        - fact_counts
+        - facts_sha256
+        - sources
+        - freshness
+      additionalProperties: false
+      properties:
+        record_kind:
+          $ref: '#/components/schemas/RecordKind'
+        run_id:
+          type: string
+          format: uuid
+        run_seq:
+          type: integer
+          format: int64
+        derivation_version:
+          type: integer
+        bases:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/ShadowBasis'
+        source_cutoff:
+          $ref: '#/components/schemas/Timestamp'
+        started_at:
+          $ref: '#/components/schemas/Timestamp'
+        completed_at:
+          $ref: '#/components/schemas/Timestamp'
+        outcome:
+          type: string
+          description: Technical run outcome only (PARTIAL when any required source is not AVAILABLE). Never a financial reconciliation result.
+          enum:
+            - SUCCESS
+            - PARTIAL
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        fact_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        facts_sha256:
+          type: string
+          maxLength: 64
+        sources:
+          type: array
+          maxItems: 8
+          items:
+            $ref: '#/components/schemas/FinanceRunSource'
+        freshness:
+          $ref: '#/components/schemas/FinanceFreshness'
+    ShadowRunListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/ShadowNotice'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ShadowRun'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    GroupCount:
+      type: object
+      required:
+        - count
+      additionalProperties: false
+      properties:
+        basis:
+          type: string
+          maxLength: 40
+        unit:
+          type: string
+          maxLength: 10
+        state:
+          type: string
+          maxLength: 40
+        reason:
+          type: string
+          maxLength: 60
+        count:
+          type: integer
+          format: int64
+    ShadowRunEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/ShadowNotice'
+        run:
+          $ref: '#/components/schemas/ShadowRun'
+        reconciliation_summary:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/GroupCount'
+        finding_summary:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/GroupCount'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    FinanceQuery:
+      type: object
+      description: The normalised query; run_id is the run every part of the answer comes from.
+      required:
+        - run_id
+        - filters
+      additionalProperties: false
+      properties:
+        run_id:
+          type: string
+          format: uuid
+        filters:
+          type: object
+          additionalProperties:
+            type: string
+            maxLength: 40
+    FinanceMeta:
+      type: object
+      required:
+        - record_kind
+        - notice
+        - query
+        - run
+      additionalProperties: false
+      properties:
+        record_kind:
+          $ref: '#/components/schemas/RecordKind'
+        notice:
+          $ref: '#/components/schemas/ShadowNotice'
+        query:
+          $ref: '#/components/schemas/FinanceQuery'
+        run:
+          $ref: '#/components/schemas/ShadowRun'
+    LedgerAccount:
+      type: object
+      description: |
+        Identity is a category plus a stable target / native reference (never a phone, name or email). customer_id is set only
+        when the customer link is RESOLVED; an unresolved link stays explicit.
+      required:
+        - account_id
+        - account_key
+        - category
+        - normal_side
+        - subject_domain
+        - subject_ref
+      additionalProperties: false
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        account_key:
+          type: string
+          maxLength: 200
+        category:
+          type: string
+          enum:
+            - customer_receivable
+            - revenue_by_product_kind
+            - cash_bank_clearing
+            - commission_payable
+            - legacy_wallet_unclassified
+            - legacy_wallet_contra
+        normal_side:
+          type: string
+          enum:
+            - DEBIT
+            - CREDIT
+        subject_domain:
+          type: string
+          maxLength: 40
+        subject_ref:
+          type: string
+          maxLength: 100
+        customer_link:
+          type: string
+          enum:
+            - RESOLVED
+            - RELATED
+            - UNKNOWN
+            - CONFLICT
+            - NOT_RECOVERABLE
+          nullable: true
+        customer_id:
+          type: string
+          format: uuid
+          nullable: true
+        holder_key:
+          type: string
+          maxLength: 40
+          nullable: true
+        holder_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        wallet_type_raw:
+          type: string
+          maxLength: 40
+          nullable: true
+        provenance:
+          type: string
+          maxLength: 40
+          nullable: true
+        route:
+          type: string
+          maxLength: 40
+          nullable: true
+    AccountListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/FinanceMeta'
+        summary:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/GroupCount'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/LedgerAccount'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    AmountState:
+      type: string
+      description: REPRESENTABLE = exact int64 value given; OVERFLOW = the int64 sum overflowed and no value is claimed.
+      enum:
+        - REPRESENTABLE
+        - OVERFLOW
+    ShadowAmount:
+      type: object
+      description: An exact shadow amount in its unit, or no money with OVERFLOW (never zero for unknown).
+      required:
+        - state
+      additionalProperties: false
+      properties:
+        money:
+          $ref: '#/components/schemas/Money'
+        state:
+          $ref: '#/components/schemas/AmountState'
+    ReconciliationState:
+      type: string
+      enum:
+        - MATCH
+        - MISMATCH
+        - UNKNOWN
+        - INCOMPLETE
+        - CONFLICT
+        - NOT_RECOVERABLE
+    ReconciliationRow:
+      type: object
+      description: |
+        One legacy figure vs one shadow amount for one subject, basis and unit in one run. difference = shadow - legacy and is
+        present only for MATCH / MISMATCH / a complete CONFLICT. Units are never compared across.
+      required:
+        - subject_domain
+        - subject_ref
+        - basis
+        - unit
+        - legacy_figure
+        - legacy_repr
+        - state
+        - reasons
+        - coverage
+      additionalProperties: false
+      properties:
+        subject_domain:
+          type: string
+          enum:
+            - legacy_wallet
+            - invoice
+        subject_ref:
+          type: string
+          maxLength: 100
+        account_id:
+          type: string
+          format: uuid
+          nullable: true
+        basis:
+          $ref: '#/components/schemas/ShadowBasis'
+        unit:
+          type: string
+          enum:
+            - IRR
+            - IRT
+            - UNKNOWN
+        legacy_figure:
+          type: string
+          enum:
+            - WALLET_BALANCE
+            - INVOICE_REMAINING
+            - INVOICE_PAID
+        legacy_raw:
+          type: string
+          maxLength: 40
+          nullable: true
+        legacy_amount:
+          $ref: '#/components/schemas/Money'
+        legacy_repr:
+          type: string
+          enum:
+            - REPRESENTABLE
+            - UNREPRESENTABLE
+            - ABSENT
+            - OTHER_UNIT
+        shadow_amount:
+          $ref: '#/components/schemas/Money'
+        difference:
+          $ref: '#/components/schemas/Money'
+        state:
+          $ref: '#/components/schemas/ReconciliationState'
+        reasons:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 60
+        coverage:
+          $ref: '#/components/schemas/FinanceCoverage'
+        source_snapshot:
+          type: string
+          maxLength: 128
+          nullable: true
+    AccountBalance:
+      type: object
+      description: Derived from ledger lines at read time (never stored); one account, basis and unit. No combined total exists.
+      required:
+        - account
+        - basis
+        - unit
+        - debits
+        - credits
+        - net
+        - lines
+      additionalProperties: false
+      properties:
+        account:
+          $ref: '#/components/schemas/LedgerAccount'
+        basis:
+          $ref: '#/components/schemas/ShadowBasis'
+        unit:
+          $ref: '#/components/schemas/Unit'
+        debits:
+          $ref: '#/components/schemas/ShadowAmount'
+        credits:
+          $ref: '#/components/schemas/ShadowAmount'
+        net:
+          $ref: '#/components/schemas/ShadowAmount'
+        lines:
+          type: integer
+          format: int64
+        legacy:
+          $ref: '#/components/schemas/ReconciliationRow'
+    AccountEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/FinanceMeta'
+        account:
+          $ref: '#/components/schemas/LedgerAccount'
+        balances:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/AccountBalance'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    LedgerGroup:
+      type: object
+      required:
+        - basis
+        - unit
+        - entries
+        - debits
+        - unknown_effective_at
+      additionalProperties: false
+      properties:
+        basis:
+          $ref: '#/components/schemas/ShadowBasis'
+        unit:
+          $ref: '#/components/schemas/Unit'
+        entries:
+          type: integer
+          format: int64
+        debits:
+          $ref: '#/components/schemas/ShadowAmount'
+        unknown_effective_at:
+          type: integer
+          format: int64
+    SourceRef:
+      type: object
+      required:
+        - domain
+        - ref
+        - role
+      additionalProperties: false
+      properties:
+        domain:
+          type: string
+          maxLength: 60
+        ref:
+          type: string
+          maxLength: 100
+        role:
+          type: string
+          maxLength: 40
+    LedgerLine:
+      type: object
+      required:
+        - line_no
+        - account_id
+        - account_key
+        - category
+        - side
+        - amount
+      additionalProperties: false
+      properties:
+        line_no:
+          type: integer
+        account_id:
+          type: string
+          format: uuid
+        account_key:
+          type: string
+          maxLength: 200
+        category:
+          type: string
+          maxLength: 40
+        side:
+          type: string
+          enum:
+            - DEBIT
+            - CREDIT
+        amount:
+          $ref: '#/components/schemas/Money'
+        source_ref:
+          type: string
+          maxLength: 100
+          nullable: true
+    LedgerEntry:
+      type: object
+      description: |
+        One balanced, single-unit SHADOW entry (debits == credits). Corrections are separate entries linked by
+        reverses_entry_id; the original never changes. effective_at / posted_at are absent when no UTC business time is
+        evidenced (never an import time); source_time_raw keeps the legacy text with its zone unasserted.
+      required:
+        - record_kind
+        - entry_id
+        - entry_seq
+        - business_key
+        - basis
+        - unit
+        - effect_kind
+        - provenance
+        - finance_review
+        - source_refs
+        - time_evidence
+        - reconciliation_status
+        - lines
+        - debits
+        - credits
+      additionalProperties: false
+      properties:
+        record_kind:
+          $ref: '#/components/schemas/RecordKind'
+        entry_id:
+          type: string
+          format: uuid
+        entry_seq:
+          type: integer
+          format: int64
+        business_key:
+          type: string
+          maxLength: 300
+        basis:
+          $ref: '#/components/schemas/ShadowBasis'
+        unit:
+          $ref: '#/components/schemas/Unit'
+        effect_kind:
+          type: string
+          maxLength: 60
+        provenance:
+          type: string
+          maxLength: 60
+          description: Evidence provenance (e.g. GATEWAY_AUTO stays GATEWAY_AUTO). Never FINANCE_REVIEWED in Slice 9.
+        finance_review:
+          type: string
+          enum:
+            - NOT_FINANCE_REVIEWED
+        source_refs:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/SourceRef'
+        effective_at:
+          $ref: '#/components/schemas/Timestamp'
+        posted_at:
+          $ref: '#/components/schemas/Timestamp'
+        source_time_raw:
+          type: string
+          maxLength: 40
+          nullable: true
+        time_evidence:
+          type: string
+          enum:
+            - BUSINESS_TIME_ABSENT
+            - SOURCE_TIME_ZONE_UNASSERTED
+            - SOURCE_TIME_UTC
+        reverses_entry_id:
+          type: string
+          format: uuid
+          nullable: true
+        reversed_by_entry_id:
+          type: string
+          format: uuid
+          nullable: true
+        reconciliation_status:
+          type: string
+          enum:
+            - CONSISTENT
+            - CONFLICT
+            - UNRESOLVED_CORRECTION
+        lines:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/LedgerLine'
+        debits:
+          $ref: '#/components/schemas/Money'
+        credits:
+          $ref: '#/components/schemas/Money'
+    LedgerListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/FinanceMeta'
+        summary:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/LedgerGroup'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/LedgerEntry'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    LedgerEntryEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/FinanceMeta'
+        entry:
+          $ref: '#/components/schemas/LedgerEntry'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    BalanceListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/FinanceMeta'
+        summary:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/GroupCount'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/AccountBalance'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ReconciliationListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/FinanceMeta'
+        summary:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/GroupCount'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ReconciliationRow'
+        page:
+          $ref: '#/components/schemas/PageInfo'
         allowed_actions:
           $ref: '#/components/schemas/AllowedActions'

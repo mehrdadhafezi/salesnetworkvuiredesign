@@ -138,6 +138,27 @@ func TestRenderedSliceSevenMigration(t *testing.T) {
 	}
 }
 
+const slice9File = "sql/00006_integration_staging_finance.sql"
+
+// TestRenderedSliceNineMigration proves 00006 is exactly the generated DDL.
+func TestRenderedSliceNineMigration(t *testing.T) {
+	want := renderExtension(t, spec.V1Slice9(), "-- Integration raw staging, Slice 9 extension: legacy wallet balance and wallet\n"+
+		"-- transaction sources for the finance SHADOW ledger (Architecture V1 §16, §24.3).\n"+
+		"-- Generated from the published Slice 9 specs; regenerate with the package\n-- -update flag.\n\n")
+	if *update {
+		if err := os.WriteFile(slice9File, []byte(want), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := os.ReadFile(slice9File)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Fatalf("%s is stale: regenerate with -update", slice9File)
+	}
+}
+
 // TestRenderedSliceSixMigration proves 00004 is exactly the generated DDL.
 func TestRenderedSliceSixMigration(t *testing.T) {
 	want := renderSlice6(t)
@@ -208,8 +229,9 @@ func TestSourceValidates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) != 5 || names[0] != filepath.Base(renderedFile) || names[1] != "00002_integration_staging_guards.sql" ||
-		names[2] != filepath.Base(slice5File) || names[3] != filepath.Base(slice6File) || names[4] != filepath.Base(slice7File) {
+	if len(names) != 6 || names[0] != filepath.Base(renderedFile) || names[1] != "00002_integration_staging_guards.sql" ||
+		names[2] != filepath.Base(slice5File) || names[3] != filepath.Base(slice6File) || names[4] != filepath.Base(slice7File) ||
+		names[5] != filepath.Base(slice9File) {
 		t.Fatalf("migration files = %v", names)
 	}
 	if Source().Table == migrations.PlatformTable {
