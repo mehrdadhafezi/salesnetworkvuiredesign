@@ -143,14 +143,12 @@ func (c *Command) Rebuild(ctx context.Context, src Sources) (Run, error) {
 	missing := func(name string) {
 		run.Sources[name] = SourceState{Status: domain.Missing, Reason: "published source not configured for this run"}
 	}
+	// A failed or over-bound read keeps NO facts (they were discarded), so
+	// the source is UNKNOWN — never PARTIAL, which would let consumers
+	// evaluate an empty table as a (partial) zero.
 	failed := func(name string, err error) {
 		at := c.clock.Now().Time()
-		status := domain.Unknown
-		if errors.Is(err, casesapi.ErrTooManyFacts) || errors.Is(err, custodyapi.ErrTooManyFacts) || errors.Is(err, billingapi.ErrTooManyFacts) ||
-			errors.Is(err, paymentsapi.ErrTooManyFacts) {
-			status = domain.Partial
-		}
-		run.Sources[name] = SourceState{Status: status, ReadAt: &at, Reason: "source read failed: " + err.Error()}
+		run.Sources[name] = SourceState{Status: domain.Unknown, ReadAt: &at, Reason: "source read failed; no facts kept: " + err.Error()}
 	}
 
 	// cases

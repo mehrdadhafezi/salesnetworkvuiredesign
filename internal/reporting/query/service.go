@@ -93,7 +93,12 @@ func (s *Service) begin(ctx context.Context, tx db.Tx, spec *Spec, sla time.Dura
 	}
 	pinned := run.RunID
 	spec.RunID = &pinned
-	return s.result(*spec, &run, sla), nil
+	res := s.result(*spec, &run, sla)
+	// The run exists but the report's own source contributed no facts
+	// (MISSING / UNKNOWN / NOT_RECOVERABLE): no summary, no rows — UNKNOWN,
+	// never a zero total. Coverage and the run stay visible.
+	res.Available = run.PrimaryUsable(spec.Report)
+	return res, nil
 }
 
 func summarize(ctx context.Context, tx db.Tx, spec Spec, runID string) (*Summary, error) {
@@ -309,18 +314,14 @@ func (s *Service) Metric(ctx context.Context, id string, tb domain.TimeBasis, fr
 			mv.ValueState = "UNKNOWN"
 			return nil
 		}
-		for _, st := range res.SourceCoverage {
-			if st != domain.Available && st != domain.Partial {
-				// A required source is missing: its facts are absent, not zero.
-				mv.ValueState = "UNKNOWN"
-				return nil
-			}
-		}
 		if mv.Result.Summary, err = summarize(ctx, tx, spec, res.Run.RunID); err != nil {
 			return err
 		}
 		mv.ValueState = "VALUE"
-		if res.Coverage != domain.Available || (c.Aggregation == domain.AggSumByUnit && mv.Result.Summary.Unrepresentable > 0) {
+		// Incomplete coverage, or an amount metric with any unrepresentable
+		// or ABSENT contributor, is never presented as a complete value.
+		if res.Coverage != domain.Available || (c.Aggregation == domain.AggSumByUnit &&
+			(mv.Result.Summary.Unrepresentable > 0 || mv.Result.Summary.Absent > 0)) {
 			mv.ValueState = "INCOMPLETE"
 		}
 		return nil

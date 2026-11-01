@@ -131,6 +131,21 @@ describe('MIS / reporting read (Slice 8)', () => {
     noExport()
   })
 
+  it('a directly opened report pins the resolved run for paging and detail', async () => {
+    const { calls } = renderAt('/reports/invoices?presence=PRESENT', routes())
+    await screen.findByTestId('summary-total')
+    const reportCalls = () => calls.filter(c => c.url === '/api/v1/reports/invoices')
+    expect(reportCalls().at(-1)?.search.get('run_id')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'صفحه بعد' }))
+    await waitFor(() => expect(reportCalls().at(-1)?.search.get('cursor')).toBe('p-2'))
+    expect(reportCalls().at(-1)?.search.get('run_id')).toBe(RUN)
+    const rows = await screen.findAllByRole('button', { name: 'جزئیات' })
+    fireEvent.click(rows[0] as HTMLElement)
+    await waitFor(() => expect(calls.some(c => c.url.startsWith('/api/v1/reports/invoices/'))).toBe(true))
+    const detail = calls.filter(c => c.url.startsWith('/api/v1/reports/invoices/')).at(-1)
+    expect(detail?.search.get('run_id')).toBe(RUN)
+  })
+
   it('changing a filter changes the one query contract (and evaluates at the latest cutoff)', async () => {
     const { calls } = renderAt(`/reports/invoices?presence=PRESENT&run_id=${RUN}`, routes())
     await screen.findByTestId('summary-total')

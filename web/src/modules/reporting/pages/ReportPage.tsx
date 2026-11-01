@@ -115,6 +115,11 @@ export function ReportPage() {
     fn(next)
     setParams(next)
   }
+  const pinned = (fn: (p: URLSearchParams) => void) => update(p => {
+    const resolved = list.status === 'ok' ? (list.data.meta.query.run_id ?? list.data.meta.run?.run_id) : undefined
+    if (!p.get('run_id') && resolved) p.set('run_id', resolved)
+    fn(p)
+  })
   function apply(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
@@ -167,6 +172,8 @@ export function ReportPage() {
                 </dl>
               )}
           </Card>
+          {/* Paging and detail stay on the run that answered this page: a
+              directly opened URL without run_id is pinned to the resolved run. */}
           <Card title="جدول">
             {list.data.items.length === 0
               ? <StateBlock kind="empty" title={list.data.summary?.total === 0 ? 'صفر ردیف (نتیجه واقعی این پرس‌وجو)' : 'ردیفی در این صفحه نیست'} />
@@ -179,7 +186,7 @@ export function ReportPage() {
                       {list.data.items.map(r => (
                         <tr key={idOf(r)}>
                           {cells(report, r).map((c, i) => <td key={i} className="rp-ltr">{c}</td>)}
-                          <td><Button onClick={() => update(p => p.set('row', idOf(r)))}>جزئیات</Button></td>
+                          <td><Button onClick={() => pinned(p => p.set('row', idOf(r)))}>جزئیات</Button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -188,7 +195,7 @@ export function ReportPage() {
               )}
             <Pager page={{ has_more: list.data.hasMore, next_cursor: list.data.next ?? null }} depth={cursors.length}
               onBack={() => update(p => { const all = p.getAll('cursor'); p.delete('cursor'); all.slice(0, -1).forEach(c => p.append('cursor', c)) })}
-              onNext={n => update(p => p.append('cursor', n))} label="صفحه‌بندی جدول" />
+              onNext={n => pinned(p => p.append('cursor', n))} label="صفحه‌بندی جدول" />
           </Card>
           {row && (
             <Card title="جزئیات (عضویت در همین پرس‌وجو)">

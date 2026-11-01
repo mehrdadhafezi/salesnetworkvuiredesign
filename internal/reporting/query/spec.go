@@ -178,8 +178,10 @@ func (s *Spec) Validate() error {
 			return invalid("EVENT_RANGE needs from < to and no as_of")
 		}
 	case domain.HistoricalAsOf:
-		if s.AsOf == nil || s.From != nil || s.To != nil || s.RunID != nil {
-			return invalid("HISTORICAL_AS_OF needs as_of only (the run is resolved from it)")
+		// run_id may pin the run as_of resolved to (returned specs stay
+		// reusable); resolveRun checks that its cutoff is at/before as_of.
+		if s.AsOf == nil || s.From != nil || s.To != nil {
+			return invalid("HISTORICAL_AS_OF needs as_of (and optionally the run it resolved to)")
 		}
 	default:
 		return invalid("time_basis")
@@ -270,6 +272,9 @@ func resolveRun(ctx context.Context, tx db.Tx, s Spec) (Run, error) {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return r, ErrNotFound
 		}
+		if err == nil && s.TimeBasis == domain.HistoricalAsOf && r.SourceCutoff.After(s.AsOf.UTC()) {
+			return r, invalid("run_id cutoff is after as_of")
+		}
 	case s.TimeBasis == domain.HistoricalAsOf:
 		err = tx.QueryRow(ctx, `SELECT run_id::text, projection_version, source_cutoff, completed_at, outcome FROM reporting.projection_run
 			WHERE projection_version = $1 AND source_cutoff <= $2 ORDER BY source_cutoff DESC, run_seq DESC LIMIT 1`,
@@ -305,6 +310,18 @@ func sourcesOf(ctx context.Context, tx db.Tx, runID string) (map[string]SourceSt
 		out[name] = st
 	}
 	return out, rows.Err()
+}
+
+// PrimaryUsable reports whether the report's primary source (whose facts the
+// report rows are) contributed facts to the run. Without them a count would
+// be a fabricated zero, so the answer is UNKNOWN instead.
+func (r Run) PrimaryUsable(report string) bool {
+	srcs := RequiredSources(report)
+	if len(srcs) == 0 {
+		return false
+	}
+	st, ok := r.Sources[srcs[0]]
+	return ok && (st.Status == domain.Available || st.Status == domain.Partial)
 }
 
 // Coverage folds the statuses of a report's required sources.

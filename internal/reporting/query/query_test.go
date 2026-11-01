@@ -430,3 +430,55 @@ func TestContractVersionImmutable(t *testing.T) {
 		}
 	}
 }
+
+// failingCustody is a custody source that exceeds its published bound.
+type failingCustody struct{}
+
+func (failingCustody) AssignmentFacts(_ context.Context, fn func(custodyapi.AssignmentFact) error) error {
+	_ = fn(custodyapi.AssignmentFact{CaseID: id(1), Derivation: "DERIVED", Parity: "MATCH", Presence: "PRESENT"})
+	return custodyapi.ErrTooManyFacts
+}
+
+// Review fixes: a discarded read is UNKNOWN (never a partial zero); a report
+// on a source without facts has no summary; absent accepted amounts make the
+// amount INCOMPLETE; a resolved HISTORICAL_AS_OF spec is reusable.
+func TestReviewFixes(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	x := scenario()
+	src := x.sources()
+	src.Custody = failingCustody{}
+	acc, irt := "ACCEPTED", "IRT"
+	x.attempts = append(x.attempts, paymentsapi.AttemptFact{AttemptID: id(204), InvoiceLink: "UNKNOWN", Channel: "MANUAL_CARD", StateRaw: s("approved"),
+		StateMapping: "MAPPED", StateTarget: &acc, Provenance: "LEGACY_MANUAL_APPROVAL", Unit: &irt, AmountRepr: "ABSENT", Presence: "PRESENT", FirstSeenAt: t0})
+	run := e.rebuild(t, src)
+	if run.Outcome != result.Partial || run.Sources["custody"].Status != domain.Unknown || run.Counts["custody_fact"] != 0 {
+		t.Fatalf("over-bound read must be UNKNOWN with no facts: %+v", run.Sources["custody"])
+	}
+	if mv, _ := e.q.Metric(ctx, "custody.by_parity", "", nil, nil, nil, nil); mv.ValueState != "UNKNOWN" || mv.Result.Summary != nil {
+		t.Fatalf("metric on a discarded source must be UNKNOWN: %+v", mv)
+	}
+	res, page, err := e.q.Report(ctx, query.Spec{Report: "custody"}, nil, nil)
+	if err != nil || res.Available || res.Summary != nil || len(page.Rows) != 0 || res.Run == nil || res.SourceCoverage["custody"] != domain.Unknown {
+		t.Fatalf("report on a source without facts must be UNKNOWN, not total 0: %+v %v", res, err)
+	}
+	if mv, _ := e.q.Metric(ctx, "payments.accepted_attempt_amount", "", nil, nil, nil, nil); mv.ValueState != "INCOMPLETE" || mv.Result.Summary.Absent != 1 {
+		t.Fatalf("absent accepted amount must make the amount INCOMPLETE: %+v", mv.ValueState)
+	}
+	asOf := t0.Add(time.Hour)
+	h, _, err := e.q.Report(ctx, query.Spec{Report: "cases", TimeBasis: domain.HistoricalAsOf, AsOf: &asOf}, nil, nil)
+	if err != nil || !h.Available {
+		t.Fatalf("as-of: %+v %v", h, err)
+	}
+	again, _, err := e.q.Report(ctx, h.Spec, nil, nil)
+	if err != nil || *again.Spec.RunID != *h.Spec.RunID || again.Summary.Total != h.Summary.Total {
+		t.Fatalf("a returned HISTORICAL_AS_OF spec must be reusable: %v", err)
+	}
+	if _, row, _, err := e.q.Detail(ctx, h.Spec, id(1)); err != nil || row == nil {
+		t.Fatalf("detail with the returned as-of spec: %v", err)
+	}
+	early := t0.Add(-time.Hour)
+	if _, _, err := e.q.Report(ctx, query.Spec{Report: "cases", TimeBasis: domain.HistoricalAsOf, AsOf: &early, RunID: h.Spec.RunID}, nil, nil); !errors.Is(err, query.ErrInvalidQuery) {
+		t.Fatalf("a pinned run after as_of must be invalid: %v", err)
+	}
+}
