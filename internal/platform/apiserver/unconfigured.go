@@ -28,7 +28,8 @@ func (unconfigured) GetEffectiveAccess(ctx context.Context, _ oapi.GetEffectiveA
 	reason := oapi.ReasonCode(reasoncodes.FeatureDisabled)
 	for _, c := range []oapi.Capability{oapi.IdentityUserRead, oapi.OrgPersonRead, oapi.OrgEmploymentRead, oapi.OrgPositionRead, oapi.OrgUnitRead,
 		oapi.OrgAssignmentRead, oapi.CustomersCustomerRead, oapi.CustomersMergeCaseRead, oapi.CustomersIdentityReportRead,
-		oapi.CasesCaseRead, oapi.CustodyCustodyRead, oapi.SalesReportRead} {
+		oapi.CasesCaseRead, oapi.CustodyCustodyRead, oapi.SalesReportRead, oapi.BillingInvoiceRead, oapi.PaymentsAttemptRead,
+		oapi.BillingReconciliationRead} {
 		data.Decisions = append(data.Decisions, oapi.AccessDecision{Capability: c, Outcome: oapi.Outcome(result.Blocked.String()),
 			ReasonCode: &reason, Scope: oapi.AccessDecisionScopeNONE, MatchedRoles: []string{}})
 	}
@@ -170,4 +171,72 @@ func (unconfiguredSales) GetSalesCoverageReport(ctx context.Context, _ oapi.GetS
 func (unconfiguredSales) GetCustodyParityReport(ctx context.Context, _ oapi.GetCustodyParityReportRequestObject) (oapi.GetCustodyParityReportResponseObject, error) {
 	o, r, c := blocked(ctx)
 	return oapi.GetCustodyParityReport200JSONResponse{Body: oapi.CustodyParityReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+// unconfiguredBilling is the Slice 7 surface without the billing/payments
+// modules: every operation is BLOCKED / FEATURE_DISABLED.
+type unconfiguredBilling struct{}
+
+var _ BillingAPI = unconfiguredBilling{}
+
+func (unconfiguredBilling) BillingEnabled(context.Context) bool { return false }
+
+func (unconfiguredBilling) ListInvoices(ctx context.Context, _ oapi.ListInvoicesRequestObject) (oapi.ListInvoicesResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListInvoices200JSONResponse{Body: oapi.InvoiceListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) GetInvoice(ctx context.Context, _ oapi.GetInvoiceRequestObject) (oapi.GetInvoiceResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetInvoice200JSONResponse{Body: oapi.InvoiceEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) ListInvoiceItems(ctx context.Context, _ oapi.ListInvoiceItemsRequestObject) (oapi.ListInvoiceItemsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListInvoiceItems200JSONResponse{Body: oapi.InvoiceLineListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) ListInvoiceStages(ctx context.Context, _ oapi.ListInvoiceStagesRequestObject) (oapi.ListInvoiceStagesResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListInvoiceStages200JSONResponse{Body: oapi.PaymentStageListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) GetInvoiceTotals(ctx context.Context, _ oapi.GetInvoiceTotalsRequestObject) (oapi.GetInvoiceTotalsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetInvoiceTotals200JSONResponse{Body: oapi.InvoiceTotalsEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) ListInvoicePaymentAttempts(ctx context.Context, _ oapi.ListInvoicePaymentAttemptsRequestObject) (oapi.ListInvoicePaymentAttemptsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListInvoicePaymentAttempts200JSONResponse{Body: oapi.PaymentAttemptListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) ListInvoiceReceipts(ctx context.Context, _ oapi.ListInvoiceReceiptsRequestObject) (oapi.ListInvoiceReceiptsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListInvoiceReceipts200JSONResponse{Body: oapi.ReceiptReferenceListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) ListPaymentAttempts(ctx context.Context, _ oapi.ListPaymentAttemptsRequestObject) (oapi.ListPaymentAttemptsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListPaymentAttempts200JSONResponse{Body: oapi.PaymentAttemptListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) GetPaymentAttempt(ctx context.Context, _ oapi.GetPaymentAttemptRequestObject) (oapi.GetPaymentAttemptResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetPaymentAttempt200JSONResponse{Body: oapi.PaymentAttemptEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) ListPaymentAttemptHistory(ctx context.Context, _ oapi.ListPaymentAttemptHistoryRequestObject) (oapi.ListPaymentAttemptHistoryResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListPaymentAttemptHistory200JSONResponse{Body: oapi.AttemptHistoryListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) GetReceiptReference(ctx context.Context, _ oapi.GetReceiptReferenceRequestObject) (oapi.GetReceiptReferenceResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetReceiptReference200JSONResponse{Body: oapi.ReceiptReferenceEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredBilling) GetBillingReconciliationReport(ctx context.Context, _ oapi.GetBillingReconciliationReportRequestObject) (oapi.GetBillingReconciliationReportResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetBillingReconciliationReport200JSONResponse{Body: oapi.BillingReconciliationReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
 }

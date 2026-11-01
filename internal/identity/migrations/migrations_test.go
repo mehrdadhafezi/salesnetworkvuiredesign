@@ -46,7 +46,8 @@ func TestSourceValidates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) != 3 || names[0] != "00001_identity.sql" || names[1] != "00002_identity_customer_capabilities.sql" || names[2] != "00003_identity_sales_capabilities.sql" {
+	if len(names) != 4 || names[0] != "00001_identity.sql" || names[1] != "00002_identity_customer_capabilities.sql" ||
+		names[2] != "00003_identity_sales_capabilities.sql" || names[3] != "00004_identity_billing_capabilities.sql" {
 		t.Fatalf("migration files = %v", names)
 	}
 	if Source().Table == migrations.PlatformTable {

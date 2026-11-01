@@ -264,9 +264,10 @@ type Reader interface {
 
 // Provenance is the stored source provenance of one customer.
 type Provenance struct {
-	BatchID   string // last batch that carried the subject
-	RowSHA256 []byte
-	Present   bool
+	CustomerID string // the customer standing for the subject
+	BatchID    string // last batch that carried the subject
+	RowSHA256  []byte
+	Present    bool
 }
 
 // Resolution is the machine-readable resolution projection summary.

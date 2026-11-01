@@ -22,6 +22,9 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { to: '/sales/cases', label: 'پرونده‌های فروش', feature: 'sales_read' },
     { to: '/sales/custody', label: 'نگهداری پرونده‌ها', feature: 'sales_read' },
     { to: '/sales/report', label: 'گزارش پوشش فروش', feature: 'sales_read' },
+    { to: '/billing/invoices', label: 'فاکتورها', feature: 'billing_read' },
+    { to: '/billing/attempts', label: 'تلاش‌های پرداخت', feature: 'billing_read' },
+    { to: '/billing/report', label: 'گزارش تطبیق صورت‌حساب', feature: 'billing_read' },
     { to: '/system', label: 'وضعیت سامانه' },
   ]
   const children: RouteObject[] = [
@@ -41,6 +44,11 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'sales/cases/:caseId', lazy: async () => ({ Component: (await import('../modules/sales/pages/CasePage')).CasePage }) },
     { path: 'sales/custody', lazy: async () => ({ Component: (await import('../modules/sales/pages/CustodyPage')).CustodyPage }) },
     { path: 'sales/report', lazy: async () => ({ Component: (await import('../modules/sales/pages/SalesReportPage')).SalesReportPage }) },
+    // Slice 7 billing + payments read (read-only; no action route).
+    { path: 'billing/invoices', lazy: async () => ({ Component: (await import('../modules/billing/pages/InvoicesPage')).InvoicesPage }) },
+    { path: 'billing/invoices/:invoiceId', lazy: async () => ({ Component: (await import('../modules/billing/pages/InvoicePage')).InvoicePage }) },
+    { path: 'billing/attempts', lazy: async () => ({ Component: (await import('../modules/billing/pages/AttemptsPage')).AttemptsPage }) },
+    { path: 'billing/report', lazy: async () => ({ Component: (await import('../modules/billing/pages/BillingReportPage')).BillingReportPage }) },
   ]
   // import.meta.env.DEV is a build-time constant: production bundles drop this branch entirely.
   if (import.meta.env.DEV && config.devTools) {

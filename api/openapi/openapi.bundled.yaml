@@ -40,6 +40,8 @@ tags:
     description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
   - name: sales
     description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
+  - name: billing
+    description: Slice 7 billing + payments read shadow — invoices, lines, stages, attempts, receipt references (read only; no actions).
 paths:
   /health/live:
     get:
@@ -877,6 +879,369 @@ paths:
           $ref: '#/components/responses/Denied'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/invoices:
+    get:
+      tags:
+        - billing
+      operationId: listInvoices
+      summary: List shadow invoices
+      description: |
+        Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/CustomerLinkState'
+        - $ref: '#/components/parameters/CaseLinkState'
+        - $ref: '#/components/parameters/HasUnknownStatus'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/invoices/{invoice_id}:
+    get:
+      tags:
+        - billing
+      operationId: getInvoice
+      summary: Get one shadow invoice with separate state and declared amount evidence
+      description: |
+        Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/invoices/{invoice_id}/items:
+    get:
+      tags:
+        - billing
+      operationId: listInvoiceItems
+      summary: List an invoice's lines (issuance snapshots)
+      description: |
+        Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceLineListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/invoices/{invoice_id}/stages:
+    get:
+      tags:
+        - billing
+      operationId: listInvoiceStages
+      summary: List an invoice's payment stages
+      description: |
+        Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStageListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/invoices/{invoice_id}/totals:
+    get:
+      tags:
+        - billing
+      operationId: getInvoiceTotals
+      summary: Per-unit total evidence of an invoice (no canonical total)
+      description: |
+        Requires billing.invoice.read and payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Declared totals, item sum, stage sum and accepted-attempt sum are compared per unit; no winner is chosen (TAD #19).
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceTotalsEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/invoices/{invoice_id}/payments:
+    get:
+      tags:
+        - billing
+      operationId: listInvoicePaymentAttempts
+      summary: List an invoice's payment attempts
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAttemptListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/invoices/{invoice_id}/receipts:
+    get:
+      tags:
+        - billing
+      operationId: listInvoiceReceipts
+      summary: List an invoice's receipt reference metadata
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptReferenceListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/payments/attempts:
+    get:
+      tags:
+        - billing
+      operationId: listPaymentAttempts
+      summary: List shadow payment attempts
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/PaymentChannel'
+        - $ref: '#/components/parameters/TargetMapping'
+        - $ref: '#/components/parameters/AttemptState'
+        - $ref: '#/components/parameters/ApprovalProvenance'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/InvoiceLinkState'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAttemptListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/payments/attempts/{attempt_id}:
+    get:
+      tags:
+        - billing
+      operationId: getPaymentAttempt
+      summary: Get one shadow payment attempt
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/AttemptID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAttemptEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/payments/attempts/{attempt_id}/history:
+    get:
+      tags:
+        - billing
+      operationId: listPaymentAttemptHistory
+      summary: List an attempt's append-only observed state changes
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/AttemptID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptHistoryListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/payments/receipts/{receipt_id}:
+    get:
+      tags:
+        - billing
+      operationId: getReceiptReference
+      summary: Get one receipt reference (metadata only)
+      description: |
+        Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/ReceiptID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptReferenceEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/billing/reconciliation-report:
+    get:
+      tags:
+        - billing
+      operationId: getBillingReconciliationReport
+      summary: Billing and payments coverage report (F02 honest label)
+      description: |
+        Requires billing.reconciliation.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS, or BLOCKED with FEATURE_DISABLED when billing_payments.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingReconciliationReportEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
 components:
   parameters:
     CorrelationID:
@@ -1128,6 +1493,70 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/Derivation'
+    CaseLinkState:
+      name: case_link_state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ResolutionState'
+    HasUnknownStatus:
+      name: has_unknown_status
+      in: query
+      required: false
+      description: Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state.
+      schema:
+        type: boolean
+    InvoiceID:
+      name: invoice_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/NativeID'
+    PaymentChannel:
+      name: channel
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/PaymentChannel'
+    TargetMapping:
+      name: state_mapping
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/TargetMapping'
+    AttemptState:
+      name: state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/AttemptState'
+    ApprovalProvenance:
+      name: approval_provenance
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ApprovalProvenance'
+    InvoiceLinkState:
+      name: invoice_link_state
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - RESOLVED
+          - UNKNOWN
+    AttemptID:
+      name: attempt_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/NativeID'
+    ReceiptID:
+      name: receipt_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/NativeID'
   headers:
     CorrelationID:
       description: Correlation id of this request (inbound value when valid, otherwise generated).
@@ -1482,6 +1911,7 @@ components:
             - hr_read
             - customers_identity
             - sales_read
+            - billing_read
           additionalProperties: false
           properties:
             hr_read:
@@ -1492,6 +1922,9 @@ components:
             sales_read:
               type: boolean
               description: Slice 6 sales read shadow (flag sales.read_shadow).
+            billing_read:
+              type: boolean
+              description: Slice 7 billing + payments read shadow (flag billing_payments.read_shadow).
     SessionEnvelope:
       type: object
       required:
@@ -2277,6 +2710,9 @@ components:
         - cases.case.read
         - custody.custody.read
         - sales.report.read
+        - billing.invoice.read
+        - payments.attempt.read
+        - billing.reconciliation.read
     AccessDecision:
       type: object
       required:
@@ -3628,5 +4064,1008 @@ components:
           $ref: '#/components/schemas/CorrelationID'
         data:
           $ref: '#/components/schemas/CustodyParityReport'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    InvoiceLifecycle:
+      type: string
+      description: Always UNKNOWN in Slice 7 — no canonical invoice lifecycle is claimed (TAD
+      enum:
+        - UNKNOWN
+    BillingLink:
+      type: object
+      description: An explicit link to another module's aggregate (never phone-derived).
+      required:
+        - id
+        - state
+        - basis
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        state:
+          $ref: '#/components/schemas/ResolutionState'
+        basis:
+          type: string
+          maxLength: 300
+    BillingSource:
+      type: object
+      required:
+        - source_system
+        - source_spec
+        - source_key
+        - first_batch_id
+        - last_batch_id
+        - presence
+        - first_seen_at
+        - last_seen_at
+      additionalProperties: false
+      properties:
+        source_system:
+          type: string
+          maxLength: 16
+        source_spec:
+          type: string
+          maxLength: 120
+        source_key:
+          $ref: '#/components/schemas/LegacyKey'
+        first_batch_id:
+          $ref: '#/components/schemas/NativeID'
+        last_batch_id:
+          $ref: '#/components/schemas/NativeID'
+        presence:
+          $ref: '#/components/schemas/Presence'
+        first_seen_at:
+          $ref: '#/components/schemas/Timestamp'
+        last_seen_at:
+          $ref: '#/components/schemas/Timestamp'
+    InvoiceSummary:
+      type: object
+      required:
+        - invoice_id
+        - code_raw
+        - lifecycle_state
+        - customer
+        - case
+        - items_source_complete
+        - stages_source_complete
+        - item_count
+        - stage_count
+        - unknown_state_count
+        - issued_at_raw
+        - source
+      additionalProperties: false
+      properties:
+        invoice_id:
+          $ref: '#/components/schemas/NativeID'
+        code_raw:
+          $ref: '#/components/schemas/RawText'
+        lifecycle_state:
+          $ref: '#/components/schemas/InvoiceLifecycle'
+        customer:
+          $ref: '#/components/schemas/BillingLink'
+        case:
+          $ref: '#/components/schemas/BillingLink'
+        seller:
+          $ref: '#/components/schemas/UserRef'
+        issued_by:
+          $ref: '#/components/schemas/UserRef'
+        items_source_complete:
+          type: boolean
+        stages_source_complete:
+          type: boolean
+        item_count:
+          type: integer
+          format: int64
+          minimum: 0
+        stage_count:
+          type: integer
+          format: int64
+          minimum: 0
+        unknown_state_count:
+          type: integer
+          format: int64
+          minimum: 0
+        issued_at_raw:
+          $ref: '#/components/schemas/RawText'
+        source:
+          $ref: '#/components/schemas/BillingSource'
+    InvoiceListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/InvoiceSummary'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    InvoiceStateField:
+      type: string
+      description: Legacy invoice status field the evidence comes from (each field is kept separately).
+      enum:
+        - MAIN
+        - INVOICE
+        - PAYMENT
+        - WORKFLOW
+        - RETURN
+        - LEGACY_DISPLAY
+    InvoiceVocabulary:
+      type: string
+      description: |
+        Membership of the raw value in the evidenced vocabulary of its field. There is no target mapping:
+        the canonical invoice status resolver is deferred (TAD #20). LEGACY_DERIVED marks the legacy display
+        fallback expression, shown as evidence only.
+      enum:
+        - KNOWN_VOCABULARY
+        - UNKNOWN
+        - EMPTY
+        - LEGACY_DERIVED
+    InvoiceStateEvidence:
+      type: object
+      required:
+        - field
+        - namespace
+        - raw
+        - mapping
+      additionalProperties: false
+      properties:
+        field:
+          $ref: '#/components/schemas/InvoiceStateField'
+        namespace:
+          type: string
+          maxLength: 80
+        raw:
+          $ref: '#/components/schemas/RawText'
+        mapping:
+          $ref: '#/components/schemas/InvoiceVocabulary'
+    AmountRepresentation:
+      type: string
+      description: REPRESENTABLE = exact int64 in the unit; UNREPRESENTABLE = raw kept (fraction, malformed, overflow); ABSENT = no value (never zero).
+      enum:
+        - REPRESENTABLE
+        - UNREPRESENTABLE
+        - ABSENT
+    BillingAmount:
+      type: object
+      description: Raw legacy decimal text beside the exact money it represents (absent money = not representable; never zero).
+      required:
+        - raw
+        - representation
+      additionalProperties: false
+      properties:
+        raw:
+          $ref: '#/components/schemas/RawText'
+        representation:
+          $ref: '#/components/schemas/AmountRepresentation'
+        money:
+          $ref: '#/components/schemas/Money'
+    InvoiceDeclaredAmount:
+      type: object
+      required:
+        - kind
+        - amount
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          maxLength: 40
+        amount:
+          $ref: '#/components/schemas/BillingAmount'
+    InvoiceDetail:
+      type: object
+      required:
+        - invoice
+        - product_ref_raw
+        - pay_method_raw
+        - payment_plan_raw
+        - current_stage_raw
+        - updated_at_raw
+        - states
+        - declared
+      additionalProperties: false
+      properties:
+        invoice:
+          $ref: '#/components/schemas/InvoiceSummary'
+        product_ref_raw:
+          $ref: '#/components/schemas/RawText'
+        pay_method_raw:
+          $ref: '#/components/schemas/RawText'
+        payment_plan_raw:
+          $ref: '#/components/schemas/RawText'
+        current_stage_raw:
+          $ref: '#/components/schemas/RawText'
+        updated_at_raw:
+          $ref: '#/components/schemas/RawText'
+        states:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/InvoiceStateEvidence'
+        declared:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/InvoiceDeclaredAmount'
+    InvoiceEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/InvoiceDetail'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    InvoiceLine:
+      type: object
+      required:
+        - item_id
+        - product_ref_raw
+        - title_snapshot
+        - kind_raw
+        - qty_raw
+        - unit_price
+        - line_total
+        - is_free_raw
+        - created_at_raw
+        - source
+      additionalProperties: false
+      properties:
+        item_id:
+          $ref: '#/components/schemas/NativeID'
+        product_ref_raw:
+          $ref: '#/components/schemas/RawText'
+        title_snapshot:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Product title SNAPSHOT at issuance (historical truth, not the live catalog).
+        kind_raw:
+          $ref: '#/components/schemas/RawText'
+        qty_raw:
+          $ref: '#/components/schemas/RawText'
+        unit_price:
+          $ref: '#/components/schemas/BillingAmount'
+        line_total:
+          $ref: '#/components/schemas/BillingAmount'
+        is_free_raw:
+          $ref: '#/components/schemas/RawText'
+        created_at_raw:
+          $ref: '#/components/schemas/RawText'
+        source:
+          $ref: '#/components/schemas/BillingSource'
+    InvoiceLineListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/InvoiceLine'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    TargetMapping:
+      type: string
+      description: MAPPED = raw value explicitly mapped from a verified writer; UNKNOWN = raw kept, no target; EMPTY = no raw value.
+      enum:
+        - MAPPED
+        - UNKNOWN
+        - EMPTY
+    PaymentStage:
+      type: object
+      required:
+        - stage_id
+        - stage_no_raw
+        - stage_type_raw
+        - requested
+        - state_namespace
+        - state_raw
+        - state_mapping
+        - state
+        - pay_method_raw
+        - payment_source_raw
+        - approved_at_raw
+        - paid_at_raw
+        - created_at_raw
+        - source
+      additionalProperties: false
+      properties:
+        stage_id:
+          $ref: '#/components/schemas/NativeID'
+        stage_no_raw:
+          $ref: '#/components/schemas/RawText'
+        stage_type_raw:
+          $ref: '#/components/schemas/RawText'
+        requested:
+          $ref: '#/components/schemas/BillingAmount'
+        state_namespace:
+          type: string
+          maxLength: 80
+        state_raw:
+          $ref: '#/components/schemas/RawText'
+        state_mapping:
+          $ref: '#/components/schemas/TargetMapping'
+        state:
+          type: string
+          nullable: true
+          enum:
+            - PENDING
+            - AWAITING_REVIEW
+            - ACCEPTED
+            - REJECTED
+            - CANCELLED
+            - null
+        pay_method_raw:
+          $ref: '#/components/schemas/RawText'
+        payment_source_raw:
+          $ref: '#/components/schemas/RawText'
+        issued_by:
+          $ref: '#/components/schemas/UserRef'
+        approved_by:
+          $ref: '#/components/schemas/UserRef'
+        approved_at_raw:
+          $ref: '#/components/schemas/RawText'
+        paid_at_raw:
+          $ref: '#/components/schemas/RawText'
+        created_at_raw:
+          $ref: '#/components/schemas/RawText'
+        source:
+          $ref: '#/components/schemas/BillingSource'
+    PaymentStageListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/PaymentStage'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    SumState:
+      type: string
+      description: COMPLETE, INCOMPLETE (some contribution unknown), NONE (no contribution; not zero), OVERFLOW (no value claimed).
+      enum:
+        - COMPLETE
+        - INCOMPLETE
+        - NONE
+        - OVERFLOW
+    BillingSum:
+      type: object
+      required:
+        - state
+        - rows
+      additionalProperties: false
+      properties:
+        state:
+          $ref: '#/components/schemas/SumState'
+        rows:
+          type: integer
+          minimum: 0
+        money:
+          $ref: '#/components/schemas/Money'
+    TotalClass:
+      type: string
+      description: |
+        Agreement of the total evidence of one invoice in one unit. MATCH / MISMATCH compare declared and computed
+        values; INCOMPLETE when any evidence is incomplete; CONFLICT when declared totals disagree; UNKNOWN when
+        nothing corroborates. No winner is chosen.
+      enum:
+        - MATCH
+        - MISMATCH
+        - UNKNOWN
+        - INCOMPLETE
+        - CONFLICT
+    InvoiceUnitTotals:
+      type: object
+      description: Total evidence of one invoice in ONE unit (units are never combined; UNATTRIBUTED = no unit could be attributed).
+      required:
+        - unit
+        - declared
+        - item_sum
+        - stage_sum
+        - payment_sum
+        - class
+      additionalProperties: false
+      properties:
+        unit:
+          type: string
+          enum:
+            - IRR
+            - IRT
+            - UNATTRIBUTED
+        declared:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            required:
+              - kind
+              - money
+            additionalProperties: false
+            properties:
+              kind:
+                type: string
+                maxLength: 40
+              money:
+                $ref: '#/components/schemas/Money'
+        item_sum:
+          $ref: '#/components/schemas/BillingSum'
+        stage_sum:
+          $ref: '#/components/schemas/BillingSum'
+        payment_sum:
+          $ref: '#/components/schemas/BillingSum'
+        class:
+          $ref: '#/components/schemas/TotalClass'
+    InvoiceTotals:
+      type: object
+      required:
+        - invoice_id
+        - units
+        - compared_declared
+        - payment_evidence_complete
+        - unclassified_attempts
+      additionalProperties: false
+      properties:
+        invoice_id:
+          $ref: '#/components/schemas/NativeID'
+        compared_declared:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 40
+        payment_evidence_complete:
+          type: boolean
+        unclassified_attempts:
+          type: integer
+          format: int64
+          minimum: 0
+        units:
+          type: array
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/InvoiceUnitTotals'
+    InvoiceTotalsEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/InvoiceTotals'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    PaymentChannel:
+      type: string
+      enum:
+        - GATEWAY
+        - MANUAL_CARD
+        - UNKNOWN
+    ApprovalProvenance:
+      type: string
+      description: |
+        Who/what accepted the attempt, as evidenced. GATEWAY_AUTO is the legacy gateway auto-approval and is
+        never a Finance review (D-25 open). LEGACY_MANUAL_APPROVAL is the legacy manual approval path.
+      enum:
+        - GATEWAY_AUTO
+        - LEGACY_MANUAL_APPROVAL
+        - NOT_APPROVED
+        - UNKNOWN
+    GatewayEvidence:
+      type: object
+      description: Gateway evidence of an attempt. References are never exposed (only whether a hashed one exists).
+      required:
+        - provider_raw
+        - has_authority_reference
+        - has_gateway_reference
+        - state_raw
+        - state_mapping
+        - state
+      additionalProperties: false
+      properties:
+        provider_raw:
+          $ref: '#/components/schemas/RawText'
+        has_authority_reference:
+          type: boolean
+        has_gateway_reference:
+          type: boolean
+        state_raw:
+          $ref: '#/components/schemas/RawText'
+        state_mapping:
+          $ref: '#/components/schemas/TargetMapping'
+        state:
+          type: string
+          nullable: true
+          enum:
+            - INITIATED
+            - VERIFIED
+            - CANCELLED_AT_GATEWAY
+            - null
+    PaymentAttempt:
+      type: object
+      required:
+        - attempt_id
+        - invoice_id
+        - invoice_link_state
+        - stage_no_raw
+        - channel
+        - pay_method_raw
+        - payment_source_raw
+        - amount
+        - state_namespace
+        - state_raw
+        - state_mapping
+        - state
+        - approval_provenance
+        - uploaded_by_type_raw
+        - created_at_raw
+        - updated_at_raw
+        - version
+        - source
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: '#/components/schemas/NativeID'
+        invoice_id:
+          type: string
+          format: uuid
+          nullable: true
+        invoice_link_state:
+          type: string
+          enum:
+            - RESOLVED
+            - UNKNOWN
+        stage_no_raw:
+          $ref: '#/components/schemas/RawText'
+        channel:
+          $ref: '#/components/schemas/PaymentChannel'
+        pay_method_raw:
+          $ref: '#/components/schemas/RawText'
+        payment_source_raw:
+          $ref: '#/components/schemas/RawText'
+        amount:
+          $ref: '#/components/schemas/BillingAmount'
+        state_namespace:
+          type: string
+          maxLength: 80
+        state_raw:
+          $ref: '#/components/schemas/RawText'
+        state_mapping:
+          $ref: '#/components/schemas/TargetMapping'
+        state:
+          type: string
+          nullable: true
+          enum:
+            - PENDING
+            - ACCEPTED
+            - REJECTED
+            - CANCELLED
+            - RECONCILIATION_REQUIRED
+            - null
+        approval_provenance:
+          $ref: '#/components/schemas/ApprovalProvenance'
+        uploaded_by_type_raw:
+          $ref: '#/components/schemas/RawText'
+        uploaded_by:
+          $ref: '#/components/schemas/UserRef'
+        created_at_raw:
+          $ref: '#/components/schemas/RawText'
+        updated_at_raw:
+          $ref: '#/components/schemas/RawText'
+        version:
+          type: integer
+          format: int64
+          minimum: 1
+        gateway:
+          $ref: '#/components/schemas/GatewayEvidence'
+        source:
+          $ref: '#/components/schemas/BillingSource'
+    PaymentAttemptListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/PaymentAttempt'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ReceiptState:
+      type: string
+      description: REFERENCE_ONLY = a reference exists (no file was checked); never AVAILABLE in Slice 7.
+      enum:
+        - REFERENCE_ONLY
+        - AVAILABLE
+        - MISSING
+        - NOT_RECOVERABLE
+        - UNKNOWN
+    ReceiptReference:
+      type: object
+      description: Receipt reference metadata only — never a URL, path or file.
+      required:
+        - receipt_id
+        - invoice_id
+        - owner_kind
+        - stage_no_raw
+        - ref_index
+        - has_reference
+        - host
+        - extension
+        - state
+        - source
+      additionalProperties: false
+      properties:
+        receipt_id:
+          $ref: '#/components/schemas/NativeID'
+        invoice_id:
+          type: string
+          format: uuid
+          nullable: true
+        owner_kind:
+          type: string
+          enum:
+            - STAGE
+            - INVOICE
+        stage_no_raw:
+          $ref: '#/components/schemas/RawText'
+        ref_index:
+          type: integer
+          minimum: 0
+        has_reference:
+          type: boolean
+        host:
+          type: string
+          nullable: true
+          maxLength: 253
+        extension:
+          type: string
+          nullable: true
+          maxLength: 8
+        state:
+          $ref: '#/components/schemas/ReceiptState'
+        source:
+          $ref: '#/components/schemas/BillingSource'
+    ReceiptReferenceListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ReceiptReference'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    AttemptState:
+      type: string
+      description: Payment ATTEMPT state (only when explicitly mapped). ACCEPTED is not Finance-reviewed, settled or posted.
+      enum:
+        - PENDING
+        - ACCEPTED
+        - REJECTED
+        - CANCELLED
+        - RECONCILIATION_REQUIRED
+    PaymentAttemptEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/PaymentAttempt'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    AttemptHistoryEntry:
+      type: object
+      required:
+        - history_id
+        - old_state_raw
+        - new_state_raw
+        - regression
+        - batch_id
+        - recorded_at
+      additionalProperties: false
+      properties:
+        history_id:
+          $ref: '#/components/schemas/NativeID'
+        old_state_raw:
+          $ref: '#/components/schemas/RawText'
+        new_state_raw:
+          $ref: '#/components/schemas/RawText'
+        regression:
+          type: boolean
+          description: True when an attempt that was ACCEPTED is no longer ACCEPTED.
+        batch_id:
+          $ref: '#/components/schemas/NativeID'
+        recorded_at:
+          $ref: '#/components/schemas/Timestamp'
+    AttemptHistoryListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/AttemptHistoryEntry'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ReceiptReferenceEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/ReceiptReference'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    BillingCoverage:
+      type: object
+      required:
+        - invoices_present
+        - items_present
+        - stages_present
+        - invoices_without_items
+        - invoices_without_stages
+        - invoice_state_vocabulary_by_field
+        - unknown_raw_states
+        - stage_state_mapping
+        - unknown_stage_raw_states
+        - customer_link_states
+        - case_link_states
+        - unrepresentable_amounts
+        - invoices_with_raw_pre_invoice_value
+      additionalProperties: false
+      properties:
+        invoices_present:
+          type: integer
+          format: int64
+        items_present:
+          type: integer
+          format: int64
+        stages_present:
+          type: integer
+          format: int64
+        invoices_without_items:
+          type: integer
+          format: int64
+        invoices_without_stages:
+          type: integer
+          format: int64
+        invoice_state_vocabulary_by_field:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CountMap'
+        unknown_raw_states:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CountMap'
+        stage_state_mapping:
+          $ref: '#/components/schemas/CountMap'
+        unknown_stage_raw_states:
+          $ref: '#/components/schemas/CountMap'
+        customer_link_states:
+          $ref: '#/components/schemas/CountMap'
+        case_link_states:
+          $ref: '#/components/schemas/CountMap'
+        unrepresentable_amounts:
+          type: integer
+          format: int64
+        invoices_with_raw_pre_invoice_value:
+          type: integer
+          format: int64
+          description: Raw evidence only (a raw 'pre_invoice' value in any status field); NOT the F02 metric.
+    PaymentsCoverage:
+      type: object
+      required:
+        - attempts_present
+        - attempts_by_channel
+        - attempt_state_mapping
+        - attempt_states
+        - unknown_raw_attempt_states
+        - approved_raw_count
+        - reconcile_error_raw_count
+        - approval_provenance
+        - gateway_attempts
+        - gateway_states
+        - attempts_without_invoice
+        - unrepresentable_amounts
+        - attempt_state_regressions
+        - receipts_referenced
+        - receipts_unknown
+        - receipts_missing
+      additionalProperties: false
+      properties:
+        attempts_present:
+          type: integer
+          format: int64
+        attempts_by_channel:
+          $ref: '#/components/schemas/CountMap'
+        attempt_state_mapping:
+          $ref: '#/components/schemas/CountMap'
+        attempt_states:
+          $ref: '#/components/schemas/CountMap'
+        unknown_raw_attempt_states:
+          $ref: '#/components/schemas/CountMap'
+        approved_raw_count:
+          type: integer
+          format: int64
+          description: Attempts whose raw legacy status is 'approved' (not Finance-reviewed, settled or posted).
+        reconcile_error_raw_count:
+          type: integer
+          format: int64
+        approval_provenance:
+          $ref: '#/components/schemas/CountMap'
+        gateway_attempts:
+          type: integer
+          format: int64
+        gateway_states:
+          $ref: '#/components/schemas/CountMap'
+        attempts_without_invoice:
+          type: integer
+          format: int64
+        unrepresentable_amounts:
+          type: integer
+          format: int64
+        attempt_state_regressions:
+          type: integer
+          format: int64
+        receipts_referenced:
+          type: integer
+          format: int64
+        receipts_unknown:
+          type: integer
+          format: int64
+        receipts_missing:
+          type: integer
+          format: int64
+    BillingReconciliationReport:
+      type: object
+      required:
+        - billing
+        - payments
+        - f02
+        - notes
+      additionalProperties: false
+      properties:
+        billing:
+          $ref: '#/components/schemas/BillingCoverage'
+        payments:
+          $ref: '#/components/schemas/PaymentsCoverage'
+        f02:
+          $ref: '#/components/schemas/HonestMetric'
+        notes:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 300
+    BillingReconciliationReportEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/BillingReconciliationReport'
         allowed_actions:
           $ref: '#/components/schemas/AllowedActions'

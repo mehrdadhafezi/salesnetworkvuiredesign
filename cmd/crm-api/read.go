@@ -7,6 +7,9 @@ import (
 
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization"
 	authzhttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization/http"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing"
+	billinghttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing/http"
+	billingquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases"
 	caseshttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/http"
 	casesquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/query"
@@ -22,6 +25,9 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization"
 	organizationhttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/http"
 	organizationquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/query"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments"
+	paymentshttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/http"
+	paymentsquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/apiserver"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/db"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/featureflags"
@@ -244,6 +250,87 @@ func openSales(ctx context.Context, getenv func(string) string, devAuth bool) (a
 		}
 	}
 	api, err := NewSalesAPI(runners[cases.Module], runners[custody.Module], runners[owner.FeatureFlags], devAuth)
+	if err != nil {
+		closeAll()
+		return nil, nil, err
+	}
+	return api, closeAll, nil
+}
+
+// Slice 7 billing + payments read surface (optional, all or none; needs the
+// flag store).
+const (
+	EnvBillingReadURL  = "CRM_BILLING_READ_DATABASE_URL"
+	EnvPaymentsReadURL = "CRM_PAYMENTS_READ_DATABASE_URL"
+	// BillingFlag is the Slice 7 rollback switch (default off).
+	BillingFlag = "billing_payments.read_shadow"
+)
+
+// ErrBillingConfig reports a partial Slice 7 configuration.
+var ErrBillingConfig = errors.New("crm-api: " + EnvBillingReadURL + " and " + EnvPaymentsReadURL + " are all-or-none and need " + EnvFeatureFlagsURL)
+
+// billingAPI composes the billing and payments read handlers. Each module
+// keeps its own runner; there is no cross-module transaction. Billing reads
+// payment sums through the published payments read API only.
+type (
+	billingHandlers  = billinghttp.Handlers
+	paymentsHandlers = paymentshttp.Handlers
+)
+
+type billingAPI struct {
+	*billingHandlers
+	*paymentsHandlers
+}
+
+// NewBillingAPI composes the Slice 7 surface over the billing and payments
+// runners and the flag store. devAuth selects synthetic DEV/TEST subjects.
+func NewBillingAPI(billingRunner, paymentsRunner, flags *db.Runner, devAuth bool) (apiserver.BillingAPI, error) {
+	if billingRunner.Module() != billing.Module || paymentsRunner.Module() != payments.Module || flags.Module() != owner.FeatureFlags {
+		return nil, errors.New("crm-api: billing runners bound to the wrong modules")
+	}
+	var subjects authorization.SubjectResolver = authorization.Anonymous{}
+	if devAuth {
+		subjects = authorization.DevSubjects{}
+	}
+	guard, err := authorization.NewGuard(flagFunc(flags, BillingFlag), subjects)
+	if err != nil {
+		return nil, err
+	}
+	pq := paymentsquery.New(paymentsRunner)
+	return billingAPI{billinghttp.New(guard, billingquery.New(billingRunner), pq), paymentshttp.New(guard, pq)}, nil
+}
+
+// openBilling opens the Slice 7 pools when configured.
+func openBilling(ctx context.Context, getenv func(string) string, devAuth bool) (apiserver.BillingAPI, func(), error) {
+	bu, pu, fu := getenv(EnvBillingReadURL), getenv(EnvPaymentsReadURL), getenv(EnvFeatureFlagsURL)
+	if bu == "" && pu == "" {
+		return nil, func() {}, nil
+	}
+	if bu == "" || pu == "" || fu == "" {
+		return nil, nil, ErrBillingConfig
+	}
+	var pools []*db.Pool
+	closeAll := func() {
+		for _, p := range pools {
+			p.Close()
+		}
+	}
+	runners := map[owner.Module]*db.Runner{}
+	for m, u := range map[owner.Module]string{billing.Module: bu, payments.Module: pu, owner.FeatureFlags: fu} {
+		cfg := db.DefaultConfig(u)
+		cfg.ApplicationName = "crm-api"
+		pool, err := db.Open(ctx, cfg)
+		if err != nil {
+			closeAll()
+			return nil, nil, fmt.Errorf("crm-api: %s read database: %w", m, err)
+		}
+		pools = append(pools, pool)
+		if runners[m], err = pool.Runner(m); err != nil {
+			closeAll()
+			return nil, nil, err
+		}
+	}
+	api, err := NewBillingAPI(runners[billing.Module], runners[payments.Module], runners[owner.FeatureFlags], devAuth)
 	if err != nil {
 		closeAll()
 		return nil, nil, err

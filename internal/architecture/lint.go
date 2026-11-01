@@ -71,6 +71,27 @@
 //   - phone-key: no string literal in internal/cases or internal/custody
 //     mentions a phone (phone is never a Case or customer key or join).
 //
+// Slice 7 rules (billing + payments read shadow; TAD #19/#20, D-25 open):
+//
+//   - module-boundary also covers billing and payments: payments reaches
+//     billing only through billing/api (invoice resolution); billing reaches
+//     payments only through payments/api and only from its http adapter
+//     (payment sums and coverage for the read surface); billing may read
+//     customers/api and cases/api; their http adapters may use identity/api
+//     and the authorization evaluator; no other module imports them.
+//   - foreign-schema-write covers the billing and payments schemas, so
+//     payments never writes billing and billing never writes payments.
+//   - append-only-write also covers payments.attempt_state_history.
+//   - phone-key also covers internal/billing and internal/payments.
+//   - status-fallback: no SQL literal outside the legacy connector chains
+//     COALESCE(NULLIF(...status...)) and no identifier names a generic
+//     invoice main-status resolver (resolveMainStatus, canonicalInvoiceStatus,
+//     effectiveStatus, ...): the canonical invoice status is deferred (TAD
+//     #20) and the legacy display expression lives only in the connector.
+//   - money-unit-conversion: internal/billing and internal/payments never
+//     multiply or divide by the literal 10 (the legacy Toman↔Rial factor)
+//     and declare no function whose name suggests a unit conversion.
+//
 // Test files are composition roots for module-boundary (as cmd/ is); every
 // other rule applies to them as before.
 package architecture
@@ -121,10 +142,22 @@ const (
 	RuleMergePath        = "merge-path"
 	RuleAppendOnlyWrite  = "append-only-write"
 	RulePhoneKey         = "phone-key"
+	RuleStatusFallback   = "status-fallback"
+	RuleUnitConversion   = "money-unit-conversion"
 )
 
+// statusFallbackSQL matches a COALESCE chain over status columns.
+var statusFallbackSQL = regexp.MustCompile(`(?i)coalesce\s*\(\s*nullif\s*\(\s*[a-z_.]*status`)
+
+// statusResolver matches identifiers of a generic invoice main-status
+// resolver (TAD #20 deferred).
+var statusResolver = regexp.MustCompile(`(?i)^(resolve|derive|compute|pick|select)?(canonical|effective|main|current)(invoice)?status(resolver|fallback)?$|^(resolve|derive|compute)(invoice)?(main)?status`)
+
+// moneyModules are the trees where amounts live with explicit units.
+var moneyModules = []string{"internal/billing", "internal/payments"}
+
 // appendOnlyWrite matches SQL that would mutate an append-only table.
-var appendOnlyWrite = regexp.MustCompile(`(?i)\b(update|delete\s+from)\s+(custody\.custody_event|cases\.case_state_history|cases\.attribution_snapshot)\b`)
+var appendOnlyWrite = regexp.MustCompile(`(?i)\b(update|delete\s+from)\s+(custody\.custody_event|cases\.case_state_history|cases\.attribution_snapshot|payments\.attempt_state_history)\b`)
 
 // phoneLiteral matches a phone reference in cases/custody string literals.
 var phoneLiteral = regexp.MustCompile(`(?i)phone`)
@@ -135,7 +168,7 @@ var mergePath = regexp.MustCompile(`(?i)^(resolvemerge|mergecustomers?|applymerg
 
 // slice4Modules are the business modules of Slice 4.
 var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true, "customers": true,
-	"cases": true, "custody": true}
+	"cases": true, "custody": true, "billing": true, "payments": true}
 
 // schemaOwners maps a module schema to the only tree allowed to write it.
 var schemaOwners = map[string]string{
@@ -144,12 +177,14 @@ var schemaOwners = map[string]string{
 	"customers":             "internal/customers",
 	"cases":                 "internal/cases",
 	"custody":               "internal/custody",
+	"billing":               "internal/billing",
+	"payments":              "internal/payments",
 	"integration":           "internal/integration",
 	"audit":                 "internal/platform/audit",
 	"platform_featureflags": "internal/platform/featureflags",
 }
 
-var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|integration|audit|platform_featureflags)\.`)
+var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|billing|payments|integration|audit|platform_featureflags)\.`)
 
 // readPathDirs never import an import command.
 var readPathDirs = []string{"internal/platform/apiserver", "cmd/crm-api"}
@@ -172,6 +207,14 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 	case (top == "cases" || top == "custody") && other == "identity":
 		return rest == "api" && under(rel, "internal/"+top+"/http")
 	case top == "custody" && other == "cases":
+		return rest == "api"
+	case (top == "billing" || top == "payments") && other == "identity":
+		return rest == "api" && under(rel, "internal/"+top+"/http")
+	case top == "payments" && other == "billing":
+		return rest == "api"
+	case top == "billing" && other == "payments":
+		return rest == "api" && under(rel, "internal/billing/http")
+	case top == "billing" && (other == "customers" || other == "cases"):
 		return rest == "api"
 	case other == "authorization" && (rest == "" || rest == "http"):
 		return under(rel, "internal/"+top+"/http")
@@ -365,8 +408,12 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 					if m := appendOnlyWrite.FindString(s); m != "" && !isTest {
 						add(RuleAppendOnlyWrite, x.Pos(), "mutates an append-only table: "+m)
 					}
-					if !isTest && (under(rel, "internal/cases") || under(rel, "internal/custody")) && phoneLiteral.MatchString(s) {
-						add(RulePhoneKey, x.Pos(), "phone in a cases/custody literal; phone is never a Case key or join")
+					if !isTest && (under(rel, "internal/cases") || under(rel, "internal/custody") || under(rel, "internal/billing") ||
+						under(rel, "internal/payments")) && phoneLiteral.MatchString(s) {
+						add(RulePhoneKey, x.Pos(), "phone in a cases/custody/billing/payments literal; phone is never a key or join")
+					}
+					if !under(rel, legacyInteg) && statusFallbackSQL.MatchString(s) {
+						add(RuleStatusFallback, x.Pos(), "COALESCE status fallback outside the legacy connector (TAD #20 deferred)")
 					}
 				}
 			}
@@ -379,7 +426,18 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 					}
 				}
 			}
+		case *ast.BinaryExpr:
+			if !isTest && inMoney(rel) && (x.Op == token.MUL || x.Op == token.QUO) {
+				for _, side := range []ast.Expr{x.X, x.Y} {
+					if lit, ok := side.(*ast.BasicLit); ok && lit.Kind == token.INT && lit.Value == "10" {
+						add(RuleUnitConversion, x.Pos(), "arithmetic by 10 in billing/payments; units are never converted")
+					}
+				}
+			}
 		case *ast.Ident:
+			if !under(rel, architectureDir) && !under(rel, legacyInteg) && statusResolver.MatchString(x.Name) {
+				add(RuleStatusFallback, x.Pos(), "generic invoice status resolver "+x.Name+" (TAD #20 deferred)")
+			}
 			if !under(rel, architectureDir) && mergePath.MatchString(x.Name) {
 				add(RuleMergePath, x.Pos(), "merge/canonicalisation identifier "+x.Name+" (Slice 5 is read/shadow only; D-30 open)")
 			}
@@ -401,6 +459,9 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 				}
 			}
 		case *ast.FuncDecl:
+			if inMoney(rel) && !isTest && conversionName.MatchString(x.Name.Name) {
+				add(RuleUnitConversion, x.Pos(), "conversion-like function "+x.Name.Name+" in billing/payments")
+			}
 			if under(rel, moneyDir) && !isTest && x.Name.IsExported() && conversionName.MatchString(x.Name.Name) {
 				add(RuleMoneyConversion, x.Pos(), "money exports conversion-like function "+x.Name.Name)
 			}
@@ -408,6 +469,15 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		return true
 	})
 	return out, nil
+}
+
+func inMoney(rel string) bool {
+	for _, d := range moneyModules {
+		if under(rel, d) {
+			return true
+		}
+	}
+	return false
 }
 
 // internalTopOf returns the internal/<top> of a repository-relative path.

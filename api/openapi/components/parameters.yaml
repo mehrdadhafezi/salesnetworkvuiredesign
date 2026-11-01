@@ -269,3 +269,75 @@ CaseID:
   required: true
   schema:
     $ref: './hr.yaml#/NativeID'
+
+InvoiceID:
+  name: invoice_id
+  in: path
+  required: true
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
+AttemptID:
+  name: attempt_id
+  in: path
+  required: true
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
+ReceiptID:
+  name: receipt_id
+  in: path
+  required: true
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
+CaseLinkState:
+  name: case_link_state
+  in: query
+  required: false
+  schema:
+    $ref: './customers.yaml#/ResolutionState'
+
+HasUnknownStatus:
+  name: has_unknown_status
+  in: query
+  required: false
+  description: Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state.
+  schema:
+    type: boolean
+
+PaymentChannel:
+  name: channel
+  in: query
+  required: false
+  schema:
+    $ref: './billing.yaml#/PaymentChannel'
+
+TargetMapping:
+  name: state_mapping
+  in: query
+  required: false
+  schema:
+    $ref: './billing.yaml#/TargetMapping'
+
+AttemptState:
+  name: state
+  in: query
+  required: false
+  schema:
+    $ref: './billing.yaml#/AttemptState'
+
+ApprovalProvenance:
+  name: approval_provenance
+  in: query
+  required: false
+  schema:
+    $ref: './billing.yaml#/ApprovalProvenance'
+
+InvoiceLinkState:
+  name: invoice_link_state
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [RESOLVED, UNKNOWN]

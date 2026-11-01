@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing"
+	billingimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing/imports"
+	billingquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases"
 	casesimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/imports"
 	casesquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/query"
@@ -13,6 +16,7 @@ import (
 	custodyimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/imports"
 	custodyquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers"
+	customersapi "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/api"
 	customersimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/imports"
 	customersquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity"
@@ -26,6 +30,9 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization"
 	organizationimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/imports"
 	organizationquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/query"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments"
+	paymentsimports "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/imports"
+	paymentsquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/clock"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/db"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/migrations"
@@ -96,6 +103,18 @@ func shadowDSNs(cmd string, getenv func(string) string) (map[owner.Module]string
 	case "reconcile-sales":
 		need[cases.Module] = EnvCasesURL
 		need[custody.Module] = EnvCustodyURL
+	case "import-billing":
+		// Slice 7: staging (read), identity, customers and cases (read:
+		// published references), billing then payments — each in its own
+		// module transaction.
+		need[identity.Module] = EnvIdentityURL
+		need[customers.Module] = EnvCustomersURL
+		need[cases.Module] = EnvCasesURL
+		need[billing.Module] = EnvBillingURL
+		need[payments.Module] = EnvPaymentsURL
+	case "reconcile-billing":
+		need[billing.Module] = EnvBillingURL
+		need[payments.Module] = EnvPaymentsURL
 	case "import-identity":
 		need[identity.Module] = EnvIdentityURL
 	default:
@@ -215,6 +234,15 @@ func runShadow(ctx context.Context, cmd, snapshotID string, reg *spec.Registry, 
 			out.Reasons = []reasoncodes.Code{reasoncodes.CoverageIncomplete}
 		}
 		return emit(stdout, stderr, out, out.Outcome == result.Success)
+	case "import-billing":
+		return importBilling(ctx, b, runners, clk, out, stdout, stderr)
+	case "reconcile-billing":
+		rep, err := shadow.ReconcileBilling(ctx, b, billingquery.New(runners[billing.Module]), paymentsquery.New(runners[payments.Module]))
+		if err != nil {
+			fmt.Fprintln(stderr, "crm-legacy-import:", err)
+			return 1
+		}
+		return emit(stdout, stderr, rep, rep.Outcome == result.Success)
 	case "reconcile-sales":
 		rep, err := shadow.ReconcileSales(ctx, b, casesquery.New(runners[cases.Module]), custodyquery.New(runners[custody.Module]))
 		if err != nil {
@@ -259,6 +287,74 @@ func runShadow(ctx context.Context, cmd, snapshotID string, reg *spec.Registry, 
 			return 1
 		}
 		return emit(stdout, stderr, rep, rep.Outcome == result.Success)
+	}
+	if out.Outcome != result.Success && len(out.Reasons) == 0 {
+		out.Reasons = []reasoncodes.Code{reasoncodes.CoverageIncomplete}
+	}
+	return emit(stdout, stderr, out, out.Outcome == result.Success)
+}
+
+// importBilling runs the frozen Slice 7 sequence: references are resolved
+// through published read APIs, billing commits in a billing-only
+// transaction, then payments resolves invoices through the published billing
+// API and commits in a payments-only transaction. A billing failure stops
+// before payments; no transaction spans two modules.
+func importBilling(ctx context.Context, b *shadow.Batch, runners map[owner.Module]*db.Runner, clk clock.System, out shadowResult,
+	stdout, stderr io.Writer) int {
+	users, err := identityquery.New(runners[identity.Module]).ResolveUsers(ctx, shadow.SourceSystem, shadow.BillingUserKeys(b))
+	if err != nil {
+		fmt.Fprintln(stderr, "crm-legacy-import:", err)
+		return 1
+	}
+	prov, err := customersquery.New(runners[customers.Module]).SubjectProvenance(ctx, shadow.SourceSystem, customersapi.IssuedTo, shadow.InvoiceKeys(b))
+	if err != nil {
+		fmt.Fprintln(stderr, "crm-legacy-import:", err)
+		return 1
+	}
+	custs := map[string]string{}
+	for k, p := range prov {
+		if p.Present {
+			custs[k] = p.CustomerID
+		}
+	}
+	srcs, err := casesquery.New(runners[cases.Module]).ResolveSources(ctx, shadow.SourceSystem, shadow.SpecLead, shadow.InvoiceLeadKeys(b))
+	if err != nil {
+		fmt.Fprintln(stderr, "crm-legacy-import:", err)
+		return 1
+	}
+	links := map[string]string{}
+	for k, s := range srcs {
+		links[k] = s.CaseID
+	}
+	bin, bmap := shadow.BillingCommand(b, users, custs, links)
+	brep, err := billingimports.New(runners[billing.Module], clk).ImportBilling(ctx, bin)
+	out.Mapping, out.Counts = map[string]int64{}, map[string]int64{}
+	for k, v := range bmap {
+		out.Mapping["billing."+k] = v
+	}
+	for k, v := range brep.Counts {
+		out.Counts["billing."+k] = v
+	}
+	if err != nil {
+		out.Outcome = brep.Outcome
+		fmt.Fprintln(stderr, "crm-legacy-import: billing:", err)
+		emit(stdout, stderr, out, false)
+		return 1
+	}
+	pin, pmap := shadow.PaymentsCommand(b, users)
+	prep, err := paymentsimports.New(runners[payments.Module], billingquery.New(runners[billing.Module]), clk).ImportPayments(ctx, pin)
+	for k, v := range pmap {
+		out.Mapping["payments."+k] = v
+	}
+	for k, v := range prep.Counts {
+		out.Counts["payments."+k] = v
+	}
+	out.Replay, out.RunID = brep.Replay && prep.Replay, brep.RunID
+	out.Outcome = worst(brep.Outcome, prep.Outcome)
+	if err != nil {
+		fmt.Fprintln(stderr, "crm-legacy-import: payments:", err)
+		emit(stdout, stderr, out, false)
+		return 1
 	}
 	if out.Outcome != result.Success && len(out.Reasons) == 0 {
 		out.Reasons = []reasoncodes.Code{reasoncodes.CoverageIncomplete}

@@ -1,0 +1,572 @@
+# Slice 7 billing + payments read shadow (read only; no action exists).
+# Invoice lifecycle, invoice status fields, payment stage, payment attempt,
+# gateway and receipt states are separate and never collapsed. No canonical
+# invoice status (TAD #20) or canonical total (TAD #19) is claimed. Money is
+# int64 text with an explicit unit; raw legacy text is shown beside it.
+# No phone, address, national id, raw payload, gateway reference, token,
+# URL or filesystem path appears anywhere.
+
+InvoiceStateField:
+  type: string
+  description: Legacy invoice status field the evidence comes from (each field is kept separately).
+  enum: [MAIN, INVOICE, PAYMENT, WORKFLOW, RETURN, LEGACY_DISPLAY]
+
+InvoiceVocabulary:
+  type: string
+  description: |
+    Membership of the raw value in the evidenced vocabulary of its field. There is no target mapping:
+    the canonical invoice status resolver is deferred (TAD #20). LEGACY_DERIVED marks the legacy display
+    fallback expression, shown as evidence only.
+  enum: [KNOWN_VOCABULARY, UNKNOWN, EMPTY, LEGACY_DERIVED]
+
+InvoiceLifecycle:
+  type: string
+  description: Always UNKNOWN in Slice 7 — no canonical invoice lifecycle is claimed (TAD #20).
+  enum: [UNKNOWN]
+
+TargetMapping:
+  type: string
+  description: MAPPED = raw value explicitly mapped from a verified writer; UNKNOWN = raw kept, no target; EMPTY = no raw value.
+  enum: [MAPPED, UNKNOWN, EMPTY]
+
+StageState:
+  type: string
+  description: Payment STAGE state (only when explicitly mapped).
+  enum: [PENDING, AWAITING_REVIEW, ACCEPTED, REJECTED, CANCELLED]
+
+AttemptState:
+  type: string
+  description: Payment ATTEMPT state (only when explicitly mapped). ACCEPTED is not Finance-reviewed, settled or posted.
+  enum: [PENDING, ACCEPTED, REJECTED, CANCELLED, RECONCILIATION_REQUIRED]
+
+GatewayState:
+  type: string
+  description: GATEWAY-side state (only when explicitly mapped).
+  enum: [INITIATED, VERIFIED, CANCELLED_AT_GATEWAY]
+
+PaymentChannel:
+  type: string
+  enum: [GATEWAY, MANUAL_CARD, UNKNOWN]
+
+ApprovalProvenance:
+  type: string
+  description: |
+    Who/what accepted the attempt, as evidenced. GATEWAY_AUTO is the legacy gateway auto-approval and is
+    never a Finance review (D-25 open). LEGACY_MANUAL_APPROVAL is the legacy manual approval path.
+  enum: [GATEWAY_AUTO, LEGACY_MANUAL_APPROVAL, NOT_APPROVED, UNKNOWN]
+
+ReceiptState:
+  type: string
+  description: REFERENCE_ONLY = a reference exists (no file was checked); never AVAILABLE in Slice 7.
+  enum: [REFERENCE_ONLY, AVAILABLE, MISSING, NOT_RECOVERABLE, UNKNOWN]
+
+AmountRepresentation:
+  type: string
+  description: REPRESENTABLE = exact int64 in the unit; UNREPRESENTABLE = raw kept (fraction, malformed, overflow); ABSENT = no value (never zero).
+  enum: [REPRESENTABLE, UNREPRESENTABLE, ABSENT]
+
+SumState:
+  type: string
+  description: COMPLETE, INCOMPLETE (some contribution unknown), NONE (no contribution; not zero), OVERFLOW (no value claimed).
+  enum: [COMPLETE, INCOMPLETE, NONE, OVERFLOW]
+
+TotalClass:
+  type: string
+  description: |
+    Agreement of the total evidence of one invoice in one unit. MATCH / MISMATCH compare declared and computed
+    values; INCOMPLETE when any evidence is incomplete; CONFLICT when declared totals disagree; UNKNOWN when
+    nothing corroborates. No winner is chosen.
+  enum: [MATCH, MISMATCH, UNKNOWN, INCOMPLETE, CONFLICT]
+
+BillingAmount:
+  type: object
+  description: Raw legacy decimal text beside the exact money it represents (absent money = not representable; never zero).
+  required: [raw, representation]
+  additionalProperties: false
+  properties:
+    raw: {$ref: './hr.yaml#/RawText'}
+    representation: {$ref: '#/AmountRepresentation'}
+    money: {$ref: './schemas.yaml#/Money'}
+
+BillingSource:
+  type: object
+  required: [source_system, source_spec, source_key, first_batch_id, last_batch_id, presence, first_seen_at, last_seen_at]
+  additionalProperties: false
+  properties:
+    source_system: {type: string, maxLength: 16}
+    source_spec: {type: string, maxLength: 120}
+    source_key: {$ref: './hr.yaml#/LegacyKey'}
+    first_batch_id: {$ref: './hr.yaml#/NativeID'}
+    last_batch_id: {$ref: './hr.yaml#/NativeID'}
+    presence: {$ref: './hr.yaml#/Presence'}
+    first_seen_at: {$ref: './schemas.yaml#/Timestamp'}
+    last_seen_at: {$ref: './schemas.yaml#/Timestamp'}
+
+BillingLink:
+  type: object
+  description: An explicit link to another module's aggregate (never phone-derived).
+  required: [id, state, basis]
+  additionalProperties: false
+  properties:
+    id:
+      type: string
+      format: uuid
+      nullable: true
+    state: {$ref: './customers.yaml#/ResolutionState'}
+    basis: {type: string, maxLength: 300}
+
+InvoiceSummary:
+  type: object
+  required: [invoice_id, code_raw, lifecycle_state, customer, case, items_source_complete,
+    stages_source_complete, item_count, stage_count, unknown_state_count, issued_at_raw, source]
+  additionalProperties: false
+  properties:
+    invoice_id: {$ref: './hr.yaml#/NativeID'}
+    code_raw: {$ref: './hr.yaml#/RawText'}
+    lifecycle_state: {$ref: '#/InvoiceLifecycle'}
+    customer: {$ref: '#/BillingLink'}
+    case: {$ref: '#/BillingLink'}
+    seller: {$ref: './sales.yaml#/UserRef'}
+    issued_by: {$ref: './sales.yaml#/UserRef'}
+    items_source_complete: {type: boolean}
+    stages_source_complete: {type: boolean}
+    item_count: {type: integer, format: int64, minimum: 0}
+    stage_count: {type: integer, format: int64, minimum: 0}
+    unknown_state_count: {type: integer, format: int64, minimum: 0}
+    issued_at_raw: {$ref: './hr.yaml#/RawText'}
+    source: {$ref: '#/BillingSource'}
+
+InvoiceStateEvidence:
+  type: object
+  required: [field, namespace, raw, mapping]
+  additionalProperties: false
+  properties:
+    field: {$ref: '#/InvoiceStateField'}
+    namespace: {type: string, maxLength: 80}
+    raw: {$ref: './hr.yaml#/RawText'}
+    mapping: {$ref: '#/InvoiceVocabulary'}
+
+InvoiceDeclaredAmount:
+  type: object
+  required: [kind, amount]
+  additionalProperties: false
+  properties:
+    kind: {type: string, maxLength: 40}
+    amount: {$ref: '#/BillingAmount'}
+
+InvoiceDetail:
+  type: object
+  required: [invoice, product_ref_raw, pay_method_raw, payment_plan_raw, current_stage_raw, updated_at_raw, states, declared]
+  additionalProperties: false
+  properties:
+    invoice: {$ref: '#/InvoiceSummary'}
+    product_ref_raw: {$ref: './hr.yaml#/RawText'}
+    pay_method_raw: {$ref: './hr.yaml#/RawText'}
+    payment_plan_raw: {$ref: './hr.yaml#/RawText'}
+    current_stage_raw: {$ref: './hr.yaml#/RawText'}
+    updated_at_raw: {$ref: './hr.yaml#/RawText'}
+    states:
+      type: array
+      maxItems: 10
+      items: {$ref: '#/InvoiceStateEvidence'}
+    declared:
+      type: array
+      maxItems: 20
+      items: {$ref: '#/InvoiceDeclaredAmount'}
+
+InvoiceLine:
+  type: object
+  required: [item_id, product_ref_raw, title_snapshot, kind_raw, qty_raw, unit_price, line_total, is_free_raw, created_at_raw, source]
+  additionalProperties: false
+  properties:
+    item_id: {$ref: './hr.yaml#/NativeID'}
+    product_ref_raw: {$ref: './hr.yaml#/RawText'}
+    title_snapshot:
+      type: string
+      nullable: true
+      maxLength: 255
+      description: Product title SNAPSHOT at issuance (historical truth, not the live catalog).
+    kind_raw: {$ref: './hr.yaml#/RawText'}
+    qty_raw: {$ref: './hr.yaml#/RawText'}
+    unit_price: {$ref: '#/BillingAmount'}
+    line_total: {$ref: '#/BillingAmount'}
+    is_free_raw: {$ref: './hr.yaml#/RawText'}
+    created_at_raw: {$ref: './hr.yaml#/RawText'}
+    source: {$ref: '#/BillingSource'}
+
+PaymentStage:
+  type: object
+  required: [stage_id, stage_no_raw, stage_type_raw, requested, state_namespace, state_raw, state_mapping, state,
+    pay_method_raw, payment_source_raw, approved_at_raw, paid_at_raw, created_at_raw, source]
+  additionalProperties: false
+  properties:
+    stage_id: {$ref: './hr.yaml#/NativeID'}
+    stage_no_raw: {$ref: './hr.yaml#/RawText'}
+    stage_type_raw: {$ref: './hr.yaml#/RawText'}
+    requested: {$ref: '#/BillingAmount'}
+    state_namespace: {type: string, maxLength: 80}
+    state_raw: {$ref: './hr.yaml#/RawText'}
+    state_mapping: {$ref: '#/TargetMapping'}
+    state:
+      type: string
+      nullable: true
+      enum: [PENDING, AWAITING_REVIEW, ACCEPTED, REJECTED, CANCELLED, null]
+    pay_method_raw: {$ref: './hr.yaml#/RawText'}
+    payment_source_raw: {$ref: './hr.yaml#/RawText'}
+    issued_by: {$ref: './sales.yaml#/UserRef'}
+    approved_by: {$ref: './sales.yaml#/UserRef'}
+    approved_at_raw: {$ref: './hr.yaml#/RawText'}
+    paid_at_raw: {$ref: './hr.yaml#/RawText'}
+    created_at_raw: {$ref: './hr.yaml#/RawText'}
+    source: {$ref: '#/BillingSource'}
+
+BillingSum:
+  type: object
+  required: [state, rows]
+  additionalProperties: false
+  properties:
+    state: {$ref: '#/SumState'}
+    rows: {type: integer, minimum: 0}
+    money: {$ref: './schemas.yaml#/Money'}
+
+InvoiceUnitTotals:
+  type: object
+  description: Total evidence of one invoice in ONE unit (units are never combined; UNATTRIBUTED = no unit could be attributed).
+  required: [unit, declared, item_sum, stage_sum, payment_sum, class]
+  additionalProperties: false
+  properties:
+    unit: {type: string, enum: [IRR, IRT, UNATTRIBUTED]}
+    declared:
+      type: array
+      maxItems: 10
+      items:
+        type: object
+        required: [kind, money]
+        additionalProperties: false
+        properties:
+          kind: {type: string, maxLength: 40}
+          money: {$ref: './schemas.yaml#/Money'}
+    item_sum: {$ref: '#/BillingSum'}
+    stage_sum: {$ref: '#/BillingSum'}
+    payment_sum: {$ref: '#/BillingSum'}
+    class: {$ref: '#/TotalClass'}
+
+InvoiceTotals:
+  type: object
+  required: [invoice_id, units, compared_declared, payment_evidence_complete, unclassified_attempts]
+  additionalProperties: false
+  properties:
+    invoice_id: {$ref: './hr.yaml#/NativeID'}
+    compared_declared:
+      type: array
+      maxItems: 10
+      items: {type: string, maxLength: 40}
+    payment_evidence_complete: {type: boolean}
+    unclassified_attempts: {type: integer, format: int64, minimum: 0}
+    units:
+      type: array
+      maxItems: 4
+      items: {$ref: '#/InvoiceUnitTotals'}
+
+GatewayEvidence:
+  type: object
+  description: Gateway evidence of an attempt. References are never exposed (only whether a hashed one exists).
+  required: [provider_raw, has_authority_reference, has_gateway_reference, state_raw, state_mapping, state]
+  additionalProperties: false
+  properties:
+    provider_raw: {$ref: './hr.yaml#/RawText'}
+    has_authority_reference: {type: boolean}
+    has_gateway_reference: {type: boolean}
+    state_raw: {$ref: './hr.yaml#/RawText'}
+    state_mapping: {$ref: '#/TargetMapping'}
+    state:
+      type: string
+      nullable: true
+      enum: [INITIATED, VERIFIED, CANCELLED_AT_GATEWAY, null]
+
+PaymentAttempt:
+  type: object
+  required: [attempt_id, invoice_id, invoice_link_state, stage_no_raw, channel, pay_method_raw, payment_source_raw, amount,
+    state_namespace, state_raw, state_mapping, state, approval_provenance, uploaded_by_type_raw, created_at_raw,
+    updated_at_raw, version, source]
+  additionalProperties: false
+  properties:
+    attempt_id: {$ref: './hr.yaml#/NativeID'}
+    invoice_id:
+      type: string
+      format: uuid
+      nullable: true
+    invoice_link_state: {type: string, enum: [RESOLVED, UNKNOWN]}
+    stage_no_raw: {$ref: './hr.yaml#/RawText'}
+    channel: {$ref: '#/PaymentChannel'}
+    pay_method_raw: {$ref: './hr.yaml#/RawText'}
+    payment_source_raw: {$ref: './hr.yaml#/RawText'}
+    amount: {$ref: '#/BillingAmount'}
+    state_namespace: {type: string, maxLength: 80}
+    state_raw: {$ref: './hr.yaml#/RawText'}
+    state_mapping: {$ref: '#/TargetMapping'}
+    state:
+      type: string
+      nullable: true
+      enum: [PENDING, ACCEPTED, REJECTED, CANCELLED, RECONCILIATION_REQUIRED, null]
+    approval_provenance: {$ref: '#/ApprovalProvenance'}
+    uploaded_by_type_raw: {$ref: './hr.yaml#/RawText'}
+    uploaded_by: {$ref: './sales.yaml#/UserRef'}
+    created_at_raw: {$ref: './hr.yaml#/RawText'}
+    updated_at_raw: {$ref: './hr.yaml#/RawText'}
+    version: {type: integer, format: int64, minimum: 1}
+    gateway: {$ref: '#/GatewayEvidence'}
+    source: {$ref: '#/BillingSource'}
+
+AttemptHistoryEntry:
+  type: object
+  required: [history_id, old_state_raw, new_state_raw, regression, batch_id, recorded_at]
+  additionalProperties: false
+  properties:
+    history_id: {$ref: './hr.yaml#/NativeID'}
+    old_state_raw: {$ref: './hr.yaml#/RawText'}
+    new_state_raw: {$ref: './hr.yaml#/RawText'}
+    regression:
+      type: boolean
+      description: True when an attempt that was ACCEPTED is no longer ACCEPTED.
+    batch_id: {$ref: './hr.yaml#/NativeID'}
+    recorded_at: {$ref: './schemas.yaml#/Timestamp'}
+
+ReceiptReference:
+  type: object
+  description: Receipt reference metadata only — never a URL, path or file.
+  required: [receipt_id, invoice_id, owner_kind, stage_no_raw, ref_index, has_reference, host, extension, state, source]
+  additionalProperties: false
+  properties:
+    receipt_id: {$ref: './hr.yaml#/NativeID'}
+    invoice_id:
+      type: string
+      format: uuid
+      nullable: true
+    owner_kind: {type: string, enum: [STAGE, INVOICE]}
+    stage_no_raw: {$ref: './hr.yaml#/RawText'}
+    ref_index: {type: integer, minimum: 0}
+    has_reference: {type: boolean}
+    host:
+      type: string
+      nullable: true
+      maxLength: 253
+    extension:
+      type: string
+      nullable: true
+      maxLength: 8
+    state: {$ref: '#/ReceiptState'}
+    source: {$ref: '#/BillingSource'}
+
+BillingCoverage:
+  type: object
+  required: [invoices_present, items_present, stages_present, invoices_without_items, invoices_without_stages,
+    invoice_state_vocabulary_by_field, unknown_raw_states, stage_state_mapping, unknown_stage_raw_states, customer_link_states,
+    case_link_states, unrepresentable_amounts, invoices_with_raw_pre_invoice_value]
+  additionalProperties: false
+  properties:
+    invoices_present: {type: integer, format: int64}
+    items_present: {type: integer, format: int64}
+    stages_present: {type: integer, format: int64}
+    invoices_without_items: {type: integer, format: int64}
+    invoices_without_stages: {type: integer, format: int64}
+    invoice_state_vocabulary_by_field:
+      type: object
+      additionalProperties: {$ref: './sales.yaml#/CountMap'}
+    unknown_raw_states:
+      type: object
+      additionalProperties: {$ref: './sales.yaml#/CountMap'}
+    stage_state_mapping: {$ref: './sales.yaml#/CountMap'}
+    unknown_stage_raw_states: {$ref: './sales.yaml#/CountMap'}
+    customer_link_states: {$ref: './sales.yaml#/CountMap'}
+    case_link_states: {$ref: './sales.yaml#/CountMap'}
+    unrepresentable_amounts: {type: integer, format: int64}
+    invoices_with_raw_pre_invoice_value:
+      type: integer
+      format: int64
+      description: Raw evidence only (a raw 'pre_invoice' value in any status field); NOT the F02 metric.
+
+PaymentsCoverage:
+  type: object
+  required: [attempts_present, attempts_by_channel, attempt_state_mapping, attempt_states, unknown_raw_attempt_states,
+    approved_raw_count, reconcile_error_raw_count, approval_provenance, gateway_attempts, gateway_states, attempts_without_invoice,
+    unrepresentable_amounts, attempt_state_regressions, receipts_referenced, receipts_unknown, receipts_missing]
+  additionalProperties: false
+  properties:
+    attempts_present: {type: integer, format: int64}
+    attempts_by_channel: {$ref: './sales.yaml#/CountMap'}
+    attempt_state_mapping: {$ref: './sales.yaml#/CountMap'}
+    attempt_states: {$ref: './sales.yaml#/CountMap'}
+    unknown_raw_attempt_states: {$ref: './sales.yaml#/CountMap'}
+    approved_raw_count:
+      type: integer
+      format: int64
+      description: Attempts whose raw legacy status is 'approved' (not Finance-reviewed, settled or posted).
+    reconcile_error_raw_count: {type: integer, format: int64}
+    approval_provenance: {$ref: './sales.yaml#/CountMap'}
+    gateway_attempts: {type: integer, format: int64}
+    gateway_states: {$ref: './sales.yaml#/CountMap'}
+    attempts_without_invoice: {type: integer, format: int64}
+    unrepresentable_amounts: {type: integer, format: int64}
+    attempt_state_regressions: {type: integer, format: int64}
+    receipts_referenced: {type: integer, format: int64}
+    receipts_unknown: {type: integer, format: int64}
+    receipts_missing: {type: integer, format: int64}
+
+BillingReconciliationReport:
+  type: object
+  required: [billing, payments, f02, notes]
+  additionalProperties: false
+  properties:
+    billing: {$ref: '#/BillingCoverage'}
+    payments: {$ref: '#/PaymentsCoverage'}
+    f02: {$ref: './sales.yaml#/HonestMetric'}
+    notes:
+      type: array
+      maxItems: 20
+      items: {type: string, maxLength: 300}
+
+InvoiceListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/InvoiceSummary'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+InvoiceEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/InvoiceDetail'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+InvoiceLineListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/InvoiceLine'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+PaymentStageListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/PaymentStage'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+InvoiceTotalsEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/InvoiceTotals'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+PaymentAttemptListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/PaymentAttempt'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+PaymentAttemptEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/PaymentAttempt'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+AttemptHistoryListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/AttemptHistoryEntry'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+ReceiptReferenceListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/ReceiptReference'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+ReceiptReferenceEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/ReceiptReference'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+BillingReconciliationReportEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/BillingReconciliationReport'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
