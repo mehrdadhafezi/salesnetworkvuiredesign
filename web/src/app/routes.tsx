@@ -25,6 +25,13 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { to: '/billing/invoices', label: 'فاکتورها', feature: 'billing_read' },
     { to: '/billing/attempts', label: 'تلاش‌های پرداخت', feature: 'billing_read' },
     { to: '/billing/report', label: 'گزارش تطبیق صورت‌حساب', feature: 'billing_read' },
+    { to: '/mis', label: 'امروز MIS', feature: 'reporting_read' },
+    { to: '/mis/source-quality', label: 'کیفیت منبع', feature: 'reporting_read' },
+    { to: '/mis/reconciliation', label: 'تطبیق و پوشش', feature: 'reporting_read' },
+    { to: '/reports/cases', label: 'گزارش پرونده‌ها', feature: 'reporting_read' },
+    { to: '/reports/custody', label: 'گزارش نگهداری', feature: 'reporting_read' },
+    { to: '/reports/invoices', label: 'گزارش فاکتورها', feature: 'reporting_read' },
+    { to: '/reports/payments', label: 'گزارش پرداخت‌ها', feature: 'reporting_read' },
     { to: '/system', label: 'وضعیت سامانه' },
   ]
   const children: RouteObject[] = [
@@ -49,6 +56,11 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'billing/invoices/:invoiceId', lazy: async () => ({ Component: (await import('../modules/billing/pages/InvoicePage')).InvoicePage }) },
     { path: 'billing/attempts', lazy: async () => ({ Component: (await import('../modules/billing/pages/AttemptsPage')).AttemptsPage }) },
     { path: 'billing/report', lazy: async () => ({ Component: (await import('../modules/billing/pages/BillingReportPage')).BillingReportPage }) },
+    // Slice 8 MIS / reporting (read-only). No Invoice Review page (D-24): its query surface is API only.
+    { path: 'mis', lazy: async () => ({ Component: (await import('../modules/reporting/pages/MisOverviewPage')).MisOverviewPage }) },
+    { path: 'mis/source-quality', lazy: async () => ({ Component: (await import('../modules/reporting/pages/SourceQualityPage')).SourceQualityPage }) },
+    { path: 'mis/reconciliation', lazy: async () => ({ Component: (await import('../modules/reporting/pages/ReconciliationPage')).ReconciliationPage }) },
+    { path: 'reports/:report', lazy: async () => ({ Component: (await import('../modules/reporting/pages/ReportPage')).ReportPage }) },
   ]
   // import.meta.env.DEV is a build-time constant: production bundles drop this branch entirely.
   if (import.meta.env.DEV && config.devTools) {

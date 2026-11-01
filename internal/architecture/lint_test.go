@@ -62,14 +62,17 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RulePgtestImport:     2,  // pgtest from platform/bad; legacytest from the import tool
 		RuleForeignStore:     3,  // sales imports billing/store; authorization imports organization/store; connector imports customers/store
 		RuleLegacyImport:     3,  // sales, crm-api and crm-migrate (non-migrations) import the connector
-		RuleModuleBoundary:   12, // + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
+		RuleModuleBoundary:   15, // + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
 		RuleForeignWrite:     4,  // connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*
-		RuleReadPathImport:   4,  // organization/http, customers/http, cases/http and crm-api import an import command
+		RuleReadPathImport:   5,  // organization/http, customers/http, cases/http and crm-api import an import command; reporting/http imports the projection rebuild
 		RuleMergePath:        2,  // customers MergeCustomers, canonicalizeByPhone
-		RuleAppendOnlyWrite:  2,  // custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history
-		RulePhoneKey:         2,  // custody and payments customer_phone joins
+		RuleAppendOnlyWrite:  3,  // custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact
+		RulePhoneKey:         3,  // custody, payments and reporting customer_phone joins
 		RuleStatusFallback:   2,  // billing COALESCE status chain and resolveMainStatus
 		RuleUnitConversion:   2,  // payments toRial and toman * 10
+		RuleReportingRead:    1,  // reporting SELECT FROM billing.invoice
+		RuleMetricFormula:    1,  // reporting count( outside the query spec
+		RuleExportEndpoint:   1,  // reporting /invoice-review/export
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -407,7 +410,7 @@ func TestAPIServerHasNoImportDependency(t *testing.T) {
 		if !strings.HasPrefix(p, mod+"/internal/") {
 			continue
 		}
-		if strings.HasSuffix(p, "/imports") || strings.HasSuffix(p, "/migrations") {
+		if strings.HasSuffix(p, "/imports") || strings.HasSuffix(p, "/migrations") || strings.HasSuffix(p, "/projections") {
 			t.Errorf("crm-api depends on %s", p)
 		}
 	}
@@ -456,6 +459,55 @@ func TestSliceSevenRules(t *testing.T) {
 	for _, name := range []string{"stageState", "StateRaw", "legacyDisplayStatus", "StatusPill", "InvoiceStateField", "statusLabel"} {
 		if statusResolver.MatchString(name) {
 			t.Errorf("%s falsely detected", name)
+		}
+	}
+}
+
+func TestSliceEightRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct {
+		file, rule string
+		n          int
+	}{
+		{"internal/reporting/bad.go", RuleModuleBoundary, 1},
+		{"internal/reporting/bad.go", RuleReportingRead, 1},
+		{"internal/reporting/bad.go", RuleAppendOnlyWrite, 1},
+		{"internal/reporting/bad.go", RuleMetricFormula, 1},
+		{"internal/reporting/bad.go", RuleExportEndpoint, 1},
+		{"internal/reporting/bad.go", RulePhoneKey, 1},
+		{"internal/reporting/http/handler.go", RuleReadPathImport, 1},
+		{"internal/reporting/http/handler.go", RuleModuleBoundary, 1},
+		{"internal/billing/uses_reporting.go", RuleModuleBoundary, 1},
+	}
+	for _, w := range want {
+		n := 0
+		for _, v := range vs {
+			if v.File == w.file && v.Rule == w.rule {
+				n++
+			}
+		}
+		if n != w.n {
+			t.Errorf("rule %s fired %d times in %s, want %d", w.rule, n, w.file, w.n)
+		}
+	}
+	allowed, err := Check(filepath.Join("testdata", "allowed"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range allowed {
+		t.Errorf("allowed fixture flagged: %s", v)
+	}
+	for _, s := range []string{"/api/v1/invoice-review/export", "report.csv", "x.xlsx", "text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"} {
+		if !exportLiteral.MatchString(s) {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	for _, s := range []string{"/api/v1/invoice-review", "exported_at", "/api/v1/reports/invoices"} {
+		if exportLiteral.MatchString(s) {
+			t.Errorf("%q falsely detected", s)
 		}
 	}
 }

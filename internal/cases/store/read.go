@@ -319,3 +319,30 @@ type CoverageView struct {
 	LegacyLeadsOnly, CasesPresent  int64
 	AliasesRelated, AliasesUnknown int64
 }
+
+// LatestSnapshots returns, per case and facet, the latest attribution
+// snapshot (by capture time) in one query.
+func LatestSnapshots(ctx context.Context, tx db.Tx) (map[string]map[string]api.AttributionFact, error) {
+	if err := ReadTx(tx); err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query(ctx, `SELECT DISTINCT ON (case_id, facet) case_id::text, facet, resolution, subject_legacy_key
+		FROM cases.attribution_snapshot ORDER BY case_id, facet, captured_at DESC, snapshot_id DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]map[string]api.AttributionFact{}
+	for rows.Next() {
+		var id, facet string
+		var f api.AttributionFact
+		if err := rows.Scan(&id, &facet, &f.Resolution, &f.SubjectKey); err != nil {
+			return nil, err
+		}
+		if out[id] == nil {
+			out[id] = map[string]api.AttributionFact{}
+		}
+		out[id][facet] = f
+	}
+	return out, rows.Err()
+}

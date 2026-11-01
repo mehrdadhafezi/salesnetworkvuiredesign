@@ -64,6 +64,22 @@ var ContractPaths = map[string][]string{
 	"/api/v1/payments/attempts/{attempt_id}/history": {http.MethodGet},
 	"/api/v1/payments/receipts/{receipt_id}":         {http.MethodGet},
 	"/api/v1/billing/reconciliation-report":          {http.MethodGet},
+	// Slice 8 MIS / reporting read (read only; no export path of any kind).
+	"/api/v1/reporting/metrics":             {http.MethodGet},
+	"/api/v1/reporting/metrics/{metric_id}": {http.MethodGet},
+	"/api/v1/reports/cases":                 {http.MethodGet},
+	"/api/v1/reports/cases/{case_id}":       {http.MethodGet},
+	"/api/v1/reports/custody":               {http.MethodGet},
+	"/api/v1/reports/custody/{case_id}":     {http.MethodGet},
+	"/api/v1/reports/invoices":              {http.MethodGet},
+	"/api/v1/reports/invoices/{invoice_id}": {http.MethodGet},
+	"/api/v1/reports/payments":              {http.MethodGet},
+	"/api/v1/reports/payments/{attempt_id}": {http.MethodGet},
+	"/api/v1/mis/overview":                  {http.MethodGet},
+	"/api/v1/mis/source-quality":            {http.MethodGet},
+	"/api/v1/mis/reconciliation":            {http.MethodGet},
+	"/api/v1/invoice-review":                {http.MethodGet},
+	"/api/v1/invoice-review/{invoice_id}":   {http.MethodGet},
 }
 
 // ContractQuery is the allowlist of query parameters per Slice 4 path. A
@@ -108,6 +124,21 @@ var ContractQuery = map[string][]string{
 	"/api/v1/payments/attempts/{attempt_id}/history":        {"cursor", "limit"},
 	"/api/v1/payments/receipts/{receipt_id}":                {},
 	"/api/v1/billing/reconciliation-report":                 {},
+	"/api/v1/reporting/metrics":                             {},
+	"/api/v1/reporting/metrics/{metric_id}":                 {"time_basis", "from", "to", "as_of", "run_id"},
+	"/api/v1/reports/cases":                                 {"scope", "time_basis", "from", "to", "as_of", "run_id", "presence", "workflow_type", "state_mapping", "customer_link_state", "original_owner_resolution", "cursor", "limit"},
+	"/api/v1/reports/cases/{case_id}":                       {"scope", "time_basis", "from", "to", "as_of", "run_id", "presence", "workflow_type", "state_mapping", "customer_link_state", "original_owner_resolution"},
+	"/api/v1/reports/custody":                               {"scope", "time_basis", "from", "to", "as_of", "run_id", "presence", "parity", "derivation", "cursor", "limit"},
+	"/api/v1/reports/custody/{case_id}":                     {"scope", "time_basis", "from", "to", "as_of", "run_id", "presence", "parity", "derivation"},
+	"/api/v1/reports/invoices":                              {"scope", "time_basis", "from", "to", "as_of", "run_id", "presence", "customer_link_state", "case_link_state", "has_unknown_status", "main_mapping", "total_class", "unit", "cursor", "limit"},
+	"/api/v1/reports/invoices/{invoice_id}":                 {"scope", "time_basis", "from", "to", "as_of", "run_id", "presence", "customer_link_state", "case_link_state", "has_unknown_status", "main_mapping", "total_class", "unit"},
+	"/api/v1/reports/payments":                              {"scope", "time_basis", "from", "to", "as_of", "run_id", "presence", "channel", "state", "state_mapping", "approval_provenance", "invoice_link_state", "unit", "cursor", "limit"},
+	"/api/v1/reports/payments/{attempt_id}":                 {"scope", "time_basis", "from", "to", "as_of", "run_id", "presence", "channel", "state", "state_mapping", "approval_provenance", "invoice_link_state", "unit"},
+	"/api/v1/mis/overview":                                  {},
+	"/api/v1/mis/source-quality":                            {},
+	"/api/v1/mis/reconciliation":                            {"cursor", "limit"},
+	"/api/v1/invoice-review":                                {"presence", "customer_link_state", "case_link_state", "has_unknown_status", "total_class", "unit", "cursor", "limit"},
+	"/api/v1/invoice-review/{invoice_id}":                   {},
 }
 
 // CustomersAPI is the Slice 5 customer identity read surface (customers
@@ -161,6 +192,29 @@ type BillingAPI interface {
 	BillingEnabled(ctx context.Context) bool
 }
 
+// ReportingAPI is the Slice 8 MIS / reporting read surface (reporting
+// module, composed by cmd/crm-api). Without one, every operation answers
+// BLOCKED / FEATURE_DISABLED. It has no write or export operation.
+type ReportingAPI interface {
+	ListReportingMetrics(ctx context.Context, request oapi.ListReportingMetricsRequestObject) (oapi.ListReportingMetricsResponseObject, error)
+	GetReportingMetric(ctx context.Context, request oapi.GetReportingMetricRequestObject) (oapi.GetReportingMetricResponseObject, error)
+	GetCaseReport(ctx context.Context, request oapi.GetCaseReportRequestObject) (oapi.GetCaseReportResponseObject, error)
+	GetCaseReportRow(ctx context.Context, request oapi.GetCaseReportRowRequestObject) (oapi.GetCaseReportRowResponseObject, error)
+	GetCustodyReport(ctx context.Context, request oapi.GetCustodyReportRequestObject) (oapi.GetCustodyReportResponseObject, error)
+	GetCustodyReportRow(ctx context.Context, request oapi.GetCustodyReportRowRequestObject) (oapi.GetCustodyReportRowResponseObject, error)
+	GetInvoiceReport(ctx context.Context, request oapi.GetInvoiceReportRequestObject) (oapi.GetInvoiceReportResponseObject, error)
+	GetInvoiceReportRow(ctx context.Context, request oapi.GetInvoiceReportRowRequestObject) (oapi.GetInvoiceReportRowResponseObject, error)
+	GetPaymentReport(ctx context.Context, request oapi.GetPaymentReportRequestObject) (oapi.GetPaymentReportResponseObject, error)
+	GetPaymentReportRow(ctx context.Context, request oapi.GetPaymentReportRowRequestObject) (oapi.GetPaymentReportRowResponseObject, error)
+	GetMisOverview(ctx context.Context, request oapi.GetMisOverviewRequestObject) (oapi.GetMisOverviewResponseObject, error)
+	GetMisSourceQuality(ctx context.Context, request oapi.GetMisSourceQualityRequestObject) (oapi.GetMisSourceQualityResponseObject, error)
+	GetMisReconciliation(ctx context.Context, request oapi.GetMisReconciliationRequestObject) (oapi.GetMisReconciliationResponseObject, error)
+	ListInvoiceReview(ctx context.Context, request oapi.ListInvoiceReviewRequestObject) (oapi.ListInvoiceReviewResponseObject, error)
+	GetInvoiceReview(ctx context.Context, request oapi.GetInvoiceReviewRequestObject) (oapi.GetInvoiceReviewResponseObject, error)
+	// ReportingEnabled reports the Slice 8 flag for the session navigation hint.
+	ReportingEnabled(ctx context.Context) bool
+}
+
 // Surfaces are the optional business read surfaces; nil ones answer
 // BLOCKED / FEATURE_DISABLED.
 type Surfaces struct {
@@ -168,6 +222,7 @@ type Surfaces struct {
 	Customers CustomersAPI
 	Sales     SalesAPI
 	Billing   BillingAPI
+	Reporting ReportingAPI
 }
 
 // ReadAPI is the Slice 4 read surface (identity, organization,
@@ -197,6 +252,7 @@ type api struct {
 	CustomersAPI
 	SalesAPI
 	BillingAPI
+	ReportingAPI
 	clock   timeutil.Clock
 	devAuth bool
 }
@@ -246,9 +302,10 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 		BillingRead       bool `json:"billing_read"`
 		CustomersIdentity bool `json:"customers_identity"`
 		HrRead            bool `json:"hr_read"`
+		ReportingRead     bool `json:"reporting_read"`
 		SalesRead         bool `json:"sales_read"`
 	}{BillingRead: a.BillingAPI.BillingEnabled(ctx), CustomersIdentity: a.CustomersAPI.CustomersEnabled(ctx), HrRead: a.ReadAPI.HRReadEnabled(ctx),
-		SalesRead: a.SalesAPI.SalesEnabled(ctx)}
+		ReportingRead: a.ReportingAPI.ReportingEnabled(ctx), SalesRead: a.SalesAPI.SalesEnabled(ctx)}
 	return oapi.GetSession200JSONResponse{Body: oapi.SessionEnvelope{
 		Outcome:       outcome,
 		Reasons:       []oapi.ReasonCode{},
@@ -272,7 +329,7 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 
 // NewHandlerWithSurfaces builds the full handler chain over every surface.
 func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logger, sf Surfaces) (http.Handler, error) {
-	read, customers, sales, billing := sf.Read, sf.Customers, sf.Sales, sf.Billing
+	read, customers, sales, billing, rep := sf.Read, sf.Customers, sf.Sales, sf.Billing, sf.Reporting
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -291,9 +348,12 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	if billing == nil {
 		billing = unconfiguredBilling{}
 	}
+	if rep == nil {
+		rep = unconfiguredReporting{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},

@@ -254,3 +254,45 @@ func (s *Service) Coverage(ctx context.Context) (api.Coverage, error) {
 	})
 	return r, err
 }
+
+var _ api.FactSource = (*Service)(nil)
+
+const factPage = 1000
+
+// AttemptFacts implements api.FactSource over one read-only snapshot.
+func (s *Service) AttemptFacts(ctx context.Context, fn func(api.AttemptFact) error) error {
+	return s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		var after *string
+		n := 0
+		for {
+			rows, err := store.ListAttempts(ctx, tx, store.AttemptFilter{}, after, factPage)
+			if err != nil {
+				return err
+			}
+			more := len(rows) > factPage
+			if more {
+				rows = rows[:factPage]
+			}
+			for _, a := range rows {
+				if n++; n > api.MaxFacts {
+					return api.ErrTooManyFacts
+				}
+				f := api.AttemptFact{AttemptID: a.AttemptID, InvoiceID: a.InvoiceID, InvoiceLink: a.InvoiceLink, Channel: a.Channel,
+					StateRaw: a.StateRaw, StateMapping: a.StateMapping, StateTarget: a.StateTarget, Provenance: a.ApprovalProvenance,
+					AmountRaw: a.AmountRaw, Amount: a.Amount, Unit: a.Unit, AmountRepr: a.AmountRepr, Presence: a.Source.Presence,
+					FirstSeenAt: a.Source.FirstSeen}
+				if a.Gateway != nil {
+					f.GatewayState = a.Gateway.StateTarget
+				}
+				if err := fn(f); err != nil {
+					return err
+				}
+			}
+			if !more {
+				return nil
+			}
+			last := rows[len(rows)-1].AttemptID
+			after = &last
+		}
+	})
+}

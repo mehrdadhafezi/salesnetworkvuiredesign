@@ -29,7 +29,7 @@ func (unconfigured) GetEffectiveAccess(ctx context.Context, _ oapi.GetEffectiveA
 	for _, c := range []oapi.Capability{oapi.IdentityUserRead, oapi.OrgPersonRead, oapi.OrgEmploymentRead, oapi.OrgPositionRead, oapi.OrgUnitRead,
 		oapi.OrgAssignmentRead, oapi.CustomersCustomerRead, oapi.CustomersMergeCaseRead, oapi.CustomersIdentityReportRead,
 		oapi.CasesCaseRead, oapi.CustodyCustodyRead, oapi.SalesReportRead, oapi.BillingInvoiceRead, oapi.PaymentsAttemptRead,
-		oapi.BillingReconciliationRead} {
+		oapi.BillingReconciliationRead, oapi.ReportingMetricsRead, oapi.ReportingMisRead, oapi.ReportingInvoiceReviewRead} {
 		data.Decisions = append(data.Decisions, oapi.AccessDecision{Capability: c, Outcome: oapi.Outcome(result.Blocked.String()),
 			ReasonCode: &reason, Scope: oapi.AccessDecisionScopeNONE, MatchedRoles: []string{}})
 	}
@@ -239,4 +239,87 @@ func (unconfiguredBilling) GetReceiptReference(ctx context.Context, _ oapi.GetRe
 func (unconfiguredBilling) GetBillingReconciliationReport(ctx context.Context, _ oapi.GetBillingReconciliationReportRequestObject) (oapi.GetBillingReconciliationReportResponseObject, error) {
 	o, r, c := blocked(ctx)
 	return oapi.GetBillingReconciliationReport200JSONResponse{Body: oapi.BillingReconciliationReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+// unconfiguredReporting is the Slice 8 surface without the reporting module:
+// every operation is BLOCKED / FEATURE_DISABLED.
+type unconfiguredReporting struct{}
+
+var _ ReportingAPI = unconfiguredReporting{}
+
+func (unconfiguredReporting) ReportingEnabled(context.Context) bool { return false }
+
+func (unconfiguredReporting) ListReportingMetrics(ctx context.Context, _ oapi.ListReportingMetricsRequestObject) (oapi.ListReportingMetricsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListReportingMetrics200JSONResponse{Body: oapi.MetricListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetReportingMetric(ctx context.Context, _ oapi.GetReportingMetricRequestObject) (oapi.GetReportingMetricResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetReportingMetric200JSONResponse{Body: oapi.MetricEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetCaseReport(ctx context.Context, _ oapi.GetCaseReportRequestObject) (oapi.GetCaseReportResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCaseReport200JSONResponse{Body: oapi.CaseReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetCaseReportRow(ctx context.Context, _ oapi.GetCaseReportRowRequestObject) (oapi.GetCaseReportRowResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCaseReportRow200JSONResponse{Body: oapi.CaseDetailEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetCustodyReport(ctx context.Context, _ oapi.GetCustodyReportRequestObject) (oapi.GetCustodyReportResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCustodyReport200JSONResponse{Body: oapi.CustodyReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetCustodyReportRow(ctx context.Context, _ oapi.GetCustodyReportRowRequestObject) (oapi.GetCustodyReportRowResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCustodyReportRow200JSONResponse{Body: oapi.CustodyDetailEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetInvoiceReport(ctx context.Context, _ oapi.GetInvoiceReportRequestObject) (oapi.GetInvoiceReportResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetInvoiceReport200JSONResponse{Body: oapi.InvoiceReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetInvoiceReportRow(ctx context.Context, _ oapi.GetInvoiceReportRowRequestObject) (oapi.GetInvoiceReportRowResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetInvoiceReportRow200JSONResponse{Body: oapi.InvoiceDetailFactEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetPaymentReport(ctx context.Context, _ oapi.GetPaymentReportRequestObject) (oapi.GetPaymentReportResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetPaymentReport200JSONResponse{Body: oapi.PaymentReportEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetPaymentReportRow(ctx context.Context, _ oapi.GetPaymentReportRowRequestObject) (oapi.GetPaymentReportRowResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetPaymentReportRow200JSONResponse{Body: oapi.PaymentDetailEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetMisOverview(ctx context.Context, _ oapi.GetMisOverviewRequestObject) (oapi.GetMisOverviewResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetMisOverview200JSONResponse{Body: oapi.MisOverviewEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetMisSourceQuality(ctx context.Context, _ oapi.GetMisSourceQualityRequestObject) (oapi.GetMisSourceQualityResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetMisSourceQuality200JSONResponse{Body: oapi.SourceQualityEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetMisReconciliation(ctx context.Context, _ oapi.GetMisReconciliationRequestObject) (oapi.GetMisReconciliationResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetMisReconciliation200JSONResponse{Body: oapi.MisReconciliationEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) ListInvoiceReview(ctx context.Context, _ oapi.ListInvoiceReviewRequestObject) (oapi.ListInvoiceReviewResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListInvoiceReview200JSONResponse{Body: oapi.InvoiceReviewListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredReporting) GetInvoiceReview(ctx context.Context, _ oapi.GetInvoiceReviewRequestObject) (oapi.GetInvoiceReviewResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetInvoiceReview200JSONResponse{Body: oapi.InvoiceReviewEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
 }

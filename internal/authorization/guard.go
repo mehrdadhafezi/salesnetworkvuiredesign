@@ -42,7 +42,8 @@ var devGrants = map[string][]identityapi.Role{
 var devCapabilities = map[string][]identityapi.Capability{
 	"dev-user-001": {identityapi.CapCustomerRead, identityapi.CapMergeCaseRead, identityapi.CapIdentityReportRead,
 		identityapi.CapCaseRead, identityapi.CapCustodyRead, identityapi.CapSalesReportRead,
-		identityapi.CapInvoiceRead, identityapi.CapPaymentAttemptRead, identityapi.CapBillingReportRead},
+		identityapi.CapInvoiceRead, identityapi.CapPaymentAttemptRead, identityapi.CapBillingReportRead,
+		identityapi.CapReportingMetricsRead, identityapi.CapReportingMISRead, identityapi.CapInvoiceReviewRead},
 }
 
 // DevGrantBasis marks synthetic dev/test grants.

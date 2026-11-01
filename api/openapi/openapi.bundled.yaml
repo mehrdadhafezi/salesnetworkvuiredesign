@@ -40,6 +40,8 @@ tags:
     description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
   - name: sales
     description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
+  - name: reporting
+    description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: billing
     description: Slice 7 billing + payments read shadow — invoices, lines, stages, attempts, receipt references (read only; no actions).
 paths:
@@ -1242,6 +1244,533 @@ paths:
           $ref: '#/components/responses/Denied'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/reporting/metrics:
+    get:
+      tags:
+        - reporting
+      operationId: listReportingMetrics
+      summary: List metric contracts with their current values
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        NOT_FINAL contracts (OPD-07, F02/TAD #20) are listed without a value.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/reporting/metrics/{metric_id}:
+    get:
+      tags:
+        - reporting
+      operationId: getReportingMetric
+      summary: Evaluate one metric through its contract query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/MetricID'
+        - $ref: '#/components/parameters/ReportTimeBasis'
+        - $ref: '#/components/parameters/RangeFrom'
+        - $ref: '#/components/parameters/RangeTo'
+        - $ref: '#/components/parameters/AsOf'
+        - $ref: '#/components/parameters/RunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/reports/cases:
+    get:
+      tags:
+        - reporting
+      operationId: getCaseReport
+      summary: 'Case report: full-membership summary + one page of rows (same query)'
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Pagination limits rows only; the summary is the aggregate of the full membership.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/ReportScope'
+        - $ref: '#/components/parameters/ReportTimeBasis'
+        - $ref: '#/components/parameters/RangeFrom'
+        - $ref: '#/components/parameters/RangeTo'
+        - $ref: '#/components/parameters/AsOf'
+        - $ref: '#/components/parameters/RunID'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/WorkflowType'
+        - $ref: '#/components/parameters/StateMapping'
+        - $ref: '#/components/parameters/CustomerLinkState'
+        - $ref: '#/components/parameters/OriginalOwnerResolution'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseReportEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/reports/cases/{case_id}:
+    get:
+      tags:
+        - reporting
+      operationId: getCaseReportRow
+      summary: One cases row with its membership in the same query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CaseID'
+        - $ref: '#/components/parameters/ReportScope'
+        - $ref: '#/components/parameters/ReportTimeBasis'
+        - $ref: '#/components/parameters/RangeFrom'
+        - $ref: '#/components/parameters/RangeTo'
+        - $ref: '#/components/parameters/AsOf'
+        - $ref: '#/components/parameters/RunID'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/WorkflowType'
+        - $ref: '#/components/parameters/StateMapping'
+        - $ref: '#/components/parameters/CustomerLinkState'
+        - $ref: '#/components/parameters/OriginalOwnerResolution'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetailEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/reports/custody:
+    get:
+      tags:
+        - reporting
+      operationId: getCustodyReport
+      summary: 'Custody report: full-membership summary + one page of rows (same query)'
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Pagination limits rows only; the summary is the aggregate of the full membership.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/ReportScope'
+        - $ref: '#/components/parameters/ReportTimeBasis'
+        - $ref: '#/components/parameters/RangeFrom'
+        - $ref: '#/components/parameters/RangeTo'
+        - $ref: '#/components/parameters/AsOf'
+        - $ref: '#/components/parameters/RunID'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/Parity'
+        - $ref: '#/components/parameters/Derivation'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustodyReportEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/reports/custody/{case_id}:
+    get:
+      tags:
+        - reporting
+      operationId: getCustodyReportRow
+      summary: One custody row with its membership in the same query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CaseID'
+        - $ref: '#/components/parameters/ReportScope'
+        - $ref: '#/components/parameters/ReportTimeBasis'
+        - $ref: '#/components/parameters/RangeFrom'
+        - $ref: '#/components/parameters/RangeTo'
+        - $ref: '#/components/parameters/AsOf'
+        - $ref: '#/components/parameters/RunID'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/Parity'
+        - $ref: '#/components/parameters/Derivation'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustodyDetailEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/reports/invoices:
+    get:
+      tags:
+        - reporting
+      operationId: getInvoiceReport
+      summary: 'Invoice report: full-membership summary + one page of rows (same query)'
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Pagination limits rows only; the summary is the aggregate of the full membership.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/ReportScope'
+        - $ref: '#/components/parameters/ReportTimeBasis'
+        - $ref: '#/components/parameters/RangeFrom'
+        - $ref: '#/components/parameters/RangeTo'
+        - $ref: '#/components/parameters/AsOf'
+        - $ref: '#/components/parameters/RunID'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/CustomerLinkState'
+        - $ref: '#/components/parameters/CaseLinkState'
+        - $ref: '#/components/parameters/HasUnknownStatus'
+        - $ref: '#/components/parameters/MainMapping'
+        - $ref: '#/components/parameters/TotalClass'
+        - $ref: '#/components/parameters/InvoiceUnit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceReportEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/reports/invoices/{invoice_id}:
+    get:
+      tags:
+        - reporting
+      operationId: getInvoiceReportRow
+      summary: One invoices row with its membership in the same query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceID'
+        - $ref: '#/components/parameters/ReportScope'
+        - $ref: '#/components/parameters/ReportTimeBasis'
+        - $ref: '#/components/parameters/RangeFrom'
+        - $ref: '#/components/parameters/RangeTo'
+        - $ref: '#/components/parameters/AsOf'
+        - $ref: '#/components/parameters/RunID'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/CustomerLinkState'
+        - $ref: '#/components/parameters/CaseLinkState'
+        - $ref: '#/components/parameters/HasUnknownStatus'
+        - $ref: '#/components/parameters/MainMapping'
+        - $ref: '#/components/parameters/TotalClass'
+        - $ref: '#/components/parameters/InvoiceUnit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceDetailFactEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/reports/payments:
+    get:
+      tags:
+        - reporting
+      operationId: getPaymentReport
+      summary: 'Payment report: full-membership summary + one page of rows (same query)'
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Pagination limits rows only; the summary is the aggregate of the full membership.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/ReportScope'
+        - $ref: '#/components/parameters/ReportTimeBasis'
+        - $ref: '#/components/parameters/RangeFrom'
+        - $ref: '#/components/parameters/RangeTo'
+        - $ref: '#/components/parameters/AsOf'
+        - $ref: '#/components/parameters/RunID'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/PaymentChannel'
+        - $ref: '#/components/parameters/ReportAttemptState'
+        - $ref: '#/components/parameters/TargetMapping'
+        - $ref: '#/components/parameters/ApprovalProvenance'
+        - $ref: '#/components/parameters/InvoiceLinkState'
+        - $ref: '#/components/parameters/PaymentUnit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentReportEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/reports/payments/{attempt_id}:
+    get:
+      tags:
+        - reporting
+      operationId: getPaymentReportRow
+      summary: One payments row with its membership in the same query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/AttemptID'
+        - $ref: '#/components/parameters/ReportScope'
+        - $ref: '#/components/parameters/ReportTimeBasis'
+        - $ref: '#/components/parameters/RangeFrom'
+        - $ref: '#/components/parameters/RangeTo'
+        - $ref: '#/components/parameters/AsOf'
+        - $ref: '#/components/parameters/RunID'
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/PaymentChannel'
+        - $ref: '#/components/parameters/ReportAttemptState'
+        - $ref: '#/components/parameters/TargetMapping'
+        - $ref: '#/components/parameters/ApprovalProvenance'
+        - $ref: '#/components/parameters/InvoiceLinkState'
+        - $ref: '#/components/parameters/PaymentUnit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetailEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/mis/overview:
+    get:
+      tags:
+        - reporting
+      operationId: getMisOverview
+      summary: MIS Today (read only; proven metric contracts only)
+      description: |
+        Requires reporting.mis.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MisOverviewEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/mis/source-quality:
+    get:
+      tags:
+        - reporting
+      operationId: getMisSourceQuality
+      summary: Source quality per published source and grain
+      description: |
+        Requires reporting.mis.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceQualityEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/mis/reconciliation:
+    get:
+      tags:
+        - reporting
+      operationId: getMisReconciliation
+      summary: Projection runs, source coverage, F02/F03 and metric contracts
+      description: |
+        Requires reporting.mis.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MisReconciliationEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/invoice-review:
+    get:
+      tags:
+        - reporting
+      operationId: listInvoiceReview
+      summary: Invoice Review QUERY SURFACE (audited read; no export; no target UI)
+      description: |
+        Requires reporting.invoice_review.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Every read is audited first (D-23); if the audit cannot be written the read fails closed (D-45) and returns no row. There is no export.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/CustomerLinkState'
+        - $ref: '#/components/parameters/CaseLinkState'
+        - $ref: '#/components/parameters/HasUnknownStatus'
+        - $ref: '#/components/parameters/TotalClass'
+        - $ref: '#/components/parameters/InvoiceUnit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceReviewListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/invoice-review/{invoice_id}:
+    get:
+      tags:
+        - reporting
+      operationId: getInvoiceReview
+      summary: One Invoice Review row (audited read)
+      description: |
+        Requires reporting.invoice_review.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Audited first; fails closed when the audit cannot be written (D-45).
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceReviewEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
 components:
   parameters:
     CorrelationID:
@@ -1557,6 +2086,120 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/NativeID'
+    MetricID:
+      name: metric_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$
+        maxLength: 80
+    ReportTimeBasis:
+      name: time_basis
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ReportTimeBasis'
+    RangeFrom:
+      name: from
+      in: query
+      required: false
+      description: EVENT_RANGE start (inclusive, RFC 3339 UTC).
+      schema:
+        $ref: '#/components/schemas/Timestamp'
+    RangeTo:
+      name: to
+      in: query
+      required: false
+      description: EVENT_RANGE end (exclusive, RFC 3339 UTC).
+      schema:
+        $ref: '#/components/schemas/Timestamp'
+    AsOf:
+      name: as_of
+      in: query
+      required: false
+      description: HISTORICAL_AS_OF instant (RFC 3339 UTC).
+      schema:
+        $ref: '#/components/schemas/Timestamp'
+    RunID:
+      name: run_id
+      in: query
+      required: false
+      description: Pin the projection run (cutoff) to reproduce an answer.
+      schema:
+        $ref: '#/components/schemas/NativeID'
+    ReportScope:
+      name: scope
+      in: query
+      required: false
+      description: Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+      schema:
+        type: string
+        enum:
+          - ORGANIZATION
+    OriginalOwnerResolution:
+      name: original_owner_resolution
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - RESOLVED
+          - RELATED
+          - UNKNOWN
+          - CONFLICT
+          - NOT_RECOVERABLE
+          - NOT_CAPTURED
+    MainMapping:
+      name: main_mapping
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - KNOWN_VOCABULARY
+          - UNKNOWN
+          - EMPTY
+    TotalClass:
+      name: total_class
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/TotalClass'
+    InvoiceUnit:
+      name: unit
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - IRT
+          - IRR
+          - UNATTRIBUTED
+    ReportAttemptState:
+      name: state
+      in: query
+      required: false
+      description: Explicit attempt state, or UNMAPPED when the raw state has no verified mapping.
+      schema:
+        type: string
+        enum:
+          - PENDING
+          - ACCEPTED
+          - REJECTED
+          - CANCELLED
+          - RECONCILIATION_REQUIRED
+          - UNMAPPED
+    PaymentUnit:
+      name: unit
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - IRT
+          - IRR
+          - NONE
   headers:
     CorrelationID:
       description: Correlation id of this request (inbound value when valid, otherwise generated).
@@ -1912,6 +2555,7 @@ components:
             - customers_identity
             - sales_read
             - billing_read
+            - reporting_read
           additionalProperties: false
           properties:
             hr_read:
@@ -1925,6 +2569,9 @@ components:
             billing_read:
               type: boolean
               description: Slice 7 billing + payments read shadow (flag billing_payments.read_shadow).
+            reporting_read:
+              type: boolean
+              description: Slice 8 MIS / reporting read (flag reporting.read_shadow). Never shows an Invoice Review page.
     SessionEnvelope:
       type: object
       required:
@@ -2713,6 +3360,9 @@ components:
         - billing.invoice.read
         - payments.attempt.read
         - billing.reconciliation.read
+        - reporting.metrics.read
+        - reporting.mis.read
+        - reporting.invoice_review.read
     AccessDecision:
       type: object
       required:
@@ -5067,5 +5717,1013 @@ components:
           $ref: '#/components/schemas/CorrelationID'
         data:
           $ref: '#/components/schemas/BillingReconciliationReport'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ReportTimeBasis:
+      type: string
+      description: |
+        CURRENT_SNAPSHOT = facts of the latest projection run (state at its source cutoff);
+        EVENT_RANGE = cohort first observed by the target import in [from, to) (UTC; not a legacy business time);
+        HISTORICAL_AS_OF = facts of the latest run whose source cutoff is at or before as_of (state as recorded then; never reconstructed).
+      enum:
+        - CURRENT_SNAPSHOT
+        - EVENT_RANGE
+        - HISTORICAL_AS_OF
+    MetricContract:
+      type: object
+      description: A versioned metric contract. NOT_FINAL contracts are never evaluated.
+      required:
+        - metric_id
+        - version
+        - name
+        - grain
+        - source
+        - cohort
+        - time_bases
+        - scope
+        - formula
+        - unit
+        - freshness_sla_seconds
+        - coverage
+        - status
+      additionalProperties: false
+      properties:
+        metric_id:
+          type: string
+          maxLength: 80
+        version:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          maxLength: 200
+        grain:
+          type: string
+          maxLength: 120
+        source:
+          type: string
+          maxLength: 200
+        cohort:
+          type: string
+          maxLength: 300
+        time_bases:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/ReportTimeBasis'
+        scope:
+          type: string
+          maxLength: 200
+        formula:
+          type: string
+          maxLength: 300
+        unit:
+          type: string
+          maxLength: 120
+        freshness_sla_seconds:
+          type: integer
+          format: int64
+        coverage:
+          type: string
+          maxLength: 300
+        status:
+          type: string
+          enum:
+            - FINAL
+            - NOT_FINAL
+        status_reason:
+          type: string
+          maxLength: 300
+        finding:
+          type: string
+          maxLength: 10
+    ReportQuery:
+      type: object
+      description: The normalised shared query contract (card, table and detail use exactly this).
+      required:
+        - report
+        - scope
+        - time_basis
+        - filters
+      additionalProperties: false
+      properties:
+        report:
+          type: string
+          enum:
+            - cases
+            - custody
+            - invoices
+            - payments
+        scope:
+          type: string
+          enum:
+            - ORGANIZATION
+        time_basis:
+          $ref: '#/components/schemas/ReportTimeBasis'
+        from:
+          $ref: '#/components/schemas/Timestamp'
+        to:
+          $ref: '#/components/schemas/Timestamp'
+        as_of:
+          $ref: '#/components/schemas/Timestamp'
+        run_id:
+          type: string
+          format: uuid
+          description: The projection run (cutoff) the query resolved to; pass it back to reproduce the same answer.
+        filters:
+          type: object
+          additionalProperties:
+            type: string
+            maxLength: 40
+    CoverageState:
+      type: string
+      enum:
+        - AVAILABLE
+        - PARTIAL
+        - MISSING
+        - UNKNOWN
+        - NOT_RECOVERABLE
+        - STALE
+    SourceContribution:
+      type: object
+      required:
+        - source
+        - status
+        - reason
+      additionalProperties: false
+      properties:
+        source:
+          type: string
+          maxLength: 20
+        status:
+          $ref: '#/components/schemas/CoverageState'
+        rows_read:
+          type: integer
+          format: int64
+          nullable: true
+        read_at:
+          $ref: '#/components/schemas/Timestamp'
+        reason:
+          type: string
+          maxLength: 300
+    ProjectionRun:
+      type: object
+      required:
+        - run_id
+        - projection_version
+        - source_cutoff
+        - generated_at
+        - outcome
+        - sources
+      additionalProperties: false
+      properties:
+        run_id:
+          $ref: '#/components/schemas/NativeID'
+        projection_version:
+          type: integer
+          minimum: 1
+        source_cutoff:
+          $ref: '#/components/schemas/Timestamp'
+        generated_at:
+          $ref: '#/components/schemas/Timestamp'
+        outcome:
+          type: string
+          enum:
+            - SUCCESS
+            - PARTIAL
+        sources:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/SourceContribution'
+    Freshness:
+      type: string
+      description: FRESH / STALE against the contract's freshness SLA; UNKNOWN when no run answers.
+      enum:
+        - FRESH
+        - STALE
+        - UNKNOWN
+    ReportMeta:
+      type: object
+      description: Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+      required:
+        - query
+        - available
+        - freshness
+        - coverage
+        - source_coverage
+      additionalProperties: false
+      properties:
+        query:
+          $ref: '#/components/schemas/ReportQuery'
+        available:
+          type: boolean
+        run:
+          $ref: '#/components/schemas/ProjectionRun'
+        freshness:
+          $ref: '#/components/schemas/Freshness'
+        coverage:
+          $ref: '#/components/schemas/CoverageState'
+        source_coverage:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CoverageState'
+    UnitAmount:
+      type: object
+      description: Money aggregate in ONE unit (IRT and IRR are never combined or converted). money is absent on overflow.
+      required:
+        - unit
+        - rows
+        - overflow
+      additionalProperties: false
+      properties:
+        unit:
+          type: string
+          enum:
+            - IRR
+            - IRT
+        money:
+          $ref: '#/components/schemas/Money'
+        rows:
+          type: integer
+          format: int64
+        overflow:
+          type: boolean
+    ReportSummary:
+      type: object
+      description: Aggregate of the FULL membership of the query; independent of cursor and limit.
+      required:
+        - total
+        - counts
+      additionalProperties: false
+      properties:
+        total:
+          type: integer
+          format: int64
+        counts:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CountMap'
+        amounts:
+          type: array
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/UnitAmount'
+        unrepresentable_amounts:
+          type: integer
+          format: int64
+        absent_amounts:
+          type: integer
+          format: int64
+        unit_classes:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CountMap'
+    MetricValue:
+      type: object
+      description: |
+        A metric evaluated through its contract's query. value_state VALUE / INCOMPLETE (coverage not complete) /
+        UNKNOWN (no run or a required source missing; summary absent) / NOT_EVALUATED (NOT_FINAL). Never zero by default.
+      required:
+        - contract
+        - value_state
+        - meta
+      additionalProperties: false
+      properties:
+        contract:
+          $ref: '#/components/schemas/MetricContract'
+        value_state:
+          type: string
+          enum:
+            - VALUE
+            - INCOMPLETE
+            - UNKNOWN
+            - NOT_EVALUATED
+        reason:
+          type: string
+          maxLength: 300
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        summary:
+          $ref: '#/components/schemas/ReportSummary'
+    MetricListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/MetricValue'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    MetricEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/MetricValue'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CaseFactRow:
+      type: object
+      description: One case fact. Ownership facets stay separate; current custody is in the custody report; next actor is not modelled.
+      required:
+        - case_id
+        - workflow_type
+        - state_namespace
+        - state_raw
+        - state_mapping
+        - customer_link_state
+        - presence
+        - source_spec
+        - source_key
+        - alias_count
+        - first_seen_at
+        - original_owner_resolution
+        - original_seller_resolution
+        - credit_owner_resolution
+      additionalProperties: false
+      properties:
+        case_id:
+          $ref: '#/components/schemas/NativeID'
+        workflow_type:
+          type: string
+          maxLength: 40
+        state_namespace:
+          type: string
+          maxLength: 80
+        state_raw:
+          $ref: '#/components/schemas/RawText'
+        state_mapping:
+          type: string
+          maxLength: 20
+        customer_link_state:
+          $ref: '#/components/schemas/ResolutionState'
+        presence:
+          $ref: '#/components/schemas/Presence'
+        source_spec:
+          type: string
+          maxLength: 120
+        source_key:
+          $ref: '#/components/schemas/LegacyKey'
+        alias_count:
+          type: integer
+          format: int64
+        first_seen_at:
+          $ref: '#/components/schemas/Timestamp'
+        original_owner_resolution:
+          type: string
+          maxLength: 20
+        original_owner_key:
+          type: string
+          nullable: true
+          maxLength: 20
+        original_seller_resolution:
+          type: string
+          maxLength: 20
+        original_seller_key:
+          type: string
+          nullable: true
+          maxLength: 20
+        credit_owner_resolution:
+          type: string
+          maxLength: 20
+    CaseReportEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        summary:
+          $ref: '#/components/schemas/ReportSummary'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CaseFactRow'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CaseDetailEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        member:
+          type: boolean
+          description: Whether this row belongs to the query's membership (the same predicate as the card and the table).
+        data:
+          $ref: '#/components/schemas/CaseFactRow'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CustodyFactRow:
+      type: object
+      required:
+        - case_id
+        - derivation
+        - parity
+        - event_count
+        - finding_count
+        - presence
+      additionalProperties: false
+      properties:
+        case_id:
+          $ref: '#/components/schemas/NativeID'
+        derivation:
+          type: string
+          maxLength: 20
+        parity:
+          type: string
+          maxLength: 20
+        derived_holder_key:
+          type: string
+          nullable: true
+          maxLength: 20
+        legacy_holder_key:
+          type: string
+          nullable: true
+          maxLength: 20
+        event_count:
+          type: integer
+        finding_count:
+          type: integer
+          format: int64
+        presence:
+          $ref: '#/components/schemas/Presence'
+    CustodyReportEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        summary:
+          $ref: '#/components/schemas/ReportSummary'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CustodyFactRow'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CustodyDetailEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        member:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CustodyFactRow'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    StateCell:
+      type: object
+      required:
+        - raw
+        - mapping
+      additionalProperties: false
+      properties:
+        raw:
+          $ref: '#/components/schemas/RawText'
+        mapping:
+          type: string
+          maxLength: 20
+    InvoiceUnitRow:
+      type: object
+      description: One invoice's total evidence in one unit; no canonical total (TAD
+      required:
+        - unit
+        - item_state
+        - stage_state
+        - payment_state
+        - class
+      additionalProperties: false
+      properties:
+        unit:
+          type: string
+          enum:
+            - IRR
+            - IRT
+            - UNATTRIBUTED
+        declared_final:
+          $ref: '#/components/schemas/Money'
+        declared_payment_total:
+          $ref: '#/components/schemas/Money'
+        item_sum:
+          $ref: '#/components/schemas/Money'
+        item_state:
+          type: string
+          maxLength: 20
+        stage_sum:
+          $ref: '#/components/schemas/Money'
+        stage_state:
+          type: string
+          maxLength: 20
+        payment_sum:
+          $ref: '#/components/schemas/Money'
+        payment_state:
+          type: string
+          maxLength: 20
+        class:
+          type: string
+          maxLength: 20
+    InvoiceFactRow:
+      type: object
+      description: One invoice fact; every legacy state field stays separate (TAD
+      required:
+        - invoice_id
+        - source_spec
+        - source_key
+        - presence
+        - customer_link_state
+        - case_link_state
+        - main
+        - invoice
+        - payment
+        - workflow
+        - return
+        - unknown_state_count
+        - item_count
+        - stage_count
+        - items_complete
+        - stages_complete
+        - first_seen_at
+        - units
+      additionalProperties: false
+      properties:
+        invoice_id:
+          $ref: '#/components/schemas/NativeID'
+        source_spec:
+          type: string
+          maxLength: 120
+        source_key:
+          $ref: '#/components/schemas/LegacyKey'
+        presence:
+          $ref: '#/components/schemas/Presence'
+        customer_link_state:
+          $ref: '#/components/schemas/ResolutionState'
+        case_link_state:
+          $ref: '#/components/schemas/ResolutionState'
+        main:
+          $ref: '#/components/schemas/StateCell'
+        invoice:
+          $ref: '#/components/schemas/StateCell'
+        payment:
+          $ref: '#/components/schemas/StateCell'
+        workflow:
+          $ref: '#/components/schemas/StateCell'
+        return:
+          $ref: '#/components/schemas/StateCell'
+        unknown_state_count:
+          type: integer
+          format: int64
+        item_count:
+          type: integer
+          format: int64
+        stage_count:
+          type: integer
+          format: int64
+        items_complete:
+          type: boolean
+        stages_complete:
+          type: boolean
+        first_seen_at:
+          $ref: '#/components/schemas/Timestamp'
+        units:
+          type: array
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/InvoiceUnitRow'
+    InvoiceReportEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        summary:
+          $ref: '#/components/schemas/ReportSummary'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/InvoiceFactRow'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    InvoiceDetailFactEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        member:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/InvoiceFactRow'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    PaymentFactRow:
+      type: object
+      required:
+        - attempt_id
+        - invoice_link_state
+        - channel
+        - state_raw
+        - state_mapping
+        - approval_provenance
+        - amount_raw
+        - amount_representation
+        - presence
+        - first_seen_at
+      additionalProperties: false
+      properties:
+        attempt_id:
+          $ref: '#/components/schemas/NativeID'
+        invoice_id:
+          type: string
+          format: uuid
+          nullable: true
+        invoice_link_state:
+          type: string
+          enum:
+            - RESOLVED
+            - UNKNOWN
+        channel:
+          type: string
+          maxLength: 20
+        state_raw:
+          $ref: '#/components/schemas/RawText'
+        state_mapping:
+          type: string
+          maxLength: 20
+        state:
+          type: string
+          nullable: true
+          maxLength: 30
+        approval_provenance:
+          type: string
+          maxLength: 30
+        amount_raw:
+          $ref: '#/components/schemas/RawText'
+        money:
+          $ref: '#/components/schemas/Money'
+        amount_representation:
+          type: string
+          maxLength: 20
+        gateway_state:
+          type: string
+          nullable: true
+          maxLength: 30
+        presence:
+          $ref: '#/components/schemas/Presence'
+        first_seen_at:
+          $ref: '#/components/schemas/Timestamp'
+    PaymentReportEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        summary:
+          $ref: '#/components/schemas/ReportSummary'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/PaymentFactRow'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    PaymentDetailEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        member:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/PaymentFactRow'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    MisOverview:
+      type: object
+      description: Read-only Today view (proven contracts only; no target or SLA).
+      required:
+        - freshness
+        - coverage
+        - metrics
+        - deferred
+      additionalProperties: false
+      properties:
+        run:
+          $ref: '#/components/schemas/ProjectionRun'
+        freshness:
+          $ref: '#/components/schemas/Freshness'
+        coverage:
+          $ref: '#/components/schemas/CoverageState'
+        metrics:
+          type: array
+          maxItems: 30
+          items:
+            $ref: '#/components/schemas/MetricValue'
+        deferred:
+          type: array
+          maxItems: 30
+          items:
+            $ref: '#/components/schemas/MetricContract'
+    MisOverviewEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/MisOverview'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    SourceQualityRow:
+      type: object
+      description: Data quality of one published source at an explicit grain. A null class is NOT APPLICABLE (not zero).
+      required:
+        - source
+        - grain
+        - coverage
+        - note
+      additionalProperties: false
+      properties:
+        source:
+          type: string
+          maxLength: 20
+        grain:
+          type: string
+          maxLength: 80
+        coverage:
+          $ref: '#/components/schemas/CoverageState'
+        valid:
+          type: integer
+          format: int64
+          nullable: true
+        duplicate_candidates:
+          type: integer
+          format: int64
+          nullable: true
+        invalid:
+          type: integer
+          format: int64
+          nullable: true
+        unknown:
+          type: integer
+          format: int64
+          nullable: true
+        conflict:
+          type: integer
+          format: int64
+          nullable: true
+        note:
+          type: string
+          maxLength: 400
+    SourceQuality:
+      type: object
+      required:
+        - freshness
+        - rows
+      additionalProperties: false
+      properties:
+        run:
+          $ref: '#/components/schemas/ProjectionRun'
+        freshness:
+          $ref: '#/components/schemas/Freshness'
+        rows:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/SourceQualityRow'
+    SourceQualityEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/SourceQuality'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    MisReconciliation:
+      type: object
+      required:
+        - runs
+        - f02
+        - f03_total_cases
+        - f03_legacy_leads_only
+        - contracts
+      additionalProperties: false
+      properties:
+        runs:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ProjectionRun'
+        f02:
+          $ref: '#/components/schemas/MetricValue'
+        f03_total_cases:
+          $ref: '#/components/schemas/MetricValue'
+        f03_legacy_leads_only:
+          $ref: '#/components/schemas/MetricValue'
+        contracts:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/MetricContract'
+    MisReconciliationEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/MisReconciliation'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    InvoiceReviewListEnvelope:
+      type: object
+      description: Invoice Review QUERY SURFACE (D-23 audited read; no export; D-24 no target UI). Every read is audited first; when the audit cannot be written the read fails closed (D-45).
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        summary:
+          $ref: '#/components/schemas/ReportSummary'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/InvoiceFactRow'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    InvoiceReviewEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        meta:
+          $ref: '#/components/schemas/ReportMeta'
+        data:
+          $ref: '#/components/schemas/InvoiceFactRow'
         allowed_actions:
           $ref: '#/components/schemas/AllowedActions'

@@ -178,6 +178,9 @@ const (
 	OrgPositionRead             Capability = "org.position.read"
 	OrgUnitRead                 Capability = "org.unit.read"
 	PaymentsAttemptRead         Capability = "payments.attempt.read"
+	ReportingInvoiceReviewRead  Capability = "reporting.invoice_review.read"
+	ReportingMetricsRead        Capability = "reporting.metrics.read"
+	ReportingMisRead            Capability = "reporting.mis.read"
 	SalesReportRead             Capability = "sales.report.read"
 )
 
@@ -211,6 +214,12 @@ func (e Capability) Valid() bool {
 	case OrgUnitRead:
 		return true
 	case PaymentsAttemptRead:
+		return true
+	case ReportingInvoiceReviewRead:
+		return true
+	case ReportingMetricsRead:
+		return true
+	case ReportingMisRead:
 		return true
 	case SalesReportRead:
 		return true
@@ -309,6 +318,36 @@ func (e ContactPointRole) Valid() bool {
 	case PRIMARY:
 		return true
 	case SECONDARY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CoverageState.
+const (
+	CoverageStateAVAILABLE      CoverageState = "AVAILABLE"
+	CoverageStateMISSING        CoverageState = "MISSING"
+	CoverageStateNOTRECOVERABLE CoverageState = "NOT_RECOVERABLE"
+	CoverageStatePARTIAL        CoverageState = "PARTIAL"
+	CoverageStateSTALE          CoverageState = "STALE"
+	CoverageStateUNKNOWN        CoverageState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the CoverageState enum.
+func (e CoverageState) Valid() bool {
+	switch e {
+	case CoverageStateAVAILABLE:
+		return true
+	case CoverageStateMISSING:
+		return true
+	case CoverageStateNOTRECOVERABLE:
+		return true
+	case CoverageStatePARTIAL:
+		return true
+	case CoverageStateSTALE:
+		return true
+	case CoverageStateUNKNOWN:
 		return true
 	default:
 		return false
@@ -711,6 +750,27 @@ func (e FindingSubject) Valid() bool {
 	}
 }
 
+// Defines values for Freshness.
+const (
+	FreshnessFRESH   Freshness = "FRESH"
+	FreshnessSTALE   Freshness = "STALE"
+	FreshnessUNKNOWN Freshness = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the Freshness enum.
+func (e Freshness) Valid() bool {
+	switch e {
+	case FreshnessFRESH:
+		return true
+	case FreshnessSTALE:
+		return true
+	case FreshnessUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GatewayEvidenceState.
 const (
 	GatewayEvidenceStateCANCELLEDATGATEWAY GatewayEvidenceState = "CANCELLED_AT_GATEWAY"
@@ -936,6 +996,27 @@ func (e InvoiceStateField) Valid() bool {
 	}
 }
 
+// Defines values for InvoiceUnitRowUnit.
+const (
+	InvoiceUnitRowUnitIRR          InvoiceUnitRowUnit = "IRR"
+	InvoiceUnitRowUnitIRT          InvoiceUnitRowUnit = "IRT"
+	InvoiceUnitRowUnitUNATTRIBUTED InvoiceUnitRowUnit = "UNATTRIBUTED"
+)
+
+// Valid indicates whether the value is a known member of the InvoiceUnitRowUnit enum.
+func (e InvoiceUnitRowUnit) Valid() bool {
+	switch e {
+	case InvoiceUnitRowUnitIRR:
+		return true
+	case InvoiceUnitRowUnitIRT:
+		return true
+	case InvoiceUnitRowUnitUNATTRIBUTED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InvoiceUnitTotalsUnit.
 const (
 	InvoiceUnitTotalsUnitIRR          InvoiceUnitTotalsUnit = "IRR"
@@ -999,6 +1080,48 @@ func (e ManagerState) Valid() bool {
 	case ManagerStateNONE:
 		return true
 	case ManagerStateRESOLVED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MetricContractStatus.
+const (
+	FINAL    MetricContractStatus = "FINAL"
+	NOTFINAL MetricContractStatus = "NOT_FINAL"
+)
+
+// Valid indicates whether the value is a known member of the MetricContractStatus enum.
+func (e MetricContractStatus) Valid() bool {
+	switch e {
+	case FINAL:
+		return true
+	case NOTFINAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MetricValueValueState.
+const (
+	MetricValueValueStateINCOMPLETE   MetricValueValueState = "INCOMPLETE"
+	MetricValueValueStateNOTEVALUATED MetricValueValueState = "NOT_EVALUATED"
+	MetricValueValueStateUNKNOWN      MetricValueValueState = "UNKNOWN"
+	MetricValueValueStateVALUE        MetricValueValueState = "VALUE"
+)
+
+// Valid indicates whether the value is a known member of the MetricValueValueState enum.
+func (e MetricValueValueState) Valid() bool {
+	switch e {
+	case MetricValueValueStateINCOMPLETE:
+		return true
+	case MetricValueValueStateNOTEVALUATED:
+		return true
+	case MetricValueValueStateUNKNOWN:
+		return true
+	case MetricValueValueStateVALUE:
 		return true
 	default:
 		return false
@@ -1227,6 +1350,24 @@ func (e PaymentChannel) Valid() bool {
 	}
 }
 
+// Defines values for PaymentFactRowInvoiceLinkState.
+const (
+	PaymentFactRowInvoiceLinkStateRESOLVED PaymentFactRowInvoiceLinkState = "RESOLVED"
+	PaymentFactRowInvoiceLinkStateUNKNOWN  PaymentFactRowInvoiceLinkState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the PaymentFactRowInvoiceLinkState enum.
+func (e PaymentFactRowInvoiceLinkState) Valid() bool {
+	switch e {
+	case PaymentFactRowInvoiceLinkStateRESOLVED:
+		return true
+	case PaymentFactRowInvoiceLinkStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PaymentStageState.
 const (
 	PaymentStageStateACCEPTED       PaymentStageState = "ACCEPTED"
@@ -1269,6 +1410,24 @@ func (e Presence) Valid() bool {
 	case ABSENTINLATEST:
 		return true
 	case PRESENT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ProjectionRunOutcome.
+const (
+	ProjectionRunOutcomePARTIAL ProjectionRunOutcome = "PARTIAL"
+	ProjectionRunOutcomeSUCCESS ProjectionRunOutcome = "SUCCESS"
+)
+
+// Valid indicates whether the value is a known member of the ProjectionRunOutcome enum.
+func (e ProjectionRunOutcome) Valid() bool {
+	switch e {
+	case ProjectionRunOutcomePARTIAL:
+		return true
+	case ProjectionRunOutcomeSUCCESS:
 		return true
 	default:
 		return false
@@ -1392,6 +1551,66 @@ func (e RefState) Valid() bool {
 	case RefStateNOTRECORDED:
 		return true
 	case RefStateRESOLVED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportQueryReport.
+const (
+	Cases    ReportQueryReport = "cases"
+	Custody  ReportQueryReport = "custody"
+	Invoices ReportQueryReport = "invoices"
+	Payments ReportQueryReport = "payments"
+)
+
+// Valid indicates whether the value is a known member of the ReportQueryReport enum.
+func (e ReportQueryReport) Valid() bool {
+	switch e {
+	case Cases:
+		return true
+	case Custody:
+		return true
+	case Invoices:
+		return true
+	case Payments:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportQueryScope.
+const (
+	ReportQueryScopeORGANIZATION ReportQueryScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the ReportQueryScope enum.
+func (e ReportQueryScope) Valid() bool {
+	switch e {
+	case ReportQueryScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportTimeBasis.
+const (
+	CURRENTSNAPSHOT ReportTimeBasis = "CURRENT_SNAPSHOT"
+	EVENTRANGE      ReportTimeBasis = "EVENT_RANGE"
+	HISTORICALASOF  ReportTimeBasis = "HISTORICAL_AS_OF"
+)
+
+// Valid indicates whether the value is a known member of the ReportTimeBasis enum.
+func (e ReportTimeBasis) Valid() bool {
+	switch e {
+	case CURRENTSNAPSHOT:
+		return true
+	case EVENTRANGE:
+		return true
+	case HISTORICALASOF:
 		return true
 	default:
 		return false
@@ -1602,6 +1821,24 @@ func (e Unit) Valid() bool {
 	}
 }
 
+// Defines values for UnitAmountUnit.
+const (
+	UnitAmountUnitIRR UnitAmountUnit = "IRR"
+	UnitAmountUnitIRT UnitAmountUnit = "IRT"
+)
+
+// Valid indicates whether the value is a known member of the UnitAmountUnit enum.
+func (e UnitAmountUnit) Valid() bool {
+	switch e {
+	case UnitAmountUnitIRR:
+		return true
+	case UnitAmountUnitIRT:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UserLinkState.
 const (
 	UserLinkStateLINKED          UserLinkState = "LINKED"
@@ -1692,6 +1929,99 @@ func (e InvoiceLinkState) Valid() bool {
 	}
 }
 
+// Defines values for InvoiceUnit.
+const (
+	InvoiceUnitIRR          InvoiceUnit = "IRR"
+	InvoiceUnitIRT          InvoiceUnit = "IRT"
+	InvoiceUnitUNATTRIBUTED InvoiceUnit = "UNATTRIBUTED"
+)
+
+// Valid indicates whether the value is a known member of the InvoiceUnit enum.
+func (e InvoiceUnit) Valid() bool {
+	switch e {
+	case InvoiceUnitIRR:
+		return true
+	case InvoiceUnitIRT:
+		return true
+	case InvoiceUnitUNATTRIBUTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MainMapping.
+const (
+	MainMappingEMPTY           MainMapping = "EMPTY"
+	MainMappingKNOWNVOCABULARY MainMapping = "KNOWN_VOCABULARY"
+	MainMappingUNKNOWN         MainMapping = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the MainMapping enum.
+func (e MainMapping) Valid() bool {
+	switch e {
+	case MainMappingEMPTY:
+		return true
+	case MainMappingKNOWNVOCABULARY:
+		return true
+	case MainMappingUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OriginalOwnerResolution.
+const (
+	OriginalOwnerResolutionCONFLICT       OriginalOwnerResolution = "CONFLICT"
+	OriginalOwnerResolutionNOTCAPTURED    OriginalOwnerResolution = "NOT_CAPTURED"
+	OriginalOwnerResolutionNOTRECOVERABLE OriginalOwnerResolution = "NOT_RECOVERABLE"
+	OriginalOwnerResolutionRELATED        OriginalOwnerResolution = "RELATED"
+	OriginalOwnerResolutionRESOLVED       OriginalOwnerResolution = "RESOLVED"
+	OriginalOwnerResolutionUNKNOWN        OriginalOwnerResolution = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the OriginalOwnerResolution enum.
+func (e OriginalOwnerResolution) Valid() bool {
+	switch e {
+	case OriginalOwnerResolutionCONFLICT:
+		return true
+	case OriginalOwnerResolutionNOTCAPTURED:
+		return true
+	case OriginalOwnerResolutionNOTRECOVERABLE:
+		return true
+	case OriginalOwnerResolutionRELATED:
+		return true
+	case OriginalOwnerResolutionRESOLVED:
+		return true
+	case OriginalOwnerResolutionUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PaymentUnit.
+const (
+	PaymentUnitIRR  PaymentUnit = "IRR"
+	PaymentUnitIRT  PaymentUnit = "IRT"
+	PaymentUnitNONE PaymentUnit = "NONE"
+)
+
+// Valid indicates whether the value is a known member of the PaymentUnit enum.
+func (e PaymentUnit) Valid() bool {
+	switch e {
+	case PaymentUnitIRR:
+		return true
+	case PaymentUnitIRT:
+		return true
+	case PaymentUnitNONE:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PersonSort.
 const (
 	PersonSortDisplayName           PersonSort = "display_name"
@@ -1758,6 +2088,51 @@ func (e RelationshipKind) Valid() bool {
 	}
 }
 
+// Defines values for ReportAttemptState.
+const (
+	ReportAttemptStateACCEPTED               ReportAttemptState = "ACCEPTED"
+	ReportAttemptStateCANCELLED              ReportAttemptState = "CANCELLED"
+	ReportAttemptStatePENDING                ReportAttemptState = "PENDING"
+	ReportAttemptStateRECONCILIATIONREQUIRED ReportAttemptState = "RECONCILIATION_REQUIRED"
+	ReportAttemptStateREJECTED               ReportAttemptState = "REJECTED"
+	ReportAttemptStateUNMAPPED               ReportAttemptState = "UNMAPPED"
+)
+
+// Valid indicates whether the value is a known member of the ReportAttemptState enum.
+func (e ReportAttemptState) Valid() bool {
+	switch e {
+	case ReportAttemptStateACCEPTED:
+		return true
+	case ReportAttemptStateCANCELLED:
+		return true
+	case ReportAttemptStatePENDING:
+		return true
+	case ReportAttemptStateRECONCILIATIONREQUIRED:
+		return true
+	case ReportAttemptStateREJECTED:
+		return true
+	case ReportAttemptStateUNMAPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportScope.
+const (
+	ReportScopeORGANIZATION ReportScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the ReportScope enum.
+func (e ReportScope) Valid() bool {
+	switch e {
+	case ReportScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UserSort.
 const (
 	UserSortDisplayName      UserSort = "display_name"
@@ -1788,6 +2163,27 @@ func (e ListIdentityUsersParamsSort) Valid() bool {
 	case ListIdentityUsersParamsSortDisplayName:
 		return true
 	case ListIdentityUsersParamsSortMinusDisplayName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListInvoiceReviewParamsUnit.
+const (
+	ListInvoiceReviewParamsUnitIRR          ListInvoiceReviewParamsUnit = "IRR"
+	ListInvoiceReviewParamsUnitIRT          ListInvoiceReviewParamsUnit = "IRT"
+	ListInvoiceReviewParamsUnitUNATTRIBUTED ListInvoiceReviewParamsUnit = "UNATTRIBUTED"
+)
+
+// Valid indicates whether the value is a known member of the ListInvoiceReviewParamsUnit enum.
+func (e ListInvoiceReviewParamsUnit) Valid() bool {
+	switch e {
+	case ListInvoiceReviewParamsUnitIRR:
+		return true
+	case ListInvoiceReviewParamsUnitIRT:
+		return true
+	case ListInvoiceReviewParamsUnitUNATTRIBUTED:
 		return true
 	default:
 		return false
@@ -1872,6 +2268,408 @@ func (e ListPaymentAttemptsParamsInvoiceLinkState) Valid() bool {
 	case ListPaymentAttemptsParamsInvoiceLinkStateRESOLVED:
 		return true
 	case ListPaymentAttemptsParamsInvoiceLinkStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetCaseReportParamsScope.
+const (
+	GetCaseReportParamsScopeORGANIZATION GetCaseReportParamsScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the GetCaseReportParamsScope enum.
+func (e GetCaseReportParamsScope) Valid() bool {
+	switch e {
+	case GetCaseReportParamsScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetCaseReportParamsOriginalOwnerResolution.
+const (
+	GetCaseReportParamsOriginalOwnerResolutionCONFLICT       GetCaseReportParamsOriginalOwnerResolution = "CONFLICT"
+	GetCaseReportParamsOriginalOwnerResolutionNOTCAPTURED    GetCaseReportParamsOriginalOwnerResolution = "NOT_CAPTURED"
+	GetCaseReportParamsOriginalOwnerResolutionNOTRECOVERABLE GetCaseReportParamsOriginalOwnerResolution = "NOT_RECOVERABLE"
+	GetCaseReportParamsOriginalOwnerResolutionRELATED        GetCaseReportParamsOriginalOwnerResolution = "RELATED"
+	GetCaseReportParamsOriginalOwnerResolutionRESOLVED       GetCaseReportParamsOriginalOwnerResolution = "RESOLVED"
+	GetCaseReportParamsOriginalOwnerResolutionUNKNOWN        GetCaseReportParamsOriginalOwnerResolution = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the GetCaseReportParamsOriginalOwnerResolution enum.
+func (e GetCaseReportParamsOriginalOwnerResolution) Valid() bool {
+	switch e {
+	case GetCaseReportParamsOriginalOwnerResolutionCONFLICT:
+		return true
+	case GetCaseReportParamsOriginalOwnerResolutionNOTCAPTURED:
+		return true
+	case GetCaseReportParamsOriginalOwnerResolutionNOTRECOVERABLE:
+		return true
+	case GetCaseReportParamsOriginalOwnerResolutionRELATED:
+		return true
+	case GetCaseReportParamsOriginalOwnerResolutionRESOLVED:
+		return true
+	case GetCaseReportParamsOriginalOwnerResolutionUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetCaseReportRowParamsScope.
+const (
+	GetCaseReportRowParamsScopeORGANIZATION GetCaseReportRowParamsScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the GetCaseReportRowParamsScope enum.
+func (e GetCaseReportRowParamsScope) Valid() bool {
+	switch e {
+	case GetCaseReportRowParamsScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetCaseReportRowParamsOriginalOwnerResolution.
+const (
+	GetCaseReportRowParamsOriginalOwnerResolutionCONFLICT       GetCaseReportRowParamsOriginalOwnerResolution = "CONFLICT"
+	GetCaseReportRowParamsOriginalOwnerResolutionNOTCAPTURED    GetCaseReportRowParamsOriginalOwnerResolution = "NOT_CAPTURED"
+	GetCaseReportRowParamsOriginalOwnerResolutionNOTRECOVERABLE GetCaseReportRowParamsOriginalOwnerResolution = "NOT_RECOVERABLE"
+	GetCaseReportRowParamsOriginalOwnerResolutionRELATED        GetCaseReportRowParamsOriginalOwnerResolution = "RELATED"
+	GetCaseReportRowParamsOriginalOwnerResolutionRESOLVED       GetCaseReportRowParamsOriginalOwnerResolution = "RESOLVED"
+	GetCaseReportRowParamsOriginalOwnerResolutionUNKNOWN        GetCaseReportRowParamsOriginalOwnerResolution = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the GetCaseReportRowParamsOriginalOwnerResolution enum.
+func (e GetCaseReportRowParamsOriginalOwnerResolution) Valid() bool {
+	switch e {
+	case GetCaseReportRowParamsOriginalOwnerResolutionCONFLICT:
+		return true
+	case GetCaseReportRowParamsOriginalOwnerResolutionNOTCAPTURED:
+		return true
+	case GetCaseReportRowParamsOriginalOwnerResolutionNOTRECOVERABLE:
+		return true
+	case GetCaseReportRowParamsOriginalOwnerResolutionRELATED:
+		return true
+	case GetCaseReportRowParamsOriginalOwnerResolutionRESOLVED:
+		return true
+	case GetCaseReportRowParamsOriginalOwnerResolutionUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetCustodyReportParamsScope.
+const (
+	GetCustodyReportParamsScopeORGANIZATION GetCustodyReportParamsScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the GetCustodyReportParamsScope enum.
+func (e GetCustodyReportParamsScope) Valid() bool {
+	switch e {
+	case GetCustodyReportParamsScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetCustodyReportRowParamsScope.
+const (
+	GetCustodyReportRowParamsScopeORGANIZATION GetCustodyReportRowParamsScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the GetCustodyReportRowParamsScope enum.
+func (e GetCustodyReportRowParamsScope) Valid() bool {
+	switch e {
+	case GetCustodyReportRowParamsScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetInvoiceReportParamsScope.
+const (
+	GetInvoiceReportParamsScopeORGANIZATION GetInvoiceReportParamsScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the GetInvoiceReportParamsScope enum.
+func (e GetInvoiceReportParamsScope) Valid() bool {
+	switch e {
+	case GetInvoiceReportParamsScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetInvoiceReportParamsMainMapping.
+const (
+	GetInvoiceReportParamsMainMappingEMPTY           GetInvoiceReportParamsMainMapping = "EMPTY"
+	GetInvoiceReportParamsMainMappingKNOWNVOCABULARY GetInvoiceReportParamsMainMapping = "KNOWN_VOCABULARY"
+	GetInvoiceReportParamsMainMappingUNKNOWN         GetInvoiceReportParamsMainMapping = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the GetInvoiceReportParamsMainMapping enum.
+func (e GetInvoiceReportParamsMainMapping) Valid() bool {
+	switch e {
+	case GetInvoiceReportParamsMainMappingEMPTY:
+		return true
+	case GetInvoiceReportParamsMainMappingKNOWNVOCABULARY:
+		return true
+	case GetInvoiceReportParamsMainMappingUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetInvoiceReportParamsUnit.
+const (
+	GetInvoiceReportParamsUnitIRR          GetInvoiceReportParamsUnit = "IRR"
+	GetInvoiceReportParamsUnitIRT          GetInvoiceReportParamsUnit = "IRT"
+	GetInvoiceReportParamsUnitUNATTRIBUTED GetInvoiceReportParamsUnit = "UNATTRIBUTED"
+)
+
+// Valid indicates whether the value is a known member of the GetInvoiceReportParamsUnit enum.
+func (e GetInvoiceReportParamsUnit) Valid() bool {
+	switch e {
+	case GetInvoiceReportParamsUnitIRR:
+		return true
+	case GetInvoiceReportParamsUnitIRT:
+		return true
+	case GetInvoiceReportParamsUnitUNATTRIBUTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetInvoiceReportRowParamsScope.
+const (
+	GetInvoiceReportRowParamsScopeORGANIZATION GetInvoiceReportRowParamsScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the GetInvoiceReportRowParamsScope enum.
+func (e GetInvoiceReportRowParamsScope) Valid() bool {
+	switch e {
+	case GetInvoiceReportRowParamsScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetInvoiceReportRowParamsMainMapping.
+const (
+	GetInvoiceReportRowParamsMainMappingEMPTY           GetInvoiceReportRowParamsMainMapping = "EMPTY"
+	GetInvoiceReportRowParamsMainMappingKNOWNVOCABULARY GetInvoiceReportRowParamsMainMapping = "KNOWN_VOCABULARY"
+	GetInvoiceReportRowParamsMainMappingUNKNOWN         GetInvoiceReportRowParamsMainMapping = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the GetInvoiceReportRowParamsMainMapping enum.
+func (e GetInvoiceReportRowParamsMainMapping) Valid() bool {
+	switch e {
+	case GetInvoiceReportRowParamsMainMappingEMPTY:
+		return true
+	case GetInvoiceReportRowParamsMainMappingKNOWNVOCABULARY:
+		return true
+	case GetInvoiceReportRowParamsMainMappingUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetInvoiceReportRowParamsUnit.
+const (
+	GetInvoiceReportRowParamsUnitIRR          GetInvoiceReportRowParamsUnit = "IRR"
+	GetInvoiceReportRowParamsUnitIRT          GetInvoiceReportRowParamsUnit = "IRT"
+	GetInvoiceReportRowParamsUnitUNATTRIBUTED GetInvoiceReportRowParamsUnit = "UNATTRIBUTED"
+)
+
+// Valid indicates whether the value is a known member of the GetInvoiceReportRowParamsUnit enum.
+func (e GetInvoiceReportRowParamsUnit) Valid() bool {
+	switch e {
+	case GetInvoiceReportRowParamsUnitIRR:
+		return true
+	case GetInvoiceReportRowParamsUnitIRT:
+		return true
+	case GetInvoiceReportRowParamsUnitUNATTRIBUTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPaymentReportParamsScope.
+const (
+	GetPaymentReportParamsScopeORGANIZATION GetPaymentReportParamsScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the GetPaymentReportParamsScope enum.
+func (e GetPaymentReportParamsScope) Valid() bool {
+	switch e {
+	case GetPaymentReportParamsScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPaymentReportParamsState.
+const (
+	GetPaymentReportParamsStateACCEPTED               GetPaymentReportParamsState = "ACCEPTED"
+	GetPaymentReportParamsStateCANCELLED              GetPaymentReportParamsState = "CANCELLED"
+	GetPaymentReportParamsStatePENDING                GetPaymentReportParamsState = "PENDING"
+	GetPaymentReportParamsStateRECONCILIATIONREQUIRED GetPaymentReportParamsState = "RECONCILIATION_REQUIRED"
+	GetPaymentReportParamsStateREJECTED               GetPaymentReportParamsState = "REJECTED"
+	GetPaymentReportParamsStateUNMAPPED               GetPaymentReportParamsState = "UNMAPPED"
+)
+
+// Valid indicates whether the value is a known member of the GetPaymentReportParamsState enum.
+func (e GetPaymentReportParamsState) Valid() bool {
+	switch e {
+	case GetPaymentReportParamsStateACCEPTED:
+		return true
+	case GetPaymentReportParamsStateCANCELLED:
+		return true
+	case GetPaymentReportParamsStatePENDING:
+		return true
+	case GetPaymentReportParamsStateRECONCILIATIONREQUIRED:
+		return true
+	case GetPaymentReportParamsStateREJECTED:
+		return true
+	case GetPaymentReportParamsStateUNMAPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPaymentReportParamsInvoiceLinkState.
+const (
+	GetPaymentReportParamsInvoiceLinkStateRESOLVED GetPaymentReportParamsInvoiceLinkState = "RESOLVED"
+	GetPaymentReportParamsInvoiceLinkStateUNKNOWN  GetPaymentReportParamsInvoiceLinkState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the GetPaymentReportParamsInvoiceLinkState enum.
+func (e GetPaymentReportParamsInvoiceLinkState) Valid() bool {
+	switch e {
+	case GetPaymentReportParamsInvoiceLinkStateRESOLVED:
+		return true
+	case GetPaymentReportParamsInvoiceLinkStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPaymentReportParamsUnit.
+const (
+	GetPaymentReportParamsUnitIRR  GetPaymentReportParamsUnit = "IRR"
+	GetPaymentReportParamsUnitIRT  GetPaymentReportParamsUnit = "IRT"
+	GetPaymentReportParamsUnitNONE GetPaymentReportParamsUnit = "NONE"
+)
+
+// Valid indicates whether the value is a known member of the GetPaymentReportParamsUnit enum.
+func (e GetPaymentReportParamsUnit) Valid() bool {
+	switch e {
+	case GetPaymentReportParamsUnitIRR:
+		return true
+	case GetPaymentReportParamsUnitIRT:
+		return true
+	case GetPaymentReportParamsUnitNONE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPaymentReportRowParamsScope.
+const (
+	GetPaymentReportRowParamsScopeORGANIZATION GetPaymentReportRowParamsScope = "ORGANIZATION"
+)
+
+// Valid indicates whether the value is a known member of the GetPaymentReportRowParamsScope enum.
+func (e GetPaymentReportRowParamsScope) Valid() bool {
+	switch e {
+	case GetPaymentReportRowParamsScopeORGANIZATION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPaymentReportRowParamsState.
+const (
+	GetPaymentReportRowParamsStateACCEPTED               GetPaymentReportRowParamsState = "ACCEPTED"
+	GetPaymentReportRowParamsStateCANCELLED              GetPaymentReportRowParamsState = "CANCELLED"
+	GetPaymentReportRowParamsStatePENDING                GetPaymentReportRowParamsState = "PENDING"
+	GetPaymentReportRowParamsStateRECONCILIATIONREQUIRED GetPaymentReportRowParamsState = "RECONCILIATION_REQUIRED"
+	GetPaymentReportRowParamsStateREJECTED               GetPaymentReportRowParamsState = "REJECTED"
+	GetPaymentReportRowParamsStateUNMAPPED               GetPaymentReportRowParamsState = "UNMAPPED"
+)
+
+// Valid indicates whether the value is a known member of the GetPaymentReportRowParamsState enum.
+func (e GetPaymentReportRowParamsState) Valid() bool {
+	switch e {
+	case GetPaymentReportRowParamsStateACCEPTED:
+		return true
+	case GetPaymentReportRowParamsStateCANCELLED:
+		return true
+	case GetPaymentReportRowParamsStatePENDING:
+		return true
+	case GetPaymentReportRowParamsStateRECONCILIATIONREQUIRED:
+		return true
+	case GetPaymentReportRowParamsStateREJECTED:
+		return true
+	case GetPaymentReportRowParamsStateUNMAPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPaymentReportRowParamsInvoiceLinkState.
+const (
+	GetPaymentReportRowParamsInvoiceLinkStateRESOLVED GetPaymentReportRowParamsInvoiceLinkState = "RESOLVED"
+	GetPaymentReportRowParamsInvoiceLinkStateUNKNOWN  GetPaymentReportRowParamsInvoiceLinkState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the GetPaymentReportRowParamsInvoiceLinkState enum.
+func (e GetPaymentReportRowParamsInvoiceLinkState) Valid() bool {
+	switch e {
+	case GetPaymentReportRowParamsInvoiceLinkStateRESOLVED:
+		return true
+	case GetPaymentReportRowParamsInvoiceLinkStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPaymentReportRowParamsUnit.
+const (
+	GetPaymentReportRowParamsUnitIRR  GetPaymentReportRowParamsUnit = "IRR"
+	GetPaymentReportRowParamsUnitIRT  GetPaymentReportRowParamsUnit = "IRT"
+	GetPaymentReportRowParamsUnitNONE GetPaymentReportRowParamsUnit = "NONE"
+)
+
+// Valid indicates whether the value is a known member of the GetPaymentReportRowParamsUnit enum.
+func (e GetPaymentReportRowParamsUnit) Valid() bool {
+	switch e {
+	case GetPaymentReportRowParamsUnitIRR:
+		return true
+	case GetPaymentReportRowParamsUnitIRT:
+		return true
+	case GetPaymentReportRowParamsUnitNONE:
 		return true
 	default:
 		return false
@@ -2247,6 +3045,31 @@ type CaseDetail struct {
 	Lead *LeadFacts `json:"lead,omitempty"`
 }
 
+// CaseDetailEnvelope defines model for CaseDetailEnvelope.
+type CaseDetailEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data One case fact. Ownership facets stay separate; current custody is in the custody report; next actor is not modelled.
+	Data *CaseFactRow `json:"data,omitempty"`
+
+	// Member Whether this row belongs to the query's membership (the same predicate as the card and the table).
+	Member *bool `json:"member,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
 // CaseEnvelope defines model for CaseEnvelope.
 type CaseEnvelope struct {
 	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
@@ -2262,6 +3085,40 @@ type CaseEnvelope struct {
 	// distinct from BLOCKED.
 	Outcome Outcome `json:"outcome"`
 	Reasons Reasons `json:"reasons"`
+}
+
+// CaseFactRow One case fact. Ownership facets stay separate; current custody is in the custody report; next actor is not modelled.
+type CaseFactRow struct {
+	AliasCount int64 `json:"alias_count"`
+
+	// CaseId Target native identifier. Never a phone, e-mail, login or legacy key.
+	CaseId                NativeID `json:"case_id"`
+	CreditOwnerResolution string   `json:"credit_owner_resolution"`
+
+	// CustomerLinkState RESOLVED (strong evidence; still never merged), RELATED (relationship
+	// without equality), UNKNOWN (insufficient evidence), CONFLICT
+	// (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
+	CustomerLinkState ResolutionState `json:"customer_link_state"`
+
+	// FirstSeenAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	FirstSeenAt              Timestamp `json:"first_seen_at"`
+	OriginalOwnerKey         *string   `json:"original_owner_key,omitempty"`
+	OriginalOwnerResolution  string    `json:"original_owner_resolution"`
+	OriginalSellerKey        *string   `json:"original_seller_key,omitempty"`
+	OriginalSellerResolution string    `json:"original_seller_resolution"`
+
+	// Presence Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+	Presence Presence `json:"presence"`
+
+	// SourceKey Legacy source key (provenance only, never identity).
+	SourceKey      LegacyKey `json:"source_key"`
+	SourceSpec     string    `json:"source_spec"`
+	StateMapping   string    `json:"state_mapping"`
+	StateNamespace string    `json:"state_namespace"`
+
+	// StateRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	StateRaw     *RawText `json:"state_raw"`
+	WorkflowType string   `json:"workflow_type"`
 }
 
 // CaseListEnvelope defines model for CaseListEnvelope.
@@ -2287,6 +3144,33 @@ type CaseListEnvelope struct {
 
 // CaseReason defines model for CaseReason.
 type CaseReason string
+
+// CaseReportEnvelope defines model for CaseReportEnvelope.
+type CaseReportEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID  `json:"correlation_id"`
+	Items         *[]CaseFactRow `json:"items,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+
+	// Summary Aggregate of the FULL membership of the query; independent of cursor and limit.
+	Summary *ReportSummary `json:"summary,omitempty"`
+}
 
 // CaseSource defines model for CaseSource.
 type CaseSource struct {
@@ -2410,6 +3294,9 @@ type CorrelationID = string
 // CountMap defines model for CountMap.
 type CountMap map[string]int64
 
+// CoverageState defines model for CoverageState.
+type CoverageState string
+
 // CustodyAssignment Derived, reconcilable custody projection next to the legacy current-holder evidence.
 type CustodyAssignment struct {
 	// CaseId Target native identifier. Never a phone, e-mail, login or legacy key.
@@ -2466,6 +3353,27 @@ type CustodyAssignmentListEnvelope struct {
 	Reasons Reasons   `json:"reasons"`
 }
 
+// CustodyDetailEnvelope defines model for CustodyDetailEnvelope.
+type CustodyDetailEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID   `json:"correlation_id"`
+	Data          *CustodyFactRow `json:"data,omitempty"`
+	Member        *bool           `json:"member,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
 // CustodyEvent Append-only. The legacy action is shown raw next to its evidence-backed kind.
 type CustodyEvent struct {
 	// Actor A legacy user reference and, when the identity module resolved it, the target user id (absent object = no reference).
@@ -2500,6 +3408,21 @@ type CustodyEvent struct {
 
 	// ToPositionRaw Raw legacy value kept verbatim as evidence (not interpreted).
 	ToPositionRaw *RawText `json:"to_position_raw"`
+}
+
+// CustodyFactRow defines model for CustodyFactRow.
+type CustodyFactRow struct {
+	// CaseId Target native identifier. Never a phone, e-mail, login or legacy key.
+	CaseId           NativeID `json:"case_id"`
+	Derivation       string   `json:"derivation"`
+	DerivedHolderKey *string  `json:"derived_holder_key,omitempty"`
+	EventCount       int      `json:"event_count"`
+	FindingCount     int64    `json:"finding_count"`
+	LegacyHolderKey  *string  `json:"legacy_holder_key,omitempty"`
+	Parity           string   `json:"parity"`
+
+	// Presence Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+	Presence Presence `json:"presence"`
 }
 
 // CustodyFinding defines model for CustodyFinding.
@@ -2552,6 +3475,33 @@ type CustodyParityReportEnvelope struct {
 	// distinct from BLOCKED.
 	Outcome Outcome `json:"outcome"`
 	Reasons Reasons `json:"reasons"`
+}
+
+// CustodyReportEnvelope defines model for CustodyReportEnvelope.
+type CustodyReportEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID     `json:"correlation_id"`
+	Items         *[]CustodyFactRow `json:"items,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+
+	// Summary Aggregate of the FULL membership of the query; independent of cursor and limit.
+	Summary *ReportSummary `json:"summary,omitempty"`
 }
 
 // CustomerDetail defines model for CustomerDetail.
@@ -2831,6 +3781,9 @@ type FindingSeverity string
 // FindingSubject defines model for FindingSubject.
 type FindingSubject string
 
+// Freshness FRESH / STALE against the contract's freshness SLA; UNKNOWN when no run answers.
+type Freshness string
+
 // GatewayEvidence Gateway evidence of an attempt. References are never exposed (only whether a hashed one exists).
 type GatewayEvidence struct {
 	HasAuthorityReference bool `json:"has_authority_reference"`
@@ -2959,6 +3912,29 @@ type InvoiceDetail struct {
 	UpdatedAtRaw *RawText `json:"updated_at_raw"`
 }
 
+// InvoiceDetailFactEnvelope defines model for InvoiceDetailFactEnvelope.
+type InvoiceDetailFactEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data One invoice fact; every legacy state field stays separate (TAD
+	Data   *InvoiceFactRow `json:"data,omitempty"`
+	Member *bool           `json:"member,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
 // InvoiceEnvelope defines model for InvoiceEnvelope.
 type InvoiceEnvelope struct {
 	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
@@ -2974,6 +3950,43 @@ type InvoiceEnvelope struct {
 	// distinct from BLOCKED.
 	Outcome Outcome `json:"outcome"`
 	Reasons Reasons `json:"reasons"`
+}
+
+// InvoiceFactRow One invoice fact; every legacy state field stays separate (TAD
+type InvoiceFactRow struct {
+	// CaseLinkState RESOLVED (strong evidence; still never merged), RELATED (relationship
+	// without equality), UNKNOWN (insufficient evidence), CONFLICT
+	// (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
+	CaseLinkState ResolutionState `json:"case_link_state"`
+
+	// CustomerLinkState RESOLVED (strong evidence; still never merged), RELATED (relationship
+	// without equality), UNKNOWN (insufficient evidence), CONFLICT
+	// (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
+	CustomerLinkState ResolutionState `json:"customer_link_state"`
+
+	// FirstSeenAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	FirstSeenAt Timestamp `json:"first_seen_at"`
+	Invoice     StateCell `json:"invoice"`
+
+	// InvoiceId Target native identifier. Never a phone, e-mail, login or legacy key.
+	InvoiceId     NativeID  `json:"invoice_id"`
+	ItemCount     int64     `json:"item_count"`
+	ItemsComplete bool      `json:"items_complete"`
+	Main          StateCell `json:"main"`
+	Payment       StateCell `json:"payment"`
+
+	// Presence Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+	Presence Presence  `json:"presence"`
+	Return   StateCell `json:"return"`
+
+	// SourceKey Legacy source key (provenance only, never identity).
+	SourceKey         LegacyKey        `json:"source_key"`
+	SourceSpec        string           `json:"source_spec"`
+	StageCount        int64            `json:"stage_count"`
+	StagesComplete    bool             `json:"stages_complete"`
+	Units             []InvoiceUnitRow `json:"units"`
+	UnknownStateCount int64            `json:"unknown_state_count"`
+	Workflow          StateCell        `json:"workflow"`
 }
 
 // InvoiceLifecycle Always UNKNOWN in Slice 7 — no canonical invoice lifecycle is claimed (TAD
@@ -3050,6 +4063,82 @@ type InvoiceListEnvelope struct {
 	// returned only when it is part of a metric contract.
 	Page    *PageInfo `json:"page,omitempty"`
 	Reasons Reasons   `json:"reasons"`
+}
+
+// InvoiceReportEnvelope defines model for InvoiceReportEnvelope.
+type InvoiceReportEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID     `json:"correlation_id"`
+	Items         *[]InvoiceFactRow `json:"items,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+
+	// Summary Aggregate of the FULL membership of the query; independent of cursor and limit.
+	Summary *ReportSummary `json:"summary,omitempty"`
+}
+
+// InvoiceReviewEnvelope defines model for InvoiceReviewEnvelope.
+type InvoiceReviewEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data One invoice fact; every legacy state field stays separate (TAD
+	Data *InvoiceFactRow `json:"data,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// InvoiceReviewListEnvelope Invoice Review QUERY SURFACE (D-23 audited read; no export; D-24 no target UI). Every read is audited first; when the audit cannot be written the read fails closed (D-45).
+type InvoiceReviewListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID     `json:"correlation_id"`
+	Items         *[]InvoiceFactRow `json:"items,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+
+	// Summary Aggregate of the FULL membership of the query; independent of cursor and limit.
+	Summary *ReportSummary `json:"summary,omitempty"`
 }
 
 // InvoiceStateEvidence defines model for InvoiceStateEvidence.
@@ -3130,6 +4219,38 @@ type InvoiceTotalsEnvelope struct {
 	Outcome Outcome `json:"outcome"`
 	Reasons Reasons `json:"reasons"`
 }
+
+// InvoiceUnitRow One invoice's total evidence in one unit; no canonical total (TAD
+type InvoiceUnitRow struct {
+	Class string `json:"class"`
+
+	// DeclaredFinal Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	DeclaredFinal *Money `json:"declared_final,omitempty"`
+
+	// DeclaredPaymentTotal Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	DeclaredPaymentTotal *Money `json:"declared_payment_total,omitempty"`
+	ItemState            string `json:"item_state"`
+
+	// ItemSum Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	ItemSum      *Money `json:"item_sum,omitempty"`
+	PaymentState string `json:"payment_state"`
+
+	// PaymentSum Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	PaymentSum *Money `json:"payment_sum,omitempty"`
+	StageState string `json:"stage_state"`
+
+	// StageSum Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	StageSum *Money             `json:"stage_sum,omitempty"`
+	Unit     InvoiceUnitRowUnit `json:"unit"`
+}
+
+// InvoiceUnitRowUnit defines model for InvoiceUnitRow.Unit.
+type InvoiceUnitRowUnit string
 
 // InvoiceUnitTotals Total evidence of one invoice in ONE unit (units are never combined; UNATTRIBUTED = no unit could be attributed).
 type InvoiceUnitTotals struct {
@@ -3299,6 +4420,152 @@ type MergeCaseListEnvelope struct {
 	// CorrelationId Opaque request correlation identifier.
 	CorrelationId CorrelationID `json:"correlation_id"`
 	Items         *[]MergeCase  `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// MetricContract A versioned metric contract. NOT_FINAL contracts are never evaluated.
+type MetricContract struct {
+	Cohort              string               `json:"cohort"`
+	Coverage            string               `json:"coverage"`
+	Finding             *string              `json:"finding,omitempty"`
+	Formula             string               `json:"formula"`
+	FreshnessSlaSeconds int64                `json:"freshness_sla_seconds"`
+	Grain               string               `json:"grain"`
+	MetricId            string               `json:"metric_id"`
+	Name                string               `json:"name"`
+	Scope               string               `json:"scope"`
+	Source              string               `json:"source"`
+	Status              MetricContractStatus `json:"status"`
+	StatusReason        *string              `json:"status_reason,omitempty"`
+	TimeBases           []ReportTimeBasis    `json:"time_bases"`
+	Unit                string               `json:"unit"`
+	Version             int                  `json:"version"`
+}
+
+// MetricContractStatus defines model for MetricContract.Status.
+type MetricContractStatus string
+
+// MetricEnvelope defines model for MetricEnvelope.
+type MetricEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data A metric evaluated through its contract's query. value_state VALUE / INCOMPLETE (coverage not complete) /
+	// UNKNOWN (no run or a required source missing; summary absent) / NOT_EVALUATED (NOT_FINAL). Never zero by default.
+	Data *MetricValue `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// MetricListEnvelope defines model for MetricListEnvelope.
+type MetricListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID  `json:"correlation_id"`
+	Items         *[]MetricValue `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// MetricValue A metric evaluated through its contract's query. value_state VALUE / INCOMPLETE (coverage not complete) /
+// UNKNOWN (no run or a required source missing; summary absent) / NOT_EVALUATED (NOT_FINAL). Never zero by default.
+type MetricValue struct {
+	// Contract A versioned metric contract. NOT_FINAL contracts are never evaluated.
+	Contract MetricContract `json:"contract"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta   ReportMeta `json:"meta"`
+	Reason *string    `json:"reason,omitempty"`
+
+	// Summary Aggregate of the FULL membership of the query; independent of cursor and limit.
+	Summary    *ReportSummary        `json:"summary,omitempty"`
+	ValueState MetricValueValueState `json:"value_state"`
+}
+
+// MetricValueValueState defines model for MetricValue.ValueState.
+type MetricValueValueState string
+
+// MisOverview Read-only Today view (proven contracts only; no target or SLA).
+type MisOverview struct {
+	Coverage CoverageState    `json:"coverage"`
+	Deferred []MetricContract `json:"deferred"`
+
+	// Freshness FRESH / STALE against the contract's freshness SLA; UNKNOWN when no run answers.
+	Freshness Freshness      `json:"freshness"`
+	Metrics   []MetricValue  `json:"metrics"`
+	Run       *ProjectionRun `json:"run,omitempty"`
+}
+
+// MisOverviewEnvelope defines model for MisOverviewEnvelope.
+type MisOverviewEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data Read-only Today view (proven contracts only; no target or SLA).
+	Data *MisOverview `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// MisReconciliation defines model for MisReconciliation.
+type MisReconciliation struct {
+	Contracts []MetricContract `json:"contracts"`
+
+	// F02 A metric evaluated through its contract's query. value_state VALUE / INCOMPLETE (coverage not complete) /
+	// UNKNOWN (no run or a required source missing; summary absent) / NOT_EVALUATED (NOT_FINAL). Never zero by default.
+	F02 MetricValue `json:"f02"`
+
+	// F03LegacyLeadsOnly A metric evaluated through its contract's query. value_state VALUE / INCOMPLETE (coverage not complete) /
+	// UNKNOWN (no run or a required source missing; summary absent) / NOT_EVALUATED (NOT_FINAL). Never zero by default.
+	F03LegacyLeadsOnly MetricValue `json:"f03_legacy_leads_only"`
+
+	// F03TotalCases A metric evaluated through its contract's query. value_state VALUE / INCOMPLETE (coverage not complete) /
+	// UNKNOWN (no run or a required source missing; summary absent) / NOT_EVALUATED (NOT_FINAL). Never zero by default.
+	F03TotalCases MetricValue     `json:"f03_total_cases"`
+	Runs          []ProjectionRun `json:"runs"`
+}
+
+// MisReconciliationEnvelope defines model for MisReconciliationEnvelope.
+type MisReconciliationEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID      `json:"correlation_id"`
+	Data          *MisReconciliation `json:"data,omitempty"`
 
 	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
 	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
@@ -3494,6 +4761,87 @@ type PaymentAttemptListEnvelope struct {
 // PaymentChannel defines model for PaymentChannel.
 type PaymentChannel string
 
+// PaymentDetailEnvelope defines model for PaymentDetailEnvelope.
+type PaymentDetailEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID   `json:"correlation_id"`
+	Data          *PaymentFactRow `json:"data,omitempty"`
+	Member        *bool           `json:"member,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// PaymentFactRow defines model for PaymentFactRow.
+type PaymentFactRow struct {
+	// AmountRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	AmountRaw            *RawText `json:"amount_raw"`
+	AmountRepresentation string   `json:"amount_representation"`
+	ApprovalProvenance   string   `json:"approval_provenance"`
+
+	// AttemptId Target native identifier. Never a phone, e-mail, login or legacy key.
+	AttemptId NativeID `json:"attempt_id"`
+	Channel   string   `json:"channel"`
+
+	// FirstSeenAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	FirstSeenAt      Timestamp                      `json:"first_seen_at"`
+	GatewayState     *string                        `json:"gateway_state,omitempty"`
+	InvoiceId        *openapi_types.UUID            `json:"invoice_id,omitempty"`
+	InvoiceLinkState PaymentFactRowInvoiceLinkState `json:"invoice_link_state"`
+
+	// Money Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	Money *Money `json:"money,omitempty"`
+
+	// Presence Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
+	Presence     Presence `json:"presence"`
+	State        *string  `json:"state,omitempty"`
+	StateMapping string   `json:"state_mapping"`
+
+	// StateRaw Raw legacy value kept verbatim as evidence (not interpreted).
+	StateRaw *RawText `json:"state_raw"`
+}
+
+// PaymentFactRowInvoiceLinkState defines model for PaymentFactRow.InvoiceLinkState.
+type PaymentFactRowInvoiceLinkState string
+
+// PaymentReportEnvelope defines model for PaymentReportEnvelope.
+type PaymentReportEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID     `json:"correlation_id"`
+	Items         *[]PaymentFactRow `json:"items,omitempty"`
+
+	// Meta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+	Meta *ReportMeta `json:"meta,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+
+	// Summary Aggregate of the FULL membership of the query; independent of cursor and limit.
+	Summary *ReportSummary `json:"summary,omitempty"`
+}
+
 // PaymentStage defines model for PaymentStage.
 type PaymentStage struct {
 	// ApprovedAtRaw Raw legacy value kept verbatim as evidence (not interpreted).
@@ -3686,6 +5034,24 @@ type Problem struct {
 	Type       string     `json:"type"`
 }
 
+// ProjectionRun defines model for ProjectionRun.
+type ProjectionRun struct {
+	// GeneratedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	GeneratedAt       Timestamp            `json:"generated_at"`
+	Outcome           ProjectionRunOutcome `json:"outcome"`
+	ProjectionVersion int                  `json:"projection_version"`
+
+	// RunId Target native identifier. Never a phone, e-mail, login or legacy key.
+	RunId NativeID `json:"run_id"`
+
+	// SourceCutoff RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	SourceCutoff Timestamp            `json:"source_cutoff"`
+	Sources      []SourceContribution `json:"sources"`
+}
+
+// ProjectionRunOutcome defines model for ProjectionRun.Outcome.
+type ProjectionRunOutcome string
+
 // Provenance Source provenance of an imported shadow row.
 type Provenance struct {
 	// BatchId Target native identifier. Never a phone, e-mail, login or legacy key.
@@ -3783,6 +5149,64 @@ type ReceiptState string
 
 // RefState RESOLVED, NOT_RECORDED (no legacy value) or MISSING (legacy value points nowhere; never invented).
 type RefState string
+
+// ReportMeta Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+type ReportMeta struct {
+	Available bool          `json:"available"`
+	Coverage  CoverageState `json:"coverage"`
+
+	// Freshness FRESH / STALE against the contract's freshness SLA; UNKNOWN when no run answers.
+	Freshness Freshness `json:"freshness"`
+
+	// Query The normalised shared query contract (card, table and detail use exactly this).
+	Query          ReportQuery              `json:"query"`
+	Run            *ProjectionRun           `json:"run,omitempty"`
+	SourceCoverage map[string]CoverageState `json:"source_coverage"`
+}
+
+// ReportQuery The normalised shared query contract (card, table and detail use exactly this).
+type ReportQuery struct {
+	// AsOf RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	AsOf    *Timestamp        `json:"as_of,omitempty"`
+	Filters map[string]string `json:"filters"`
+
+	// From RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	From   *Timestamp        `json:"from,omitempty"`
+	Report ReportQueryReport `json:"report"`
+
+	// RunId The projection run (cutoff) the query resolved to; pass it back to reproduce the same answer.
+	RunId *openapi_types.UUID `json:"run_id,omitempty"`
+	Scope ReportQueryScope    `json:"scope"`
+
+	// TimeBasis CURRENT_SNAPSHOT = facts of the latest projection run (state at its source cutoff);
+	// EVENT_RANGE = cohort first observed by the target import in [from, to) (UTC; not a legacy business time);
+	// HISTORICAL_AS_OF = facts of the latest run whose source cutoff is at or before as_of (state as recorded then; never reconstructed).
+	TimeBasis ReportTimeBasis `json:"time_basis"`
+
+	// To RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	To *Timestamp `json:"to,omitempty"`
+}
+
+// ReportQueryReport defines model for ReportQuery.Report.
+type ReportQueryReport string
+
+// ReportQueryScope defines model for ReportQuery.Scope.
+type ReportQueryScope string
+
+// ReportSummary Aggregate of the FULL membership of the query; independent of cursor and limit.
+type ReportSummary struct {
+	AbsentAmounts          *int64               `json:"absent_amounts,omitempty"`
+	Amounts                *[]UnitAmount        `json:"amounts,omitempty"`
+	Counts                 map[string]CountMap  `json:"counts"`
+	Total                  int64                `json:"total"`
+	UnitClasses            *map[string]CountMap `json:"unit_classes,omitempty"`
+	UnrepresentableAmounts *int64               `json:"unrepresentable_amounts,omitempty"`
+}
+
+// ReportTimeBasis CURRENT_SNAPSHOT = facts of the latest projection run (state at its source cutoff);
+// EVENT_RANGE = cohort first observed by the target import in [from, to) (UTC; not a legacy business time);
+// HISTORICAL_AS_OF = facts of the latest run whose source cutoff is at or before as_of (state as recorded then; never reconstructed).
+type ReportTimeBasis string
 
 // ResolutionReport Machine-readable resolution projection. phone_only_resolved_count and merge_count must be 0.
 type ResolutionReport struct {
@@ -3908,6 +5332,9 @@ type SessionContext struct {
 		CustomersIdentity bool `json:"customers_identity"`
 		HrRead            bool `json:"hr_read"`
 
+		// ReportingRead Slice 8 MIS / reporting read (flag reporting.read_shadow). Never shows an Invoice Review page.
+		ReportingRead bool `json:"reporting_read"`
+
 		// SalesRead Slice 6 sales read shadow (flag sales.read_shadow).
 		SalesRead bool `json:"sales_read"`
 	} `json:"features,omitempty"`
@@ -3941,6 +5368,62 @@ type SessionEnvelope struct {
 	// distinct from BLOCKED.
 	Outcome Outcome      `json:"outcome"`
 	Reasons []ReasonCode `json:"reasons"`
+}
+
+// SourceContribution defines model for SourceContribution.
+type SourceContribution struct {
+	// ReadAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	ReadAt   *Timestamp    `json:"read_at,omitempty"`
+	Reason   string        `json:"reason"`
+	RowsRead *int64        `json:"rows_read,omitempty"`
+	Source   string        `json:"source"`
+	Status   CoverageState `json:"status"`
+}
+
+// SourceQuality defines model for SourceQuality.
+type SourceQuality struct {
+	// Freshness FRESH / STALE against the contract's freshness SLA; UNKNOWN when no run answers.
+	Freshness Freshness          `json:"freshness"`
+	Rows      []SourceQualityRow `json:"rows"`
+	Run       *ProjectionRun     `json:"run,omitempty"`
+}
+
+// SourceQualityEnvelope defines model for SourceQualityEnvelope.
+type SourceQualityEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID  `json:"correlation_id"`
+	Data          *SourceQuality `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// SourceQualityRow Data quality of one published source at an explicit grain. A null class is NOT APPLICABLE (not zero).
+type SourceQualityRow struct {
+	Conflict            *int64        `json:"conflict,omitempty"`
+	Coverage            CoverageState `json:"coverage"`
+	DuplicateCandidates *int64        `json:"duplicate_candidates,omitempty"`
+	Grain               string        `json:"grain"`
+	Invalid             *int64        `json:"invalid,omitempty"`
+	Note                string        `json:"note"`
+	Source              string        `json:"source"`
+	Unknown             *int64        `json:"unknown,omitempty"`
+	Valid               *int64        `json:"valid,omitempty"`
+}
+
+// StateCell defines model for StateCell.
+type StateCell struct {
+	Mapping string `json:"mapping"`
+
+	// Raw Raw legacy value kept verbatim as evidence (not interpreted).
+	Raw *RawText `json:"raw"`
 }
 
 // StateHistoryEntry defines model for StateHistoryEntry.
@@ -4011,6 +5494,19 @@ type TotalClass string
 
 // Unit Explicit monetary unit. IRR and IRT are distinct; there is no conversion.
 type Unit string
+
+// UnitAmount Money aggregate in ONE unit (IRT and IRR are never combined or converted). money is absent on overflow.
+type UnitAmount struct {
+	// Money Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
+	// decimal string so that no client parses it as a floating-point number.
+	Money    *Money         `json:"money,omitempty"`
+	Overflow bool           `json:"overflow"`
+	Rows     int64          `json:"rows"`
+	Unit     UnitAmountUnit `json:"unit"`
+}
+
+// UnitAmountUnit defines model for UnitAmount.Unit.
+type UnitAmountUnit string
 
 // UnitRef defines model for UnitRef.
 type UnitRef struct {
@@ -4093,6 +5589,9 @@ type UserSummaryLoginEnabled bool
 // WorkflowType Source work unit a Case stands for (one staged legacy row each).
 type WorkflowType string
 
+// AsOf RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+type AsOf = Timestamp
+
 // AttemptID Target native identifier. Never a phone, e-mail, login or legacy key.
 type AttemptID = NativeID
 
@@ -4139,6 +5638,9 @@ type InvoiceID = NativeID
 // InvoiceLinkState defines model for InvoiceLinkState.
 type InvoiceLinkState string
 
+// InvoiceUnit defines model for InvoiceUnit.
+type InvoiceUnit string
+
 // IsActive defines model for IsActive.
 type IsActive = bool
 
@@ -4151,8 +5653,20 @@ type LevelID = NativeID
 // Limit defines model for Limit.
 type Limit = int
 
+// MainMapping defines model for MainMapping.
+type MainMapping string
+
+// MetricID defines model for MetricID.
+type MetricID = string
+
 // OrgUnitID Target native identifier. Never a phone, e-mail, login or legacy key.
 type OrgUnitID = NativeID
+
+// OriginalOwnerResolution defines model for OriginalOwnerResolution.
+type OriginalOwnerResolution string
+
+// PaymentUnit defines model for PaymentUnit.
+type PaymentUnit string
 
 // PersonID Target native identifier. Never a phone, e-mail, login or legacy key.
 type PersonID = NativeID
@@ -4166,6 +5680,12 @@ type PositionID = NativeID
 // Query defines model for Query.
 type Query = string
 
+// RangeFrom RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+type RangeFrom = Timestamp
+
+// RangeTo RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+type RangeTo = Timestamp
+
 // ReceiptID Target native identifier. Never a phone, e-mail, login or legacy key.
 type ReceiptID = NativeID
 
@@ -4174,6 +5694,15 @@ type Relation string
 
 // RelationshipKind defines model for RelationshipKind.
 type RelationshipKind string
+
+// ReportAttemptState defines model for ReportAttemptState.
+type ReportAttemptState string
+
+// ReportScope defines model for ReportScope.
+type ReportScope string
+
+// RunID Target native identifier. Never a phone, e-mail, login or legacy key.
+type RunID = NativeID
 
 // UserSort defines model for UserSort.
 type UserSort string
@@ -4263,6 +5792,25 @@ type ListIdentityUsersParams struct {
 // ListIdentityUsersParamsSort defines parameters for ListIdentityUsers.
 type ListIdentityUsersParamsSort string
 
+// ListInvoiceReviewParams defines parameters for ListInvoiceReview.
+type ListInvoiceReviewParams struct {
+	Presence          *Presence          `form:"presence,omitempty" json:"presence,omitempty"`
+	CustomerLinkState *CustomerLinkState `form:"customer_link_state,omitempty" json:"customer_link_state,omitempty"`
+	CaseLinkState     *CaseLinkState     `form:"case_link_state,omitempty" json:"case_link_state,omitempty"`
+
+	// HasUnknownStatus Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state.
+	HasUnknownStatus *HasUnknownStatus            `form:"has_unknown_status,omitempty" json:"has_unknown_status,omitempty"`
+	TotalClass       *TotalClass                  `form:"total_class,omitempty" json:"total_class,omitempty"`
+	Unit             *ListInvoiceReviewParamsUnit `form:"unit,omitempty" json:"unit,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListInvoiceReviewParamsUnit defines parameters for ListInvoiceReview.
+type ListInvoiceReviewParamsUnit string
+
 // ListInvoicesParams defines parameters for ListInvoices.
 type ListInvoicesParams struct {
 	Presence          *Presence          `form:"presence,omitempty" json:"presence,omitempty"`
@@ -4300,6 +5848,13 @@ type ListInvoiceReceiptsParams struct {
 
 // ListInvoiceStagesParams defines parameters for ListInvoiceStages.
 type ListInvoiceStagesParams struct {
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetMisReconciliationParams defines parameters for GetMisReconciliation.
+type GetMisReconciliationParams struct {
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
@@ -4409,6 +5964,303 @@ type ListPaymentAttemptHistoryParams struct {
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// GetReportingMetricParams defines parameters for GetReportingMetric.
+type GetReportingMetricParams struct {
+	TimeBasis *ReportTimeBasis `form:"time_basis,omitempty" json:"time_basis,omitempty"`
+
+	// From EVENT_RANGE start (inclusive, RFC 3339 UTC).
+	From *RangeFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To EVENT_RANGE end (exclusive, RFC 3339 UTC).
+	To *RangeTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// AsOf HISTORICAL_AS_OF instant (RFC 3339 UTC).
+	AsOf *AsOf `form:"as_of,omitempty" json:"as_of,omitempty"`
+
+	// RunId Pin the projection run (cutoff) to reproduce an answer.
+	RunId *RunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+}
+
+// GetCaseReportParams defines parameters for GetCaseReport.
+type GetCaseReportParams struct {
+	// Scope Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+	Scope     *GetCaseReportParamsScope `form:"scope,omitempty" json:"scope,omitempty"`
+	TimeBasis *ReportTimeBasis          `form:"time_basis,omitempty" json:"time_basis,omitempty"`
+
+	// From EVENT_RANGE start (inclusive, RFC 3339 UTC).
+	From *RangeFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To EVENT_RANGE end (exclusive, RFC 3339 UTC).
+	To *RangeTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// AsOf HISTORICAL_AS_OF instant (RFC 3339 UTC).
+	AsOf *AsOf `form:"as_of,omitempty" json:"as_of,omitempty"`
+
+	// RunId Pin the projection run (cutoff) to reproduce an answer.
+	RunId                   *RunID                                      `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Presence                *Presence                                   `form:"presence,omitempty" json:"presence,omitempty"`
+	WorkflowType            *WorkflowType                               `form:"workflow_type,omitempty" json:"workflow_type,omitempty"`
+	StateMapping            *StateMapping                               `form:"state_mapping,omitempty" json:"state_mapping,omitempty"`
+	CustomerLinkState       *CustomerLinkState                          `form:"customer_link_state,omitempty" json:"customer_link_state,omitempty"`
+	OriginalOwnerResolution *GetCaseReportParamsOriginalOwnerResolution `form:"original_owner_resolution,omitempty" json:"original_owner_resolution,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetCaseReportParamsScope defines parameters for GetCaseReport.
+type GetCaseReportParamsScope string
+
+// GetCaseReportParamsOriginalOwnerResolution defines parameters for GetCaseReport.
+type GetCaseReportParamsOriginalOwnerResolution string
+
+// GetCaseReportRowParams defines parameters for GetCaseReportRow.
+type GetCaseReportRowParams struct {
+	// Scope Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+	Scope     *GetCaseReportRowParamsScope `form:"scope,omitempty" json:"scope,omitempty"`
+	TimeBasis *ReportTimeBasis             `form:"time_basis,omitempty" json:"time_basis,omitempty"`
+
+	// From EVENT_RANGE start (inclusive, RFC 3339 UTC).
+	From *RangeFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To EVENT_RANGE end (exclusive, RFC 3339 UTC).
+	To *RangeTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// AsOf HISTORICAL_AS_OF instant (RFC 3339 UTC).
+	AsOf *AsOf `form:"as_of,omitempty" json:"as_of,omitempty"`
+
+	// RunId Pin the projection run (cutoff) to reproduce an answer.
+	RunId                   *RunID                                         `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Presence                *Presence                                      `form:"presence,omitempty" json:"presence,omitempty"`
+	WorkflowType            *WorkflowType                                  `form:"workflow_type,omitempty" json:"workflow_type,omitempty"`
+	StateMapping            *StateMapping                                  `form:"state_mapping,omitempty" json:"state_mapping,omitempty"`
+	CustomerLinkState       *CustomerLinkState                             `form:"customer_link_state,omitempty" json:"customer_link_state,omitempty"`
+	OriginalOwnerResolution *GetCaseReportRowParamsOriginalOwnerResolution `form:"original_owner_resolution,omitempty" json:"original_owner_resolution,omitempty"`
+}
+
+// GetCaseReportRowParamsScope defines parameters for GetCaseReportRow.
+type GetCaseReportRowParamsScope string
+
+// GetCaseReportRowParamsOriginalOwnerResolution defines parameters for GetCaseReportRow.
+type GetCaseReportRowParamsOriginalOwnerResolution string
+
+// GetCustodyReportParams defines parameters for GetCustodyReport.
+type GetCustodyReportParams struct {
+	// Scope Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+	Scope     *GetCustodyReportParamsScope `form:"scope,omitempty" json:"scope,omitempty"`
+	TimeBasis *ReportTimeBasis             `form:"time_basis,omitempty" json:"time_basis,omitempty"`
+
+	// From EVENT_RANGE start (inclusive, RFC 3339 UTC).
+	From *RangeFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To EVENT_RANGE end (exclusive, RFC 3339 UTC).
+	To *RangeTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// AsOf HISTORICAL_AS_OF instant (RFC 3339 UTC).
+	AsOf *AsOf `form:"as_of,omitempty" json:"as_of,omitempty"`
+
+	// RunId Pin the projection run (cutoff) to reproduce an answer.
+	RunId      *RunID      `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Presence   *Presence   `form:"presence,omitempty" json:"presence,omitempty"`
+	Parity     *Parity     `form:"parity,omitempty" json:"parity,omitempty"`
+	Derivation *Derivation `form:"derivation,omitempty" json:"derivation,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetCustodyReportParamsScope defines parameters for GetCustodyReport.
+type GetCustodyReportParamsScope string
+
+// GetCustodyReportRowParams defines parameters for GetCustodyReportRow.
+type GetCustodyReportRowParams struct {
+	// Scope Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+	Scope     *GetCustodyReportRowParamsScope `form:"scope,omitempty" json:"scope,omitempty"`
+	TimeBasis *ReportTimeBasis                `form:"time_basis,omitempty" json:"time_basis,omitempty"`
+
+	// From EVENT_RANGE start (inclusive, RFC 3339 UTC).
+	From *RangeFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To EVENT_RANGE end (exclusive, RFC 3339 UTC).
+	To *RangeTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// AsOf HISTORICAL_AS_OF instant (RFC 3339 UTC).
+	AsOf *AsOf `form:"as_of,omitempty" json:"as_of,omitempty"`
+
+	// RunId Pin the projection run (cutoff) to reproduce an answer.
+	RunId      *RunID      `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Presence   *Presence   `form:"presence,omitempty" json:"presence,omitempty"`
+	Parity     *Parity     `form:"parity,omitempty" json:"parity,omitempty"`
+	Derivation *Derivation `form:"derivation,omitempty" json:"derivation,omitempty"`
+}
+
+// GetCustodyReportRowParamsScope defines parameters for GetCustodyReportRow.
+type GetCustodyReportRowParamsScope string
+
+// GetInvoiceReportParams defines parameters for GetInvoiceReport.
+type GetInvoiceReportParams struct {
+	// Scope Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+	Scope     *GetInvoiceReportParamsScope `form:"scope,omitempty" json:"scope,omitempty"`
+	TimeBasis *ReportTimeBasis             `form:"time_basis,omitempty" json:"time_basis,omitempty"`
+
+	// From EVENT_RANGE start (inclusive, RFC 3339 UTC).
+	From *RangeFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To EVENT_RANGE end (exclusive, RFC 3339 UTC).
+	To *RangeTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// AsOf HISTORICAL_AS_OF instant (RFC 3339 UTC).
+	AsOf *AsOf `form:"as_of,omitempty" json:"as_of,omitempty"`
+
+	// RunId Pin the projection run (cutoff) to reproduce an answer.
+	RunId             *RunID             `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Presence          *Presence          `form:"presence,omitempty" json:"presence,omitempty"`
+	CustomerLinkState *CustomerLinkState `form:"customer_link_state,omitempty" json:"customer_link_state,omitempty"`
+	CaseLinkState     *CaseLinkState     `form:"case_link_state,omitempty" json:"case_link_state,omitempty"`
+
+	// HasUnknownStatus Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state.
+	HasUnknownStatus *HasUnknownStatus                  `form:"has_unknown_status,omitempty" json:"has_unknown_status,omitempty"`
+	MainMapping      *GetInvoiceReportParamsMainMapping `form:"main_mapping,omitempty" json:"main_mapping,omitempty"`
+	TotalClass       *TotalClass                        `form:"total_class,omitempty" json:"total_class,omitempty"`
+	Unit             *GetInvoiceReportParamsUnit        `form:"unit,omitempty" json:"unit,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetInvoiceReportParamsScope defines parameters for GetInvoiceReport.
+type GetInvoiceReportParamsScope string
+
+// GetInvoiceReportParamsMainMapping defines parameters for GetInvoiceReport.
+type GetInvoiceReportParamsMainMapping string
+
+// GetInvoiceReportParamsUnit defines parameters for GetInvoiceReport.
+type GetInvoiceReportParamsUnit string
+
+// GetInvoiceReportRowParams defines parameters for GetInvoiceReportRow.
+type GetInvoiceReportRowParams struct {
+	// Scope Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+	Scope     *GetInvoiceReportRowParamsScope `form:"scope,omitempty" json:"scope,omitempty"`
+	TimeBasis *ReportTimeBasis                `form:"time_basis,omitempty" json:"time_basis,omitempty"`
+
+	// From EVENT_RANGE start (inclusive, RFC 3339 UTC).
+	From *RangeFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To EVENT_RANGE end (exclusive, RFC 3339 UTC).
+	To *RangeTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// AsOf HISTORICAL_AS_OF instant (RFC 3339 UTC).
+	AsOf *AsOf `form:"as_of,omitempty" json:"as_of,omitempty"`
+
+	// RunId Pin the projection run (cutoff) to reproduce an answer.
+	RunId             *RunID             `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Presence          *Presence          `form:"presence,omitempty" json:"presence,omitempty"`
+	CustomerLinkState *CustomerLinkState `form:"customer_link_state,omitempty" json:"customer_link_state,omitempty"`
+	CaseLinkState     *CaseLinkState     `form:"case_link_state,omitempty" json:"case_link_state,omitempty"`
+
+	// HasUnknownStatus Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state.
+	HasUnknownStatus *HasUnknownStatus                     `form:"has_unknown_status,omitempty" json:"has_unknown_status,omitempty"`
+	MainMapping      *GetInvoiceReportRowParamsMainMapping `form:"main_mapping,omitempty" json:"main_mapping,omitempty"`
+	TotalClass       *TotalClass                           `form:"total_class,omitempty" json:"total_class,omitempty"`
+	Unit             *GetInvoiceReportRowParamsUnit        `form:"unit,omitempty" json:"unit,omitempty"`
+}
+
+// GetInvoiceReportRowParamsScope defines parameters for GetInvoiceReportRow.
+type GetInvoiceReportRowParamsScope string
+
+// GetInvoiceReportRowParamsMainMapping defines parameters for GetInvoiceReportRow.
+type GetInvoiceReportRowParamsMainMapping string
+
+// GetInvoiceReportRowParamsUnit defines parameters for GetInvoiceReportRow.
+type GetInvoiceReportRowParamsUnit string
+
+// GetPaymentReportParams defines parameters for GetPaymentReport.
+type GetPaymentReportParams struct {
+	// Scope Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+	Scope     *GetPaymentReportParamsScope `form:"scope,omitempty" json:"scope,omitempty"`
+	TimeBasis *ReportTimeBasis             `form:"time_basis,omitempty" json:"time_basis,omitempty"`
+
+	// From EVENT_RANGE start (inclusive, RFC 3339 UTC).
+	From *RangeFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To EVENT_RANGE end (exclusive, RFC 3339 UTC).
+	To *RangeTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// AsOf HISTORICAL_AS_OF instant (RFC 3339 UTC).
+	AsOf *AsOf `form:"as_of,omitempty" json:"as_of,omitempty"`
+
+	// RunId Pin the projection run (cutoff) to reproduce an answer.
+	RunId    *RunID          `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Presence *Presence       `form:"presence,omitempty" json:"presence,omitempty"`
+	Channel  *PaymentChannel `form:"channel,omitempty" json:"channel,omitempty"`
+
+	// State Explicit attempt state, or UNMAPPED when the raw state has no verified mapping.
+	State              *GetPaymentReportParamsState            `form:"state,omitempty" json:"state,omitempty"`
+	StateMapping       *TargetMapping                          `form:"state_mapping,omitempty" json:"state_mapping,omitempty"`
+	ApprovalProvenance *ApprovalProvenance                     `form:"approval_provenance,omitempty" json:"approval_provenance,omitempty"`
+	InvoiceLinkState   *GetPaymentReportParamsInvoiceLinkState `form:"invoice_link_state,omitempty" json:"invoice_link_state,omitempty"`
+	Unit               *GetPaymentReportParamsUnit             `form:"unit,omitempty" json:"unit,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetPaymentReportParamsScope defines parameters for GetPaymentReport.
+type GetPaymentReportParamsScope string
+
+// GetPaymentReportParamsState defines parameters for GetPaymentReport.
+type GetPaymentReportParamsState string
+
+// GetPaymentReportParamsInvoiceLinkState defines parameters for GetPaymentReport.
+type GetPaymentReportParamsInvoiceLinkState string
+
+// GetPaymentReportParamsUnit defines parameters for GetPaymentReport.
+type GetPaymentReportParamsUnit string
+
+// GetPaymentReportRowParams defines parameters for GetPaymentReportRow.
+type GetPaymentReportRowParams struct {
+	// Scope Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+	Scope     *GetPaymentReportRowParamsScope `form:"scope,omitempty" json:"scope,omitempty"`
+	TimeBasis *ReportTimeBasis                `form:"time_basis,omitempty" json:"time_basis,omitempty"`
+
+	// From EVENT_RANGE start (inclusive, RFC 3339 UTC).
+	From *RangeFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To EVENT_RANGE end (exclusive, RFC 3339 UTC).
+	To *RangeTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// AsOf HISTORICAL_AS_OF instant (RFC 3339 UTC).
+	AsOf *AsOf `form:"as_of,omitempty" json:"as_of,omitempty"`
+
+	// RunId Pin the projection run (cutoff) to reproduce an answer.
+	RunId    *RunID          `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Presence *Presence       `form:"presence,omitempty" json:"presence,omitempty"`
+	Channel  *PaymentChannel `form:"channel,omitempty" json:"channel,omitempty"`
+
+	// State Explicit attempt state, or UNMAPPED when the raw state has no verified mapping.
+	State              *GetPaymentReportRowParamsState            `form:"state,omitempty" json:"state,omitempty"`
+	StateMapping       *TargetMapping                             `form:"state_mapping,omitempty" json:"state_mapping,omitempty"`
+	ApprovalProvenance *ApprovalProvenance                        `form:"approval_provenance,omitempty" json:"approval_provenance,omitempty"`
+	InvoiceLinkState   *GetPaymentReportRowParamsInvoiceLinkState `form:"invoice_link_state,omitempty" json:"invoice_link_state,omitempty"`
+	Unit               *GetPaymentReportRowParamsUnit             `form:"unit,omitempty" json:"unit,omitempty"`
+}
+
+// GetPaymentReportRowParamsScope defines parameters for GetPaymentReportRow.
+type GetPaymentReportRowParamsScope string
+
+// GetPaymentReportRowParamsState defines parameters for GetPaymentReportRow.
+type GetPaymentReportRowParamsState string
+
+// GetPaymentReportRowParamsInvoiceLinkState defines parameters for GetPaymentReportRow.
+type GetPaymentReportRowParamsInvoiceLinkState string
+
+// GetPaymentReportRowParamsUnit defines parameters for GetPaymentReportRow.
+type GetPaymentReportRowParamsUnit string
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetEffectiveAccess Effective access of the current principal
@@ -4462,6 +6314,12 @@ type ServerInterface interface {
 	// GetIdentityUser Get one shadow user account
 	// (GET /api/v1/identity/users/{user_id})
 	GetIdentityUser(w http.ResponseWriter, r *http.Request, userId NativeID)
+	// ListInvoiceReview Invoice Review QUERY SURFACE (audited read; no export; no target UI)
+	// (GET /api/v1/invoice-review)
+	ListInvoiceReview(w http.ResponseWriter, r *http.Request, params ListInvoiceReviewParams)
+	// GetInvoiceReview One Invoice Review row (audited read)
+	// (GET /api/v1/invoice-review/{invoice_id})
+	GetInvoiceReview(w http.ResponseWriter, r *http.Request, invoiceId InvoiceID)
 	// ListInvoices List shadow invoices
 	// (GET /api/v1/invoices)
 	ListInvoices(w http.ResponseWriter, r *http.Request, params ListInvoicesParams)
@@ -4483,6 +6341,15 @@ type ServerInterface interface {
 	// GetInvoiceTotals Per-unit total evidence of an invoice (no canonical total)
 	// (GET /api/v1/invoices/{invoice_id}/totals)
 	GetInvoiceTotals(w http.ResponseWriter, r *http.Request, invoiceId InvoiceID)
+	// GetMisOverview MIS Today (read only; proven metric contracts only)
+	// (GET /api/v1/mis/overview)
+	GetMisOverview(w http.ResponseWriter, r *http.Request)
+	// GetMisReconciliation Projection runs, source coverage, F02/F03 and metric contracts
+	// (GET /api/v1/mis/reconciliation)
+	GetMisReconciliation(w http.ResponseWriter, r *http.Request, params GetMisReconciliationParams)
+	// GetMisSourceQuality Source quality per published source and grain
+	// (GET /api/v1/mis/source-quality)
+	GetMisSourceQuality(w http.ResponseWriter, r *http.Request)
 	// ListOrganizationAssignments List reporting assignments
 	// (GET /api/v1/organization/assignments)
 	ListOrganizationAssignments(w http.ResponseWriter, r *http.Request, params ListOrganizationAssignmentsParams)
@@ -4516,6 +6383,36 @@ type ServerInterface interface {
 	// GetReceiptReference Get one receipt reference (metadata only)
 	// (GET /api/v1/payments/receipts/{receipt_id})
 	GetReceiptReference(w http.ResponseWriter, r *http.Request, receiptId ReceiptID)
+	// ListReportingMetrics List metric contracts with their current values
+	// (GET /api/v1/reporting/metrics)
+	ListReportingMetrics(w http.ResponseWriter, r *http.Request)
+	// GetReportingMetric Evaluate one metric through its contract query
+	// (GET /api/v1/reporting/metrics/{metric_id})
+	GetReportingMetric(w http.ResponseWriter, r *http.Request, metricId MetricID, params GetReportingMetricParams)
+	// GetCaseReport Case report: full-membership summary + one page of rows (same query)
+	// (GET /api/v1/reports/cases)
+	GetCaseReport(w http.ResponseWriter, r *http.Request, params GetCaseReportParams)
+	// GetCaseReportRow One cases row with its membership in the same query
+	// (GET /api/v1/reports/cases/{case_id})
+	GetCaseReportRow(w http.ResponseWriter, r *http.Request, caseId CaseID, params GetCaseReportRowParams)
+	// GetCustodyReport Custody report: full-membership summary + one page of rows (same query)
+	// (GET /api/v1/reports/custody)
+	GetCustodyReport(w http.ResponseWriter, r *http.Request, params GetCustodyReportParams)
+	// GetCustodyReportRow One custody row with its membership in the same query
+	// (GET /api/v1/reports/custody/{case_id})
+	GetCustodyReportRow(w http.ResponseWriter, r *http.Request, caseId CaseID, params GetCustodyReportRowParams)
+	// GetInvoiceReport Invoice report: full-membership summary + one page of rows (same query)
+	// (GET /api/v1/reports/invoices)
+	GetInvoiceReport(w http.ResponseWriter, r *http.Request, params GetInvoiceReportParams)
+	// GetInvoiceReportRow One invoices row with its membership in the same query
+	// (GET /api/v1/reports/invoices/{invoice_id})
+	GetInvoiceReportRow(w http.ResponseWriter, r *http.Request, invoiceId InvoiceID, params GetInvoiceReportRowParams)
+	// GetPaymentReport Payment report: full-membership summary + one page of rows (same query)
+	// (GET /api/v1/reports/payments)
+	GetPaymentReport(w http.ResponseWriter, r *http.Request, params GetPaymentReportParams)
+	// GetPaymentReportRow One payments row with its membership in the same query
+	// (GET /api/v1/reports/payments/{attempt_id})
+	GetPaymentReportRow(w http.ResponseWriter, r *http.Request, attemptId AttemptID, params GetPaymentReportRowParams)
 	// GetSalesCoverageReport Sales read source coverage report (F02/F03 honest labels)
 	// (GET /api/v1/sales/coverage-report)
 	GetSalesCoverageReport(w http.ResponseWriter, r *http.Request)
@@ -5340,6 +7237,156 @@ func (siw *ServerInterfaceWrapper) GetIdentityUser(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// ListInvoiceReview operation middleware
+func (siw *ServerInterfaceWrapper) ListInvoiceReview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListInvoiceReviewParams
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer_link_state", r.URL.Query(), &params.CustomerLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "case_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "case_link_state", r.URL.Query(), &params.CaseLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "case_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "has_unknown_status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "has_unknown_status", r.URL.Query(), &params.HasUnknownStatus, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has_unknown_status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has_unknown_status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "total_class" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "total_class", r.URL.Query(), &params.TotalClass, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "total_class"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "total_class", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unit", r.URL.Query(), &params.Unit, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInvoiceReview(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInvoiceReview operation middleware
+func (siw *ServerInterfaceWrapper) GetInvoiceReview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "invoice_id" -------------
+	var invoiceId InvoiceID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "invoice_id", r.PathValue("invoice_id"), &invoiceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invoice_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInvoiceReview(w, r, invoiceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListInvoices operation middleware
 func (siw *ServerInterfaceWrapper) ListInvoices(w http.ResponseWriter, r *http.Request) {
 
@@ -5701,6 +7748,80 @@ func (siw *ServerInterfaceWrapper) GetInvoiceTotals(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInvoiceTotals(w, r, invoiceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMisOverview operation middleware
+func (siw *ServerInterfaceWrapper) GetMisOverview(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMisOverview(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMisReconciliation operation middleware
+func (siw *ServerInterfaceWrapper) GetMisReconciliation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetMisReconciliationParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMisReconciliation(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMisSourceQuality operation middleware
+func (siw *ServerInterfaceWrapper) GetMisSourceQuality(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMisSourceQuality(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6477,6 +8598,1610 @@ func (siw *ServerInterfaceWrapper) GetReceiptReference(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// ListReportingMetrics operation middleware
+func (siw *ServerInterfaceWrapper) ListReportingMetrics(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReportingMetrics(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetReportingMetric operation middleware
+func (siw *ServerInterfaceWrapper) GetReportingMetric(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "metric_id" -------------
+	var metricId MetricID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "metric_id", r.PathValue("metric_id"), &metricId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "metric_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetReportingMetricParams
+
+	// ------------- Optional query parameter "time_basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "time_basis", r.URL.Query(), &params.TimeBasis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "time_basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "time_basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "as_of" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "as_of", r.URL.Query(), &params.AsOf, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "as_of"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "as_of", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetReportingMetric(w, r, metricId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCaseReport operation middleware
+func (siw *ServerInterfaceWrapper) GetCaseReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCaseReportParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "time_basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "time_basis", r.URL.Query(), &params.TimeBasis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "time_basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "time_basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "as_of" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "as_of", r.URL.Query(), &params.AsOf, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "as_of"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "as_of", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "workflow_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workflow_type", r.URL.Query(), &params.WorkflowType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workflow_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workflow_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state_mapping" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state_mapping", r.URL.Query(), &params.StateMapping, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state_mapping"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state_mapping", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer_link_state", r.URL.Query(), &params.CustomerLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "original_owner_resolution" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "original_owner_resolution", r.URL.Query(), &params.OriginalOwnerResolution, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "original_owner_resolution"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "original_owner_resolution", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCaseReport(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCaseReportRow operation middleware
+func (siw *ServerInterfaceWrapper) GetCaseReportRow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId CaseID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCaseReportRowParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "time_basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "time_basis", r.URL.Query(), &params.TimeBasis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "time_basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "time_basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "as_of" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "as_of", r.URL.Query(), &params.AsOf, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "as_of"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "as_of", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "workflow_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workflow_type", r.URL.Query(), &params.WorkflowType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workflow_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workflow_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state_mapping" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state_mapping", r.URL.Query(), &params.StateMapping, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state_mapping"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state_mapping", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer_link_state", r.URL.Query(), &params.CustomerLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "original_owner_resolution" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "original_owner_resolution", r.URL.Query(), &params.OriginalOwnerResolution, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "original_owner_resolution"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "original_owner_resolution", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCaseReportRow(w, r, caseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCustodyReport operation middleware
+func (siw *ServerInterfaceWrapper) GetCustodyReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCustodyReportParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "time_basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "time_basis", r.URL.Query(), &params.TimeBasis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "time_basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "time_basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "as_of" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "as_of", r.URL.Query(), &params.AsOf, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "as_of"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "as_of", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "parity" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "parity", r.URL.Query(), &params.Parity, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "parity"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "parity", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "derivation" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "derivation", r.URL.Query(), &params.Derivation, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "derivation"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "derivation", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustodyReport(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCustodyReportRow operation middleware
+func (siw *ServerInterfaceWrapper) GetCustodyReportRow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId CaseID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCustodyReportRowParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "time_basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "time_basis", r.URL.Query(), &params.TimeBasis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "time_basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "time_basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "as_of" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "as_of", r.URL.Query(), &params.AsOf, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "as_of"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "as_of", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "parity" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "parity", r.URL.Query(), &params.Parity, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "parity"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "parity", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "derivation" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "derivation", r.URL.Query(), &params.Derivation, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "derivation"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "derivation", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustodyReportRow(w, r, caseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInvoiceReport operation middleware
+func (siw *ServerInterfaceWrapper) GetInvoiceReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetInvoiceReportParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "time_basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "time_basis", r.URL.Query(), &params.TimeBasis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "time_basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "time_basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "as_of" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "as_of", r.URL.Query(), &params.AsOf, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "as_of"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "as_of", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer_link_state", r.URL.Query(), &params.CustomerLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "case_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "case_link_state", r.URL.Query(), &params.CaseLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "case_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "has_unknown_status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "has_unknown_status", r.URL.Query(), &params.HasUnknownStatus, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has_unknown_status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has_unknown_status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "main_mapping" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "main_mapping", r.URL.Query(), &params.MainMapping, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "main_mapping"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "main_mapping", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "total_class" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "total_class", r.URL.Query(), &params.TotalClass, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "total_class"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "total_class", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unit", r.URL.Query(), &params.Unit, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInvoiceReport(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInvoiceReportRow operation middleware
+func (siw *ServerInterfaceWrapper) GetInvoiceReportRow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "invoice_id" -------------
+	var invoiceId InvoiceID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "invoice_id", r.PathValue("invoice_id"), &invoiceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invoice_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetInvoiceReportRowParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "time_basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "time_basis", r.URL.Query(), &params.TimeBasis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "time_basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "time_basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "as_of" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "as_of", r.URL.Query(), &params.AsOf, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "as_of"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "as_of", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer_link_state", r.URL.Query(), &params.CustomerLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "case_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "case_link_state", r.URL.Query(), &params.CaseLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "case_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "has_unknown_status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "has_unknown_status", r.URL.Query(), &params.HasUnknownStatus, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has_unknown_status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has_unknown_status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "main_mapping" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "main_mapping", r.URL.Query(), &params.MainMapping, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "main_mapping"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "main_mapping", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "total_class" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "total_class", r.URL.Query(), &params.TotalClass, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "total_class"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "total_class", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unit", r.URL.Query(), &params.Unit, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInvoiceReportRow(w, r, invoiceId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentReport operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPaymentReportParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "time_basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "time_basis", r.URL.Query(), &params.TimeBasis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "time_basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "time_basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "as_of" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "as_of", r.URL.Query(), &params.AsOf, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "as_of"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "as_of", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "channel" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "channel", r.URL.Query(), &params.Channel, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "channel"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state_mapping" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state_mapping", r.URL.Query(), &params.StateMapping, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state_mapping"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state_mapping", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "approval_provenance" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "approval_provenance", r.URL.Query(), &params.ApprovalProvenance, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "approval_provenance"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "approval_provenance", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "invoice_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "invoice_link_state", r.URL.Query(), &params.InvoiceLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "invoice_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invoice_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unit", r.URL.Query(), &params.Unit, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentReport(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentReportRow operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentReportRow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "attempt_id" -------------
+	var attemptId AttemptID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attempt_id", r.PathValue("attempt_id"), &attemptId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attempt_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPaymentReportRowParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "time_basis" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "time_basis", r.URL.Query(), &params.TimeBasis, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "time_basis"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "time_basis", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "as_of" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "as_of", r.URL.Query(), &params.AsOf, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "as_of"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "as_of", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "presence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "presence", r.URL.Query(), &params.Presence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "channel" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "channel", r.URL.Query(), &params.Channel, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "channel"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state_mapping" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state_mapping", r.URL.Query(), &params.StateMapping, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state_mapping"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state_mapping", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "approval_provenance" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "approval_provenance", r.URL.Query(), &params.ApprovalProvenance, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "approval_provenance"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "approval_provenance", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "invoice_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "invoice_link_state", r.URL.Query(), &params.InvoiceLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "invoice_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invoice_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "unit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "unit", r.URL.Query(), &params.Unit, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "unit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "unit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentReportRow(w, r, attemptId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSalesCoverageReport operation middleware
 func (siw *ServerInterfaceWrapper) GetSalesCoverageReport(w http.ResponseWriter, r *http.Request) {
 
@@ -6707,6 +10432,21 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/payments/attempts/{attempt_id}/history", wrapper.ListPaymentAttemptHistory)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/payments/receipts/{receipt_id}", wrapper.GetReceiptReference)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/billing/reconciliation-report", wrapper.GetBillingReconciliationReport)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reporting/metrics", wrapper.ListReportingMetrics)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reporting/metrics/{metric_id}", wrapper.GetReportingMetric)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reports/cases", wrapper.GetCaseReport)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reports/cases/{case_id}", wrapper.GetCaseReportRow)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reports/custody", wrapper.GetCustodyReport)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reports/custody/{case_id}", wrapper.GetCustodyReportRow)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reports/invoices", wrapper.GetInvoiceReport)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reports/invoices/{invoice_id}", wrapper.GetInvoiceReportRow)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reports/payments", wrapper.GetPaymentReport)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/reports/payments/{attempt_id}", wrapper.GetPaymentReportRow)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/mis/overview", wrapper.GetMisOverview)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/mis/source-quality", wrapper.GetMisSourceQuality)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/mis/reconciliation", wrapper.GetMisReconciliation)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/invoice-review", wrapper.ListInvoiceReview)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/invoice-review/{invoice_id}", wrapper.GetInvoiceReview)
 
 	return m
 }
@@ -8508,6 +12248,216 @@ func (response GetIdentityUserdefaultApplicationProblemPlusJSONResponse) VisitGe
 	return err
 }
 
+type ListInvoiceReviewRequestObject struct {
+	Params ListInvoiceReviewParams
+}
+
+type ListInvoiceReviewResponseObject interface {
+	VisitListInvoiceReviewResponse(w http.ResponseWriter) error
+}
+
+type ListInvoiceReview200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListInvoiceReview200JSONResponse struct {
+	Body    InvoiceReviewListEnvelope
+	Headers ListInvoiceReview200ResponseHeaders
+}
+
+func (response ListInvoiceReview200JSONResponse) VisitListInvoiceReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInvoiceReview400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListInvoiceReview400ApplicationProblemPlusJSONResponse) VisitListInvoiceReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInvoiceReview403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListInvoiceReview403JSONResponse) VisitListInvoiceReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInvoiceReviewdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListInvoiceReviewdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListInvoiceReviewdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListInvoiceReviewdefaultApplicationProblemPlusJSONResponse) VisitListInvoiceReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReviewRequestObject struct {
+	InvoiceId InvoiceID `json:"invoice_id"`
+}
+
+type GetInvoiceReviewResponseObject interface {
+	VisitGetInvoiceReviewResponse(w http.ResponseWriter) error
+}
+
+type GetInvoiceReview200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetInvoiceReview200JSONResponse struct {
+	Body    InvoiceReviewEnvelope
+	Headers GetInvoiceReview200ResponseHeaders
+}
+
+func (response GetInvoiceReview200JSONResponse) VisitGetInvoiceReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReview400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetInvoiceReview400ApplicationProblemPlusJSONResponse) VisitGetInvoiceReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReview403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetInvoiceReview403JSONResponse) VisitGetInvoiceReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReview404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetInvoiceReview404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetInvoiceReview404ResponseHeaders
+}
+
+func (response GetInvoiceReview404ApplicationProblemPlusJSONResponse) VisitGetInvoiceReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReviewdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetInvoiceReviewdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetInvoiceReviewdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetInvoiceReviewdefaultApplicationProblemPlusJSONResponse) VisitGetInvoiceReviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListInvoicesRequestObject struct {
 	Params ListInvoicesParams
 }
@@ -9293,6 +13243,283 @@ type GetInvoiceTotalsdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetInvoiceTotalsdefaultApplicationProblemPlusJSONResponse) VisitGetInvoiceTotalsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisOverviewRequestObject struct {
+}
+
+type GetMisOverviewResponseObject interface {
+	VisitGetMisOverviewResponse(w http.ResponseWriter) error
+}
+
+type GetMisOverview200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetMisOverview200JSONResponse struct {
+	Body    MisOverviewEnvelope
+	Headers GetMisOverview200ResponseHeaders
+}
+
+func (response GetMisOverview200JSONResponse) VisitGetMisOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisOverview400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetMisOverview400ApplicationProblemPlusJSONResponse) VisitGetMisOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisOverview403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetMisOverview403JSONResponse) VisitGetMisOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisOverviewdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetMisOverviewdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetMisOverviewdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetMisOverviewdefaultApplicationProblemPlusJSONResponse) VisitGetMisOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisReconciliationRequestObject struct {
+	Params GetMisReconciliationParams
+}
+
+type GetMisReconciliationResponseObject interface {
+	VisitGetMisReconciliationResponse(w http.ResponseWriter) error
+}
+
+type GetMisReconciliation200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetMisReconciliation200JSONResponse struct {
+	Body    MisReconciliationEnvelope
+	Headers GetMisReconciliation200ResponseHeaders
+}
+
+func (response GetMisReconciliation200JSONResponse) VisitGetMisReconciliationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisReconciliation400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetMisReconciliation400ApplicationProblemPlusJSONResponse) VisitGetMisReconciliationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisReconciliation403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetMisReconciliation403JSONResponse) VisitGetMisReconciliationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisReconciliationdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetMisReconciliationdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetMisReconciliationdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetMisReconciliationdefaultApplicationProblemPlusJSONResponse) VisitGetMisReconciliationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisSourceQualityRequestObject struct {
+}
+
+type GetMisSourceQualityResponseObject interface {
+	VisitGetMisSourceQualityResponse(w http.ResponseWriter) error
+}
+
+type GetMisSourceQuality200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetMisSourceQuality200JSONResponse struct {
+	Body    SourceQualityEnvelope
+	Headers GetMisSourceQuality200ResponseHeaders
+}
+
+func (response GetMisSourceQuality200JSONResponse) VisitGetMisSourceQualityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisSourceQuality400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetMisSourceQuality400ApplicationProblemPlusJSONResponse) VisitGetMisSourceQualityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisSourceQuality403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetMisSourceQuality403JSONResponse) VisitGetMisSourceQualityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMisSourceQualitydefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetMisSourceQualitydefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetMisSourceQualitydefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetMisSourceQualitydefaultApplicationProblemPlusJSONResponse) VisitGetMisSourceQualityResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -10427,6 +14654,1060 @@ func (response GetReceiptReferencedefaultApplicationProblemPlusJSONResponse) Vis
 	return err
 }
 
+type ListReportingMetricsRequestObject struct {
+}
+
+type ListReportingMetricsResponseObject interface {
+	VisitListReportingMetricsResponse(w http.ResponseWriter) error
+}
+
+type ListReportingMetrics200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListReportingMetrics200JSONResponse struct {
+	Body    MetricListEnvelope
+	Headers ListReportingMetrics200ResponseHeaders
+}
+
+func (response ListReportingMetrics200JSONResponse) VisitListReportingMetricsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReportingMetrics400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListReportingMetrics400ApplicationProblemPlusJSONResponse) VisitListReportingMetricsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReportingMetrics403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListReportingMetrics403JSONResponse) VisitListReportingMetricsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReportingMetricsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListReportingMetricsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListReportingMetricsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListReportingMetricsdefaultApplicationProblemPlusJSONResponse) VisitListReportingMetricsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReportingMetricRequestObject struct {
+	MetricId MetricID `json:"metric_id"`
+	Params   GetReportingMetricParams
+}
+
+type GetReportingMetricResponseObject interface {
+	VisitGetReportingMetricResponse(w http.ResponseWriter) error
+}
+
+type GetReportingMetric200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetReportingMetric200JSONResponse struct {
+	Body    MetricEnvelope
+	Headers GetReportingMetric200ResponseHeaders
+}
+
+func (response GetReportingMetric200JSONResponse) VisitGetReportingMetricResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReportingMetric400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetReportingMetric400ApplicationProblemPlusJSONResponse) VisitGetReportingMetricResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReportingMetric403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetReportingMetric403JSONResponse) VisitGetReportingMetricResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReportingMetric404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetReportingMetric404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetReportingMetric404ResponseHeaders
+}
+
+func (response GetReportingMetric404ApplicationProblemPlusJSONResponse) VisitGetReportingMetricResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReportingMetricdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetReportingMetricdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetReportingMetricdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetReportingMetricdefaultApplicationProblemPlusJSONResponse) VisitGetReportingMetricResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseReportRequestObject struct {
+	Params GetCaseReportParams
+}
+
+type GetCaseReportResponseObject interface {
+	VisitGetCaseReportResponse(w http.ResponseWriter) error
+}
+
+type GetCaseReport200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCaseReport200JSONResponse struct {
+	Body    CaseReportEnvelope
+	Headers GetCaseReport200ResponseHeaders
+}
+
+func (response GetCaseReport200JSONResponse) VisitGetCaseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseReport400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCaseReport400ApplicationProblemPlusJSONResponse) VisitGetCaseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseReport403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetCaseReport403JSONResponse) VisitGetCaseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseReportdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCaseReportdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetCaseReportdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetCaseReportdefaultApplicationProblemPlusJSONResponse) VisitGetCaseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseReportRowRequestObject struct {
+	CaseId CaseID `json:"case_id"`
+	Params GetCaseReportRowParams
+}
+
+type GetCaseReportRowResponseObject interface {
+	VisitGetCaseReportRowResponse(w http.ResponseWriter) error
+}
+
+type GetCaseReportRow200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCaseReportRow200JSONResponse struct {
+	Body    CaseDetailEnvelope
+	Headers GetCaseReportRow200ResponseHeaders
+}
+
+func (response GetCaseReportRow200JSONResponse) VisitGetCaseReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseReportRow400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCaseReportRow400ApplicationProblemPlusJSONResponse) VisitGetCaseReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseReportRow403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetCaseReportRow403JSONResponse) VisitGetCaseReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseReportRow404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCaseReportRow404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetCaseReportRow404ResponseHeaders
+}
+
+func (response GetCaseReportRow404ApplicationProblemPlusJSONResponse) VisitGetCaseReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseReportRowdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCaseReportRowdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetCaseReportRowdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetCaseReportRowdefaultApplicationProblemPlusJSONResponse) VisitGetCaseReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReportRequestObject struct {
+	Params GetCustodyReportParams
+}
+
+type GetCustodyReportResponseObject interface {
+	VisitGetCustodyReportResponse(w http.ResponseWriter) error
+}
+
+type GetCustodyReport200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustodyReport200JSONResponse struct {
+	Body    CustodyReportEnvelope
+	Headers GetCustodyReport200ResponseHeaders
+}
+
+func (response GetCustodyReport200JSONResponse) VisitGetCustodyReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReport400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCustodyReport400ApplicationProblemPlusJSONResponse) VisitGetCustodyReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReport403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetCustodyReport403JSONResponse) VisitGetCustodyReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReportdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustodyReportdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetCustodyReportdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetCustodyReportdefaultApplicationProblemPlusJSONResponse) VisitGetCustodyReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReportRowRequestObject struct {
+	CaseId CaseID `json:"case_id"`
+	Params GetCustodyReportRowParams
+}
+
+type GetCustodyReportRowResponseObject interface {
+	VisitGetCustodyReportRowResponse(w http.ResponseWriter) error
+}
+
+type GetCustodyReportRow200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustodyReportRow200JSONResponse struct {
+	Body    CustodyDetailEnvelope
+	Headers GetCustodyReportRow200ResponseHeaders
+}
+
+func (response GetCustodyReportRow200JSONResponse) VisitGetCustodyReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReportRow400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCustodyReportRow400ApplicationProblemPlusJSONResponse) VisitGetCustodyReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReportRow403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetCustodyReportRow403JSONResponse) VisitGetCustodyReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReportRow404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustodyReportRow404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetCustodyReportRow404ResponseHeaders
+}
+
+func (response GetCustodyReportRow404ApplicationProblemPlusJSONResponse) VisitGetCustodyReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReportRowdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustodyReportRowdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetCustodyReportRowdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetCustodyReportRowdefaultApplicationProblemPlusJSONResponse) VisitGetCustodyReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReportRequestObject struct {
+	Params GetInvoiceReportParams
+}
+
+type GetInvoiceReportResponseObject interface {
+	VisitGetInvoiceReportResponse(w http.ResponseWriter) error
+}
+
+type GetInvoiceReport200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetInvoiceReport200JSONResponse struct {
+	Body    InvoiceReportEnvelope
+	Headers GetInvoiceReport200ResponseHeaders
+}
+
+func (response GetInvoiceReport200JSONResponse) VisitGetInvoiceReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReport400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetInvoiceReport400ApplicationProblemPlusJSONResponse) VisitGetInvoiceReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReport403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetInvoiceReport403JSONResponse) VisitGetInvoiceReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReportdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetInvoiceReportdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetInvoiceReportdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetInvoiceReportdefaultApplicationProblemPlusJSONResponse) VisitGetInvoiceReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReportRowRequestObject struct {
+	InvoiceId InvoiceID `json:"invoice_id"`
+	Params    GetInvoiceReportRowParams
+}
+
+type GetInvoiceReportRowResponseObject interface {
+	VisitGetInvoiceReportRowResponse(w http.ResponseWriter) error
+}
+
+type GetInvoiceReportRow200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetInvoiceReportRow200JSONResponse struct {
+	Body    InvoiceDetailFactEnvelope
+	Headers GetInvoiceReportRow200ResponseHeaders
+}
+
+func (response GetInvoiceReportRow200JSONResponse) VisitGetInvoiceReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReportRow400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetInvoiceReportRow400ApplicationProblemPlusJSONResponse) VisitGetInvoiceReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReportRow403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetInvoiceReportRow403JSONResponse) VisitGetInvoiceReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReportRow404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetInvoiceReportRow404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetInvoiceReportRow404ResponseHeaders
+}
+
+func (response GetInvoiceReportRow404ApplicationProblemPlusJSONResponse) VisitGetInvoiceReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInvoiceReportRowdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetInvoiceReportRowdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetInvoiceReportRowdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetInvoiceReportRowdefaultApplicationProblemPlusJSONResponse) VisitGetInvoiceReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReportRequestObject struct {
+	Params GetPaymentReportParams
+}
+
+type GetPaymentReportResponseObject interface {
+	VisitGetPaymentReportResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentReport200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentReport200JSONResponse struct {
+	Body    PaymentReportEnvelope
+	Headers GetPaymentReport200ResponseHeaders
+}
+
+func (response GetPaymentReport200JSONResponse) VisitGetPaymentReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReport400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetPaymentReport400ApplicationProblemPlusJSONResponse) VisitGetPaymentReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReport403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetPaymentReport403JSONResponse) VisitGetPaymentReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReportdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentReportdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetPaymentReportdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetPaymentReportdefaultApplicationProblemPlusJSONResponse) VisitGetPaymentReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReportRowRequestObject struct {
+	AttemptId AttemptID `json:"attempt_id"`
+	Params    GetPaymentReportRowParams
+}
+
+type GetPaymentReportRowResponseObject interface {
+	VisitGetPaymentReportRowResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentReportRow200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentReportRow200JSONResponse struct {
+	Body    PaymentDetailEnvelope
+	Headers GetPaymentReportRow200ResponseHeaders
+}
+
+func (response GetPaymentReportRow200JSONResponse) VisitGetPaymentReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReportRow400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetPaymentReportRow400ApplicationProblemPlusJSONResponse) VisitGetPaymentReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReportRow403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetPaymentReportRow403JSONResponse) VisitGetPaymentReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReportRow404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentReportRow404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetPaymentReportRow404ResponseHeaders
+}
+
+func (response GetPaymentReportRow404ApplicationProblemPlusJSONResponse) VisitGetPaymentReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReportRowdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentReportRowdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetPaymentReportRowdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetPaymentReportRowdefaultApplicationProblemPlusJSONResponse) VisitGetPaymentReportRowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetSalesCoverageReportRequestObject struct {
 }
 
@@ -10867,6 +16148,12 @@ type StrictServerInterface interface {
 	// GetIdentityUser Get one shadow user account
 	// (GET /api/v1/identity/users/{user_id})
 	GetIdentityUser(ctx context.Context, request GetIdentityUserRequestObject) (GetIdentityUserResponseObject, error)
+	// ListInvoiceReview Invoice Review QUERY SURFACE (audited read; no export; no target UI)
+	// (GET /api/v1/invoice-review)
+	ListInvoiceReview(ctx context.Context, request ListInvoiceReviewRequestObject) (ListInvoiceReviewResponseObject, error)
+	// GetInvoiceReview One Invoice Review row (audited read)
+	// (GET /api/v1/invoice-review/{invoice_id})
+	GetInvoiceReview(ctx context.Context, request GetInvoiceReviewRequestObject) (GetInvoiceReviewResponseObject, error)
 	// ListInvoices List shadow invoices
 	// (GET /api/v1/invoices)
 	ListInvoices(ctx context.Context, request ListInvoicesRequestObject) (ListInvoicesResponseObject, error)
@@ -10888,6 +16175,15 @@ type StrictServerInterface interface {
 	// GetInvoiceTotals Per-unit total evidence of an invoice (no canonical total)
 	// (GET /api/v1/invoices/{invoice_id}/totals)
 	GetInvoiceTotals(ctx context.Context, request GetInvoiceTotalsRequestObject) (GetInvoiceTotalsResponseObject, error)
+	// GetMisOverview MIS Today (read only; proven metric contracts only)
+	// (GET /api/v1/mis/overview)
+	GetMisOverview(ctx context.Context, request GetMisOverviewRequestObject) (GetMisOverviewResponseObject, error)
+	// GetMisReconciliation Projection runs, source coverage, F02/F03 and metric contracts
+	// (GET /api/v1/mis/reconciliation)
+	GetMisReconciliation(ctx context.Context, request GetMisReconciliationRequestObject) (GetMisReconciliationResponseObject, error)
+	// GetMisSourceQuality Source quality per published source and grain
+	// (GET /api/v1/mis/source-quality)
+	GetMisSourceQuality(ctx context.Context, request GetMisSourceQualityRequestObject) (GetMisSourceQualityResponseObject, error)
 	// ListOrganizationAssignments List reporting assignments
 	// (GET /api/v1/organization/assignments)
 	ListOrganizationAssignments(ctx context.Context, request ListOrganizationAssignmentsRequestObject) (ListOrganizationAssignmentsResponseObject, error)
@@ -10921,6 +16217,36 @@ type StrictServerInterface interface {
 	// GetReceiptReference Get one receipt reference (metadata only)
 	// (GET /api/v1/payments/receipts/{receipt_id})
 	GetReceiptReference(ctx context.Context, request GetReceiptReferenceRequestObject) (GetReceiptReferenceResponseObject, error)
+	// ListReportingMetrics List metric contracts with their current values
+	// (GET /api/v1/reporting/metrics)
+	ListReportingMetrics(ctx context.Context, request ListReportingMetricsRequestObject) (ListReportingMetricsResponseObject, error)
+	// GetReportingMetric Evaluate one metric through its contract query
+	// (GET /api/v1/reporting/metrics/{metric_id})
+	GetReportingMetric(ctx context.Context, request GetReportingMetricRequestObject) (GetReportingMetricResponseObject, error)
+	// GetCaseReport Case report: full-membership summary + one page of rows (same query)
+	// (GET /api/v1/reports/cases)
+	GetCaseReport(ctx context.Context, request GetCaseReportRequestObject) (GetCaseReportResponseObject, error)
+	// GetCaseReportRow One cases row with its membership in the same query
+	// (GET /api/v1/reports/cases/{case_id})
+	GetCaseReportRow(ctx context.Context, request GetCaseReportRowRequestObject) (GetCaseReportRowResponseObject, error)
+	// GetCustodyReport Custody report: full-membership summary + one page of rows (same query)
+	// (GET /api/v1/reports/custody)
+	GetCustodyReport(ctx context.Context, request GetCustodyReportRequestObject) (GetCustodyReportResponseObject, error)
+	// GetCustodyReportRow One custody row with its membership in the same query
+	// (GET /api/v1/reports/custody/{case_id})
+	GetCustodyReportRow(ctx context.Context, request GetCustodyReportRowRequestObject) (GetCustodyReportRowResponseObject, error)
+	// GetInvoiceReport Invoice report: full-membership summary + one page of rows (same query)
+	// (GET /api/v1/reports/invoices)
+	GetInvoiceReport(ctx context.Context, request GetInvoiceReportRequestObject) (GetInvoiceReportResponseObject, error)
+	// GetInvoiceReportRow One invoices row with its membership in the same query
+	// (GET /api/v1/reports/invoices/{invoice_id})
+	GetInvoiceReportRow(ctx context.Context, request GetInvoiceReportRowRequestObject) (GetInvoiceReportRowResponseObject, error)
+	// GetPaymentReport Payment report: full-membership summary + one page of rows (same query)
+	// (GET /api/v1/reports/payments)
+	GetPaymentReport(ctx context.Context, request GetPaymentReportRequestObject) (GetPaymentReportResponseObject, error)
+	// GetPaymentReportRow One payments row with its membership in the same query
+	// (GET /api/v1/reports/payments/{attempt_id})
+	GetPaymentReportRow(ctx context.Context, request GetPaymentReportRowRequestObject) (GetPaymentReportRowResponseObject, error)
 	// GetSalesCoverageReport Sales read source coverage report (F02/F03 honest labels)
 	// (GET /api/v1/sales/coverage-report)
 	GetSalesCoverageReport(ctx context.Context, request GetSalesCoverageReportRequestObject) (GetSalesCoverageReportResponseObject, error)
@@ -11415,6 +16741,58 @@ func (sh *strictHandler) GetIdentityUser(w http.ResponseWriter, r *http.Request,
 	}
 }
 
+// ListInvoiceReview operation middleware
+func (sh *strictHandler) ListInvoiceReview(w http.ResponseWriter, r *http.Request, params ListInvoiceReviewParams) {
+	var request ListInvoiceReviewRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListInvoiceReview(ctx, request.(ListInvoiceReviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListInvoiceReview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListInvoiceReviewResponseObject); ok {
+		if err := validResponse.VisitListInvoiceReviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInvoiceReview operation middleware
+func (sh *strictHandler) GetInvoiceReview(w http.ResponseWriter, r *http.Request, invoiceId InvoiceID) {
+	var request GetInvoiceReviewRequestObject
+
+	request.InvoiceId = invoiceId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInvoiceReview(ctx, request.(GetInvoiceReviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInvoiceReview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInvoiceReviewResponseObject); ok {
+		if err := validResponse.VisitGetInvoiceReviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListInvoices operation middleware
 func (sh *strictHandler) ListInvoices(w http.ResponseWriter, r *http.Request, params ListInvoicesParams) {
 	var request ListInvoicesRequestObject
@@ -11594,6 +16972,80 @@ func (sh *strictHandler) GetInvoiceTotals(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetInvoiceTotalsResponseObject); ok {
 		if err := validResponse.VisitGetInvoiceTotalsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMisOverview operation middleware
+func (sh *strictHandler) GetMisOverview(w http.ResponseWriter, r *http.Request) {
+	var request GetMisOverviewRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMisOverview(ctx, request.(GetMisOverviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMisOverview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMisOverviewResponseObject); ok {
+		if err := validResponse.VisitGetMisOverviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMisReconciliation operation middleware
+func (sh *strictHandler) GetMisReconciliation(w http.ResponseWriter, r *http.Request, params GetMisReconciliationParams) {
+	var request GetMisReconciliationRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMisReconciliation(ctx, request.(GetMisReconciliationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMisReconciliation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMisReconciliationResponseObject); ok {
+		if err := validResponse.VisitGetMisReconciliationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMisSourceQuality operation middleware
+func (sh *strictHandler) GetMisSourceQuality(w http.ResponseWriter, r *http.Request) {
+	var request GetMisSourceQualityRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMisSourceQuality(ctx, request.(GetMisSourceQualityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMisSourceQuality")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMisSourceQualityResponseObject); ok {
+		if err := validResponse.VisitGetMisSourceQualityResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -11881,6 +17333,269 @@ func (sh *strictHandler) GetReceiptReference(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetReceiptReferenceResponseObject); ok {
 		if err := validResponse.VisitGetReceiptReferenceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListReportingMetrics operation middleware
+func (sh *strictHandler) ListReportingMetrics(w http.ResponseWriter, r *http.Request) {
+	var request ListReportingMetricsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListReportingMetrics(ctx, request.(ListReportingMetricsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListReportingMetrics")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListReportingMetricsResponseObject); ok {
+		if err := validResponse.VisitListReportingMetricsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetReportingMetric operation middleware
+func (sh *strictHandler) GetReportingMetric(w http.ResponseWriter, r *http.Request, metricId MetricID, params GetReportingMetricParams) {
+	var request GetReportingMetricRequestObject
+
+	request.MetricId = metricId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReportingMetric(ctx, request.(GetReportingMetricRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReportingMetric")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetReportingMetricResponseObject); ok {
+		if err := validResponse.VisitGetReportingMetricResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCaseReport operation middleware
+func (sh *strictHandler) GetCaseReport(w http.ResponseWriter, r *http.Request, params GetCaseReportParams) {
+	var request GetCaseReportRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCaseReport(ctx, request.(GetCaseReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCaseReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCaseReportResponseObject); ok {
+		if err := validResponse.VisitGetCaseReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCaseReportRow operation middleware
+func (sh *strictHandler) GetCaseReportRow(w http.ResponseWriter, r *http.Request, caseId CaseID, params GetCaseReportRowParams) {
+	var request GetCaseReportRowRequestObject
+
+	request.CaseId = caseId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCaseReportRow(ctx, request.(GetCaseReportRowRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCaseReportRow")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCaseReportRowResponseObject); ok {
+		if err := validResponse.VisitGetCaseReportRowResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCustodyReport operation middleware
+func (sh *strictHandler) GetCustodyReport(w http.ResponseWriter, r *http.Request, params GetCustodyReportParams) {
+	var request GetCustodyReportRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCustodyReport(ctx, request.(GetCustodyReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCustodyReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCustodyReportResponseObject); ok {
+		if err := validResponse.VisitGetCustodyReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCustodyReportRow operation middleware
+func (sh *strictHandler) GetCustodyReportRow(w http.ResponseWriter, r *http.Request, caseId CaseID, params GetCustodyReportRowParams) {
+	var request GetCustodyReportRowRequestObject
+
+	request.CaseId = caseId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCustodyReportRow(ctx, request.(GetCustodyReportRowRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCustodyReportRow")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCustodyReportRowResponseObject); ok {
+		if err := validResponse.VisitGetCustodyReportRowResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInvoiceReport operation middleware
+func (sh *strictHandler) GetInvoiceReport(w http.ResponseWriter, r *http.Request, params GetInvoiceReportParams) {
+	var request GetInvoiceReportRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInvoiceReport(ctx, request.(GetInvoiceReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInvoiceReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInvoiceReportResponseObject); ok {
+		if err := validResponse.VisitGetInvoiceReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInvoiceReportRow operation middleware
+func (sh *strictHandler) GetInvoiceReportRow(w http.ResponseWriter, r *http.Request, invoiceId InvoiceID, params GetInvoiceReportRowParams) {
+	var request GetInvoiceReportRowRequestObject
+
+	request.InvoiceId = invoiceId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInvoiceReportRow(ctx, request.(GetInvoiceReportRowRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInvoiceReportRow")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInvoiceReportRowResponseObject); ok {
+		if err := validResponse.VisitGetInvoiceReportRowResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentReport operation middleware
+func (sh *strictHandler) GetPaymentReport(w http.ResponseWriter, r *http.Request, params GetPaymentReportParams) {
+	var request GetPaymentReportRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentReport(ctx, request.(GetPaymentReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentReportResponseObject); ok {
+		if err := validResponse.VisitGetPaymentReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentReportRow operation middleware
+func (sh *strictHandler) GetPaymentReportRow(w http.ResponseWriter, r *http.Request, attemptId AttemptID, params GetPaymentReportRowParams) {
+	var request GetPaymentReportRowRequestObject
+
+	request.AttemptId = attemptId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentReportRow(ctx, request.(GetPaymentReportRowRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentReportRow")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentReportRowResponseObject); ok {
+		if err := validResponse.VisitGetPaymentReportRowResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

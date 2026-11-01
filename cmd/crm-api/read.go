@@ -29,9 +29,14 @@ import (
 	paymentshttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/http"
 	paymentsquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/apiserver"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/audit"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/clock"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/db"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/featureflags"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/owner"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/reporting"
+	reportinghttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/reporting/http"
+	reportingquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/reporting/query"
 )
 
 // Slice 4 read-surface configuration. All three DSNs or none: without them
@@ -331,6 +336,91 @@ func openBilling(ctx context.Context, getenv func(string) string, devAuth bool) 
 		}
 	}
 	api, err := NewBillingAPI(runners[billing.Module], runners[payments.Module], runners[owner.FeatureFlags], devAuth)
+	if err != nil {
+		closeAll()
+		return nil, nil, err
+	}
+	return api, closeAll, nil
+}
+
+// Slice 8 MIS / reporting read surface (optional; needs the flag store).
+// CRM_AUDIT_DATABASE_URL (an audit-owner login) backs the Invoice Review
+// read audit; without it the Invoice Review fails closed (D-45) while
+// aggregate reporting and MIS keep working.
+const (
+	EnvReportingReadURL = "CRM_REPORTING_READ_DATABASE_URL"
+	EnvAuditURL         = "CRM_AUDIT_DATABASE_URL"
+	// ReportingFlag is the Slice 8 rollback switch (default off).
+	ReportingFlag = "reporting.read_shadow"
+)
+
+// ErrReportingConfig reports a partial Slice 8 configuration.
+var ErrReportingConfig = errors.New("crm-api: " + EnvReportingReadURL + " needs " + EnvFeatureFlagsURL)
+
+// AuditorOf records sensitive reads through the audit module in its own
+// writable transaction — never inside a read-only query transaction.
+func AuditorOf(auditRunner *db.Runner) reportinghttp.ReadAuditor {
+	if auditRunner == nil {
+		return nil
+	}
+	return func(ctx context.Context, e audit.Event) error {
+		return auditRunner.InTx(ctx, db.TxOptions{}, func(ctx context.Context, tx db.Tx) error { return audit.Append(ctx, tx, e) })
+	}
+}
+
+// NewReportingAPI composes the Slice 8 surface over the reporting runner,
+// the flag store and an optional audit runner.
+func NewReportingAPI(reportingRunner, flags, auditRunner *db.Runner, devAuth bool) (apiserver.ReportingAPI, error) {
+	if reportingRunner.Module() != reporting.Module || flags.Module() != owner.FeatureFlags || (auditRunner != nil && auditRunner.Module() != owner.Audit) {
+		return nil, errors.New("crm-api: reporting runners bound to the wrong modules")
+	}
+	var subjects authorization.SubjectResolver = authorization.Anonymous{}
+	if devAuth {
+		subjects = authorization.DevSubjects{}
+	}
+	guard, err := authorization.NewGuard(flagFunc(flags, ReportingFlag), subjects)
+	if err != nil {
+		return nil, err
+	}
+	clk := clock.System{}
+	return reportinghttp.New(guard, reportingquery.New(reportingRunner, clk), AuditorOf(auditRunner), clk), nil
+}
+
+// openReporting opens the Slice 8 pools when configured.
+func openReporting(ctx context.Context, getenv func(string) string, devAuth bool) (apiserver.ReportingAPI, func(), error) {
+	ru, fu, au := getenv(EnvReportingReadURL), getenv(EnvFeatureFlagsURL), getenv(EnvAuditURL)
+	if ru == "" {
+		return nil, func() {}, nil
+	}
+	if fu == "" {
+		return nil, nil, ErrReportingConfig
+	}
+	var pools []*db.Pool
+	closeAll := func() {
+		for _, p := range pools {
+			p.Close()
+		}
+	}
+	runners := map[owner.Module]*db.Runner{}
+	dsns := map[owner.Module]string{reporting.Module: ru, owner.FeatureFlags: fu}
+	if au != "" {
+		dsns[owner.Audit] = au
+	}
+	for m, u := range dsns {
+		cfg := db.DefaultConfig(u)
+		cfg.ApplicationName = "crm-api"
+		pool, err := db.Open(ctx, cfg)
+		if err != nil {
+			closeAll()
+			return nil, nil, fmt.Errorf("crm-api: %s database: %w", m, err)
+		}
+		pools = append(pools, pool)
+		if runners[m], err = pool.Runner(m); err != nil {
+			closeAll()
+			return nil, nil, err
+		}
+	}
+	api, err := NewReportingAPI(runners[reporting.Module], runners[owner.FeatureFlags], runners[owner.Audit], devAuth)
 	if err != nil {
 		closeAll()
 		return nil, nil, err

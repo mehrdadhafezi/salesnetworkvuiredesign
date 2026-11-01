@@ -4,7 +4,7 @@
 // organization read-model migrations (Slice 4), then the customers identity
 // shadow migrations (Slice 5), then the cases and custody sales read
 // migrations (Slice 6), then the billing and payments read migrations
-// (Slice 7), each source in its own version table; no application process runs migrations on startup.
+// (Slice 7), then the reporting projection migrations (Slice 8), each source in its own version table; no application process runs migrations on startup.
 //
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate up
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate status
@@ -30,6 +30,7 @@ import (
 	organizationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/migrations"
 	paymentsmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/migrations"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/migrations"
+	reportingmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/reporting/migrations"
 )
 
 // sources returns every migration source in apply order: platform first.
@@ -37,7 +38,7 @@ func sources() []migrations.Source {
 	return []migrations.Source{migrations.Platform(), integrationmigrations.Source(),
 		identitymigrations.Source(), organizationmigrations.Source(), customersmigrations.Source(),
 		casesmigrations.Source(), custodymigrations.Source(),
-		billingmigrations.Source(), paymentsmigrations.Source()}
+		billingmigrations.Source(), paymentsmigrations.Source(), reportingmigrations.Source()}
 }
 
 func main() {

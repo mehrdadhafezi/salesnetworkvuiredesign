@@ -409,3 +409,76 @@ func (s *Service) TotalClasses(ctx context.Context, invoiceIDs []string, payment
 	})
 	return out, err
 }
+
+var _ api.FactSource = (*Service)(nil)
+
+const factPage = 1000
+
+// InvoiceFacts implements api.FactSource over one read-only snapshot.
+func (s *Service) InvoiceFacts(ctx context.Context, fn func(api.InvoiceFact) error) error {
+	return s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		states, err := store.AllStates(ctx, tx)
+		if err != nil {
+			return err
+		}
+		var after *string
+		n := 0
+		for {
+			rows, err := store.ListInvoices(ctx, tx, store.InvoiceFilter{}, after, factPage)
+			if err != nil {
+				return err
+			}
+			more := len(rows) > factPage
+			if more {
+				rows = rows[:factPage]
+			}
+			for _, v := range rows {
+				if n++; n > api.MaxFacts {
+					return api.ErrTooManyFacts
+				}
+				if err := fn(api.InvoiceFact{InvoiceID: v.InvoiceID, SourceSpec: v.Source.Spec, SourceKey: v.Source.Key, CodeRaw: v.CodeRaw,
+					Presence: v.Source.Presence, CustomerLink: v.CustomerLink, CaseLink: v.CaseLink, SellerKey: v.SellerKey,
+					States: states[v.InvoiceID], ItemCount: v.ItemCount, StageCount: v.StageCount, UnknownStates: v.UnknownStates,
+					ItemsComplete: v.ItemsComplete, StagesComplete: v.StagesComplete, FirstSeenAt: v.Source.FirstSeen}); err != nil {
+					return err
+				}
+			}
+			if !more {
+				return nil
+			}
+			last := rows[len(rows)-1].InvoiceID
+			after = &last
+		}
+	})
+}
+
+// InvoiceUnitTotals implements api.FactSource: the same per-unit evidence
+// as Totals, for many invoices, in one read-only snapshot.
+func (s *Service) InvoiceUnitTotals(ctx context.Context, invoiceIDs []string, payments map[string]api.PaymentEvidence) (map[string][]api.UnitTotal, error) {
+	out := map[string][]api.UnitTotal{}
+	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		for _, id := range invoiceIDs {
+			if !uuidPattern.MatchString(id) {
+				return invalid("invoice_id")
+			}
+			p, ok := payments[id]
+			sums := map[string]PaymentSum{}
+			for u, v := range p.Units {
+				sums[u] = PaymentSum{Unit: u, Amount: v.Amount, State: v.State, Rows: v.Rows}
+			}
+			ts, err := totalsTx(ctx, tx, id, sums, ok && p.Complete)
+			if err != nil {
+				return err
+			}
+			for _, t := range ts {
+				conv := func(x domain.Sum) api.PaymentUnitSum {
+					return api.PaymentUnitSum{Amount: x.Amount, State: x.State, Rows: x.Rows}
+				}
+				out[id] = append(out[id], api.UnitTotal{Unit: t.Unit, Declared: t.Declared, ItemSum: conv(t.ItemSum), StageSum: conv(t.StageSum),
+					PaySum: conv(t.PaymentSum), Class: t.Class})
+			}
+		}
+		return nil
+	})
+	return out, err
+}

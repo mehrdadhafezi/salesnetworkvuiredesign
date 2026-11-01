@@ -25,6 +25,11 @@
 // (module-dedicated logins) plus CRM_FEATUREFLAGS_DATABASE_URL; behind the
 // flag billing_payments.read_shadow (default off).
 //
+// Slice 8 MIS / reporting read surface (optional): CRM_REPORTING_READ_DATABASE_URL
+// plus CRM_FEATUREFLAGS_DATABASE_URL, behind reporting.read_shadow (default
+// off). CRM_AUDIT_DATABASE_URL enables the audited Invoice Review query;
+// without it the Invoice Review fails closed. GET never rebuilds projections.
+//
 // It never runs migrations, never imports legacy data and never writes.
 package main
 
@@ -79,7 +84,13 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closeBilling()
-	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill})
+	rep, closeReporting, err := openReporting(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closeReporting()
+	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill,
+		Reporting: rep})
 	if err != nil {
 		return err
 	}

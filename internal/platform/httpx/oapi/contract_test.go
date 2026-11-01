@@ -252,13 +252,18 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		"/api/v1/customer-identity/resolution-report", "/api/v1/customers", "/api/v1/customers/{customer_id}",
 		"/api/v1/customers/{customer_id}/contact-points", "/api/v1/customers/{customer_id}/evidence",
 		"/api/v1/identity/users", "/api/v1/identity/users/{user_id}",
+		"/api/v1/invoice-review", "/api/v1/invoice-review/{invoice_id}",
 		"/api/v1/invoices", "/api/v1/invoices/{invoice_id}", "/api/v1/invoices/{invoice_id}/items", "/api/v1/invoices/{invoice_id}/payments",
 		"/api/v1/invoices/{invoice_id}/receipts", "/api/v1/invoices/{invoice_id}/stages", "/api/v1/invoices/{invoice_id}/totals",
+		"/api/v1/mis/overview", "/api/v1/mis/reconciliation", "/api/v1/mis/source-quality",
 		"/api/v1/organization/assignments", "/api/v1/organization/hierarchy-findings", "/api/v1/organization/levels",
 		"/api/v1/organization/org-units", "/api/v1/organization/persons", "/api/v1/organization/persons/{person_id}",
 		"/api/v1/organization/positions",
 		"/api/v1/payments/attempts", "/api/v1/payments/attempts/{attempt_id}", "/api/v1/payments/attempts/{attempt_id}/history",
-		"/api/v1/payments/receipts/{receipt_id}", "/api/v1/sales/coverage-report", "/api/v1/sales/custody-parity",
+		"/api/v1/payments/receipts/{receipt_id}",
+		"/api/v1/reporting/metrics", "/api/v1/reporting/metrics/{metric_id}", "/api/v1/reports/cases", "/api/v1/reports/cases/{case_id}",
+		"/api/v1/reports/custody", "/api/v1/reports/custody/{case_id}", "/api/v1/reports/invoices", "/api/v1/reports/invoices/{invoice_id}",
+		"/api/v1/reports/payments", "/api/v1/reports/payments/{attempt_id}", "/api/v1/sales/coverage-report", "/api/v1/sales/custody-parity",
 		"/api/v1/session", "/health/live", "/health/ready"}
 	if strings.Join(paths, ",") != strings.Join(want, ",") {
 		t.Fatalf("paths = %v", paths)
