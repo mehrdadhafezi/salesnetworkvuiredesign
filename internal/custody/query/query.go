@@ -154,3 +154,39 @@ func (s *Service) BatchImported(ctx context.Context, batchID string) (bool, erro
 	})
 	return ok, err
 }
+
+var _ api.FactSource = (*Service)(nil)
+
+const factPage = 1000
+
+// AssignmentFacts implements api.FactSource over one read-only snapshot.
+func (s *Service) AssignmentFacts(ctx context.Context, fn func(api.AssignmentFact) error) error {
+	return s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		var after *string
+		n := 0
+		for {
+			rows, err := store.ListAssignments(ctx, tx, store.AssignmentFilter{}, after, factPage)
+			if err != nil {
+				return err
+			}
+			more := len(rows) > factPage
+			if more {
+				rows = rows[:factPage]
+			}
+			for _, a := range rows {
+				if n++; n > api.MaxFacts {
+					return api.ErrTooManyFacts
+				}
+				if err := fn(api.AssignmentFact{CaseID: a.CaseID, Derivation: a.Derivation, Parity: a.Parity, DerivedKey: a.DerivedKey,
+					LegacyKey: a.LegacyKey, EventCount: a.EventCount, FindingCount: a.FindingCount, Presence: a.Presence}); err != nil {
+					return err
+				}
+			}
+			if !more {
+				return nil
+			}
+			last := rows[len(rows)-1].CaseID
+			after = &last
+		}
+	})
+}

@@ -55,6 +55,13 @@ const (
 	CapInvoiceRead        Capability = "billing.invoice.read"
 	CapPaymentAttemptRead Capability = "payments.attempt.read"
 	CapBillingReportRead  Capability = "billing.reconciliation.read"
+	// Slice 8 MIS / reporting read. No role receives them (fail closed):
+	// aggregate reporting, MIS and the sensitive Invoice Review are separate
+	// capabilities so Invoice Review restrictions (D-23/D-45) never block
+	// aggregate metrics, and aggregate access never grants Invoice Review.
+	CapReportingMetricsRead Capability = "reporting.metrics.read"
+	CapReportingMISRead     Capability = "reporting.mis.read"
+	CapInvoiceReviewRead    Capability = "reporting.invoice_review.read"
 )
 
 // CapabilityDef is one vocabulary entry.
@@ -79,6 +86,9 @@ var vocabulary = []CapabilityDef{
 	{CapInvoiceRead, "Read shadow invoices, lines, payment stages, state and total evidence"},
 	{CapPaymentAttemptRead, "Read shadow payment attempts, gateway evidence (hashed) and receipt reference metadata"},
 	{CapBillingReportRead, "Read the billing and payments coverage report"},
+	{CapReportingMetricsRead, "Read metric contracts and aggregate report projections"},
+	{CapReportingMISRead, "Read MIS overview, source quality and reconciliation projections"},
+	{CapInvoiceReviewRead, "Read the Invoice Review query surface (audited; no export)"},
 }
 
 // HRReadCapabilities returns the Slice 4 HR read capabilities: the set the

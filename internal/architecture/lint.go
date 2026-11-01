@@ -92,6 +92,28 @@
 //     multiply or divide by the literal 10 (the legacy Toman↔Rial factor)
 //     and declare no function whose name suggests a unit conversion.
 //
+// Slice 8 rules (MIS / reporting read; INV-021, D-23, D-24, D-45):
+//
+//   - module-boundary also covers reporting: it reaches owners only through
+//     their published api packages and only from its offline projection
+//     rebuild (internal/reporting/projections); its http adapter may use
+//     identity/api and the authorization evaluator; no module imports
+//     reporting.
+//   - read-path-import also forbids reporting/http importing the projection
+//     rebuild (a GET never rebuilds, backfills or refreshes).
+//   - foreign-schema-write covers the reporting schema; append-only-write
+//     covers every reporting table; phone-key covers internal/reporting.
+//   - reporting-foreign-read: no SQL literal in internal/reporting reads an
+//     owner schema (reporting reads only reporting.*).
+//   - metric-formula: aggregate SQL (count/sum/avg/min/max) in
+//     internal/reporting appears only in the shared query spec package
+//     (internal/reporting/query) and the metric contract registry
+//     (internal/reporting/domain, formula text) — nowhere else.
+//   - phone-key covers SQL literals in internal/reporting.
+//   - export-endpoint: no string literal in internal/reporting or the API
+//     server names an export, CSV, XLSX or download route or media type (no
+//     Invoice Review export, D-23).
+//
 // Test files are composition roots for module-boundary (as cmd/ is); every
 // other rule applies to them as before.
 package architecture
@@ -144,7 +166,22 @@ const (
 	RulePhoneKey         = "phone-key"
 	RuleStatusFallback   = "status-fallback"
 	RuleUnitConversion   = "money-unit-conversion"
+	RuleReportingRead    = "reporting-foreign-read"
+	RuleMetricFormula    = "metric-formula"
+	RuleExportEndpoint   = "export-endpoint"
 )
+
+// ownerSchemaRead matches SQL reading another module's schema.
+var ownerSchemaRead = regexp.MustCompile(`(?i)\b(from|join)\s+(identity|organization|customers|cases|custody|billing|payments|integration|audit|platform_featureflags)\.`)
+
+// sqlish matches a string literal that is SQL (where a phone join could hide).
+var sqlish = regexp.MustCompile(`(?i)\b(select|where|join|insert\s+into|update)\b`)
+
+// aggregateSQL matches aggregate SQL functions (metric formulas).
+var aggregateSQL = regexp.MustCompile(`(?i)\b(count|sum|avg|min|max)\s*\(`)
+
+// exportLiteral matches an export / file-download route or media type.
+var exportLiteral = regexp.MustCompile(`(?i)(/export\b|\.csv\b|\.xlsx\b|text/csv|spreadsheetml|/download\b|attachment;)`)
 
 // statusFallbackSQL matches a COALESCE chain over status columns.
 var statusFallbackSQL = regexp.MustCompile(`(?i)coalesce\s*\(\s*nullif\s*\(\s*[a-z_.]*status`)
@@ -157,7 +194,7 @@ var statusResolver = regexp.MustCompile(`(?i)^(resolve|derive|compute|pick|selec
 var moneyModules = []string{"internal/billing", "internal/payments"}
 
 // appendOnlyWrite matches SQL that would mutate an append-only table.
-var appendOnlyWrite = regexp.MustCompile(`(?i)\b(update|delete\s+from)\s+(custody\.custody_event|cases\.case_state_history|cases\.attribution_snapshot|payments\.attempt_state_history)\b`)
+var appendOnlyWrite = regexp.MustCompile(`(?i)\b(update|delete\s+from)\s+(custody\.custody_event|cases\.case_state_history|cases\.attribution_snapshot|payments\.attempt_state_history|reporting\.[a-z_]+)\b`)
 
 // phoneLiteral matches a phone reference in cases/custody string literals.
 var phoneLiteral = regexp.MustCompile(`(?i)phone`)
@@ -168,7 +205,7 @@ var mergePath = regexp.MustCompile(`(?i)^(resolvemerge|mergecustomers?|applymerg
 
 // slice4Modules are the business modules of Slice 4.
 var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true, "customers": true,
-	"cases": true, "custody": true, "billing": true, "payments": true}
+	"cases": true, "custody": true, "billing": true, "payments": true, "reporting": true}
 
 // schemaOwners maps a module schema to the only tree allowed to write it.
 var schemaOwners = map[string]string{
@@ -179,12 +216,13 @@ var schemaOwners = map[string]string{
 	"custody":               "internal/custody",
 	"billing":               "internal/billing",
 	"payments":              "internal/payments",
+	"reporting":             "internal/reporting",
 	"integration":           "internal/integration",
 	"audit":                 "internal/platform/audit",
 	"platform_featureflags": "internal/platform/featureflags",
 }
 
-var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|billing|payments|integration|audit|platform_featureflags)\.`)
+var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|billing|payments|reporting|integration|audit|platform_featureflags)\.`)
 
 // readPathDirs never import an import command.
 var readPathDirs = []string{"internal/platform/apiserver", "cmd/crm-api"}
@@ -216,6 +254,10 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 		return rest == "api" && under(rel, "internal/billing/http")
 	case top == "billing" && (other == "customers" || other == "cases"):
 		return rest == "api"
+	case top == "reporting" && other == "identity":
+		return rest == "api" && under(rel, "internal/reporting/http")
+	case top == "reporting" && (other == "cases" || other == "custody" || other == "billing" || other == "payments" || other == "customers"):
+		return rest == "api" && under(rel, "internal/reporting/projections")
 	case other == "authorization" && (rest == "" || rest == "http"):
 		return under(rel, "internal/"+top+"/http")
 	case top == "authorization" || top == "organization" && other == "identity":
@@ -374,6 +416,10 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 				add(RuleModuleBoundary, imp.Pos(), "internal/"+relTop+" imports "+p+"; cross-module access goes through the published api")
 			}
 		}
+		if !isTest && internalTop == "reporting" && internalRest == "projections" && (under(rel, "internal/reporting/http") || under(rel, "internal/reporting/query") ||
+			under(rel, "internal/platform/apiserver") || under(rel, "cmd/crm-api")) {
+			add(RuleReadPathImport, imp.Pos(), "read path imports the projection rebuild "+p)
+		}
 		if internalRest == "imports" || strings.HasPrefix(internalRest, "imports/") {
 			readPath := false
 			for _, d := range readPathDirs {
@@ -408,9 +454,20 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 					if m := appendOnlyWrite.FindString(s); m != "" && !isTest {
 						add(RuleAppendOnlyWrite, x.Pos(), "mutates an append-only table: "+m)
 					}
+					reportingSQL := under(rel, "internal/reporting") && sqlish.MatchString(s)
 					if !isTest && (under(rel, "internal/cases") || under(rel, "internal/custody") || under(rel, "internal/billing") ||
-						under(rel, "internal/payments")) && phoneLiteral.MatchString(s) {
+						under(rel, "internal/payments") || reportingSQL) && phoneLiteral.MatchString(s) {
 						add(RulePhoneKey, x.Pos(), "phone in a cases/custody/billing/payments literal; phone is never a key or join")
+					}
+					if !isTest && under(rel, "internal/reporting") && ownerSchemaRead.MatchString(s) {
+						add(RuleReportingRead, x.Pos(), "reporting reads an owner schema: "+ownerSchemaRead.FindString(s))
+					}
+					if !isTest && under(rel, "internal/reporting") && !under(rel, "internal/reporting/query") && !under(rel, "internal/reporting/domain") &&
+						aggregateSQL.MatchString(s) {
+						add(RuleMetricFormula, x.Pos(), "aggregate SQL outside the shared report query spec: "+aggregateSQL.FindString(s))
+					}
+					if !isTest && (under(rel, "internal/reporting") || under(rel, "internal/platform/apiserver")) && exportLiteral.MatchString(s) {
+						add(RuleExportEndpoint, x.Pos(), "export/download literal: "+exportLiteral.FindString(s))
 					}
 					if !under(rel, legacyInteg) && statusFallbackSQL.MatchString(s) {
 						add(RuleStatusFallback, x.Pos(), "COALESCE status fallback outside the legacy connector (TAD #20 deferred)")

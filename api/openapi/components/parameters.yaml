@@ -341,3 +341,108 @@ InvoiceLinkState:
   schema:
     type: string
     enum: [RESOLVED, UNKNOWN]
+
+MetricID:
+  name: metric_id
+  in: path
+  required: true
+  schema:
+    type: string
+    pattern: '^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$'
+    maxLength: 80
+
+ReportTimeBasis:
+  name: time_basis
+  in: query
+  required: false
+  schema:
+    $ref: './reporting.yaml#/ReportTimeBasis'
+
+RangeFrom:
+  name: from
+  in: query
+  required: false
+  description: EVENT_RANGE start (inclusive, RFC 3339 UTC).
+  schema:
+    $ref: './schemas.yaml#/Timestamp'
+
+RangeTo:
+  name: to
+  in: query
+  required: false
+  description: EVENT_RANGE end (exclusive, RFC 3339 UTC).
+  schema:
+    $ref: './schemas.yaml#/Timestamp'
+
+AsOf:
+  name: as_of
+  in: query
+  required: false
+  description: HISTORICAL_AS_OF instant (RFC 3339 UTC).
+  schema:
+    $ref: './schemas.yaml#/Timestamp'
+
+RunID:
+  name: run_id
+  in: query
+  required: false
+  description: Pin the projection run (cutoff) to reproduce an answer.
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
+ReportScope:
+  name: scope
+  in: query
+  required: false
+  description: Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client).
+  schema:
+    type: string
+    enum: [ORGANIZATION]
+
+OriginalOwnerResolution:
+  name: original_owner_resolution
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [RESOLVED, RELATED, UNKNOWN, CONFLICT, NOT_RECOVERABLE, NOT_CAPTURED]
+
+MainMapping:
+  name: main_mapping
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [KNOWN_VOCABULARY, UNKNOWN, EMPTY]
+
+TotalClass:
+  name: total_class
+  in: query
+  required: false
+  schema:
+    $ref: './billing.yaml#/TotalClass'
+
+InvoiceUnit:
+  name: unit
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [IRT, IRR, UNATTRIBUTED]
+
+PaymentUnit:
+  name: unit
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [IRT, IRR, NONE]
+
+ReportAttemptState:
+  name: state
+  in: query
+  required: false
+  description: Explicit attempt state, or UNMAPPED when the raw state has no verified mapping.
+  schema:
+    type: string
+    enum: [PENDING, ACCEPTED, REJECTED, CANCELLED, RECONCILIATION_REQUIRED, UNMAPPED]

@@ -73,7 +73,7 @@ jobs:
         run: go test -count=1 -race ./...
 
       - name: Architecture / import lint
-        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern|TestSliceThreeRules|TestAPIServerHasNoLegacyDependency|TestSliceFourRules|TestSliceFiveRules|TestSliceSixRules|TestSliceSevenRules|TestAPIServerHasNoImportDependency' -v ./internal/architecture/
+        run: go test -count=1 -run 'TestRepositoryPassesArchitectureLint|TestViolatingFixtureFails|TestFixtureAllowedCases|TestDotImportRule|TestSliceOneRules|TestRuntimeDDLPattern|TestSliceThreeRules|TestAPIServerHasNoLegacyDependency|TestSliceFourRules|TestSliceFiveRules|TestSliceSixRules|TestSliceSevenRules|TestSliceEightRules|TestAPIServerHasNoImportDependency' -v ./internal/architecture/
 
       - name: Kernel is standard-library only
         shell: bash
@@ -109,6 +109,18 @@ jobs:
 
       - name: Slice 7 billing + payments read shadow gates (verbose; synthetic data only; separate states, per-unit totals, stale-batch reconciliation)
         run: go test -count=1 -v ./internal/billing/... ./internal/payments/... ./internal/integration/legacy/shadow/ ./cmd/crm-legacy-import/ ./cmd/crm-api/ ./internal/architecture/
+
+      - name: Slice 8 MIS / reporting read gates (verbose; synthetic data only; INV-021 parity, temporal modes, audited Invoice Review, no export)
+        run: |
+          go test -count=1 -v ./internal/reporting/... ./cmd/crm-reporting/ ./cmd/crm-api/
+          go test -count=1 -v -run 'Reporting' ./internal/integration/legacy/shadow/
+
+      - name: Slice 8 boundary — crm-api never reaches the projection rebuild
+        shell: bash
+        run: |
+          module="$(go list -m)"
+          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/reporting/projections$" || true)"
+          if [ -n "$bad" ]; then echo "crm-api depends on the offline projection rebuild:"; echo "$bad"; exit 1; fi
 
       - name: Slice 3 boundary — crm-api never reaches the legacy connector
         shell: bash
@@ -195,6 +207,20 @@ jobs:
           test "$pii" = "0" || { echo "billing/payments has a PII/URL/token or float/numeric column"; exit 1; }
           ledger="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('billing', 'payments') AND table_name ~ '(ledger|wallet|posting)'")"
           test "$ledger" = "0" || { echo "finance ledger/wallet tables must not exist in Slice 7"; exit 1; }
+          # Slice 8 reporting projections (insert-only; no PII; no owner-schema reference).
+          for f in 00005_identity_reporting_capabilities.sql 00001_reporting.sql 00002_reporting_append_only_guards.sql; do
+            grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
+          done
+          s8="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'reporting'")"
+          test "$s8" = "12" || { echo "expected 12 reporting tables (9 projection + 3 infra), got $s8"; exit 1; }
+          guards="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_name LIKE '%_append_only' AND trigger_schema = 'reporting'")"
+          test "$guards" = "9" || { echo "reporting append-only triggers missing: $guards"; exit 1; }
+          bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'reporting' AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name NOT IN ('outbox_event', 'inbox_message', 'idempotency_record')))")"
+          test "$bad" = "0" || { echo "reporting projections must be insert-only"; exit 1; }
+          foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'reporting' AND grantee NOT IN ('crm_owner_reporting', current_user)")"
+          test "$foreign" = "0" || { echo "foreign role granted on reporting"; exit 1; }
+          pii="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'reporting' AND (column_name ~* '(phone|address|postcode|national|email|url|path|token|secret|authority)' OR data_type IN ('real', 'double precision', 'numeric'))")"
+          test "$pii" = "0" || { echo "reporting has a PII/URL/token or float/numeric column"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

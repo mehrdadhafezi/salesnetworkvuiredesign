@@ -38,6 +38,9 @@
 !internal/billing/migrations/body/*.sql
 !internal/payments/migrations/sql/*.sql
 !internal/payments/migrations/body/*.sql
+# Slice 8: reporting projections.
+!internal/reporting/migrations/sql/*.sql
+!internal/reporting/migrations/body/*.sql
 
 # Legacy snapshot packages may contain PII: never committed (Slice 3, D-23).
 # Tests build synthetic packages in temporary directories only.

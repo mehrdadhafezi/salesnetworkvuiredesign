@@ -40,6 +40,8 @@ tags:
     description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
   - name: sales
     description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
+  - name: reporting
+    description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: billing
     description: Slice 7 billing + payments read shadow — invoices, lines, stages, attempts, receipt references (read only; no actions).
 paths:
@@ -1200,6 +1202,518 @@ paths:
           $ref: './components/responses.yaml#/Problem'
         '403':
           $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reporting/metrics:
+    get:
+      tags: [reporting]
+      operationId: listReportingMetrics
+      summary: List metric contracts with their current values
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        NOT_FINAL contracts (OPD-07, F02/TAD #20) are listed without a value.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/MetricListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reporting/metrics/{metric_id}:
+    get:
+      tags: [reporting]
+      operationId: getReportingMetric
+      summary: Evaluate one metric through its contract query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/MetricID'
+        - $ref: './components/parameters.yaml#/ReportTimeBasis'
+        - $ref: './components/parameters.yaml#/RangeFrom'
+        - $ref: './components/parameters.yaml#/RangeTo'
+        - $ref: './components/parameters.yaml#/AsOf'
+        - $ref: './components/parameters.yaml#/RunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/MetricEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reports/cases:
+    get:
+      tags: [reporting]
+      operationId: getCaseReport
+      summary: "Case report: full-membership summary + one page of rows (same query)"
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Pagination limits rows only; the summary is the aggregate of the full membership.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/ReportScope'
+        - $ref: './components/parameters.yaml#/ReportTimeBasis'
+        - $ref: './components/parameters.yaml#/RangeFrom'
+        - $ref: './components/parameters.yaml#/RangeTo'
+        - $ref: './components/parameters.yaml#/AsOf'
+        - $ref: './components/parameters.yaml#/RunID'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/WorkflowType'
+        - $ref: './components/parameters.yaml#/StateMapping'
+        - $ref: './components/parameters.yaml#/CustomerLinkState'
+        - $ref: './components/parameters.yaml#/OriginalOwnerResolution'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/CaseReportEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reports/cases/{case_id}:
+    get:
+      tags: [reporting]
+      operationId: getCaseReportRow
+      summary: One cases row with its membership in the same query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CaseID'
+        - $ref: './components/parameters.yaml#/ReportScope'
+        - $ref: './components/parameters.yaml#/ReportTimeBasis'
+        - $ref: './components/parameters.yaml#/RangeFrom'
+        - $ref: './components/parameters.yaml#/RangeTo'
+        - $ref: './components/parameters.yaml#/AsOf'
+        - $ref: './components/parameters.yaml#/RunID'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/WorkflowType'
+        - $ref: './components/parameters.yaml#/StateMapping'
+        - $ref: './components/parameters.yaml#/CustomerLinkState'
+        - $ref: './components/parameters.yaml#/OriginalOwnerResolution'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/CaseDetailEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reports/custody:
+    get:
+      tags: [reporting]
+      operationId: getCustodyReport
+      summary: "Custody report: full-membership summary + one page of rows (same query)"
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Pagination limits rows only; the summary is the aggregate of the full membership.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/ReportScope'
+        - $ref: './components/parameters.yaml#/ReportTimeBasis'
+        - $ref: './components/parameters.yaml#/RangeFrom'
+        - $ref: './components/parameters.yaml#/RangeTo'
+        - $ref: './components/parameters.yaml#/AsOf'
+        - $ref: './components/parameters.yaml#/RunID'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/Parity'
+        - $ref: './components/parameters.yaml#/Derivation'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/CustodyReportEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reports/custody/{case_id}:
+    get:
+      tags: [reporting]
+      operationId: getCustodyReportRow
+      summary: One custody row with its membership in the same query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CaseID'
+        - $ref: './components/parameters.yaml#/ReportScope'
+        - $ref: './components/parameters.yaml#/ReportTimeBasis'
+        - $ref: './components/parameters.yaml#/RangeFrom'
+        - $ref: './components/parameters.yaml#/RangeTo'
+        - $ref: './components/parameters.yaml#/AsOf'
+        - $ref: './components/parameters.yaml#/RunID'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/Parity'
+        - $ref: './components/parameters.yaml#/Derivation'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/CustodyDetailEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reports/invoices:
+    get:
+      tags: [reporting]
+      operationId: getInvoiceReport
+      summary: "Invoice report: full-membership summary + one page of rows (same query)"
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Pagination limits rows only; the summary is the aggregate of the full membership.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/ReportScope'
+        - $ref: './components/parameters.yaml#/ReportTimeBasis'
+        - $ref: './components/parameters.yaml#/RangeFrom'
+        - $ref: './components/parameters.yaml#/RangeTo'
+        - $ref: './components/parameters.yaml#/AsOf'
+        - $ref: './components/parameters.yaml#/RunID'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/CustomerLinkState'
+        - $ref: './components/parameters.yaml#/CaseLinkState'
+        - $ref: './components/parameters.yaml#/HasUnknownStatus'
+        - $ref: './components/parameters.yaml#/MainMapping'
+        - $ref: './components/parameters.yaml#/TotalClass'
+        - $ref: './components/parameters.yaml#/InvoiceUnit'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/InvoiceReportEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reports/invoices/{invoice_id}:
+    get:
+      tags: [reporting]
+      operationId: getInvoiceReportRow
+      summary: One invoices row with its membership in the same query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/InvoiceID'
+        - $ref: './components/parameters.yaml#/ReportScope'
+        - $ref: './components/parameters.yaml#/ReportTimeBasis'
+        - $ref: './components/parameters.yaml#/RangeFrom'
+        - $ref: './components/parameters.yaml#/RangeTo'
+        - $ref: './components/parameters.yaml#/AsOf'
+        - $ref: './components/parameters.yaml#/RunID'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/CustomerLinkState'
+        - $ref: './components/parameters.yaml#/CaseLinkState'
+        - $ref: './components/parameters.yaml#/HasUnknownStatus'
+        - $ref: './components/parameters.yaml#/MainMapping'
+        - $ref: './components/parameters.yaml#/TotalClass'
+        - $ref: './components/parameters.yaml#/InvoiceUnit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/InvoiceDetailFactEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reports/payments:
+    get:
+      tags: [reporting]
+      operationId: getPaymentReport
+      summary: "Payment report: full-membership summary + one page of rows (same query)"
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Pagination limits rows only; the summary is the aggregate of the full membership.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/ReportScope'
+        - $ref: './components/parameters.yaml#/ReportTimeBasis'
+        - $ref: './components/parameters.yaml#/RangeFrom'
+        - $ref: './components/parameters.yaml#/RangeTo'
+        - $ref: './components/parameters.yaml#/AsOf'
+        - $ref: './components/parameters.yaml#/RunID'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/PaymentChannel'
+        - $ref: './components/parameters.yaml#/ReportAttemptState'
+        - $ref: './components/parameters.yaml#/TargetMapping'
+        - $ref: './components/parameters.yaml#/ApprovalProvenance'
+        - $ref: './components/parameters.yaml#/InvoiceLinkState'
+        - $ref: './components/parameters.yaml#/PaymentUnit'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/PaymentReportEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/reports/payments/{attempt_id}:
+    get:
+      tags: [reporting]
+      operationId: getPaymentReportRow
+      summary: One payments row with its membership in the same query
+      description: |
+        Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/AttemptID'
+        - $ref: './components/parameters.yaml#/ReportScope'
+        - $ref: './components/parameters.yaml#/ReportTimeBasis'
+        - $ref: './components/parameters.yaml#/RangeFrom'
+        - $ref: './components/parameters.yaml#/RangeTo'
+        - $ref: './components/parameters.yaml#/AsOf'
+        - $ref: './components/parameters.yaml#/RunID'
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/PaymentChannel'
+        - $ref: './components/parameters.yaml#/ReportAttemptState'
+        - $ref: './components/parameters.yaml#/TargetMapping'
+        - $ref: './components/parameters.yaml#/ApprovalProvenance'
+        - $ref: './components/parameters.yaml#/InvoiceLinkState'
+        - $ref: './components/parameters.yaml#/PaymentUnit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/PaymentDetailEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/mis/overview:
+    get:
+      tags: [reporting]
+      operationId: getMisOverview
+      summary: MIS Today (read only; proven metric contracts only)
+      description: |
+        Requires reporting.mis.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/MisOverviewEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/mis/source-quality:
+    get:
+      tags: [reporting]
+      operationId: getMisSourceQuality
+      summary: Source quality per published source and grain
+      description: |
+        Requires reporting.mis.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/SourceQualityEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/mis/reconciliation:
+    get:
+      tags: [reporting]
+      operationId: getMisReconciliation
+      summary: Projection runs, source coverage, F02/F03 and metric contracts
+      description: |
+        Requires reporting.mis.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/MisReconciliationEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/invoice-review:
+    get:
+      tags: [reporting]
+      operationId: listInvoiceReview
+      summary: Invoice Review QUERY SURFACE (audited read; no export; no target UI)
+      description: |
+        Requires reporting.invoice_review.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Every read is audited first (D-23); if the audit cannot be written the read fails closed (D-45) and returns no row. There is no export.
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/CustomerLinkState'
+        - $ref: './components/parameters.yaml#/CaseLinkState'
+        - $ref: './components/parameters.yaml#/HasUnknownStatus'
+        - $ref: './components/parameters.yaml#/TotalClass'
+        - $ref: './components/parameters.yaml#/InvoiceUnit'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/InvoiceReviewListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/invoice-review/{invoice_id}:
+    get:
+      tags: [reporting]
+      operationId: getInvoiceReview
+      summary: One Invoice Review row (audited read)
+      description: |
+        Requires reporting.invoice_review.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+        Audited first; fails closed when the audit cannot be written (D-45).
+        Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/InvoiceID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/reporting.yaml#/InvoiceReviewEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
         default:
           $ref: './components/responses.yaml#/Problem'
 components:

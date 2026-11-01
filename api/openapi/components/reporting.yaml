@@ -1,0 +1,579 @@
+# Slice 8 MIS / reporting read (read only; no export of any kind).
+# Every answer names the shared query contract (report, scope, filters, time
+# basis, cutoff run), freshness and coverage. A value that cannot be
+# evaluated is null with an explicit state — never zero. The Invoice Review
+# is a QUERY SURFACE ONLY (D-24: no target UI; D-23: no export).
+
+ReportTimeBasis:
+  type: string
+  description: |
+    CURRENT_SNAPSHOT = facts of the latest projection run (state at its source cutoff);
+    EVENT_RANGE = cohort first observed by the target import in [from, to) (UTC; not a legacy business time);
+    HISTORICAL_AS_OF = facts of the latest run whose source cutoff is at or before as_of (state as recorded then; never reconstructed).
+  enum: [CURRENT_SNAPSHOT, EVENT_RANGE, HISTORICAL_AS_OF]
+
+Freshness:
+  type: string
+  description: FRESH / STALE against the contract's freshness SLA; UNKNOWN when no run answers.
+  enum: [FRESH, STALE, UNKNOWN]
+
+CoverageState:
+  type: string
+  enum: [AVAILABLE, PARTIAL, MISSING, UNKNOWN, NOT_RECOVERABLE, STALE]
+
+ReportQuery:
+  type: object
+  description: The normalised shared query contract (card, table and detail use exactly this).
+  required: [report, scope, time_basis, filters]
+  additionalProperties: false
+  properties:
+    report: {type: string, enum: [cases, custody, invoices, payments]}
+    scope: {type: string, enum: [ORGANIZATION]}
+    time_basis: {$ref: '#/ReportTimeBasis'}
+    from: {$ref: './schemas.yaml#/Timestamp'}
+    to: {$ref: './schemas.yaml#/Timestamp'}
+    as_of: {$ref: './schemas.yaml#/Timestamp'}
+    run_id:
+      type: string
+      format: uuid
+      description: The projection run (cutoff) the query resolved to; pass it back to reproduce the same answer.
+    filters:
+      type: object
+      additionalProperties: {type: string, maxLength: 40}
+
+SourceContribution:
+  type: object
+  required: [source, status, reason]
+  additionalProperties: false
+  properties:
+    source: {type: string, maxLength: 20}
+    status: {$ref: '#/CoverageState'}
+    rows_read:
+      type: integer
+      format: int64
+      nullable: true
+    read_at: {$ref: './schemas.yaml#/Timestamp'}
+    reason: {type: string, maxLength: 300}
+
+ProjectionRun:
+  type: object
+  required: [run_id, projection_version, source_cutoff, generated_at, outcome, sources]
+  additionalProperties: false
+  properties:
+    run_id: {$ref: './hr.yaml#/NativeID'}
+    projection_version: {type: integer, minimum: 1}
+    source_cutoff: {$ref: './schemas.yaml#/Timestamp'}
+    generated_at: {$ref: './schemas.yaml#/Timestamp'}
+    outcome: {type: string, enum: [SUCCESS, PARTIAL]}
+    sources:
+      type: array
+      maxItems: 10
+      items: {$ref: '#/SourceContribution'}
+
+ReportMeta:
+  type: object
+  description: Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero).
+  required: [query, available, freshness, coverage, source_coverage]
+  additionalProperties: false
+  properties:
+    query: {$ref: '#/ReportQuery'}
+    available: {type: boolean}
+    run: {$ref: '#/ProjectionRun'}
+    freshness: {$ref: '#/Freshness'}
+    coverage: {$ref: '#/CoverageState'}
+    source_coverage:
+      type: object
+      additionalProperties: {$ref: '#/CoverageState'}
+
+UnitAmount:
+  type: object
+  description: Money aggregate in ONE unit (IRT and IRR are never combined or converted). money is absent on overflow.
+  required: [unit, rows, overflow]
+  additionalProperties: false
+  properties:
+    unit: {type: string, enum: [IRR, IRT]}
+    money: {$ref: './schemas.yaml#/Money'}
+    rows: {type: integer, format: int64}
+    overflow: {type: boolean}
+
+ReportSummary:
+  type: object
+  description: Aggregate of the FULL membership of the query; independent of cursor and limit.
+  required: [total, counts]
+  additionalProperties: false
+  properties:
+    total: {type: integer, format: int64}
+    counts:
+      type: object
+      additionalProperties: {$ref: './sales.yaml#/CountMap'}
+    amounts:
+      type: array
+      maxItems: 4
+      items: {$ref: '#/UnitAmount'}
+    unrepresentable_amounts: {type: integer, format: int64}
+    absent_amounts: {type: integer, format: int64}
+    unit_classes:
+      type: object
+      additionalProperties: {$ref: './sales.yaml#/CountMap'}
+
+CaseFactRow:
+  type: object
+  description: One case fact. Ownership facets stay separate; current custody is in the custody report; next actor is not modelled.
+  required: [case_id, workflow_type, state_namespace, state_raw, state_mapping, customer_link_state, presence, source_spec, source_key,
+    alias_count, first_seen_at, original_owner_resolution, original_seller_resolution, credit_owner_resolution]
+  additionalProperties: false
+  properties:
+    case_id: {$ref: './hr.yaml#/NativeID'}
+    workflow_type: {type: string, maxLength: 40}
+    state_namespace: {type: string, maxLength: 80}
+    state_raw: {$ref: './hr.yaml#/RawText'}
+    state_mapping: {type: string, maxLength: 20}
+    customer_link_state: {$ref: './customers.yaml#/ResolutionState'}
+    presence: {$ref: './hr.yaml#/Presence'}
+    source_spec: {type: string, maxLength: 120}
+    source_key: {$ref: './hr.yaml#/LegacyKey'}
+    alias_count: {type: integer, format: int64}
+    first_seen_at: {$ref: './schemas.yaml#/Timestamp'}
+    original_owner_resolution: {type: string, maxLength: 20}
+    original_owner_key:
+      type: string
+      nullable: true
+      maxLength: 20
+    original_seller_resolution: {type: string, maxLength: 20}
+    original_seller_key:
+      type: string
+      nullable: true
+      maxLength: 20
+    credit_owner_resolution: {type: string, maxLength: 20}
+
+CustodyFactRow:
+  type: object
+  required: [case_id, derivation, parity, event_count, finding_count, presence]
+  additionalProperties: false
+  properties:
+    case_id: {$ref: './hr.yaml#/NativeID'}
+    derivation: {type: string, maxLength: 20}
+    parity: {type: string, maxLength: 20}
+    derived_holder_key:
+      type: string
+      nullable: true
+      maxLength: 20
+    legacy_holder_key:
+      type: string
+      nullable: true
+      maxLength: 20
+    event_count: {type: integer}
+    finding_count: {type: integer, format: int64}
+    presence: {$ref: './hr.yaml#/Presence'}
+
+StateCell:
+  type: object
+  required: [raw, mapping]
+  additionalProperties: false
+  properties:
+    raw: {$ref: './hr.yaml#/RawText'}
+    mapping: {type: string, maxLength: 20}
+
+InvoiceUnitRow:
+  type: object
+  description: One invoice's total evidence in one unit; no canonical total (TAD #19).
+  required: [unit, item_state, stage_state, payment_state, class]
+  additionalProperties: false
+  properties:
+    unit: {type: string, enum: [IRR, IRT, UNATTRIBUTED]}
+    declared_final: {$ref: './schemas.yaml#/Money'}
+    declared_payment_total: {$ref: './schemas.yaml#/Money'}
+    item_sum: {$ref: './schemas.yaml#/Money'}
+    item_state: {type: string, maxLength: 20}
+    stage_sum: {$ref: './schemas.yaml#/Money'}
+    stage_state: {type: string, maxLength: 20}
+    payment_sum: {$ref: './schemas.yaml#/Money'}
+    payment_state: {type: string, maxLength: 20}
+    class: {type: string, maxLength: 20}
+
+InvoiceFactRow:
+  type: object
+  description: One invoice fact; every legacy state field stays separate (TAD #20). No PII.
+  required: [invoice_id, source_spec, source_key, presence, customer_link_state, case_link_state, main, invoice, payment, workflow,
+    return, unknown_state_count, item_count, stage_count, items_complete, stages_complete, first_seen_at, units]
+  additionalProperties: false
+  properties:
+    invoice_id: {$ref: './hr.yaml#/NativeID'}
+    source_spec: {type: string, maxLength: 120}
+    source_key: {$ref: './hr.yaml#/LegacyKey'}
+    presence: {$ref: './hr.yaml#/Presence'}
+    customer_link_state: {$ref: './customers.yaml#/ResolutionState'}
+    case_link_state: {$ref: './customers.yaml#/ResolutionState'}
+    main: {$ref: '#/StateCell'}
+    invoice: {$ref: '#/StateCell'}
+    payment: {$ref: '#/StateCell'}
+    workflow: {$ref: '#/StateCell'}
+    return: {$ref: '#/StateCell'}
+    unknown_state_count: {type: integer, format: int64}
+    item_count: {type: integer, format: int64}
+    stage_count: {type: integer, format: int64}
+    items_complete: {type: boolean}
+    stages_complete: {type: boolean}
+    first_seen_at: {$ref: './schemas.yaml#/Timestamp'}
+    units:
+      type: array
+      maxItems: 4
+      items: {$ref: '#/InvoiceUnitRow'}
+
+PaymentFactRow:
+  type: object
+  required: [attempt_id, invoice_link_state, channel, state_raw, state_mapping, approval_provenance, amount_raw, amount_representation,
+    presence, first_seen_at]
+  additionalProperties: false
+  properties:
+    attempt_id: {$ref: './hr.yaml#/NativeID'}
+    invoice_id:
+      type: string
+      format: uuid
+      nullable: true
+    invoice_link_state: {type: string, enum: [RESOLVED, UNKNOWN]}
+    channel: {type: string, maxLength: 20}
+    state_raw: {$ref: './hr.yaml#/RawText'}
+    state_mapping: {type: string, maxLength: 20}
+    state:
+      type: string
+      nullable: true
+      maxLength: 30
+    approval_provenance: {type: string, maxLength: 30}
+    amount_raw: {$ref: './hr.yaml#/RawText'}
+    money: {$ref: './schemas.yaml#/Money'}
+    amount_representation: {type: string, maxLength: 20}
+    gateway_state:
+      type: string
+      nullable: true
+      maxLength: 30
+    presence: {$ref: './hr.yaml#/Presence'}
+    first_seen_at: {$ref: './schemas.yaml#/Timestamp'}
+
+MetricContract:
+  type: object
+  description: A versioned metric contract. NOT_FINAL contracts are never evaluated.
+  required: [metric_id, version, name, grain, source, cohort, time_bases, scope, formula, unit, freshness_sla_seconds, coverage, status]
+  additionalProperties: false
+  properties:
+    metric_id: {type: string, maxLength: 80}
+    version: {type: integer, minimum: 1}
+    name: {type: string, maxLength: 200}
+    grain: {type: string, maxLength: 120}
+    source: {type: string, maxLength: 200}
+    cohort: {type: string, maxLength: 300}
+    time_bases:
+      type: array
+      maxItems: 3
+      items: {$ref: '#/ReportTimeBasis'}
+    scope: {type: string, maxLength: 200}
+    formula: {type: string, maxLength: 300}
+    unit: {type: string, maxLength: 120}
+    freshness_sla_seconds: {type: integer, format: int64}
+    coverage: {type: string, maxLength: 300}
+    status: {type: string, enum: [FINAL, NOT_FINAL]}
+    status_reason: {type: string, maxLength: 300}
+    finding: {type: string, maxLength: 10}
+
+MetricValue:
+  type: object
+  description: |
+    A metric evaluated through its contract's query. value_state VALUE / INCOMPLETE (coverage not complete) /
+    UNKNOWN (no run or a required source missing; summary absent) / NOT_EVALUATED (NOT_FINAL). Never zero by default.
+  required: [contract, value_state, meta]
+  additionalProperties: false
+  properties:
+    contract: {$ref: '#/MetricContract'}
+    value_state: {type: string, enum: [VALUE, INCOMPLETE, UNKNOWN, NOT_EVALUATED]}
+    reason: {type: string, maxLength: 300}
+    meta: {$ref: '#/ReportMeta'}
+    summary: {$ref: '#/ReportSummary'}
+
+SourceQualityRow:
+  type: object
+  description: Data quality of one published source at an explicit grain. A null class is NOT APPLICABLE (not zero).
+  required: [source, grain, coverage, note]
+  additionalProperties: false
+  properties:
+    source: {type: string, maxLength: 20}
+    grain: {type: string, maxLength: 80}
+    coverage: {$ref: '#/CoverageState'}
+    valid:
+      type: integer
+      format: int64
+      nullable: true
+    duplicate_candidates:
+      type: integer
+      format: int64
+      nullable: true
+    invalid:
+      type: integer
+      format: int64
+      nullable: true
+    unknown:
+      type: integer
+      format: int64
+      nullable: true
+    conflict:
+      type: integer
+      format: int64
+      nullable: true
+    note: {type: string, maxLength: 400}
+
+MisOverview:
+  type: object
+  description: Read-only Today view (proven contracts only; no target or SLA).
+  required: [freshness, coverage, metrics, deferred]
+  additionalProperties: false
+  properties:
+    run: {$ref: '#/ProjectionRun'}
+    freshness: {$ref: '#/Freshness'}
+    coverage: {$ref: '#/CoverageState'}
+    metrics:
+      type: array
+      maxItems: 30
+      items: {$ref: '#/MetricValue'}
+    deferred:
+      type: array
+      maxItems: 30
+      items: {$ref: '#/MetricContract'}
+
+SourceQuality:
+  type: object
+  required: [freshness, rows]
+  additionalProperties: false
+  properties:
+    run: {$ref: '#/ProjectionRun'}
+    freshness: {$ref: '#/Freshness'}
+    rows:
+      type: array
+      maxItems: 20
+      items: {$ref: '#/SourceQualityRow'}
+
+MisReconciliation:
+  type: object
+  required: [runs, f02, f03_total_cases, f03_legacy_leads_only, contracts]
+  additionalProperties: false
+  properties:
+    runs:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/ProjectionRun'}
+    f02: {$ref: '#/MetricValue'}
+    f03_total_cases: {$ref: '#/MetricValue'}
+    f03_legacy_leads_only: {$ref: '#/MetricValue'}
+    contracts:
+      type: array
+      maxItems: 50
+      items: {$ref: '#/MetricContract'}
+
+MetricListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items:
+      type: array
+      maxItems: 50
+      items: {$ref: '#/MetricValue'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+MetricEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/MetricValue'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CaseReportEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    summary: {$ref: '#/ReportSummary'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/CaseFactRow'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CustodyReportEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    summary: {$ref: '#/ReportSummary'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/CustodyFactRow'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+InvoiceReportEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    summary: {$ref: '#/ReportSummary'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/InvoiceFactRow'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+PaymentReportEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    summary: {$ref: '#/ReportSummary'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/PaymentFactRow'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CaseDetailEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    member:
+      type: boolean
+      description: Whether this row belongs to the query's membership (the same predicate as the card and the table).
+    data: {$ref: '#/CaseFactRow'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CustodyDetailEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    member: {type: boolean}
+    data: {$ref: '#/CustodyFactRow'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+InvoiceDetailFactEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    member: {type: boolean}
+    data: {$ref: '#/InvoiceFactRow'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+PaymentDetailEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    member: {type: boolean}
+    data: {$ref: '#/PaymentFactRow'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+MisOverviewEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/MisOverview'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+SourceQualityEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/SourceQuality'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+MisReconciliationEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/MisReconciliation'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+InvoiceReviewListEnvelope:
+  type: object
+  description: Invoice Review QUERY SURFACE (D-23 audited read; no export; D-24 no target UI). Every read is audited first; when the audit cannot be written the read fails closed (D-45).
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    summary: {$ref: '#/ReportSummary'}
+    items:
+      type: array
+      maxItems: 200
+      items: {$ref: '#/InvoiceFactRow'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+InvoiceReviewEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    meta: {$ref: '#/ReportMeta'}
+    data: {$ref: '#/InvoiceFactRow'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}

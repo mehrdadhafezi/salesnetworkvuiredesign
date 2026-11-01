@@ -1,0 +1,20 @@
+/* MIS / reporting read surfaces (Slice 8). Layout only, SN-207 tokens. */
+.rp-note{margin:0 0 12px}
+.rp-ltr{direction:ltr;unicode-bidi:isolate}
+.rp-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--gap)}
+.rp-card{border:1px solid var(--border);border-radius:8px;padding:12px;display:grid;gap:6px}
+.rp-card h3{font-size:var(--fs);margin:0}
+.rp-value{font-size:1.4em;font-weight:600}
+.rp-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}
+.rp-kv{display:grid;grid-template-columns:minmax(140px,max-content) 1fr;gap:6px 16px;margin:0}
+.rp-kv dt{color:var(--text-2)}
+.rp-kv dd{margin:0}
+.rp-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--gap);align-items:end}
+.rp-table-wrap{overflow-x:auto}
+.rp-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.rp-table th,.rp-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.rp-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.rp-pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.rp-sections{display:grid;gap:12px}
+.rp-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+@media (max-width:760px){.rp-filters{grid-template-columns:1fr}.rp-kv{grid-template-columns:1fr}}

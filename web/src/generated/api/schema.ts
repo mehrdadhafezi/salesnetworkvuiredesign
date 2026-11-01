@@ -848,6 +848,328 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reporting/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List metric contracts with their current values
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     NOT_FINAL contracts (OPD-07, F02/TAD #20) are listed without a value.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listReportingMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reporting/metrics/{metric_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evaluate one metric through its contract query
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getReportingMetric"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Case report: full-membership summary + one page of rows (same query)
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Pagination limits rows only; the summary is the aggregate of the full membership.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCaseReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One cases row with its membership in the same query
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCaseReportRow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/custody": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Custody report: full-membership summary + one page of rows (same query)
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Pagination limits rows only; the summary is the aggregate of the full membership.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCustodyReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/custody/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One custody row with its membership in the same query
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCustodyReportRow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invoice report: full-membership summary + one page of rows (same query)
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Pagination limits rows only; the summary is the aggregate of the full membership.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getInvoiceReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/invoices/{invoice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One invoices row with its membership in the same query
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getInvoiceReportRow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payment report: full-membership summary + one page of rows (same query)
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Pagination limits rows only; the summary is the aggregate of the full membership.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getPaymentReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/payments/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One payments row with its membership in the same query
+         * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getPaymentReportRow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mis/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * MIS Today (read only; proven metric contracts only)
+         * @description Requires reporting.mis.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getMisOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mis/source-quality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Source quality per published source and grain
+         * @description Requires reporting.mis.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getMisSourceQuality"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mis/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Projection runs, source coverage, F02/F03 and metric contracts
+         * @description Requires reporting.mis.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getMisReconciliation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoice-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invoice Review QUERY SURFACE (audited read; no export; no target UI)
+         * @description Requires reporting.invoice_review.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Every read is audited first (D-23); if the audit cannot be written the read fails closed (D-45) and returns no row. There is no export.
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listInvoiceReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoice-review/{invoice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One Invoice Review row (audited read)
+         * @description Requires reporting.invoice_review.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
+         *     Audited first; fails closed when the audit cannot be written (D-45).
+         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getInvoiceReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -996,6 +1318,8 @@ export interface components {
                 sales_read: boolean;
                 /** @description Slice 7 billing + payments read shadow (flag billing_payments.read_shadow). */
                 billing_read: boolean;
+                /** @description Slice 8 MIS / reporting read (flag reporting.read_shadow). Never shows an Invoice Review page. */
+                reporting_read: boolean;
             };
         };
         SessionEnvelope: {
@@ -1280,7 +1604,7 @@ export interface components {
          * @description Slice 4 read capability vocabulary (<module>.<object>.<action>).
          * @enum {string}
          */
-        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read";
+        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read" | "reporting.metrics.read" | "reporting.mis.read" | "reporting.invoice_review.read";
         AccessDecision: {
             capability: components["schemas"]["Capability"];
             allowed: boolean;
@@ -2148,6 +2472,384 @@ export interface components {
             data?: components["schemas"]["BillingReconciliationReport"];
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
+        /**
+         * @description CURRENT_SNAPSHOT = facts of the latest projection run (state at its source cutoff);
+         *     EVENT_RANGE = cohort first observed by the target import in [from, to) (UTC; not a legacy business time);
+         *     HISTORICAL_AS_OF = facts of the latest run whose source cutoff is at or before as_of (state as recorded then; never reconstructed).
+         * @enum {string}
+         */
+        ReportTimeBasis: "CURRENT_SNAPSHOT" | "EVENT_RANGE" | "HISTORICAL_AS_OF";
+        /** @description A versioned metric contract. NOT_FINAL contracts are never evaluated. */
+        MetricContract: {
+            metric_id: string;
+            version: number;
+            name: string;
+            grain: string;
+            source: string;
+            cohort: string;
+            time_bases: components["schemas"]["ReportTimeBasis"][];
+            scope: string;
+            formula: string;
+            unit: string;
+            /** Format: int64 */
+            freshness_sla_seconds: number;
+            coverage: string;
+            /** @enum {string} */
+            status: "FINAL" | "NOT_FINAL";
+            status_reason?: string;
+            finding?: string;
+        };
+        /** @description The normalised shared query contract (card, table and detail use exactly this). */
+        ReportQuery: {
+            /** @enum {string} */
+            report: "cases" | "custody" | "invoices" | "payments";
+            /** @enum {string} */
+            scope: "ORGANIZATION";
+            time_basis: components["schemas"]["ReportTimeBasis"];
+            from?: components["schemas"]["Timestamp"];
+            to?: components["schemas"]["Timestamp"];
+            as_of?: components["schemas"]["Timestamp"];
+            /**
+             * Format: uuid
+             * @description The projection run (cutoff) the query resolved to; pass it back to reproduce the same answer.
+             */
+            run_id?: string;
+            filters: {
+                [key: string]: string;
+            };
+        };
+        /** @enum {string} */
+        CoverageState: "AVAILABLE" | "PARTIAL" | "MISSING" | "UNKNOWN" | "NOT_RECOVERABLE" | "STALE";
+        SourceContribution: {
+            source: string;
+            status: components["schemas"]["CoverageState"];
+            /** Format: int64 */
+            rows_read?: number | null;
+            read_at?: components["schemas"]["Timestamp"];
+            reason: string;
+        };
+        ProjectionRun: {
+            run_id: components["schemas"]["NativeID"];
+            projection_version: number;
+            source_cutoff: components["schemas"]["Timestamp"];
+            generated_at: components["schemas"]["Timestamp"];
+            /** @enum {string} */
+            outcome: "SUCCESS" | "PARTIAL";
+            sources: components["schemas"]["SourceContribution"][];
+        };
+        /**
+         * @description FRESH / STALE against the contract's freshness SLA; UNKNOWN when no run answers.
+         * @enum {string}
+         */
+        Freshness: "FRESH" | "STALE" | "UNKNOWN";
+        /** @description Freshness and coverage of the answer. available=false means no run can answer (UNKNOWN, not zero). */
+        ReportMeta: {
+            query: components["schemas"]["ReportQuery"];
+            available: boolean;
+            run?: components["schemas"]["ProjectionRun"];
+            freshness: components["schemas"]["Freshness"];
+            coverage: components["schemas"]["CoverageState"];
+            source_coverage: {
+                [key: string]: components["schemas"]["CoverageState"];
+            };
+        };
+        /** @description Money aggregate in ONE unit (IRT and IRR are never combined or converted). money is absent on overflow. */
+        UnitAmount: {
+            /** @enum {string} */
+            unit: "IRR" | "IRT";
+            money?: components["schemas"]["Money"];
+            /** Format: int64 */
+            rows: number;
+            overflow: boolean;
+        };
+        /** @description Aggregate of the FULL membership of the query; independent of cursor and limit. */
+        ReportSummary: {
+            /** Format: int64 */
+            total: number;
+            counts: {
+                [key: string]: components["schemas"]["CountMap"];
+            };
+            amounts?: components["schemas"]["UnitAmount"][];
+            /** Format: int64 */
+            unrepresentable_amounts?: number;
+            /** Format: int64 */
+            absent_amounts?: number;
+            unit_classes?: {
+                [key: string]: components["schemas"]["CountMap"];
+            };
+        };
+        /**
+         * @description A metric evaluated through its contract's query. value_state VALUE / INCOMPLETE (coverage not complete) /
+         *     UNKNOWN (no run or a required source missing; summary absent) / NOT_EVALUATED (NOT_FINAL). Never zero by default.
+         */
+        MetricValue: {
+            contract: components["schemas"]["MetricContract"];
+            /** @enum {string} */
+            value_state: "VALUE" | "INCOMPLETE" | "UNKNOWN" | "NOT_EVALUATED";
+            reason?: string;
+            meta: components["schemas"]["ReportMeta"];
+            summary?: components["schemas"]["ReportSummary"];
+        };
+        MetricListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["MetricValue"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        MetricEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["MetricValue"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description One case fact. Ownership facets stay separate; current custody is in the custody report; next actor is not modelled. */
+        CaseFactRow: {
+            case_id: components["schemas"]["NativeID"];
+            workflow_type: string;
+            state_namespace: string;
+            state_raw: components["schemas"]["RawText"];
+            state_mapping: string;
+            customer_link_state: components["schemas"]["ResolutionState"];
+            presence: components["schemas"]["Presence"];
+            source_spec: string;
+            source_key: components["schemas"]["LegacyKey"];
+            /** Format: int64 */
+            alias_count: number;
+            first_seen_at: components["schemas"]["Timestamp"];
+            original_owner_resolution: string;
+            original_owner_key?: string | null;
+            original_seller_resolution: string;
+            original_seller_key?: string | null;
+            credit_owner_resolution: string;
+        };
+        CaseReportEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            summary?: components["schemas"]["ReportSummary"];
+            items?: components["schemas"]["CaseFactRow"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        CaseDetailEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            /** @description Whether this row belongs to the query's membership (the same predicate as the card and the table). */
+            member?: boolean;
+            data?: components["schemas"]["CaseFactRow"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        CustodyFactRow: {
+            case_id: components["schemas"]["NativeID"];
+            derivation: string;
+            parity: string;
+            derived_holder_key?: string | null;
+            legacy_holder_key?: string | null;
+            event_count: number;
+            /** Format: int64 */
+            finding_count: number;
+            presence: components["schemas"]["Presence"];
+        };
+        CustodyReportEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            summary?: components["schemas"]["ReportSummary"];
+            items?: components["schemas"]["CustodyFactRow"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        CustodyDetailEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            member?: boolean;
+            data?: components["schemas"]["CustodyFactRow"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        StateCell: {
+            raw: components["schemas"]["RawText"];
+            mapping: string;
+        };
+        /** @description One invoice's total evidence in one unit; no canonical total (TAD */
+        InvoiceUnitRow: {
+            /** @enum {string} */
+            unit: "IRR" | "IRT" | "UNATTRIBUTED";
+            declared_final?: components["schemas"]["Money"];
+            declared_payment_total?: components["schemas"]["Money"];
+            item_sum?: components["schemas"]["Money"];
+            item_state: string;
+            stage_sum?: components["schemas"]["Money"];
+            stage_state: string;
+            payment_sum?: components["schemas"]["Money"];
+            payment_state: string;
+            class: string;
+        };
+        /** @description One invoice fact; every legacy state field stays separate (TAD */
+        InvoiceFactRow: {
+            invoice_id: components["schemas"]["NativeID"];
+            source_spec: string;
+            source_key: components["schemas"]["LegacyKey"];
+            presence: components["schemas"]["Presence"];
+            customer_link_state: components["schemas"]["ResolutionState"];
+            case_link_state: components["schemas"]["ResolutionState"];
+            main: components["schemas"]["StateCell"];
+            invoice: components["schemas"]["StateCell"];
+            payment: components["schemas"]["StateCell"];
+            workflow: components["schemas"]["StateCell"];
+            return: components["schemas"]["StateCell"];
+            /** Format: int64 */
+            unknown_state_count: number;
+            /** Format: int64 */
+            item_count: number;
+            /** Format: int64 */
+            stage_count: number;
+            items_complete: boolean;
+            stages_complete: boolean;
+            first_seen_at: components["schemas"]["Timestamp"];
+            units: components["schemas"]["InvoiceUnitRow"][];
+        };
+        InvoiceReportEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            summary?: components["schemas"]["ReportSummary"];
+            items?: components["schemas"]["InvoiceFactRow"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        InvoiceDetailFactEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            member?: boolean;
+            data?: components["schemas"]["InvoiceFactRow"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        PaymentFactRow: {
+            attempt_id: components["schemas"]["NativeID"];
+            /** Format: uuid */
+            invoice_id?: string | null;
+            /** @enum {string} */
+            invoice_link_state: "RESOLVED" | "UNKNOWN";
+            channel: string;
+            state_raw: components["schemas"]["RawText"];
+            state_mapping: string;
+            state?: string | null;
+            approval_provenance: string;
+            amount_raw: components["schemas"]["RawText"];
+            money?: components["schemas"]["Money"];
+            amount_representation: string;
+            gateway_state?: string | null;
+            presence: components["schemas"]["Presence"];
+            first_seen_at: components["schemas"]["Timestamp"];
+        };
+        PaymentReportEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            summary?: components["schemas"]["ReportSummary"];
+            items?: components["schemas"]["PaymentFactRow"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        PaymentDetailEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            member?: boolean;
+            data?: components["schemas"]["PaymentFactRow"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Read-only Today view (proven contracts only; no target or SLA). */
+        MisOverview: {
+            run?: components["schemas"]["ProjectionRun"];
+            freshness: components["schemas"]["Freshness"];
+            coverage: components["schemas"]["CoverageState"];
+            metrics: components["schemas"]["MetricValue"][];
+            deferred: components["schemas"]["MetricContract"][];
+        };
+        MisOverviewEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["MisOverview"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Data quality of one published source at an explicit grain. A null class is NOT APPLICABLE (not zero). */
+        SourceQualityRow: {
+            source: string;
+            grain: string;
+            coverage: components["schemas"]["CoverageState"];
+            /** Format: int64 */
+            valid?: number | null;
+            /** Format: int64 */
+            duplicate_candidates?: number | null;
+            /** Format: int64 */
+            invalid?: number | null;
+            /** Format: int64 */
+            unknown?: number | null;
+            /** Format: int64 */
+            conflict?: number | null;
+            note: string;
+        };
+        SourceQuality: {
+            run?: components["schemas"]["ProjectionRun"];
+            freshness: components["schemas"]["Freshness"];
+            rows: components["schemas"]["SourceQualityRow"][];
+        };
+        SourceQualityEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["SourceQuality"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        MisReconciliation: {
+            runs: components["schemas"]["ProjectionRun"][];
+            f02: components["schemas"]["MetricValue"];
+            f03_total_cases: components["schemas"]["MetricValue"];
+            f03_legacy_leads_only: components["schemas"]["MetricValue"];
+            contracts: components["schemas"]["MetricContract"][];
+        };
+        MisReconciliationEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["MisReconciliation"];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Invoice Review QUERY SURFACE (D-23 audited read; no export; D-24 no target UI). Every read is audited first; when the audit cannot be written the read fails closed (D-45). */
+        InvoiceReviewListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            summary?: components["schemas"]["ReportSummary"];
+            items?: components["schemas"]["InvoiceFactRow"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        InvoiceReviewEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["ReportMeta"];
+            data?: components["schemas"]["InvoiceFactRow"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
     };
     responses: {
         /** @description RFC 9457 problem details (transport, contract or server error). */
@@ -2236,6 +2938,25 @@ export interface components {
         InvoiceLinkState: "RESOLVED" | "UNKNOWN";
         AttemptID: components["schemas"]["NativeID"];
         ReceiptID: components["schemas"]["NativeID"];
+        MetricID: string;
+        ReportTimeBasis: components["schemas"]["ReportTimeBasis"];
+        /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+        RangeFrom: components["schemas"]["Timestamp"];
+        /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+        RangeTo: components["schemas"]["Timestamp"];
+        /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+        AsOf: components["schemas"]["Timestamp"];
+        /** @description Pin the projection run (cutoff) to reproduce an answer. */
+        RunID: components["schemas"]["NativeID"];
+        /** @description Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client). */
+        ReportScope: "ORGANIZATION";
+        OriginalOwnerResolution: "RESOLVED" | "RELATED" | "UNKNOWN" | "CONFLICT" | "NOT_RECOVERABLE" | "NOT_CAPTURED";
+        MainMapping: "KNOWN_VOCABULARY" | "UNKNOWN" | "EMPTY";
+        TotalClass: components["schemas"]["TotalClass"];
+        InvoiceUnit: "IRT" | "IRR" | "UNATTRIBUTED";
+        /** @description Explicit attempt state, or UNMAPPED when the raw state has no verified mapping. */
+        ReportAttemptState: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "RECONCILIATION_REQUIRED" | "UNMAPPED";
+        PaymentUnit: "IRT" | "IRR" | "NONE";
     };
     requestBodies: never;
     headers: {
@@ -3400,6 +4121,565 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listReportingMetrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getReportingMetric: {
+        parameters: {
+            query?: {
+                time_basis?: components["parameters"]["ReportTimeBasis"];
+                /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+                from?: components["parameters"]["RangeFrom"];
+                /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+                to?: components["parameters"]["RangeTo"];
+                /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+                as_of?: components["parameters"]["AsOf"];
+                /** @description Pin the projection run (cutoff) to reproduce an answer. */
+                run_id?: components["parameters"]["RunID"];
+            };
+            header?: never;
+            path: {
+                metric_id: components["parameters"]["MetricID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCaseReport: {
+        parameters: {
+            query?: {
+                /** @description Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client). */
+                scope?: components["parameters"]["ReportScope"];
+                time_basis?: components["parameters"]["ReportTimeBasis"];
+                /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+                from?: components["parameters"]["RangeFrom"];
+                /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+                to?: components["parameters"]["RangeTo"];
+                /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+                as_of?: components["parameters"]["AsOf"];
+                /** @description Pin the projection run (cutoff) to reproduce an answer. */
+                run_id?: components["parameters"]["RunID"];
+                presence?: components["parameters"]["Presence"];
+                workflow_type?: components["parameters"]["WorkflowType"];
+                state_mapping?: components["parameters"]["StateMapping"];
+                customer_link_state?: components["parameters"]["CustomerLinkState"];
+                original_owner_resolution?: components["parameters"]["OriginalOwnerResolution"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseReportEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCaseReportRow: {
+        parameters: {
+            query?: {
+                /** @description Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client). */
+                scope?: components["parameters"]["ReportScope"];
+                time_basis?: components["parameters"]["ReportTimeBasis"];
+                /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+                from?: components["parameters"]["RangeFrom"];
+                /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+                to?: components["parameters"]["RangeTo"];
+                /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+                as_of?: components["parameters"]["AsOf"];
+                /** @description Pin the projection run (cutoff) to reproduce an answer. */
+                run_id?: components["parameters"]["RunID"];
+                presence?: components["parameters"]["Presence"];
+                workflow_type?: components["parameters"]["WorkflowType"];
+                state_mapping?: components["parameters"]["StateMapping"];
+                customer_link_state?: components["parameters"]["CustomerLinkState"];
+                original_owner_resolution?: components["parameters"]["OriginalOwnerResolution"];
+            };
+            header?: never;
+            path: {
+                case_id: components["parameters"]["CaseID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseDetailEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCustodyReport: {
+        parameters: {
+            query?: {
+                /** @description Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client). */
+                scope?: components["parameters"]["ReportScope"];
+                time_basis?: components["parameters"]["ReportTimeBasis"];
+                /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+                from?: components["parameters"]["RangeFrom"];
+                /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+                to?: components["parameters"]["RangeTo"];
+                /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+                as_of?: components["parameters"]["AsOf"];
+                /** @description Pin the projection run (cutoff) to reproduce an answer. */
+                run_id?: components["parameters"]["RunID"];
+                presence?: components["parameters"]["Presence"];
+                parity?: components["parameters"]["Parity"];
+                derivation?: components["parameters"]["Derivation"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustodyReportEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCustodyReportRow: {
+        parameters: {
+            query?: {
+                /** @description Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client). */
+                scope?: components["parameters"]["ReportScope"];
+                time_basis?: components["parameters"]["ReportTimeBasis"];
+                /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+                from?: components["parameters"]["RangeFrom"];
+                /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+                to?: components["parameters"]["RangeTo"];
+                /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+                as_of?: components["parameters"]["AsOf"];
+                /** @description Pin the projection run (cutoff) to reproduce an answer. */
+                run_id?: components["parameters"]["RunID"];
+                presence?: components["parameters"]["Presence"];
+                parity?: components["parameters"]["Parity"];
+                derivation?: components["parameters"]["Derivation"];
+            };
+            header?: never;
+            path: {
+                case_id: components["parameters"]["CaseID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustodyDetailEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInvoiceReport: {
+        parameters: {
+            query?: {
+                /** @description Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client). */
+                scope?: components["parameters"]["ReportScope"];
+                time_basis?: components["parameters"]["ReportTimeBasis"];
+                /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+                from?: components["parameters"]["RangeFrom"];
+                /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+                to?: components["parameters"]["RangeTo"];
+                /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+                as_of?: components["parameters"]["AsOf"];
+                /** @description Pin the projection run (cutoff) to reproduce an answer. */
+                run_id?: components["parameters"]["RunID"];
+                presence?: components["parameters"]["Presence"];
+                customer_link_state?: components["parameters"]["CustomerLinkState"];
+                case_link_state?: components["parameters"]["CaseLinkState"];
+                /** @description Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state. */
+                has_unknown_status?: components["parameters"]["HasUnknownStatus"];
+                main_mapping?: components["parameters"]["MainMapping"];
+                total_class?: components["parameters"]["TotalClass"];
+                unit?: components["parameters"]["InvoiceUnit"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceReportEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInvoiceReportRow: {
+        parameters: {
+            query?: {
+                /** @description Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client). */
+                scope?: components["parameters"]["ReportScope"];
+                time_basis?: components["parameters"]["ReportTimeBasis"];
+                /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+                from?: components["parameters"]["RangeFrom"];
+                /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+                to?: components["parameters"]["RangeTo"];
+                /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+                as_of?: components["parameters"]["AsOf"];
+                /** @description Pin the projection run (cutoff) to reproduce an answer. */
+                run_id?: components["parameters"]["RunID"];
+                presence?: components["parameters"]["Presence"];
+                customer_link_state?: components["parameters"]["CustomerLinkState"];
+                case_link_state?: components["parameters"]["CaseLinkState"];
+                /** @description Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state. */
+                has_unknown_status?: components["parameters"]["HasUnknownStatus"];
+                main_mapping?: components["parameters"]["MainMapping"];
+                total_class?: components["parameters"]["TotalClass"];
+                unit?: components["parameters"]["InvoiceUnit"];
+            };
+            header?: never;
+            path: {
+                invoice_id: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetailFactEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPaymentReport: {
+        parameters: {
+            query?: {
+                /** @description Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client). */
+                scope?: components["parameters"]["ReportScope"];
+                time_basis?: components["parameters"]["ReportTimeBasis"];
+                /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+                from?: components["parameters"]["RangeFrom"];
+                /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+                to?: components["parameters"]["RangeTo"];
+                /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+                as_of?: components["parameters"]["AsOf"];
+                /** @description Pin the projection run (cutoff) to reproduce an answer. */
+                run_id?: components["parameters"]["RunID"];
+                presence?: components["parameters"]["Presence"];
+                channel?: components["parameters"]["PaymentChannel"];
+                /** @description Explicit attempt state, or UNMAPPED when the raw state has no verified mapping. */
+                state?: components["parameters"]["ReportAttemptState"];
+                state_mapping?: components["parameters"]["TargetMapping"];
+                approval_provenance?: components["parameters"]["ApprovalProvenance"];
+                invoice_link_state?: components["parameters"]["InvoiceLinkState"];
+                unit?: components["parameters"]["PaymentUnit"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentReportEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPaymentReportRow: {
+        parameters: {
+            query?: {
+                /** @description Part of the query contract; only ORGANIZATION has frozen authority (never broadened by a client). */
+                scope?: components["parameters"]["ReportScope"];
+                time_basis?: components["parameters"]["ReportTimeBasis"];
+                /** @description EVENT_RANGE start (inclusive, RFC 3339 UTC). */
+                from?: components["parameters"]["RangeFrom"];
+                /** @description EVENT_RANGE end (exclusive, RFC 3339 UTC). */
+                to?: components["parameters"]["RangeTo"];
+                /** @description HISTORICAL_AS_OF instant (RFC 3339 UTC). */
+                as_of?: components["parameters"]["AsOf"];
+                /** @description Pin the projection run (cutoff) to reproduce an answer. */
+                run_id?: components["parameters"]["RunID"];
+                presence?: components["parameters"]["Presence"];
+                channel?: components["parameters"]["PaymentChannel"];
+                /** @description Explicit attempt state, or UNMAPPED when the raw state has no verified mapping. */
+                state?: components["parameters"]["ReportAttemptState"];
+                state_mapping?: components["parameters"]["TargetMapping"];
+                approval_provenance?: components["parameters"]["ApprovalProvenance"];
+                invoice_link_state?: components["parameters"]["InvoiceLinkState"];
+                unit?: components["parameters"]["PaymentUnit"];
+            };
+            header?: never;
+            path: {
+                attempt_id: components["parameters"]["AttemptID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentDetailEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getMisOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MisOverviewEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getMisSourceQuality: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceQualityEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getMisReconciliation: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MisReconciliationEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listInvoiceReview: {
+        parameters: {
+            query?: {
+                presence?: components["parameters"]["Presence"];
+                customer_link_state?: components["parameters"]["CustomerLinkState"];
+                case_link_state?: components["parameters"]["CaseLinkState"];
+                /** @description Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state. */
+                has_unknown_status?: components["parameters"]["HasUnknownStatus"];
+                total_class?: components["parameters"]["TotalClass"];
+                unit?: components["parameters"]["InvoiceUnit"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceReviewListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInvoiceReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL, or BLOCKED with FEATURE_DISABLED when reporting.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceReviewEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

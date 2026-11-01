@@ -216,3 +216,46 @@ func (s *Service) CoverageReport(ctx context.Context) (api.Coverage, error) {
 	})
 	return r, err
 }
+
+var _ api.FactSource = (*Service)(nil)
+
+// factPage is the internal page of one enumeration (one snapshot).
+const factPage = 1000
+
+// CaseFacts implements api.FactSource: every Case of one read-only
+// snapshot, with its latest attribution snapshot per facet.
+func (s *Service) CaseFacts(ctx context.Context, fn func(api.CaseFact) error) error {
+	return s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		attr, err := store.LatestSnapshots(ctx, tx)
+		if err != nil {
+			return err
+		}
+		var after *string
+		n := 0
+		for {
+			rows, err := store.ListCases(ctx, tx, store.CaseFilter{}, after, factPage)
+			if err != nil {
+				return err
+			}
+			more := len(rows) > factPage
+			if more {
+				rows = rows[:factPage]
+			}
+			for _, c := range rows {
+				if n++; n > api.MaxFacts {
+					return api.ErrTooManyFacts
+				}
+				if err := fn(api.CaseFact{CaseID: c.CaseID, Workflow: c.Workflow, StateNamespace: c.StateNamespace, StateRaw: c.StateRaw,
+					StateMapping: c.StateMapping, CustomerLinkState: c.CustomerLinkState, Presence: c.Presence, SourceSpec: c.Source.Spec,
+					SourceKey: c.Source.Key, AliasCount: c.AliasCount, FirstSeenAt: c.Source.FirstSeen, Attribution: attr[c.CaseID]}); err != nil {
+					return err
+				}
+			}
+			if !more {
+				return nil
+			}
+			last := rows[len(rows)-1].CaseID
+			after = &last
+		}
+	})
+}

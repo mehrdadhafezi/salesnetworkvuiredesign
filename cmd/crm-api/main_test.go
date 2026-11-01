@@ -37,3 +37,11 @@ func TestBillingSurfaceIsAllOrNone(t *testing.T) {
 		t.Fatalf("partial billing config: %v", err)
 	}
 }
+
+func TestReportingSurfaceNeedsFlagStore(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	partial := map[string]string{"CRM_ENV": "test", EnvReportingReadURL: "postgres://x@127.0.0.1:1/x"}
+	if err := run(context.Background(), env(partial), logger); !errors.Is(err, ErrReportingConfig) {
+		t.Fatalf("partial reporting config: %v", err)
+	}
+}

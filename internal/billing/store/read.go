@@ -401,3 +401,28 @@ func Coverage(ctx context.Context, tx db.Tx) (api.Coverage, error) {
 	}
 	return r, nil
 }
+
+// AllStates returns every invoice's state evidence in one query.
+func AllStates(ctx context.Context, tx db.Tx) (map[string]map[api.StateField]api.StateFact, error) {
+	if err := ReadTx(tx); err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query(ctx, `SELECT invoice_id::text, field, raw_value, mapping FROM billing.invoice_state_evidence`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]map[api.StateField]api.StateFact{}
+	for rows.Next() {
+		var id, field string
+		var f api.StateFact
+		if err := rows.Scan(&id, &field, &f.Raw, &f.Mapping); err != nil {
+			return nil, err
+		}
+		if out[id] == nil {
+			out[id] = map[api.StateField]api.StateFact{}
+		}
+		out[id][api.StateField(field)] = f
+	}
+	return out, rows.Err()
+}
