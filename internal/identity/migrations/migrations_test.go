@@ -46,7 +46,7 @@ func TestSourceValidates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) != 7 || names[6] != "00007_identity_biawin_capabilities.sql" || names[5] != "00006_identity_finance_capabilities.sql" || names[4] != "00005_identity_reporting_capabilities.sql" || names[0] != "00001_identity.sql" || names[1] != "00002_identity_customer_capabilities.sql" ||
+	if len(names) != 8 || names[7] != "00008_identity_write_capabilities.sql" || names[6] != "00007_identity_biawin_capabilities.sql" || names[5] != "00006_identity_finance_capabilities.sql" || names[4] != "00005_identity_reporting_capabilities.sql" || names[0] != "00001_identity.sql" || names[1] != "00002_identity_customer_capabilities.sql" ||
 		names[2] != "00003_identity_sales_capabilities.sql" || names[3] != "00004_identity_billing_capabilities.sql" {
 		t.Fatalf("migration files = %v", names)
 	}

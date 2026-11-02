@@ -464,7 +464,8 @@ Capability:
     billing.invoice.read, payments.attempt.read, billing.reconciliation.read,
     reporting.metrics.read, reporting.mis.read, reporting.invoice_review.read,
     finance.shadow.read, finance.ledger.read, finance.reconciliation.read,
-    biawin.subscription.read, fulfillment.case.read, biawin.parity.read]
+    biawin.subscription.read, fulfillment.case.read, biawin.parity.read,
+    cases.contact_outcome.record, org.hr_request.create, org.hr_request.review, org.hr_request.read, integration.writeback.read]
 
 AccessDecision:
   type: object

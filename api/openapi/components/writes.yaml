@@ -1,0 +1,316 @@
+# Slice 11 controlled non-financial writes (commands + their reads).
+# Only evidenced, safe commands exist: RecordContactOutcome, CreateHRRequest
+# and DecideHRRequest (step approval / rejection). Invoice issue, ordinary
+# return, release, reset, transfer, allocation, ready and HR final apply are
+# unavailable (ADR-01, F01, OPD-02/03/05/10, SD-04). Legacy stays the master:
+# a command result names its rollout mode and the legacy write-back state;
+# "applied" never means the legacy write-back completed.
+
+RolloutMode:
+  type: string
+  description: TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+  enum: [TARGET_WRITE_DISABLED, SHADOW_COMPARE, CONTROLLED_WRITEBACK]
+
+CommandWritebackState:
+  type: string
+  description: Write-back state at commit time. The final legacy outcome is read from the write-back command (never assumed).
+  enum: [LEGACY_WRITEBACK_PENDING, NOT_REQUESTED]
+
+BlockedAction:
+  type: object
+  description: An action that exists in legacy but is unavailable here, with the decisions blocking it. Never clickable.
+  required: [action, blocked_by]
+  additionalProperties: false
+  properties:
+    action: {type: string, maxLength: 60}
+    blocked_by:
+      type: array
+      maxItems: 10
+      items: {type: string, maxLength: 60}
+
+CommandResult:
+  type: object
+  required: [rollout_mode, applied, writeback_state, blocked_by]
+  additionalProperties: false
+  properties:
+    command_id: {type: string, format: uuid, nullable: true}
+    rollout_mode: {$ref: '#/RolloutMode'}
+    applied: {type: boolean}
+    writeback_state: {$ref: '#/CommandWritebackState'}
+    blocked_by: {type: array, maxItems: 10, items: {type: string, maxLength: 60}}
+    version: {type: integer, format: int64, nullable: true}
+    current_version: {type: integer, format: int64, nullable: true}
+    request_id: {type: string, format: uuid, nullable: true}
+    request_status: {type: string, maxLength: 40, nullable: true}
+    replayed: {type: boolean}
+
+CommandEnvelope:
+  type: object
+  description: 'Result of one command: SUCCESS (applied or shadow-evaluated), BLOCKED (feature or policy), UNKNOWN (reconcile, never resubmit blindly).'
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    command: {$ref: '#/CommandResult'}
+
+ContactOutcomeRequest:
+  type: object
+  description: 'Field scope of RecordContactOutcome. DUPLICATE (D-29/D-31) and PRE_INVOICE (ADR-01) are accepted only to be refused as BLOCKED.'
+  required: [outcome]
+  additionalProperties: false
+  properties:
+    outcome: {type: string, enum: [NO_ANSWER, CALLBACK, NOT_PURCHASED, DUPLICATE, PRE_INVOICE]}
+    reason: {type: string, minLength: 1, maxLength: 1000}
+    callback_at: {$ref: './schemas.yaml#/Timestamp'}
+
+ContactOutcomeCurrent:
+  type: object
+  required: [outcome, last_command_id, recorded_at]
+  additionalProperties: false
+  properties:
+    outcome: {type: string, enum: [NO_ANSWER, CALLBACK, NOT_PURCHASED]}
+    reason: {type: string, maxLength: 1000, nullable: true}
+    callback_at: {type: string, format: date-time, nullable: true}
+    last_command_id: {type: string, format: uuid}
+    recorded_at: {$ref: './schemas.yaml#/Timestamp'}
+
+ContactOutcomeEvent:
+  type: object
+  description: 'Append-only contact outcome history.'
+  required: [event_id, command_id, outcome, before_version, after_version, actor_user_id, correlation_id, occurred_at]
+  additionalProperties: false
+  properties:
+    event_id: {type: string, format: uuid}
+    command_id: {type: string, format: uuid}
+    outcome: {type: string, maxLength: 40}
+    reason: {type: string, maxLength: 1000, nullable: true}
+    callback_at: {type: string, format: date-time, nullable: true}
+    previous_outcome: {type: string, maxLength: 40, nullable: true}
+    before_version: {type: integer, format: int64}
+    after_version: {type: integer, format: int64}
+    actor_user_id: {type: string, format: uuid}
+    correlation_id: {type: string, maxLength: 128}
+    occurred_at: {$ref: './schemas.yaml#/Timestamp'}
+
+ContactOutcomeView:
+  type: object
+  description: 'The case''s contact outcome facts. The contact outcome is never the case state, ready state, invoice or payment state.'
+  required: [case_id, case_version, workflow_type, rollout_mode, history, blocked_actions]
+  additionalProperties: false
+  properties:
+    case_id: {type: string, format: uuid}
+    case_version: {type: integer, format: int64}
+    workflow_type: {type: string, maxLength: 40}
+    rollout_mode: {$ref: '#/RolloutMode'}
+    current: {$ref: '#/ContactOutcomeCurrent'}
+    history: {type: array, maxItems: 200, items: {$ref: '#/ContactOutcomeEvent'}}
+    blocked_actions: {type: array, maxItems: 20, items: {$ref: '#/BlockedAction'}}
+
+ContactOutcomeEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/ContactOutcomeView'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+HRRequestType:
+  type: string
+  enum: [transfer_seller, terminate_seller]
+
+HRRequestStatus:
+  type: string
+  description: Legacy HR request namespace (preserved). pending_hr is NOT applied; approved / failed are never reached in Slice 11.
+  enum: [pending_review, pending_hr, approved, rejected, cancelled, failed]
+
+HRRequestCreateRequest:
+  type: object
+  required: [request_type, subject_user_id, reason]
+  additionalProperties: false
+  properties:
+    request_type: {$ref: '#/HRRequestType'}
+    subject_user_id: {type: string, format: uuid}
+    target_parent_user_id: {type: string, format: uuid}
+    reason: {type: string, minLength: 1, maxLength: 1000}
+
+HRDecisionRequest:
+  type: object
+  required: [decision]
+  additionalProperties: false
+  properties:
+    decision: {type: string, enum: [approve, reject]}
+    notes: {type: string, minLength: 1, maxLength: 1000}
+
+HRRequest:
+  type: object
+  description: 'Requester, subject parent, target and reviewer are snapshots taken at the transition.'
+  required: [request_id, request_type, status, subject_user_id, requested_by_user_id, reason, version, created_at, updated_at, blocked_actions]
+  additionalProperties: false
+  properties:
+    request_id: {type: string, format: uuid}
+    request_type: {$ref: '#/HRRequestType'}
+    status: {$ref: '#/HRRequestStatus'}
+    subject_user_id: {type: string, format: uuid}
+    subject_parent_user_id: {type: string, format: uuid, nullable: true}
+    target_parent_user_id: {type: string, format: uuid, nullable: true}
+    requested_by_user_id: {type: string, format: uuid}
+    current_reviewer_user_id: {type: string, format: uuid, nullable: true}
+    reason: {type: string, maxLength: 1000}
+    reviewer_notes: {type: string, maxLength: 1000, nullable: true}
+    version: {type: integer, format: int64}
+    created_at: {$ref: './schemas.yaml#/Timestamp'}
+    updated_at: {$ref: './schemas.yaml#/Timestamp'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+    blocked_actions: {type: array, maxItems: 20, items: {$ref: '#/BlockedAction'}}
+
+HRRequestEvent:
+  type: object
+  description: 'Append-only HR request history.'
+  required: [event_id, command_id, action, to_status, after_version, actor_user_id, correlation_id, occurred_at]
+  additionalProperties: false
+  properties:
+    event_id: {type: string, format: uuid}
+    command_id: {type: string, format: uuid}
+    action: {type: string, enum: [created, approved_step, rejected]}
+    from_status: {type: string, maxLength: 40, nullable: true}
+    to_status: {type: string, maxLength: 40}
+    next_reviewer_user_id: {type: string, format: uuid, nullable: true}
+    notes: {type: string, maxLength: 1000, nullable: true}
+    after_version: {type: integer, format: int64}
+    actor_user_id: {type: string, format: uuid}
+    correlation_id: {type: string, maxLength: 128}
+    occurred_at: {$ref: './schemas.yaml#/Timestamp'}
+
+HRRequestListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    rollout_mode: {$ref: '#/RolloutMode'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/HRRequest'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+HRRequestEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    rollout_mode: {$ref: '#/RolloutMode'}
+    request: {$ref: '#/HRRequest'}
+    history: {type: array, maxItems: 200, items: {$ref: '#/HRRequestEvent'}}
+
+WritebackState:
+  type: string
+  description: APPLIED only when legacy reported SUCCESS or observation proved the effect; UNKNOWN is reconciled before any retry; REJECTED keeps target history and opens reconciliation.
+  enum: [PENDING, WAITING_DEPENDENCY, APPLIED, UNKNOWN, REJECTED, RECONCILIATION_REQUIRED, COMPARED]
+
+ParityResult11:
+  type: string
+  enum: [MATCH, MISMATCH, UNKNOWN, CONFLICT, INCOMPLETE]
+
+WritebackAttempt:
+  type: object
+  required: [attempt_no, kind, outcome, reasons, service_actor, started_at, finished_at]
+  additionalProperties: false
+  properties:
+    attempt_no: {type: integer}
+    kind: {type: string, enum: [APPLY, OBSERVE]}
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    observation: {type: string, enum: [COMMITTED, ABSENT, AMBIGUOUS, UNKNOWN], nullable: true}
+    reasons: {type: array, maxItems: 10, items: {type: string, maxLength: 80}}
+    legacy_ref: {type: string, maxLength: 128, nullable: true}
+    service_actor: {type: string, maxLength: 80}
+    started_at: {$ref: './schemas.yaml#/Timestamp'}
+    finished_at: {$ref: './schemas.yaml#/Timestamp'}
+
+WritebackReconciliation:
+  type: object
+  required: [reason, attempt_no, next_safe_action, opened_at]
+  additionalProperties: false
+  properties:
+    reason: {type: string, enum: [WRITEBACK_UNKNOWN, WRITEBACK_REJECTED, PARITY_MISMATCH, LEGACY_AMBIGUOUS]}
+    attempt_no: {type: integer}
+    next_safe_action: {type: string, enum: [OBSERVE_LEGACY_BEFORE_RETRY, DOMAIN_OWNER_REVIEW, NO_AUTOMATIC_ACTION]}
+    opened_at: {$ref: './schemas.yaml#/Timestamp'}
+
+WritebackCommand:
+  type: object
+  description: 'One target command''s legacy write-back (no intent payload: no PII).'
+  required: [command_id, source_module, command_type, subject_kind, subject_id, rollout_mode, state, attempts, received_at, updated_at]
+  additionalProperties: false
+  properties:
+    command_id: {type: string, format: uuid}
+    source_module: {type: string, enum: [cases, organization]}
+    command_type: {type: string, maxLength: 80}
+    subject_kind: {type: string, enum: [case, hr_request]}
+    subject_id: {type: string, format: uuid}
+    rollout_mode: {type: string, enum: [SHADOW_COMPARE, CONTROLLED_WRITEBACK]}
+    state: {$ref: '#/WritebackState'}
+    parity: {$ref: '#/ParityResult11'}
+    attempts: {type: integer}
+    legacy_ref: {type: string, maxLength: 128, nullable: true}
+    received_at: {$ref: './schemas.yaml#/Timestamp'}
+    updated_at: {$ref: './schemas.yaml#/Timestamp'}
+    attempt_log: {type: array, maxItems: 50, items: {$ref: '#/WritebackAttempt'}}
+    reconciliations: {type: array, maxItems: 50, items: {$ref: '#/WritebackReconciliation'}}
+
+WritebackCount:
+  type: object
+  required: [key, count]
+  additionalProperties: false
+  properties:
+    key: {type: string, maxLength: 60}
+    count: {type: integer, format: int64}
+
+WritebackSummary:
+  type: object
+  description: 'Bounded diagnostics: pending, unknown, reconciliation backlog and parity counts. No PII, no payloads.'
+  required: [states, parity, reconciliations]
+  additionalProperties: false
+  properties:
+    states: {type: array, maxItems: 20, items: {$ref: '#/WritebackCount'}}
+    parity: {type: array, maxItems: 10, items: {$ref: '#/WritebackCount'}}
+    reconciliations: {type: array, maxItems: 10, items: {$ref: '#/WritebackCount'}}
+
+WritebackSummaryEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/WritebackSummary'}
+
+WritebackCommandListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/WritebackCommand'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+
+WritebackCommandEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/WritebackCommand'}

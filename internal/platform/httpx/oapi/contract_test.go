@@ -217,6 +217,15 @@ func TestResultEnvelopeShape(t *testing.T) {
 	}
 }
 
+// slice11Commands are the only mutating operations: the evidenced, safe
+// Slice 11 commands. No invoice-issue, return, release, reset, transfer,
+// allocation, ready, HR final-apply or generic transition path may appear.
+var slice11Commands = map[string]bool{
+	"/api/v1/cases/{case_id}/contact-outcomes":   true,
+	"/api/v1/hr/requests":                        true,
+	"/api/v1/hr/requests/{request_id}/decisions": true,
+}
+
 // TestNoBusinessOrMutatingEndpoints: Slice 2 exposes exactly the technical
 // surface; no business domain path and no mutating method exists.
 func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
@@ -225,8 +234,8 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 	for path, item := range doc.Paths.Map() {
 		paths = append(paths, path)
 		for method := range item.Operations() {
-			if method != "GET" {
-				t.Fatalf("mutating operation %s %s is not allowed (Slices 2 and 4 are read-only)", method, path)
+			if method != "GET" && !(method == "POST" && slice11Commands[path]) {
+				t.Fatalf("mutating operation %s %s is not allowed (only the Slice 11 evidenced commands mutate)", method, path)
 			}
 		}
 		for _, op := range item.Operations() {
@@ -250,7 +259,8 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		// Slice 7 billing + payments read shadow: GET only, no action path.
 		"/api/v1/billing/reconciliation-report",
 		// Slice 6 sales read shadow: GET only, no action path.
-		"/api/v1/cases", "/api/v1/cases/{case_id}", "/api/v1/cases/{case_id}/attribution", "/api/v1/cases/{case_id}/history",
+		"/api/v1/cases", "/api/v1/cases/{case_id}", "/api/v1/cases/{case_id}/attribution", "/api/v1/cases/{case_id}/contact-outcomes",
+		"/api/v1/cases/{case_id}/history",
 		"/api/v1/custody/assignments", "/api/v1/custody/cases/{case_id}",
 		"/api/v1/customer-identity/merge-cases", "/api/v1/customer-identity/merge-cases/{merge_case_id}",
 		"/api/v1/customer-identity/resolution-report", "/api/v1/customers", "/api/v1/customers/{customer_id}",
@@ -262,6 +272,8 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		// Slice 10 fulfillment read shadow: GET only; no assignment / shipping /
 		// completion / evidence upload / upgrade path.
 		"/api/v1/fulfillment/cases", "/api/v1/fulfillment/cases/{case_id}", "/api/v1/fulfillment/cases/{case_id}/history",
+		// Slice 11 HR change requests: request / step decision only (no final apply path).
+		"/api/v1/hr/requests", "/api/v1/hr/requests/{request_id}", "/api/v1/hr/requests/{request_id}/decisions",
 		"/api/v1/identity/users", "/api/v1/identity/users/{user_id}",
 		"/api/v1/invoice-review", "/api/v1/invoice-review/{invoice_id}",
 		"/api/v1/invoices", "/api/v1/invoices/{invoice_id}", "/api/v1/invoices/{invoice_id}/items", "/api/v1/invoices/{invoice_id}/payments",
@@ -275,7 +287,10 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		"/api/v1/reporting/metrics", "/api/v1/reporting/metrics/{metric_id}", "/api/v1/reports/cases", "/api/v1/reports/cases/{case_id}",
 		"/api/v1/reports/custody", "/api/v1/reports/custody/{case_id}", "/api/v1/reports/invoices", "/api/v1/reports/invoices/{invoice_id}",
 		"/api/v1/reports/payments", "/api/v1/reports/payments/{attempt_id}", "/api/v1/sales/coverage-report", "/api/v1/sales/custody-parity",
-		"/api/v1/session", "/health/live", "/health/ready"}
+		"/api/v1/session",
+		// Slice 11 write-back diagnostics: read only, no fix / retry path.
+		"/api/v1/writeback/commands", "/api/v1/writeback/commands/{command_id}", "/api/v1/writeback/summary",
+		"/health/live", "/health/ready"}
 	if strings.Join(paths, ",") != strings.Join(want, ",") {
 		t.Fatalf("paths = %v", paths)
 	}

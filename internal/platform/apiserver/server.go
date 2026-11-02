@@ -1,8 +1,11 @@
 package apiserver
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -97,8 +100,19 @@ var ContractPaths = map[string][]string{
 	"/api/v1/fulfillment/cases":                            {http.MethodGet},
 	"/api/v1/fulfillment/cases/{case_id}":                  {http.MethodGet},
 	"/api/v1/fulfillment/cases/{case_id}/history":          {http.MethodGet},
-	"/api/v1/invoice-review":                               {http.MethodGet},
-	"/api/v1/invoice-review/{invoice_id}":                  {http.MethodGet},
+	// Slice 11 controlled non-financial writes: only the evidenced safe
+	// commands accept POST; every other path stays GET only. There is no
+	// invoice-issue, return, release, reset, transfer, allocation, ready, HR
+	// final-apply or generic state-transition route.
+	"/api/v1/cases/{case_id}/contact-outcomes":   {http.MethodGet, http.MethodPost},
+	"/api/v1/hr/requests":                        {http.MethodGet, http.MethodPost},
+	"/api/v1/hr/requests/{request_id}":           {http.MethodGet},
+	"/api/v1/hr/requests/{request_id}/decisions": {http.MethodPost},
+	"/api/v1/writeback/summary":                  {http.MethodGet},
+	"/api/v1/writeback/commands":                 {http.MethodGet},
+	"/api/v1/writeback/commands/{command_id}":    {http.MethodGet},
+	"/api/v1/invoice-review":                     {http.MethodGet},
+	"/api/v1/invoice-review/{invoice_id}":        {http.MethodGet},
 }
 
 // ContractQuery is the allowlist of query parameters per Slice 4 path. A
@@ -164,6 +178,14 @@ var ContractQuery = map[string][]string{
 	"/api/v1/finance/ledger/{entry_id}":                     {"run_id"},
 	"/api/v1/finance/balances":                              {"run_id", "basis", "unit", "account_category", "state", "cursor", "limit"},
 	"/api/v1/finance/reconciliation":                        {"run_id", "basis", "unit", "state", "subject_type", "cursor", "limit"},
+	// Slice 11: commands take no query parameters; reads are bounded.
+	"/api/v1/cases/{case_id}/contact-outcomes":   {},
+	"/api/v1/hr/requests":                        {"cursor", "limit"},
+	"/api/v1/hr/requests/{request_id}":           {},
+	"/api/v1/hr/requests/{request_id}/decisions": {},
+	"/api/v1/writeback/summary":                  {},
+	"/api/v1/writeback/commands":                 {"state", "cursor", "limit"},
+	"/api/v1/writeback/commands/{command_id}":    {},
 	// Slice 10: no phone (or any contact) parameter exists on any path.
 	"/api/v1/biawin/subscriptions":                         {"run_id", "state", "customer_link_state", "invoice_link_state", "activation_evidence", "product", "cursor", "limit"},
 	"/api/v1/biawin/subscriptions/{subscription_id}":       {"run_id"},
@@ -282,6 +304,39 @@ type BiawinAPI interface {
 	BiawinEnabled(ctx context.Context) bool
 }
 
+// ContractBody is the field scope of every command body: top-level fields
+// outside the list are refused (400) before any handler runs, so a field
+// outside the command's capability can never be smuggled in.
+var ContractBody = map[string][]string{
+	"/api/v1/cases/{case_id}/contact-outcomes":   {"outcome", "reason", "callback_at"},
+	"/api/v1/hr/requests":                        {"request_type", "subject_user_id", "target_parent_user_id", "reason"},
+	"/api/v1/hr/requests/{request_id}/decisions": {"decision", "notes"},
+}
+
+// CasesWriteAPI is the Slice 11 contact outcome surface (cases module).
+type CasesWriteAPI interface {
+	GetCaseContactOutcomes(ctx context.Context, request oapi.GetCaseContactOutcomesRequestObject) (oapi.GetCaseContactOutcomesResponseObject, error)
+	RecordContactOutcome(ctx context.Context, request oapi.RecordContactOutcomeRequestObject) (oapi.RecordContactOutcomeResponseObject, error)
+	ContactOutcomeWriteEnabled(ctx context.Context) bool
+}
+
+// HRRequestAPI is the Slice 11 HR change request surface (organization).
+type HRRequestAPI interface {
+	ListHRRequests(ctx context.Context, request oapi.ListHRRequestsRequestObject) (oapi.ListHRRequestsResponseObject, error)
+	GetHRRequest(ctx context.Context, request oapi.GetHRRequestRequestObject) (oapi.GetHRRequestResponseObject, error)
+	CreateHRRequest(ctx context.Context, request oapi.CreateHRRequestRequestObject) (oapi.CreateHRRequestResponseObject, error)
+	DecideHRRequest(ctx context.Context, request oapi.DecideHRRequestRequestObject) (oapi.DecideHRRequestResponseObject, error)
+	HRRequestWriteEnabled(ctx context.Context) bool
+}
+
+// WritebackAPI is the Slice 11 write-back diagnostics surface (integration).
+type WritebackAPI interface {
+	GetWritebackSummary(ctx context.Context, request oapi.GetWritebackSummaryRequestObject) (oapi.GetWritebackSummaryResponseObject, error)
+	ListWritebackCommands(ctx context.Context, request oapi.ListWritebackCommandsRequestObject) (oapi.ListWritebackCommandsResponseObject, error)
+	GetWritebackCommand(ctx context.Context, request oapi.GetWritebackCommandRequestObject) (oapi.GetWritebackCommandResponseObject, error)
+	WritebackEnabled(ctx context.Context) bool
+}
+
 // Surfaces are the optional business read surfaces; nil ones answer
 // BLOCKED / FEATURE_DISABLED.
 type Surfaces struct {
@@ -292,6 +347,9 @@ type Surfaces struct {
 	Reporting ReportingAPI
 	Finance   FinanceAPI
 	Biawin    BiawinAPI
+	CaseWrite CasesWriteAPI
+	HRRequest HRRequestAPI
+	Writeback WritebackAPI
 }
 
 // ReadAPI is the Slice 4 read surface (identity, organization,
@@ -324,6 +382,9 @@ type api struct {
 	ReportingAPI
 	FinanceAPI
 	BiawinAPI
+	CasesWriteAPI
+	HRRequestAPI
+	WritebackAPI
 	clock   timeutil.Clock
 	devAuth bool
 }
@@ -372,14 +433,19 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 	data.Features = &struct {
 		BiawinFulfillmentRead bool `json:"biawin_fulfillment_read"`
 		BillingRead           bool `json:"billing_read"`
+		ContactOutcomeWrite   bool `json:"contact_outcome_write"`
 		CustomersIdentity     bool `json:"customers_identity"`
 		FinanceShadowRead     bool `json:"finance_shadow_read"`
 		HrRead                bool `json:"hr_read"`
+		HrRequestWrite        bool `json:"hr_request_write"`
 		ReportingRead         bool `json:"reporting_read"`
 		SalesRead             bool `json:"sales_read"`
+		WritebackRead         bool `json:"writeback_read"`
 	}{BillingRead: a.BillingAPI.BillingEnabled(ctx), CustomersIdentity: a.CustomersAPI.CustomersEnabled(ctx), HrRead: a.ReadAPI.HRReadEnabled(ctx),
 		ReportingRead: a.ReportingAPI.ReportingEnabled(ctx), SalesRead: a.SalesAPI.SalesEnabled(ctx),
-		FinanceShadowRead: a.FinanceAPI.FinanceEnabled(ctx), BiawinFulfillmentRead: a.BiawinAPI.BiawinEnabled(ctx)}
+		FinanceShadowRead: a.FinanceAPI.FinanceEnabled(ctx), BiawinFulfillmentRead: a.BiawinAPI.BiawinEnabled(ctx),
+		ContactOutcomeWrite: a.CasesWriteAPI.ContactOutcomeWriteEnabled(ctx), HrRequestWrite: a.HRRequestAPI.HRRequestWriteEnabled(ctx),
+		WritebackRead: a.WritebackAPI.WritebackEnabled(ctx)}
 	return oapi.GetSession200JSONResponse{Body: oapi.SessionEnvelope{
 		Outcome:       outcome,
 		Reasons:       []oapi.ReasonCode{},
@@ -404,6 +470,7 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 // NewHandlerWithSurfaces builds the full handler chain over every surface.
 func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logger, sf Surfaces) (http.Handler, error) {
 	read, customers, sales, billing, rep, fin, bw := sf.Read, sf.Customers, sf.Sales, sf.Billing, sf.Reporting, sf.Finance, sf.Biawin
+	cw, hrq, wbk := sf.CaseWrite, sf.HRRequest, sf.Writeback
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -431,9 +498,18 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	if bw == nil {
 		bw = unconfiguredBiawin{}
 	}
+	if cw == nil {
+		cw = unconfiguredCaseWrite{}
+	}
+	if hrq == nil {
+		hrq = unconfiguredHRRequest{}
+	}
+	if wbk == nil {
+		wbk = unconfiguredWriteback{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, CasesWriteAPI: cw, HRRequestAPI: hrq, WritebackAPI: wbk, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},
@@ -449,6 +525,7 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 		},
 	})
 	h = queryAllowlist(h)
+	h = bodyAllowlist(h)
 	if cfg.DevAuth {
 		stub, err := authstub.New(cfg.Environment)
 		if err != nil {
@@ -518,6 +595,43 @@ func queryAllowlist(next http.Handler) http.Handler {
 						httpx.WriteProblem(w, r, p)
 						return
 					}
+				}
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// bodyAllowlist refuses a command body that is not a single JSON object of
+// allowlisted top-level fields (ContractBody). It reads the bounded body
+// (LimitBody runs first) and restores it for the handler.
+func bodyAllowlist(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			if t, ok := template(r.URL.Path); ok {
+				if allowed, guarded := ContractBody[t]; guarded {
+					raw, err := io.ReadAll(r.Body)
+					if err != nil {
+						httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
+						return
+					}
+					var fields map[string]json.RawMessage
+					dec := json.NewDecoder(bytes.NewReader(raw))
+					if err := dec.Decode(&fields); err != nil || fields == nil || dec.More() {
+						p := httpx.ProblemBadRequest
+						p.Detail = "The body must be one JSON object."
+						httpx.WriteProblem(w, r, p)
+						return
+					}
+					for k := range fields {
+						if !slices.Contains(allowed, k) {
+							p := httpx.ProblemBadRequest
+							p.Detail = "Field " + strconv.Quote(k) + " is outside this command's field scope."
+							httpx.WriteProblem(w, r, p)
+							return
+						}
+					}
+					r.Body = io.NopCloser(bytes.NewReader(raw))
 				}
 			}
 		}

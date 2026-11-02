@@ -1,0 +1,16 @@
+/* Slice 11 controlled writes. Layout only, SN-207 tokens. */
+.wr-banner{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:0 0 12px;display:grid;gap:6px;background:var(--surface-2)}
+.wr-form{display:grid;gap:var(--gap);max-width:560px}
+.wr-confirm{border:2px solid var(--border);border-radius:8px;padding:12px;display:grid;gap:8px}
+.wr-dl{display:grid;grid-template-columns:minmax(140px,max-content) 1fr;gap:6px 12px;margin:0}
+.wr-dl dt{color:var(--text-2)}
+.wr-dl dd{margin:0}
+.wr-ltr{direction:ltr;unicode-bidi:isolate}
+.wr-actions{display:flex;flex-wrap:wrap;gap:8px}
+.wr-list{margin:0;padding-inline-start:18px;display:grid;gap:4px}
+.wr-table-wrap{overflow-x:auto}
+.wr-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.wr-table th,.wr-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.wr-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.wr-sections{display:grid;gap:12px}
+@media (max-width:760px){.wr-dl{grid-template-columns:1fr}}

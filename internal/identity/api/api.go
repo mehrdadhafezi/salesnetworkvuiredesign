@@ -73,6 +73,14 @@ const (
 	CapBiawinSubscriptionRead Capability = "biawin.subscription.read"
 	CapFulfillmentCaseRead    Capability = "fulfillment.case.read"
 	CapBiawinParityRead       Capability = "biawin.parity.read"
+	// Slice 11 controlled non-financial writes. Command capabilities exist
+	// only for the evidenced safe subset; no role receives them (no frozen
+	// role / capability mapping), so they are granted to nobody.
+	CapContactOutcomeRecord Capability = "cases.contact_outcome.record"
+	CapHRRequestCreate      Capability = "org.hr_request.create"
+	CapHRRequestReview      Capability = "org.hr_request.review"
+	CapHRRequestRead        Capability = "org.hr_request.read"
+	CapWritebackRead        Capability = "integration.writeback.read"
 )
 
 // CapabilityDef is one vocabulary entry.
@@ -106,6 +114,11 @@ var vocabulary = []CapabilityDef{
 	{CapBiawinSubscriptionRead, "Read shadow Biawin subscriptions, their items, invoice links and history (no activation authority)"},
 	{CapFulfillmentCaseRead, "Read shadow fulfillment cases, assignees, evidence metadata and history (no workflow authority)"},
 	{CapBiawinParityRead, "Read the legacy vs target active subscription parity report"},
+	{CapContactOutcomeRecord, "Record the held lead's contact outcome (no invoice, custody or finance effect)"},
+	{CapHRRequestCreate, "Create an HR transfer / termination request for an in-scope seller (no personnel change)"},
+	{CapHRRequestReview, "Step-approve or reject an HR request as its current reviewer (no final apply)"},
+	{CapHRRequestRead, "Read HR requests the caller requested or currently reviews"},
+	{CapWritebackRead, "Read legacy write-back diagnostics (counts, states, attempts; no payloads)"},
 }
 
 // HRReadCapabilities returns the Slice 4 HR read capabilities: the set the

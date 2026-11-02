@@ -1503,6 +1503,169 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cases/{case_id}/contact-outcomes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contact outcome facts of one case (read; allowed_actions from the command evaluator)
+         * @description Requires cases.case.read (flag sales.read_shadow). Read only: never writes, enqueues or reconciles anything.
+         *     allowed_actions[cases.contact_outcome.record] is computed by the same evaluator the command uses (capability + holder row scope + rollout mode).
+         */
+        get: operations["getCaseContactOutcomes"];
+        put?: never;
+        /**
+         * Record the holder seller's contact outcome (NO_ANSWER / CALLBACK / NOT_PURCHASED)
+         * @description Requires cases.contact_outcome.record; flag cases.nonfinancial_write (rollout mode SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+         *     Idempotency-Key is required: same key + same body replays the stored result; same key + another body is 409 CONFLICT.
+         *     Every authority, scope, state and version check is re-evaluated at commit. Unknown body fields are 400.
+         *     SUCCESS with applied=true means the TARGET committed; the legacy write-back is reported separately and may be pending or unknown.
+         *     Row scope: the actor must be the case's current holder; rank never substitutes. Only legacy leads.
+         *     DUPLICATE (D-29/D-31) and PRE_INVOICE (ADR-01) are BLOCKED. Never changes custody, attribution, invoice, payment or finance.
+         */
+        post: operations["recordContactOutcome"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hr/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * HR change requests the caller requested or currently reviews
+         * @description Requires org.hr_request.read (flag organization.hr_request_write). Read only.
+         */
+        get: operations["listHRRequests"];
+        put?: never;
+        /**
+         * Create an HR change request (transfer_seller / terminate_seller)
+         * @description Requires org.hr_request.create; flag organization.hr_request_write (rollout mode SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+         *     Idempotency-Key is required: same key + same body replays the stored result; same key + another body is 409 CONFLICT.
+         *     Every authority, scope, state and version check is re-evaluated at commit. Unknown body fields are 400.
+         *     SUCCESS with applied=true means the TARGET committed; the legacy write-back is reported separately and may be pending or unknown.
+         *     Subject must be a seller below the actor in the current hierarchy; a transfer destination outside the actor's scope or equal to the current parent is BLOCKED (SD-04).
+         *     Creating a request applies nothing: no hierarchy, employment, credential or capability change (OPD-05, D-34, D-42).
+         */
+        post: operations["createHRRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hr/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One HR change request with its append-only history
+         * @description Requires org.hr_request.read (flag organization.hr_request_write). Visible to its requester and current reviewer only.
+         */
+        get: operations["getHRRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hr/requests/{request_id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Step-approve or reject an HR change request as its current reviewer
+         * @description Requires org.hr_request.review; flag organization.hr_request_write (rollout mode SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+         *     Idempotency-Key is required: same key + same body replays the stored result; same key + another body is 409 CONFLICT.
+         *     Every authority, scope, state and version check is re-evaluated at commit. Unknown body fields are 400.
+         *     SUCCESS with applied=true means the TARGET committed; the legacy write-back is reported separately and may be pending or unknown.
+         *     Only the current reviewer of a pending_review request. Final apply (pending_hr / HR) is BLOCKED (OPD-05, SD-04): approved is never reached.
+         */
+        post: operations["decideHRRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/writeback/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Write-back diagnostics: states, parity and reconciliation backlog (counts only)
+         * @description Requires integration.writeback.read (flag integration.writeback_read). Read only; no PII; no payloads; no fix action.
+         */
+        get: operations["getWritebackSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/writeback/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Write-back commands (bounded list)
+         * @description Requires integration.writeback.read (flag integration.writeback_read). Read only; no payloads.
+         */
+        get: operations["listWritebackCommands"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/writeback/commands/{command_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One write-back command with its attempts and reconciliation records
+         * @description Requires integration.writeback.read (flag integration.writeback_read), or the command's own target actor through the domain read.
+         */
+        get: operations["getWritebackCommand"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1657,6 +1820,12 @@ export interface components {
                 finance_shadow_read: boolean;
                 /** @description Slice 10 Biawin / fulfillment READ shadow (flag biawin_fulfillment.read_shadow). Read only; no portal, activation or workflow action. */
                 biawin_fulfillment_read: boolean;
+                /** @description Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server. */
+                contact_outcome_write: boolean;
+                /** @description Slice 11 HR change request family enabled (flag organization.hr_request_write). Navigation hint only. */
+                hr_request_write: boolean;
+                /** @description Slice 11 write-back diagnostics (flag integration.writeback_read). Read only. */
+                writeback_read: boolean;
             };
         };
         SessionEnvelope: {
@@ -1941,7 +2110,7 @@ export interface components {
          * @description Slice 4 read capability vocabulary (<module>.<object>.<action>).
          * @enum {string}
          */
-        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read" | "reporting.metrics.read" | "reporting.mis.read" | "reporting.invoice_review.read" | "finance.shadow.read" | "finance.ledger.read" | "finance.reconciliation.read" | "biawin.subscription.read" | "fulfillment.case.read" | "biawin.parity.read";
+        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read" | "reporting.metrics.read" | "reporting.mis.read" | "reporting.invoice_review.read" | "finance.shadow.read" | "finance.ledger.read" | "finance.reconciliation.read" | "biawin.subscription.read" | "fulfillment.case.read" | "biawin.parity.read" | "cases.contact_outcome.record" | "org.hr_request.create" | "org.hr_request.review" | "org.hr_request.read" | "integration.writeback.read";
         AccessDecision: {
             capability: components["schemas"]["Capability"];
             allowed: boolean;
@@ -3827,6 +3996,262 @@ export interface components {
             page?: components["schemas"]["PageInfo"];
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
+        /**
+         * @description TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+         * @enum {string}
+         */
+        RolloutMode: "TARGET_WRITE_DISABLED" | "SHADOW_COMPARE" | "CONTROLLED_WRITEBACK";
+        ContactOutcomeCurrent: {
+            /** @enum {string} */
+            outcome: "NO_ANSWER" | "CALLBACK" | "NOT_PURCHASED";
+            reason?: string | null;
+            /** Format: date-time */
+            callback_at?: string | null;
+            /** Format: uuid */
+            last_command_id: string;
+            recorded_at: components["schemas"]["Timestamp"];
+        };
+        /** @description Append-only contact outcome history. */
+        ContactOutcomeEvent: {
+            /** Format: uuid */
+            event_id: string;
+            /** Format: uuid */
+            command_id: string;
+            outcome: string;
+            reason?: string | null;
+            /** Format: date-time */
+            callback_at?: string | null;
+            previous_outcome?: string | null;
+            /** Format: int64 */
+            before_version: number;
+            /** Format: int64 */
+            after_version: number;
+            /** Format: uuid */
+            actor_user_id: string;
+            correlation_id: string;
+            occurred_at: components["schemas"]["Timestamp"];
+        };
+        /** @description An action that exists in legacy but is unavailable here, with the decisions blocking it. Never clickable. */
+        BlockedAction: {
+            action: string;
+            blocked_by: string[];
+        };
+        /** @description The case's contact outcome facts. The contact outcome is never the case state, ready state, invoice or payment state. */
+        ContactOutcomeView: {
+            /** Format: uuid */
+            case_id: string;
+            /** Format: int64 */
+            case_version: number;
+            workflow_type: string;
+            rollout_mode: components["schemas"]["RolloutMode"];
+            current?: components["schemas"]["ContactOutcomeCurrent"];
+            history: components["schemas"]["ContactOutcomeEvent"][];
+            blocked_actions: components["schemas"]["BlockedAction"][];
+        };
+        ContactOutcomeEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["ContactOutcomeView"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Field scope of RecordContactOutcome. DUPLICATE (D-29/D-31) and PRE_INVOICE (ADR-01) are accepted only to be refused as BLOCKED. */
+        ContactOutcomeRequest: {
+            /** @enum {string} */
+            outcome: "NO_ANSWER" | "CALLBACK" | "NOT_PURCHASED" | "DUPLICATE" | "PRE_INVOICE";
+            reason?: string;
+            callback_at?: components["schemas"]["Timestamp"];
+        };
+        /**
+         * @description Write-back state at commit time. The final legacy outcome is read from the write-back command (never assumed).
+         * @enum {string}
+         */
+        CommandWritebackState: "LEGACY_WRITEBACK_PENDING" | "NOT_REQUESTED";
+        CommandResult: {
+            /** Format: uuid */
+            command_id?: string | null;
+            rollout_mode: components["schemas"]["RolloutMode"];
+            applied: boolean;
+            writeback_state: components["schemas"]["CommandWritebackState"];
+            blocked_by: string[];
+            /** Format: int64 */
+            version?: number | null;
+            /** Format: int64 */
+            current_version?: number | null;
+            /** Format: uuid */
+            request_id?: string | null;
+            request_status?: string | null;
+            replayed?: boolean;
+        };
+        /** @description Result of one command: SUCCESS (applied or shadow-evaluated), BLOCKED (feature or policy), UNKNOWN (reconcile, never resubmit blindly). */
+        CommandEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            command?: components["schemas"]["CommandResult"];
+        };
+        /** @enum {string} */
+        HRRequestType: "transfer_seller" | "terminate_seller";
+        /**
+         * @description Legacy HR request namespace (preserved). pending_hr is NOT applied; approved / failed are never reached in Slice 11.
+         * @enum {string}
+         */
+        HRRequestStatus: "pending_review" | "pending_hr" | "approved" | "rejected" | "cancelled" | "failed";
+        /** @description Requester, subject parent, target and reviewer are snapshots taken at the transition. */
+        HRRequest: {
+            /** Format: uuid */
+            request_id: string;
+            request_type: components["schemas"]["HRRequestType"];
+            status: components["schemas"]["HRRequestStatus"];
+            /** Format: uuid */
+            subject_user_id: string;
+            /** Format: uuid */
+            subject_parent_user_id?: string | null;
+            /** Format: uuid */
+            target_parent_user_id?: string | null;
+            /** Format: uuid */
+            requested_by_user_id: string;
+            /** Format: uuid */
+            current_reviewer_user_id?: string | null;
+            reason: string;
+            reviewer_notes?: string | null;
+            /** Format: int64 */
+            version: number;
+            created_at: components["schemas"]["Timestamp"];
+            updated_at: components["schemas"]["Timestamp"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+            blocked_actions: components["schemas"]["BlockedAction"][];
+        };
+        HRRequestListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            rollout_mode?: components["schemas"]["RolloutMode"];
+            items?: components["schemas"]["HRRequest"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        HRRequestCreateRequest: {
+            request_type: components["schemas"]["HRRequestType"];
+            /** Format: uuid */
+            subject_user_id: string;
+            /** Format: uuid */
+            target_parent_user_id?: string;
+            reason: string;
+        };
+        /** @description Append-only HR request history. */
+        HRRequestEvent: {
+            /** Format: uuid */
+            event_id: string;
+            /** Format: uuid */
+            command_id: string;
+            /** @enum {string} */
+            action: "created" | "approved_step" | "rejected";
+            from_status?: string | null;
+            to_status: string;
+            /** Format: uuid */
+            next_reviewer_user_id?: string | null;
+            notes?: string | null;
+            /** Format: int64 */
+            after_version: number;
+            /** Format: uuid */
+            actor_user_id: string;
+            correlation_id: string;
+            occurred_at: components["schemas"]["Timestamp"];
+        };
+        HRRequestEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            rollout_mode?: components["schemas"]["RolloutMode"];
+            request?: components["schemas"]["HRRequest"];
+            history?: components["schemas"]["HRRequestEvent"][];
+        };
+        HRDecisionRequest: {
+            /** @enum {string} */
+            decision: "approve" | "reject";
+            notes?: string;
+        };
+        WritebackCount: {
+            key: string;
+            /** Format: int64 */
+            count: number;
+        };
+        /** @description Bounded diagnostics: pending, unknown, reconciliation backlog and parity counts. No PII, no payloads. */
+        WritebackSummary: {
+            states: components["schemas"]["WritebackCount"][];
+            parity: components["schemas"]["WritebackCount"][];
+            reconciliations: components["schemas"]["WritebackCount"][];
+        };
+        WritebackSummaryEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["WritebackSummary"];
+        };
+        /**
+         * @description APPLIED only when legacy reported SUCCESS or observation proved the effect; UNKNOWN is reconciled before any retry; REJECTED keeps target history and opens reconciliation.
+         * @enum {string}
+         */
+        WritebackState: "PENDING" | "WAITING_DEPENDENCY" | "APPLIED" | "UNKNOWN" | "REJECTED" | "RECONCILIATION_REQUIRED" | "COMPARED";
+        /** @enum {string} */
+        ParityResult11: "MATCH" | "MISMATCH" | "UNKNOWN" | "CONFLICT" | "INCOMPLETE";
+        WritebackAttempt: {
+            attempt_no: number;
+            /** @enum {string} */
+            kind: "APPLY" | "OBSERVE";
+            outcome: components["schemas"]["Outcome"];
+            /** @enum {string|null} */
+            observation?: "COMMITTED" | "ABSENT" | "AMBIGUOUS" | "UNKNOWN" | null;
+            reasons: string[];
+            legacy_ref?: string | null;
+            service_actor: string;
+            started_at: components["schemas"]["Timestamp"];
+            finished_at: components["schemas"]["Timestamp"];
+        };
+        WritebackReconciliation: {
+            /** @enum {string} */
+            reason: "WRITEBACK_UNKNOWN" | "WRITEBACK_REJECTED" | "PARITY_MISMATCH" | "LEGACY_AMBIGUOUS";
+            attempt_no: number;
+            /** @enum {string} */
+            next_safe_action: "OBSERVE_LEGACY_BEFORE_RETRY" | "DOMAIN_OWNER_REVIEW" | "NO_AUTOMATIC_ACTION";
+            opened_at: components["schemas"]["Timestamp"];
+        };
+        /** @description One target command's legacy write-back (no intent payload: no PII). */
+        WritebackCommand: {
+            /** Format: uuid */
+            command_id: string;
+            /** @enum {string} */
+            source_module: "cases" | "organization";
+            command_type: string;
+            /** @enum {string} */
+            subject_kind: "case" | "hr_request";
+            /** Format: uuid */
+            subject_id: string;
+            /** @enum {string} */
+            rollout_mode: "SHADOW_COMPARE" | "CONTROLLED_WRITEBACK";
+            state: components["schemas"]["WritebackState"];
+            parity?: components["schemas"]["ParityResult11"];
+            attempts: number;
+            legacy_ref?: string | null;
+            received_at: components["schemas"]["Timestamp"];
+            updated_at: components["schemas"]["Timestamp"];
+            attempt_log?: components["schemas"]["WritebackAttempt"][];
+            reconciliations?: components["schemas"]["WritebackReconciliation"][];
+        };
+        WritebackCommandListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["WritebackCommand"][];
+            page?: components["schemas"]["PageInfo"];
+        };
+        WritebackCommandEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["WritebackCommand"];
+        };
     };
     responses: {
         /** @description RFC 9457 problem details (transport, contract or server error). */
@@ -3967,6 +4392,7 @@ export interface components {
         FulfillmentItemID: string;
         /** @description Target user id of a current assignee (never a phone, name or email). */
         FulfillmentAssignee: string;
+        WritebackStateFilter: components["schemas"]["WritebackState"];
     };
     requestBodies: never;
     headers: {
@@ -6174,6 +6600,313 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FulfillmentCaseHistoryEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCaseContactOutcomes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactOutcomeEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    recordContactOutcome: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Required on every future mutating command (Architecture V1 §23). Same key
+                 *     and same request replays the stored result; same key with a different
+                 *     request is CONFLICT.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT. */
+                "If-Match": components["parameters"]["IfMatch"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactOutcomeRequest"];
+            };
+        };
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            /** @description CONFLICT (stale version, idempotency key reused with another request, duplicate open request). */
+            409: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandEnvelope"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listHRRequests: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HRRequestListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createHRRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Required on every future mutating command (Architecture V1 §23). Same key
+                 *     and same request replays the stored result; same key with a different
+                 *     request is CONFLICT.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HRRequestCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            /** @description CONFLICT (stale version, idempotency key reused with another request, duplicate open request). */
+            409: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandEnvelope"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getHRRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HRRequestEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    decideHRRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Required on every future mutating command (Architecture V1 §23). Same key
+                 *     and same request replays the stored result; same key with a different
+                 *     request is CONFLICT.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT. */
+                "If-Match": components["parameters"]["IfMatch"];
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HRDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            /** @description CONFLICT (stale version, idempotency key reused with another request, duplicate open request). */
+            409: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandEnvelope"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWritebackSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WritebackSummaryEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listWritebackCommands: {
+        parameters: {
+            query?: {
+                state?: components["parameters"]["WritebackStateFilter"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WritebackCommandListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWritebackCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                command_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WritebackCommandEnvelope"];
                 };
             };
             400: components["responses"]["Problem"];

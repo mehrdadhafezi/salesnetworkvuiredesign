@@ -66,3 +66,15 @@ func TestBiawinSurfaceNeedsBothModulesAndFlagStore(t *testing.T) {
 		}
 	}
 }
+
+func TestWritesSurfaceNeedsFlagStoreAndHolderRead(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	for _, partial := range []map[string]string{
+		{"CRM_ENV": "test", EnvCasesWriteURL: "postgres://x@127.0.0.1:1/x"},
+		{"CRM_ENV": "test", EnvOrganizationWriteURL: "postgres://x@127.0.0.1:1/x"},
+	} {
+		if err := run(context.Background(), env(partial), logger); !errors.Is(err, ErrWritesConfig) {
+			t.Fatalf("partial writes config %v: %v", partial, err)
+		}
+	}
+}

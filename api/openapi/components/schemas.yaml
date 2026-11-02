@@ -273,7 +273,7 @@ SessionContext:
       description: |
         Server feature switches for navigation only (Slice 4 rollback is
         flag-off). Never authority: every read is evaluated by the server.
-      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read, finance_shadow_read, biawin_fulfillment_read]
+      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read, finance_shadow_read, biawin_fulfillment_read, contact_outcome_write, hr_request_write, writeback_read]
       additionalProperties: false
       properties:
         hr_read:
@@ -296,6 +296,15 @@ SessionContext:
         biawin_fulfillment_read:
           type: boolean
           description: Slice 10 Biawin / fulfillment READ shadow (flag biawin_fulfillment.read_shadow). Read only; no portal, activation or workflow action.
+        contact_outcome_write:
+          type: boolean
+          description: Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server.
+        hr_request_write:
+          type: boolean
+          description: Slice 11 HR change request family enabled (flag organization.hr_request_write). Navigation hint only.
+        writeback_read:
+          type: boolean
+          description: Slice 11 write-back diagnostics (flag integration.writeback_read). Read only.
 
 SessionEnvelope:
   type: object

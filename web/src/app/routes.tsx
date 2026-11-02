@@ -39,6 +39,8 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { to: '/biawin/subscriptions', label: 'اشتراک‌های بیاوین', feature: 'biawin_fulfillment_read' },
     { to: '/biawin/parity', label: 'تطبیق اشتراک‌های فعال', feature: 'biawin_fulfillment_read' },
     { to: '/fulfillment/cases', label: 'پرونده‌های اجرای خدمت', feature: 'biawin_fulfillment_read' },
+    { to: '/hr/requests', label: 'درخواست‌های منابع انسانی', feature: 'hr_request_write' },
+    { to: '/writeback', label: 'بازنویسی به سامانه قدیمی', feature: 'writeback_read' },
     { to: '/system', label: 'وضعیت سامانه' },
   ]
   const children: RouteObject[] = [
@@ -73,6 +75,10 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'finance/ledger', lazy: async () => ({ Component: (await import('../modules/finance/pages/LedgerPage')).LedgerPage }) },
     { path: 'finance/balances', lazy: async () => ({ Component: (await import('../modules/finance/pages/BalancesPage')).BalancesPage }) },
     { path: 'finance/reconciliation', lazy: async () => ({ Component: (await import('../modules/finance/pages/FinanceReconciliationPage')).FinanceReconciliationPage }) },
+    // Slice 11 controlled writes (only evidenced commands; server-decided actions).
+    { path: 'hr/requests', lazy: async () => ({ Component: (await import('../modules/writes/pages/HRRequestsPage')).HRRequestsPage }) },
+    { path: 'hr/requests/:requestId', lazy: async () => ({ Component: (await import('../modules/writes/pages/HRRequestPage')).HRRequestPage }) },
+    { path: 'writeback', lazy: async () => ({ Component: (await import('../modules/writes/pages/WritebackPage')).WritebackPage }) },
     // Slice 10 Biawin / fulfillment READ shadow (no activation, provider, portal or workflow control).
     { path: 'biawin/subscriptions', lazy: async () => ({ Component: (await import('../modules/biawin/pages/SubscriptionsPage')).SubscriptionsPage }) },
     { path: 'biawin/subscriptions/:subscriptionId', lazy: async () => ({ Component: (await import('../modules/biawin/pages/SubscriptionPage')).SubscriptionPage }) },

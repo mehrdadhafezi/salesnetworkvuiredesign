@@ -31,7 +31,8 @@ func (unconfigured) GetEffectiveAccess(ctx context.Context, _ oapi.GetEffectiveA
 		oapi.CasesCaseRead, oapi.CustodyCustodyRead, oapi.SalesReportRead, oapi.BillingInvoiceRead, oapi.PaymentsAttemptRead,
 		oapi.BillingReconciliationRead, oapi.ReportingMetricsRead, oapi.ReportingMisRead, oapi.ReportingInvoiceReviewRead,
 		oapi.FinanceShadowRead, oapi.FinanceLedgerRead, oapi.FinanceReconciliationRead,
-		oapi.BiawinSubscriptionRead, oapi.FulfillmentCaseRead, oapi.BiawinParityRead} {
+		oapi.BiawinSubscriptionRead, oapi.FulfillmentCaseRead, oapi.BiawinParityRead,
+		oapi.CasesContactOutcomeRecord, oapi.OrgHrRequestCreate, oapi.OrgHrRequestReview, oapi.OrgHrRequestRead, oapi.IntegrationWritebackRead} {
 		data.Decisions = append(data.Decisions, oapi.AccessDecision{Capability: c, Outcome: oapi.Outcome(result.Blocked.String()),
 			ReasonCode: &reason, Scope: oapi.AccessDecisionScopeNONE, MatchedRoles: []string{}})
 	}
@@ -417,4 +418,73 @@ func (unconfiguredBiawin) GetFulfillmentCase(ctx context.Context, _ oapi.GetFulf
 func (unconfiguredBiawin) ListFulfillmentCaseHistory(ctx context.Context, _ oapi.ListFulfillmentCaseHistoryRequestObject) (oapi.ListFulfillmentCaseHistoryResponseObject, error) {
 	o, r, c := blocked(ctx)
 	return oapi.ListFulfillmentCaseHistory200JSONResponse{Body: oapi.FulfillmentCaseHistoryEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: biawinNotice}}, nil
+}
+
+// Slice 11 surfaces without their modules: every operation is BLOCKED /
+// FEATURE_DISABLED (commands included), never an empty success.
+
+type unconfiguredCaseWrite struct{}
+
+var _ CasesWriteAPI = unconfiguredCaseWrite{}
+
+func (unconfiguredCaseWrite) ContactOutcomeWriteEnabled(context.Context) bool { return false }
+
+func (unconfiguredCaseWrite) GetCaseContactOutcomes(ctx context.Context, _ oapi.GetCaseContactOutcomesRequestObject) (oapi.GetCaseContactOutcomesResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCaseContactOutcomes200JSONResponse{Body: oapi.ContactOutcomeEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func blockedCommand(ctx context.Context) oapi.CommandEnvelope {
+	o, r, c := blocked(ctx)
+	return oapi.CommandEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Command: &oapi.CommandResult{RolloutMode: oapi.RolloutModeTARGETWRITEDISABLED,
+		WritebackState: oapi.NOTREQUESTED, BlockedBy: []string{}}}
+}
+
+func (unconfiguredCaseWrite) RecordContactOutcome(ctx context.Context, _ oapi.RecordContactOutcomeRequestObject) (oapi.RecordContactOutcomeResponseObject, error) {
+	return oapi.RecordContactOutcome200JSONResponse{Body: blockedCommand(ctx)}, nil
+}
+
+type unconfiguredHRRequest struct{}
+
+var _ HRRequestAPI = unconfiguredHRRequest{}
+
+func (unconfiguredHRRequest) HRRequestWriteEnabled(context.Context) bool { return false }
+
+func (unconfiguredHRRequest) ListHRRequests(ctx context.Context, _ oapi.ListHRRequestsRequestObject) (oapi.ListHRRequestsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListHRRequests200JSONResponse{Body: oapi.HRRequestListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredHRRequest) GetHRRequest(ctx context.Context, _ oapi.GetHRRequestRequestObject) (oapi.GetHRRequestResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetHRRequest200JSONResponse{Body: oapi.HRRequestEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredHRRequest) CreateHRRequest(ctx context.Context, _ oapi.CreateHRRequestRequestObject) (oapi.CreateHRRequestResponseObject, error) {
+	return oapi.CreateHRRequest200JSONResponse{Body: blockedCommand(ctx)}, nil
+}
+
+func (unconfiguredHRRequest) DecideHRRequest(ctx context.Context, _ oapi.DecideHRRequestRequestObject) (oapi.DecideHRRequestResponseObject, error) {
+	return oapi.DecideHRRequest200JSONResponse{Body: blockedCommand(ctx)}, nil
+}
+
+type unconfiguredWriteback struct{}
+
+var _ WritebackAPI = unconfiguredWriteback{}
+
+func (unconfiguredWriteback) WritebackEnabled(context.Context) bool { return false }
+
+func (unconfiguredWriteback) GetWritebackSummary(ctx context.Context, _ oapi.GetWritebackSummaryRequestObject) (oapi.GetWritebackSummaryResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetWritebackSummary200JSONResponse{Body: oapi.WritebackSummaryEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredWriteback) ListWritebackCommands(ctx context.Context, _ oapi.ListWritebackCommandsRequestObject) (oapi.ListWritebackCommandsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListWritebackCommands200JSONResponse{Body: oapi.WritebackCommandListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredWriteback) GetWritebackCommand(ctx context.Context, _ oapi.GetWritebackCommandRequestObject) (oapi.GetWritebackCommandResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetWritebackCommand200JSONResponse{Body: oapi.WritebackCommandEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
 }

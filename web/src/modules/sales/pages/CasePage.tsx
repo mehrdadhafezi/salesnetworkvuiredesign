@@ -8,6 +8,8 @@ import { Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/pri
 import { ParityPill, ReadOnlyNote, ResolutionPill, UserRefText } from '../components'
 import { blockedDetail, eventKindLabel, facetLabel, findingLabel, text, workflowLabel } from '../labels'
 import { Pager, useCursors } from '../pager'
+import { useSession } from '../../../shared/auth/currentSession'
+import { ContactOutcomePanel } from '../../writes/ContactOutcomePanel'
 
 /**
  * Case detail (read only). The four owners (GATE-0 INV-004) are shown as
@@ -33,6 +35,8 @@ export function CasePage() {
     ? settle(await api.GET('/api/v1/custody/cases/{case_id}', { params: { path: { case_id: caseId } } }), e => e.data)
     : { status: 'ok', data: null, outcome: 'SUCCESS', allowed: undefined })
 
+  const session = useSession()
+  const outcomeFeature = session.status === 'ready' && session.session.features?.contact_outcome_write === true
   const title = detail.status === 'ok' ? `${detail.data.case.source.source_spec} #${detail.data.case.source.source_key}` : '…'
   return (
     <>
@@ -53,6 +57,7 @@ export function CasePage() {
             </dl>
           )}
         </Card>
+        {outcomeFeature && <ContactOutcomePanel caseId={caseId} />}
         <Card title="چهار مالک (بدون ادغام)">
           <FourOwners custody={custody} attribution={attribution} canCustody={canCustody} />
         </Card>
