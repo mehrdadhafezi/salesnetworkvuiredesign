@@ -5,6 +5,7 @@ import { ReadStates } from '../../../shared/read/ReadStates'
 import { Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/primitives'
 import { AmountCell, MoneyCell, Pager, ReconPill, RunBar, ShadowBanner } from '../components'
 import { Filters } from '../Filters'
+import { NoRun, noRun } from '../noRun'
 import { basisLabel, blockedDetail, categoryLabel, coverageLabel, figureLabel } from '../labels'
 import { useQueryContext } from '../useQueryContext'
 
@@ -26,7 +27,8 @@ export function BalancesPage() {
   const ctx = useQueryContext(Object.keys(options))
   const q = { ...ctx.filters, run_id: ctx.runId, cursor: ctx.cursor, limit: 50 }
   const st = useRead(`fn-bal:${JSON.stringify(q)}`, async () => settle(await api.GET('/api/v1/finance/balances', { params: { query: compact(q) as never } }),
-    e => e.meta && e.items && e.page ? { meta: e.meta, items: e.items, page: e.page, summary: e.summary ?? [] } : undefined))
+    e => e.meta && e.items && e.page ? { meta: e.meta, items: e.items, page: e.page, summary: e.summary ?? [] } : noRun(e)))
+  const resolvedRun = st.status === 'ok' ? st.data?.meta.query.run_id : undefined
   return (
     <>
       <PageHeader title="مانده‌های سایه" subtitle="مانده مشتق از سطرهای دفتر، به تفکیک حساب، مبنا و واحد.">
@@ -35,7 +37,8 @@ export function BalancesPage() {
       <ShadowBanner />
       <Filters options={options} values={ctx.filters} onApply={ctx.setFilters} label="فیلتر مانده‌ها" />
       <ReadStates state={st} what="مانده‌ها" blockedDetail={blockedDetail} />
-      {st.status === 'ok' && (
+      {st.status === 'ok' && st.data === null && <NoRun />}
+      {st.status === 'ok' && st.data && (
         <div className="fn-sections">
           <RunBar run={st.data.meta.run} />
           <Card title="مانده‌ها (بدون جمع کل؛ IRR و IRT جدا)">
@@ -67,7 +70,7 @@ export function BalancesPage() {
                 </div>
               )}
             <Pager page={st.data.page} depth={ctx.cursors.length} onBack={ctx.back}
-              onNext={n => ctx.pinned(st.data.meta.query.run_id, p => p.append('cursor', n))} label="صفحه‌بندی مانده‌ها" />
+              onNext={n => ctx.pinned(resolvedRun, p => p.append('cursor', n))} label="صفحه‌بندی مانده‌ها" />
           </Card>
         </div>
       )}

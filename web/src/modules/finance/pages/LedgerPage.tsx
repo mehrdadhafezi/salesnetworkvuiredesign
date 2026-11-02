@@ -5,6 +5,7 @@ import { ReadStates } from '../../../shared/read/ReadStates'
 import { Button, Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/primitives'
 import { AmountCell, MoneyCell, Pager, RunBar, ShadowBanner } from '../components'
 import { Filters } from '../Filters'
+import { NoRun, noRun } from '../noRun'
 import { basisLabel, blockedDetail, categoryLabel, entryStatusLabel, text } from '../labels'
 import { useQueryContext } from '../useQueryContext'
 
@@ -32,11 +33,12 @@ export function LedgerPage() {
   const entry = ctx.params.get('entry') ?? undefined
   const q = { ...ctx.filters, run_id: ctx.runId, cursor: ctx.cursor, limit: 25 }
   const st = useRead(`fn-led:${JSON.stringify(q)}`, async () => settle(await api.GET('/api/v1/finance/ledger', { params: { query: compact(q) as never } }),
-    e => e.meta && e.items && e.page ? { meta: e.meta, items: e.items, page: e.page, summary: e.summary ?? [] } : undefined))
+    e => e.meta && e.items && e.page ? { meta: e.meta, items: e.items, page: e.page, summary: e.summary ?? [] } : noRun(e)))
   const det = useRead(`fn-ent:${entry ?? ''}:${ctx.runId ?? ''}`, async (): Promise<ReadState<LedgerEntry | null>> => entry
     ? settle(await api.GET('/api/v1/finance/ledger/{entry_id}', { params: { path: { entry_id: entry }, query: compact({ run_id: ctx.runId }) } }),
       e => e.entry ? e.entry : undefined)
     : { status: 'ok', data: null, outcome: 'SUCCESS', allowed: undefined })
+  const resolvedRun = st.status === 'ok' ? st.data?.meta.query.run_id : undefined
   return (
     <>
       <PageHeader title="دفتر روزنامه سایه" subtitle="ثبت‌های متوازن تک‌واحدی با سطرها، کلید کسب‌وکار و ارجاع منبع.">
@@ -45,7 +47,8 @@ export function LedgerPage() {
       <ShadowBanner />
       <Filters options={options} values={ctx.filters} onApply={ctx.setFilters} label="فیلتر دفتر" />
       <ReadStates state={st} what="دفتر" blockedDetail={blockedDetail} />
-      {st.status === 'ok' && (
+      {st.status === 'ok' && st.data === null && <NoRun />}
+      {st.status === 'ok' && st.data && (
         <div className="fn-sections">
           <RunBar run={st.data.meta.run} />
           <Card title="خلاصه (کل عضویت؛ به تفکیک مبنا و واحد)">
@@ -78,7 +81,7 @@ export function LedgerPage() {
                           <td>{timeLabel[e.time_evidence] ?? e.time_evidence}{e.source_time_raw ? <span className="muted fn-ltr">{` · ${e.source_time_raw}`}</span> : null}</td>
                           <td className="fn-ltr">{e.reverses_entry_id ? `↩ ${e.reverses_entry_id.slice(0, 8)}` : e.reversed_by_entry_id ? `↪ ${e.reversed_by_entry_id.slice(0, 8)}` : '—'}</td>
                           <td>{entryStatusLabel[e.reconciliation_status] ?? e.reconciliation_status}</td>
-                          <td><Button onClick={() => ctx.pinned(st.data.meta.query.run_id, p => p.set('entry', e.entry_id))}>سطرها</Button></td>
+                          <td><Button onClick={() => ctx.pinned(resolvedRun, p => p.set('entry', e.entry_id))}>سطرها</Button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -86,7 +89,7 @@ export function LedgerPage() {
                 </div>
               )}
             <Pager page={st.data.page} depth={ctx.cursors.length} onBack={ctx.back}
-              onNext={n => ctx.pinned(st.data.meta.query.run_id, p => p.append('cursor', n))} label="صفحه‌بندی دفتر" />
+              onNext={n => ctx.pinned(resolvedRun, p => p.append('cursor', n))} label="صفحه‌بندی دفتر" />
           </Card>
           {entry && (
             <Card title="سطرهای ثبت (همین اجرا)">

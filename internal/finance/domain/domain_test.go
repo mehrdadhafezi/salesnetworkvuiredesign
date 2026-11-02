@@ -395,3 +395,44 @@ func TestEveryReasonMapsToAKernelCode(t *testing.T) {
 		}
 	}
 }
+
+// Review fixes: a CONFLICT built on incomplete evidence carries no
+// difference; an agreed zero invoice total is resolved (it reconciles) but
+// posts nothing.
+func TestConflictOnIncompleteEvidenceHasNoDifference(t *testing.T) {
+	for name, mutate := range map[string]func(*Sources){
+		"partial transactions": func(s *Sources) { s.Wallets.TransactionStatus = financeapi.SourcePartial },
+		"skipped transaction": func(s *Sources) {
+			s.Wallets.Transactions = append(s.Wallets.Transactions, wtx("14", "1", financeapi.Credit, "7.50", "purpose_commission", financeapi.RoutePurposeMatrix, nil))
+		},
+	} {
+		src := scenario()
+		src.Wallets.Transactions = append(src.Wallets.Transactions, wtx("13", "1", financeapi.Credit, "50", "purpose_commission", financeapi.RoutePurposeMatrix, nil))
+		src.Wallets.Transactions[2].IdempotencyKeyPresent = false
+		src.Wallets.Transactions[6].IdempotencyKeyPresent = false
+		mutate(&src)
+		d, err := Derive(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if w := recon(d, "1", WalletMirrorShadow); w.State != Conflict || w.Difference != nil || !has(w.Reasons, ReasonDuplicateSource) {
+			t.Fatalf("%s: conflict on incomplete evidence must carry no difference: %+v", name, w)
+		}
+	}
+}
+
+func TestAgreedZeroTotalReconciles(t *testing.T) {
+	src := scenario()
+	src.Evidence[i4] = []billingapi.AmountEvidence{evidence("IRT", Match, 0, n(0), n(0))}
+	src.Attempts = src.Attempts[:3] // no unknown attempt on i4
+	d, err := Derive(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := d.Journal.Entry(BusinessKey("billing", "invoice", i4, "receivable_recognition", "IRT", AccrualShadow)); ok {
+		t.Fatal("a zero total posts nothing")
+	}
+	if r := recon(d, i4, AccrualShadow); r.State != Match || r.Shadow == nil || *r.Shadow != 0 || *r.Difference != 0 {
+		t.Fatalf("an agreed zero total reconciles as a real zero: %+v", r)
+	}
+}

@@ -165,6 +165,20 @@ describe('Finance SHADOW ledger read (Slice 9)', () => {
     for (const k of last?.search.keys() ?? []) expect(['basis', 'unit', 'state', 'subject_type', 'limit', 'cursor', 'run_id']).toContain(k)
   })
 
+  it('no shadow run yet (UNKNOWN envelope) is its own state on every list page — never a transport failure, never zero', async () => {
+    const unknown = () => json({ outcome: 'UNKNOWN', reasons: ['SOURCE_UNAVAILABLE'], correlation_id: 'test-corr-9999' })
+    for (const [path, url] of [['/finance/balances', 'GET /api/v1/finance/balances'], ['/finance/ledger', 'GET /api/v1/finance/ledger'],
+      ['/finance/reconciliation', 'GET /api/v1/finance/reconciliation']] as const) {
+      const { unmount } = render(<></>)
+      unmount()
+      document.body.innerHTML = ''
+      renderAt(path, routes({ [url]: unknown }))
+      expect(await screen.findByText('هنوز هیچ اجرای سایه‌ای ثبت نشده است')).toBeTruthy()
+      expect(screen.queryByText('ارتباط با سرویس برقرار نشد')).toBeNull()
+      expect(screen.queryByRole('table')).toBeNull()
+    }
+  })
+
   it('blocked and denied are distinct states', async () => {
     renderAt('/finance/balances', routes({ 'GET /api/v1/finance/balances': () => json(env({ outcome: 'BLOCKED', reasons: ['FEATURE_DISABLED'] })) }))
     expect(await screen.findByText('این بخش هنوز فعال نشده است')).toBeTruthy()

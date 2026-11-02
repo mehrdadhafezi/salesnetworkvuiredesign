@@ -201,7 +201,13 @@ func Derive(src Sources) (*Derivation, error) {
 				continue
 			}
 			if *amount == 0 {
-				continue // a real zero has no ledger effect
+				// A real zero: no ledger effect, but the total IS resolved, so
+				// the zero receivable reconciles.
+				if recognized[id] == nil {
+					recognized[id] = map[string]bool{}
+				}
+				recognized[id][e.Unit] = true
+				continue
 			}
 			r := receivable(id)
 			ent := Entry{BusinessKey: BusinessKey("billing", "invoice", id, "receivable_recognition", e.Unit, AccrualShadow), Basis: AccrualShadow, Unit: u,
@@ -354,7 +360,7 @@ func Derive(src Sources) (*Derivation, error) {
 					r.Shadow = &net
 				}
 			}
-			compare(&r, blockers, state, src.PaymentsStatus, ReasonLifecycleNotEvaluated)
+			compare(&r, blockers, state, false, src.PaymentsStatus, ReasonLifecycleNotEvaluated)
 			d.Reconciliations = append(d.Reconciliations, r)
 
 			// cash
@@ -369,16 +375,21 @@ func Derive(src Sources) (*Derivation, error) {
 			}
 			v := cashByInvoice[id][e.Unit]
 			c.Shadow = &v
-			compare(&c, blockers, state, src.PaymentsStatus, ReasonMissingLegacyTransaction)
+			compare(&c, blockers, state, false, src.PaymentsStatus, ReasonMissingLegacyTransaction)
 			d.Reconciliations = append(d.Reconciliations, c)
 		}
 	}
 	return d, nil
 }
 
-// compare classifies one reconciliation. Blocked comparisons carry no
-// difference; a legacy figure in another unit is never compared.
-func compare(r *Reconciliation, blockers []string, state, sourceStatus, mismatchReason string) {
+// compare classifies one reconciliation. state is the BLOCKING state of
+// the comparison ("" when nothing blocks; UNKNOWN / INCOMPLETE / CONFLICT
+// when no comparable amount exists): a blocked comparison never carries a
+// difference. conflict marks a comparison whose amounts are complete but
+// whose sources possibly duplicate each other: it keeps its exact
+// difference and is CONFLICT — but only when nothing else blocks it.
+// A legacy figure in another unit is never compared.
+func compare(r *Reconciliation, blockers []string, state string, conflict bool, sourceStatus, mismatchReason string) {
 	switch r.Legacy.Repr {
 	case "OTHER_UNIT":
 		blockers, state = append(blockers, ReasonCrossUnitForbidden), worstState(state, Unknown)
@@ -393,15 +404,14 @@ func compare(r *Reconciliation, blockers []string, state, sourceStatus, mismatch
 	if r.Shadow == nil && state == "" {
 		blockers, state = append(blockers, ReasonUnrepresentableAmount), Incomplete
 	}
-	// A CONFLICT keeps its difference only when both amounts are complete
-	// (duplicate sources); an unresolved invoice total has no comparable
-	// shadow amount.
-	if state != "" && (state != Conflict || hasReason(blockers, ReasonUnresolvedInvoiceTotal)) {
-		r.State, r.Reasons = state, dedupe(blockers)
-		return
+	if state == "" && r.Legacy.Amount == nil {
+		state = Unknown
 	}
-	if r.Legacy.Amount == nil || r.Shadow == nil {
-		r.State, r.Reasons = worstState(state, Unknown), dedupe(blockers)
+	if state != "" {
+		if conflict {
+			state = worstState(state, Conflict)
+		}
+		r.State, r.Reasons = state, dedupe(blockers)
 		return
 	}
 	diff, ok := sub(*r.Shadow, *r.Legacy.Amount)
@@ -411,7 +421,7 @@ func compare(r *Reconciliation, blockers []string, state, sourceStatus, mismatch
 	}
 	r.Difference = &diff
 	switch {
-	case state == Conflict:
+	case conflict:
 		r.State, r.Reasons = Conflict, dedupe(blockers)
 	case diff == 0:
 		r.State, r.Reasons = Match, dedupe(blockers)
@@ -480,13 +490,4 @@ func numericLess(a, b string) bool {
 		return a < b
 	}
 	return x < y
-}
-
-func hasReason(rs []string, r string) bool {
-	for _, x := range rs {
-		if x == r {
-			return true
-		}
-	}
-	return false
 }

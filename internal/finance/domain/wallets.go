@@ -203,9 +203,6 @@ func deriveWallets(d *Derivation, ev *financeapi.WalletEvidence, find func(dom, 
 		if s.incomplete {
 			state = Incomplete
 		}
-		if s.conflict {
-			state = worstState(state, Conflict)
-		}
 		unit := r.Legacy.Unit
 		if unit == nil {
 			if staged {
@@ -227,7 +224,7 @@ func deriveWallets(d *Derivation, ev *financeapi.WalletEvidence, find func(dom, 
 		if !staged {
 			blockers = append(blockers, ReasonOrphanLegacyTransaction)
 		}
-		compare(&r, blockers, state, worst(ev.WalletStatus, ev.TransactionStatus), ReasonMissingLegacyTransaction)
+		compare(&r, blockers, state, s.conflict, worst(ev.WalletStatus, ev.TransactionStatus), ReasonMissingLegacyTransaction)
 		d.Reconciliations = append(d.Reconciliations, r)
 	}
 	return nil
