@@ -36,6 +36,24 @@ func (e AccessDecisionScope) Valid() bool {
 	}
 }
 
+// Defines values for ActivationEvidence.
+const (
+	ActivationEvidenceLEGACYACTIVATIONRECORDED ActivationEvidence = "LEGACY_ACTIVATION_RECORDED"
+	ActivationEvidenceNOTEVIDENCED             ActivationEvidence = "NOT_EVIDENCED"
+)
+
+// Valid indicates whether the value is a known member of the ActivationEvidence enum.
+func (e ActivationEvidence) Valid() bool {
+	switch e {
+	case ActivationEvidenceLEGACYACTIVATIONRECORDED:
+		return true
+	case ActivationEvidenceNOTEVIDENCED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AmountRepresentation.
 const (
 	AmountRepresentationABSENT          AmountRepresentation = "ABSENT"
@@ -180,8 +198,106 @@ func (e AttemptState) Valid() bool {
 	}
 }
 
+// Defines values for BiawinCoverage.
+const (
+	BiawinCoverageAVAILABLE      BiawinCoverage = "AVAILABLE"
+	BiawinCoverageMISSING        BiawinCoverage = "MISSING"
+	BiawinCoverageNOTRECOVERABLE BiawinCoverage = "NOT_RECOVERABLE"
+	BiawinCoveragePARTIAL        BiawinCoverage = "PARTIAL"
+	BiawinCoverageSTALE          BiawinCoverage = "STALE"
+	BiawinCoverageUNKNOWN        BiawinCoverage = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the BiawinCoverage enum.
+func (e BiawinCoverage) Valid() bool {
+	switch e {
+	case BiawinCoverageAVAILABLE:
+		return true
+	case BiawinCoverageMISSING:
+		return true
+	case BiawinCoverageNOTRECOVERABLE:
+		return true
+	case BiawinCoveragePARTIAL:
+		return true
+	case BiawinCoverageSTALE:
+		return true
+	case BiawinCoverageUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BiawinFreshness.
+const (
+	BiawinFreshnessFRESH BiawinFreshness = "FRESH"
+	BiawinFreshnessSTALE BiawinFreshness = "STALE"
+)
+
+// Valid indicates whether the value is a known member of the BiawinFreshness enum.
+func (e BiawinFreshness) Valid() bool {
+	switch e {
+	case BiawinFreshnessFRESH:
+		return true
+	case BiawinFreshnessSTALE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BiawinNotice.
+const (
+	SHADOWImportedLegacySubscriptionAndFulfillmentEvidenceForArchitectureValidationAndParityOnlyNotLiveProviderStateNoActivationProviderShippingOrWorkflowAuthority BiawinNotice = "SHADOW: imported legacy subscription and fulfillment evidence for architecture validation and parity only. Not live provider state; no activation, provider, shipping or workflow authority."
+)
+
+// Valid indicates whether the value is a known member of the BiawinNotice enum.
+func (e BiawinNotice) Valid() bool {
+	switch e {
+	case SHADOWImportedLegacySubscriptionAndFulfillmentEvidenceForArchitectureValidationAndParityOnlyNotLiveProviderStateNoActivationProviderShippingOrWorkflowAuthority:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BiawinRunOutcome.
+const (
+	BiawinRunOutcomePARTIAL BiawinRunOutcome = "PARTIAL"
+	BiawinRunOutcomeSUCCESS BiawinRunOutcome = "SUCCESS"
+)
+
+// Valid indicates whether the value is a known member of the BiawinRunOutcome enum.
+func (e BiawinRunOutcome) Valid() bool {
+	switch e {
+	case BiawinRunOutcomePARTIAL:
+		return true
+	case BiawinRunOutcomeSUCCESS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BiawinSubscriptionProductVersionState.
+const (
+	BiawinSubscriptionProductVersionStateUNKNOWN BiawinSubscriptionProductVersionState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the BiawinSubscriptionProductVersionState enum.
+func (e BiawinSubscriptionProductVersionState) Valid() bool {
+	switch e {
+	case BiawinSubscriptionProductVersionStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Capability.
 const (
+	BiawinParityRead            Capability = "biawin.parity.read"
+	BiawinSubscriptionRead      Capability = "biawin.subscription.read"
 	BillingInvoiceRead          Capability = "billing.invoice.read"
 	BillingReconciliationRead   Capability = "billing.reconciliation.read"
 	CasesCaseRead               Capability = "cases.case.read"
@@ -192,6 +308,7 @@ const (
 	FinanceLedgerRead           Capability = "finance.ledger.read"
 	FinanceReconciliationRead   Capability = "finance.reconciliation.read"
 	FinanceShadowRead           Capability = "finance.shadow.read"
+	FulfillmentCaseRead         Capability = "fulfillment.case.read"
 	IdentityUserRead            Capability = "identity.user.read"
 	OrgAssignmentRead           Capability = "org.assignment.read"
 	OrgEmploymentRead           Capability = "org.employment.read"
@@ -208,6 +325,10 @@ const (
 // Valid indicates whether the value is a known member of the Capability enum.
 func (e Capability) Valid() bool {
 	switch e {
+	case BiawinParityRead:
+		return true
+	case BiawinSubscriptionRead:
+		return true
 	case BillingInvoiceRead:
 		return true
 	case BillingReconciliationRead:
@@ -227,6 +348,8 @@ func (e Capability) Valid() bool {
 	case FinanceReconciliationRead:
 		return true
 	case FinanceShadowRead:
+		return true
+	case FulfillmentCaseRead:
 		return true
 	case IdentityUserRead:
 		return true
@@ -873,6 +996,108 @@ func (e Freshness) Valid() bool {
 	}
 }
 
+// Defines values for FulfillmentAssignmentRole.
+const (
+	EXPERT  FulfillmentAssignmentRole = "EXPERT"
+	HANDLER FulfillmentAssignmentRole = "HANDLER"
+	MANAGER FulfillmentAssignmentRole = "MANAGER"
+)
+
+// Valid indicates whether the value is a known member of the FulfillmentAssignmentRole enum.
+func (e FulfillmentAssignmentRole) Valid() bool {
+	switch e {
+	case EXPERT:
+		return true
+	case HANDLER:
+		return true
+	case MANAGER:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FulfillmentKind.
+const (
+	EXECUTION        FulfillmentKind = "EXECUTION"
+	SERVICEFOLLOWUP  FulfillmentKind = "SERVICE_FOLLOWUP"
+	SHIPPING         FulfillmentKind = "SHIPPING"
+	UPGRADEEXECUTION FulfillmentKind = "UPGRADE_EXECUTION"
+)
+
+// Valid indicates whether the value is a known member of the FulfillmentKind enum.
+func (e FulfillmentKind) Valid() bool {
+	switch e {
+	case EXECUTION:
+		return true
+	case SERVICEFOLLOWUP:
+		return true
+	case SHIPPING:
+		return true
+	case UPGRADEEXECUTION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FulfillmentStatus.
+const (
+	FulfillmentStatusAWAITINGPAYMENT        FulfillmentStatus = "AWAITING_PAYMENT"
+	FulfillmentStatusAWAITINGPROVIDER       FulfillmentStatus = "AWAITING_PROVIDER"
+	FulfillmentStatusCANCELLED              FulfillmentStatus = "CANCELLED"
+	FulfillmentStatusCOMPLETED              FulfillmentStatus = "COMPLETED"
+	FulfillmentStatusDELIVERED              FulfillmentStatus = "DELIVERED"
+	FulfillmentStatusEMPTY                  FulfillmentStatus = "EMPTY"
+	FulfillmentStatusFAILEDATPROVIDER       FulfillmentStatus = "FAILED_AT_PROVIDER"
+	FulfillmentStatusINPROGRESS             FulfillmentStatus = "IN_PROGRESS"
+	FulfillmentStatusNOTEXECUTED            FulfillmentStatus = "NOT_EXECUTED"
+	FulfillmentStatusNOTSTARTED             FulfillmentStatus = "NOT_STARTED"
+	FulfillmentStatusOUTCOMERECORDED        FulfillmentStatus = "OUTCOME_RECORDED"
+	FulfillmentStatusPROVIDERACTIONRECORDED FulfillmentStatus = "PROVIDER_ACTION_RECORDED"
+	FulfillmentStatusRETURNED               FulfillmentStatus = "RETURNED"
+	FulfillmentStatusSHIPPED                FulfillmentStatus = "SHIPPED"
+	FulfillmentStatusUNKNOWN                FulfillmentStatus = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the FulfillmentStatus enum.
+func (e FulfillmentStatus) Valid() bool {
+	switch e {
+	case FulfillmentStatusAWAITINGPAYMENT:
+		return true
+	case FulfillmentStatusAWAITINGPROVIDER:
+		return true
+	case FulfillmentStatusCANCELLED:
+		return true
+	case FulfillmentStatusCOMPLETED:
+		return true
+	case FulfillmentStatusDELIVERED:
+		return true
+	case FulfillmentStatusEMPTY:
+		return true
+	case FulfillmentStatusFAILEDATPROVIDER:
+		return true
+	case FulfillmentStatusINPROGRESS:
+		return true
+	case FulfillmentStatusNOTEXECUTED:
+		return true
+	case FulfillmentStatusNOTSTARTED:
+		return true
+	case FulfillmentStatusOUTCOMERECORDED:
+		return true
+	case FulfillmentStatusPROVIDERACTIONRECORDED:
+		return true
+	case FulfillmentStatusRETURNED:
+		return true
+	case FulfillmentStatusSHIPPED:
+		return true
+	case FulfillmentStatusUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GatewayEvidenceState.
 const (
 	GatewayEvidenceStateCANCELLEDATGATEWAY GatewayEvidenceState = "CANCELLED_AT_GATEWAY"
@@ -1164,6 +1389,24 @@ func (e InvoiceVocabulary) Valid() bool {
 	}
 }
 
+// Defines values for ItemInvoiceLinkState.
+const (
+	ItemInvoiceLinkStateRESOLVED ItemInvoiceLinkState = "RESOLVED"
+	ItemInvoiceLinkStateUNKNOWN  ItemInvoiceLinkState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ItemInvoiceLinkState enum.
+func (e ItemInvoiceLinkState) Valid() bool {
+	switch e {
+	case ItemInvoiceLinkStateRESOLVED:
+		return true
+	case ItemInvoiceLinkStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for LedgerAccountCategory.
 const (
 	LedgerAccountCategoryCashBankClearing         LedgerAccountCategory = "cash_bank_clearing"
@@ -1308,6 +1551,33 @@ func (e LedgerLineSide) Valid() bool {
 	case LedgerLineSideCREDIT:
 		return true
 	case LedgerLineSideDEBIT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LinkState.
+const (
+	LinkStateCONFLICT       LinkState = "CONFLICT"
+	LinkStateNOTRECOVERABLE LinkState = "NOT_RECOVERABLE"
+	LinkStateRELATED        LinkState = "RELATED"
+	LinkStateRESOLVED       LinkState = "RESOLVED"
+	LinkStateUNKNOWN        LinkState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the LinkState enum.
+func (e LinkState) Valid() bool {
+	switch e {
+	case LinkStateCONFLICT:
+		return true
+	case LinkStateNOTRECOVERABLE:
+		return true
+	case LinkStateRELATED:
+		return true
+	case LinkStateRESOLVED:
+		return true
+	case LinkStateUNKNOWN:
 		return true
 	default:
 		return false
@@ -1527,6 +1797,63 @@ func (e Parity) Valid() bool {
 	case ParityNOTRECOVERABLE:
 		return true
 	case ParityTARGETUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ParityOutcome.
+const (
+	ParityOutcomeINCOMPLETE ParityOutcome = "INCOMPLETE"
+	ParityOutcomeMATCH      ParityOutcome = "MATCH"
+	ParityOutcomeMISMATCH   ParityOutcome = "MISMATCH"
+	ParityOutcomeUNKNOWN    ParityOutcome = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ParityOutcome enum.
+func (e ParityOutcome) Valid() bool {
+	switch e {
+	case ParityOutcomeINCOMPLETE:
+		return true
+	case ParityOutcomeMATCH:
+		return true
+	case ParityOutcomeMISMATCH:
+		return true
+	case ParityOutcomeUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ParityResult.
+const (
+	ParityResultCONFLICT       ParityResult = "CONFLICT"
+	ParityResultEXTRATARGET    ParityResult = "EXTRA_TARGET"
+	ParityResultINACTIVEBOTH   ParityResult = "INACTIVE_BOTH"
+	ParityResultMATCHED        ParityResult = "MATCHED"
+	ParityResultMISSINGTARGET  ParityResult = "MISSING_TARGET"
+	ParityResultNOTRECOVERABLE ParityResult = "NOT_RECOVERABLE"
+	ParityResultUNKNOWN        ParityResult = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ParityResult enum.
+func (e ParityResult) Valid() bool {
+	switch e {
+	case ParityResultCONFLICT:
+		return true
+	case ParityResultEXTRATARGET:
+		return true
+	case ParityResultINACTIVEBOTH:
+		return true
+	case ParityResultMATCHED:
+		return true
+	case ParityResultMISSINGTARGET:
+		return true
+	case ParityResultNOTRECOVERABLE:
+		return true
+	case ParityResultUNKNOWN:
 		return true
 	default:
 		return false
@@ -2025,6 +2352,30 @@ func (e ResolutionState) Valid() bool {
 	}
 }
 
+// Defines values for ServiceEvidenceOutcomeMapped.
+const (
+	ServiceEvidenceOutcomeMappedEXECUTED    ServiceEvidenceOutcomeMapped = "EXECUTED"
+	ServiceEvidenceOutcomeMappedNONE        ServiceEvidenceOutcomeMapped = "NONE"
+	ServiceEvidenceOutcomeMappedNOTEXECUTED ServiceEvidenceOutcomeMapped = "NOT_EXECUTED"
+	ServiceEvidenceOutcomeMappedUNKNOWN     ServiceEvidenceOutcomeMapped = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ServiceEvidenceOutcomeMapped enum.
+func (e ServiceEvidenceOutcomeMapped) Valid() bool {
+	switch e {
+	case ServiceEvidenceOutcomeMappedEXECUTED:
+		return true
+	case ServiceEvidenceOutcomeMappedNONE:
+		return true
+	case ServiceEvidenceOutcomeMappedNOTEXECUTED:
+		return true
+	case ServiceEvidenceOutcomeMappedUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SessionContextAuthMode.
 const (
 	DevStub SessionContextAuthMode = "dev_stub"
@@ -2160,6 +2511,66 @@ func (e Strength) Valid() bool {
 	case STRONG:
 		return true
 	case WEAK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SubscriptionEventEventClass.
+const (
+	ITEMEVENT             SubscriptionEventEventClass = "ITEM_EVENT"
+	PROVIDEREVENTEVIDENCE SubscriptionEventEventClass = "PROVIDER_EVENT_EVIDENCE"
+	SUBSCRIPTIONEVENT     SubscriptionEventEventClass = "SUBSCRIPTION_EVENT"
+)
+
+// Valid indicates whether the value is a known member of the SubscriptionEventEventClass enum.
+func (e SubscriptionEventEventClass) Valid() bool {
+	switch e {
+	case ITEMEVENT:
+		return true
+	case PROVIDEREVENTEVIDENCE:
+		return true
+	case SUBSCRIPTIONEVENT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SubscriptionItemState.
+const (
+	SubscriptionItemStateNOTEVIDENCED SubscriptionItemState = "NOT_EVIDENCED"
+)
+
+// Valid indicates whether the value is a known member of the SubscriptionItemState enum.
+func (e SubscriptionItemState) Valid() bool {
+	switch e {
+	case SubscriptionItemStateNOTEVIDENCED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SubscriptionState.
+const (
+	SubscriptionStateACTIVE    SubscriptionState = "ACTIVE"
+	SubscriptionStateEMPTY     SubscriptionState = "EMPTY"
+	SubscriptionStateSUSPENDED SubscriptionState = "SUSPENDED"
+	SubscriptionStateUNKNOWN   SubscriptionState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the SubscriptionState enum.
+func (e SubscriptionState) Valid() bool {
+	switch e {
+	case SubscriptionStateACTIVE:
+		return true
+	case SubscriptionStateEMPTY:
+		return true
+	case SubscriptionStateSUSPENDED:
+		return true
+	case SubscriptionStateUNKNOWN:
 		return true
 	default:
 		return false
@@ -3553,6 +3964,9 @@ type AccountListEnvelope struct {
 	Summary *[]GroupCount `json:"summary,omitempty"`
 }
 
+// ActivationEvidence Whether legacy recorded an activation time. Import time is never activation time.
+type ActivationEvidence string
+
 // AllowedAction defines model for AllowedAction.
 type AllowedAction struct {
 	Allowed bool `json:"allowed"`
@@ -3756,6 +4170,118 @@ type BalanceListEnvelope struct {
 	Summary *[]GroupCount `json:"summary,omitempty"`
 }
 
+// BiawinCoverage defines model for BiawinCoverage.
+type BiawinCoverage string
+
+// BiawinFreshness FRESH / STALE against a 24h SLA from the source cutoff (never "live").
+type BiawinFreshness string
+
+// BiawinLink A link to another module. id is set only when state is RESOLVED; legacy_key keeps the raw native reference.
+type BiawinLink struct {
+	Basis     *string             `json:"basis,omitempty"`
+	Id        *openapi_types.UUID `json:"id,omitempty"`
+	LegacyKey *string             `json:"legacy_key,omitempty"`
+	State     LinkState           `json:"state"`
+}
+
+// BiawinMeta defines model for BiawinMeta.
+type BiawinMeta struct {
+	// Notice Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+	Notice BiawinNotice `json:"notice"`
+
+	// Query The normalised query; run_id is the run every part of the answer comes from.
+	Query      BiawinQuery `json:"query"`
+	RecordKind RecordKind  `json:"record_kind"`
+
+	// Run One offline import run. outcome is technical (PARTIAL when a source is not AVAILABLE or a row was not classified); never a business state.
+	Run BiawinRun `json:"run"`
+}
+
+// BiawinNotice Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+type BiawinNotice string
+
+// BiawinQuery The normalised query; run_id is the run every part of the answer comes from.
+type BiawinQuery struct {
+	Filters map[string]string  `json:"filters"`
+	RunId   openapi_types.UUID `json:"run_id"`
+}
+
+// BiawinRun One offline import run. outcome is technical (PARTIAL when a source is not AVAILABLE or a row was not classified); never a business state.
+type BiawinRun struct {
+	// CompletedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	CompletedAt Timestamp        `json:"completed_at"`
+	Counts      map[string]int64 `json:"counts"`
+
+	// Freshness FRESH / STALE against a 24h SLA from the source cutoff (never "live").
+	Freshness            BiawinFreshness    `json:"freshness"`
+	NormalizationVersion int                `json:"normalization_version"`
+	Outcome              BiawinRunOutcome   `json:"outcome"`
+	Reasons              Reasons            `json:"reasons"`
+	RecordKind           RecordKind         `json:"record_kind"`
+	RunId                openapi_types.UUID `json:"run_id"`
+	RunSeq               int64              `json:"run_seq"`
+	SnapshotId           string             `json:"snapshot_id"`
+
+	// SourceCutoff RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	SourceCutoff Timestamp         `json:"source_cutoff"`
+	Sources      []BiawinRunSource `json:"sources"`
+
+	// StartedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	StartedAt Timestamp `json:"started_at"`
+}
+
+// BiawinRunOutcome defines model for BiawinRun.Outcome.
+type BiawinRunOutcome string
+
+// BiawinRunSource defines model for BiawinRunSource.
+type BiawinRunSource struct {
+	RowsRead int64          `json:"rows_read"`
+	Source   string         `json:"source"`
+	Status   BiawinCoverage `json:"status"`
+}
+
+// BiawinSubscription A shadow subscription (one legacy project membership). Product version is never guessed (UNKNOWN); the title is a historical snapshot.
+type BiawinSubscription struct {
+	ActivatedAtRaw *string `json:"activated_at_raw,omitempty"`
+
+	// ActivationEvidence Whether legacy recorded an activation time. Import time is never activation time.
+	ActivationEvidence ActivationEvidence `json:"activation_evidence"`
+
+	// Case A link to another module. id is set only when state is RESOLVED; legacy_key keeps the raw native reference.
+	Case         BiawinLink `json:"case"`
+	CreatedAtRaw *string    `json:"created_at_raw,omitempty"`
+
+	// Customer A link to another module. id is set only when state is RESOLVED; legacy_key keeps the raw native reference.
+	Customer BiawinLink `json:"customer"`
+
+	// FirstPaymentInvoice A link to another module. id is set only when state is RESOLVED; legacy_key keeps the raw native reference.
+	FirstPaymentInvoice BiawinLink `json:"first_payment_invoice"`
+
+	// Invoice A link to another module. id is set only when state is RESOLVED; legacy_key keeps the raw native reference.
+	Invoice              BiawinLink                            `json:"invoice"`
+	ItemCount            int                                   `json:"item_count"`
+	OriginUserId         *openapi_types.UUID                   `json:"origin_user_id,omitempty"`
+	OriginUserKey        *string                               `json:"origin_user_key,omitempty"`
+	ProductKey           *string                               `json:"product_key,omitempty"`
+	ProductTitleSnapshot *string                               `json:"product_title_snapshot,omitempty"`
+	ProductVersionState  BiawinSubscriptionProductVersionState `json:"product_version_state"`
+	Provider             string                                `json:"provider"`
+	SourceKey            string                                `json:"source_key"`
+	SourceRefRaw         *string                               `json:"source_ref_raw,omitempty"`
+	SourceSpec           string                                `json:"source_spec"`
+	SourceTypeRaw        *string                               `json:"source_type_raw,omitempty"`
+
+	// StateMapped Mapped from the preserved raw legacy status (active / suspended). Any other raw value is UNKNOWN; no lifecycle is inferred.
+	StateMapped    SubscriptionState  `json:"state_mapped"`
+	StateNamespace string             `json:"state_namespace"`
+	StateRaw       *string            `json:"state_raw,omitempty"`
+	SubscriptionId openapi_types.UUID `json:"subscription_id"`
+	UpdatedAtRaw   *string            `json:"updated_at_raw,omitempty"`
+}
+
+// BiawinSubscriptionProductVersionState defines model for BiawinSubscription.ProductVersionState.
+type BiawinSubscriptionProductVersionState string
+
 // BillingAmount Raw legacy decimal text beside the exact money it represents (absent money = not representable; never zero).
 type BillingAmount struct {
 	// Money Exact signed int64 amount in an explicit unit (E0 §9D). The amount is a
@@ -3893,6 +4419,16 @@ type CaseAlias struct {
 // CaseAliasRelation defines model for CaseAlias.Relation.
 type CaseAliasRelation string
 
+// CaseCount defines model for CaseCount.
+type CaseCount struct {
+	Count int64           `json:"count"`
+	Kind  FulfillmentKind `json:"kind"`
+
+	// Status Mapped from the preserved raw status of its namespace; any other raw value is UNKNOWN. COMPLETED / DELIVERED / OUTCOME_RECORDED
+	// qualify this case only: they imply nothing about an invoice, a payment, the subscription, a sale or finance.
+	Status FulfillmentStatus `json:"status"`
+}
+
 // CaseCustody defines model for CaseCustody.
 type CaseCustody struct {
 	// Assignment Derived, reconcilable custody projection next to the legacy current-holder evidence.
@@ -3967,6 +4503,18 @@ type CaseEnvelope struct {
 	// distinct from BLOCKED.
 	Outcome Outcome `json:"outcome"`
 	Reasons Reasons `json:"reasons"`
+}
+
+// CaseEvent Append-only legacy case history.
+type CaseEvent struct {
+	ActorKey      *string             `json:"actor_key,omitempty"`
+	ActorUserId   *openapi_types.UUID `json:"actor_user_id,omitempty"`
+	EventKeyRaw   string              `json:"event_key_raw"`
+	NewStatusRaw  *string             `json:"new_status_raw,omitempty"`
+	OccurredAtRaw *string             `json:"occurred_at_raw,omitempty"`
+	OldStatusRaw  *string             `json:"old_status_raw,omitempty"`
+	SourceKey     string              `json:"source_key"`
+	SourceSpec    string              `json:"source_spec"`
 }
 
 // CaseFactRow One case fact. Ownership facets stay separate; current custody is in the custody report; next actor is not modelled.
@@ -4709,6 +5257,136 @@ type FindingSubject string
 // Freshness FRESH / STALE against the contract's freshness SLA; UNKNOWN when no run answers.
 type Freshness string
 
+// FulfillmentAssignment A current assignee as evidenced at the run (never an owner, credit owner or custody).
+type FulfillmentAssignment struct {
+	AssignedAtRaw *string                   `json:"assigned_at_raw,omitempty"`
+	Role          FulfillmentAssignmentRole `json:"role"`
+	UserId        *openapi_types.UUID       `json:"user_id,omitempty"`
+	UserKey       string                    `json:"user_key"`
+}
+
+// FulfillmentAssignmentRole defines model for FulfillmentAssignment.Role.
+type FulfillmentAssignmentRole string
+
+// FulfillmentCase A shadow fulfillment case. External references (tracking codes, provider ids) are only SHA-256 digests.
+type FulfillmentCase struct {
+	Assignments       []FulfillmentAssignment `json:"assignments"`
+	CancelledAtRaw    *string                 `json:"cancelled_at_raw,omitempty"`
+	CarrierRaw        *string                 `json:"carrier_raw,omitempty"`
+	CaseId            openapi_types.UUID      `json:"case_id"`
+	CompletedAtRaw    *string                 `json:"completed_at_raw,omitempty"`
+	CompletedByKey    *string                 `json:"completed_by_key,omitempty"`
+	CompletedByUserId *openapi_types.UUID     `json:"completed_by_user_id,omitempty"`
+	ContactStatusRaw  *string                 `json:"contact_status_raw,omitempty"`
+	CreatedAtRaw      *string                 `json:"created_at_raw,omitempty"`
+	DeliveredAtRaw    *string                 `json:"delivered_at_raw,omitempty"`
+	InvoiceId         *openapi_types.UUID     `json:"invoice_id,omitempty"`
+	InvoiceKey        *string                 `json:"invoice_key,omitempty"`
+	InvoiceLinkState  ItemInvoiceLinkState    `json:"invoice_link_state"`
+	ItemId            *openapi_types.UUID     `json:"item_id,omitempty"`
+	Kind              FulfillmentKind         `json:"kind"`
+	ProviderRefScheme *string                 `json:"provider_ref_scheme,omitempty"`
+	ProviderRefSha256 *string                 `json:"provider_ref_sha256,omitempty"`
+	ProviderStatusRaw *string                 `json:"provider_status_raw,omitempty"`
+	ShippedAtRaw      *string                 `json:"shipped_at_raw,omitempty"`
+	ShippingStatusRaw *string                 `json:"shipping_status_raw,omitempty"`
+	SourceKey         string                  `json:"source_key"`
+	SourceSpec        string                  `json:"source_spec"`
+
+	// StatusMapped Mapped from the preserved raw status of its namespace; any other raw value is UNKNOWN. COMPLETED / DELIVERED / OUTCOME_RECORDED
+	// qualify this case only: they imply nothing about an invoice, a payment, the subscription, a sale or finance.
+	StatusMapped       FulfillmentStatus   `json:"status_mapped"`
+	StatusNamespace    string              `json:"status_namespace"`
+	StatusRaw          *string             `json:"status_raw,omitempty"`
+	StatusUpdatedAtRaw *string             `json:"status_updated_at_raw,omitempty"`
+	SubscriptionId     *openapi_types.UUID `json:"subscription_id,omitempty"`
+	SubtypeRaw         *string             `json:"subtype_raw,omitempty"`
+	TrackingRefSha256  *string             `json:"tracking_ref_sha256,omitempty"`
+	UpdatedAtRaw       *string             `json:"updated_at_raw,omitempty"`
+}
+
+// FulfillmentCaseEnvelope defines model for FulfillmentCaseEnvelope.
+type FulfillmentCaseEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// Case A shadow fulfillment case. External references (tracking codes, provider ids) are only SHA-256 digests.
+	Case *FulfillmentCase `json:"case,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID      `json:"correlation_id"`
+	Evidence      *[]ServiceEvidence `json:"evidence,omitempty"`
+	Meta          *BiawinMeta        `json:"meta,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+	Notice BiawinNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// FulfillmentCaseHistoryEnvelope defines model for FulfillmentCaseHistoryEnvelope.
+type FulfillmentCaseHistoryEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]CaseEvent  `json:"items,omitempty"`
+	Meta          *BiawinMeta   `json:"meta,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+	Notice BiawinNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// FulfillmentCaseListEnvelope defines model for FulfillmentCaseListEnvelope.
+type FulfillmentCaseListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID      `json:"correlation_id"`
+	Items         *[]FulfillmentCase `json:"items,omitempty"`
+	Meta          *BiawinMeta        `json:"meta,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+	Notice BiawinNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo    `json:"page,omitempty"`
+	Reasons Reasons      `json:"reasons"`
+	Summary *[]CaseCount `json:"summary,omitempty"`
+}
+
+// FulfillmentKind defines model for FulfillmentKind.
+type FulfillmentKind string
+
+// FulfillmentStatus Mapped from the preserved raw status of its namespace; any other raw value is UNKNOWN. COMPLETED / DELIVERED / OUTCOME_RECORDED
+// qualify this case only: they imply nothing about an invoice, a payment, the subscription, a sale or finance.
+type FulfillmentStatus string
+
 // GatewayEvidence Gateway evidence of an attempt. References are never exposed (only whether a hashed one exists).
 type GatewayEvidence struct {
 	HasAuthorityReference bool `json:"has_authority_reference"`
@@ -5213,6 +5891,19 @@ type InvoiceUnitTotalsUnit string
 // fallback expression, shown as evidence only.
 type InvoiceVocabulary string
 
+// ItemInvoiceLink defines model for ItemInvoiceLink.
+type ItemInvoiceLink struct {
+	InvoiceId     *openapi_types.UUID  `json:"invoice_id,omitempty"`
+	InvoiceKey    *string              `json:"invoice_key,omitempty"`
+	SourceKey     string               `json:"source_key"`
+	State         ItemInvoiceLinkState `json:"state"`
+	StatusRaw     *string              `json:"status_raw,omitempty"`
+	VerifiedAtRaw *string              `json:"verified_at_raw,omitempty"`
+}
+
+// ItemInvoiceLinkState defines model for ItemInvoiceLinkState.
+type ItemInvoiceLinkState string
+
 // ItemOutcome Per-item outcome inside a ResultEnvelope; per-item classes are preserved.
 type ItemOutcome struct {
 	// ItemRef Domain-qualified native identifier (kernel/refs). Never a phone number.
@@ -5407,6 +6098,9 @@ type LedgerListEnvelope struct {
 
 // LegacyKey Legacy source key (provenance only, never identity).
 type LegacyKey = string
+
+// LinkState defines model for LinkState.
+type LinkState string
 
 // Lookup A position or a level (legacy lookup). Position is never a role.
 type Lookup struct {
@@ -5752,6 +6446,75 @@ type PageInfo struct {
 // equally-ordered holders), HISTORY_GAP (holder agrees but history has gaps), NOT_RECOVERABLE
 // (no evidence on either side).
 type Parity string
+
+// ParityCheck Active subscription parity of one target run against one legacy evidence snapshot (recorded offline; a GET never computes it). cutoff_mismatch: the evidence snapshot is not the run's snapshot.
+type ParityCheck struct {
+	CheckId openapi_types.UUID `json:"check_id"`
+
+	// CheckedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	CheckedAt      Timestamp `json:"checked_at"`
+	Conflict       int64     `json:"conflict"`
+	CutoffMismatch bool      `json:"cutoff_mismatch"`
+
+	// EvidenceCutoff RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	EvidenceCutoff     Timestamp      `json:"evidence_cutoff"`
+	EvidenceSnapshotId string         `json:"evidence_snapshot_id"`
+	EvidenceStatus     BiawinCoverage `json:"evidence_status"`
+	ExtraTarget        int64          `json:"extra_target"`
+	LegacyCount        int64          `json:"legacy_count"`
+	Matched            int64          `json:"matched"`
+	MissingTarget      int64          `json:"missing_target"`
+	NotRecoverable     int64          `json:"not_recoverable"`
+
+	// Outcome MATCH only with zero anomalies and AVAILABLE evidence; MISMATCH on drift; INCOMPLETE when evidence is not AVAILABLE; UNKNOWN otherwise.
+	Outcome     ParityOutcome      `json:"outcome"`
+	Reasons     Reasons            `json:"reasons"`
+	Rows        []ParityRow        `json:"rows"`
+	RunId       openapi_types.UUID `json:"run_id"`
+	TargetCount int64              `json:"target_count"`
+	Unknown     int64              `json:"unknown"`
+}
+
+// ParityEnvelope check is absent (UNKNOWN outcome) when no parity check was recorded for the run.
+type ParityEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// Check Active subscription parity of one target run against one legacy evidence snapshot (recorded offline; a GET never computes it). cutoff_mismatch: the evidence snapshot is not the run's snapshot.
+	Check *ParityCheck `json:"check,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Meta          *BiawinMeta   `json:"meta,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+	Notice BiawinNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// ParityOutcome MATCH only with zero anomalies and AVAILABLE evidence; MISMATCH on drift; INCOMPLETE when evidence is not AVAILABLE; UNKNOWN otherwise.
+type ParityOutcome string
+
+// ParityResult defines model for ParityResult.
+type ParityResult string
+
+// ParityRow defines model for ParityRow.
+type ParityRow struct {
+	LegacyClass *string      `json:"legacy_class,omitempty"`
+	Result      ParityResult `json:"result"`
+	SourceKey   string       `json:"source_key"`
+	TargetState *string      `json:"target_state,omitempty"`
+}
 
 // PaymentAttempt defines model for PaymentAttempt.
 type PaymentAttempt struct {
@@ -6472,6 +7235,22 @@ type SalesCoverageReportEnvelope struct {
 	Reasons Reasons `json:"reasons"`
 }
 
+// ServiceEvidence Service evidence metadata (form contents are never read).
+type ServiceEvidence struct {
+	DecidedAtRaw      *string                      `json:"decided_at_raw,omitempty"`
+	DecidedByKey      *string                      `json:"decided_by_key,omitempty"`
+	FormDefinitionKey *string                      `json:"form_definition_key,omitempty"`
+	OutcomeMapped     ServiceEvidenceOutcomeMapped `json:"outcome_mapped"`
+	OutcomeRaw        *string                      `json:"outcome_raw,omitempty"`
+	SourceKey         string                       `json:"source_key"`
+	SubmittedAtRaw    *string                      `json:"submitted_at_raw,omitempty"`
+	SubmittedByKey    *string                      `json:"submitted_by_key,omitempty"`
+	SubmittedByUserId *openapi_types.UUID          `json:"submitted_by_user_id,omitempty"`
+}
+
+// ServiceEvidenceOutcomeMapped defines model for ServiceEvidence.OutcomeMapped.
+type ServiceEvidenceOutcomeMapped string
+
 // SessionContext defines model for SessionContext.
 type SessionContext struct {
 	// AuthMode dev_stub only in development/test; none in production (Slice 2 has no production auth).
@@ -6487,6 +7266,9 @@ type SessionContext struct {
 	// Features Server feature switches for navigation only (Slice 4 rollback is
 	// flag-off). Never authority: every read is evaluated by the server.
 	Features *struct {
+		// BiawinFulfillmentRead Slice 10 Biawin / fulfillment READ shadow (flag biawin_fulfillment.read_shadow). Read only; no portal, activation or workflow action.
+		BiawinFulfillmentRead bool `json:"biawin_fulfillment_read"`
+
 		// BillingRead Slice 7 billing + payments read shadow (flag billing_payments.read_shadow).
 		BillingRead bool `json:"billing_read"`
 
@@ -6692,6 +7474,12 @@ type StateCell struct {
 	Raw *RawText `json:"raw"`
 }
 
+// StateCount defines model for StateCount.
+type StateCount struct {
+	Count int64  `json:"count"`
+	Key   string `json:"key"`
+}
+
 // StateHistoryEntry defines model for StateHistoryEntry.
 type StateHistoryEntry struct {
 	// Actor A legacy user reference and, when the identity module resolved it, the target user id (absent object = no reference).
@@ -6743,6 +7531,114 @@ type StateMapping string
 
 // Strength defines model for Strength.
 type Strength string
+
+// SubscriptionEnvelope defines model for SubscriptionEnvelope.
+type SubscriptionEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID        `json:"correlation_id"`
+	History       *[]SubscriptionEvent `json:"history,omitempty"`
+	Meta          *BiawinMeta          `json:"meta,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+	Notice BiawinNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+
+	// Subscription A shadow subscription (one legacy project membership). Product version is never guessed (UNKNOWN); the title is a historical snapshot.
+	Subscription *BiawinSubscription `json:"subscription,omitempty"`
+}
+
+// SubscriptionEvent Append-only legacy history. PROVIDER_EVENT_EVIDENCE records that legacy logged a provider event; it is not a provider call.
+type SubscriptionEvent struct {
+	ActorKey      *string                     `json:"actor_key,omitempty"`
+	ActorUserId   *openapi_types.UUID         `json:"actor_user_id,omitempty"`
+	EventClass    SubscriptionEventEventClass `json:"event_class"`
+	EventKeyRaw   string                      `json:"event_key_raw"`
+	ItemId        *openapi_types.UUID         `json:"item_id,omitempty"`
+	OccurredAtRaw *string                     `json:"occurred_at_raw,omitempty"`
+	SourceKey     string                      `json:"source_key"`
+}
+
+// SubscriptionEventEventClass defines model for SubscriptionEvent.EventClass.
+type SubscriptionEventEventClass string
+
+// SubscriptionItem One item; items with the same title are distinct (never merged). Item lifecycle is NOT_EVIDENCED; its fulfillment is a SERVICE_FOLLOWUP case.
+type SubscriptionItem struct {
+	CreatedAtRaw         *string               `json:"created_at_raw,omitempty"`
+	InvoiceLinks         []ItemInvoiceLink     `json:"invoice_links"`
+	ItemId               openapi_types.UUID    `json:"item_id"`
+	ServiceKey           *string               `json:"service_key,omitempty"`
+	ServiceTitleSnapshot *string               `json:"service_title_snapshot,omitempty"`
+	SourceKey            string                `json:"source_key"`
+	State                SubscriptionItemState `json:"state"`
+	SubscriptionId       openapi_types.UUID    `json:"subscription_id"`
+}
+
+// SubscriptionItemState defines model for SubscriptionItem.State.
+type SubscriptionItemState string
+
+// SubscriptionItemListEnvelope item_count is the subscription's (independent of the page).
+type SubscriptionItemListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID       `json:"correlation_id"`
+	ItemCount     *int                `json:"item_count,omitempty"`
+	Items         *[]SubscriptionItem `json:"items,omitempty"`
+	Meta          *BiawinMeta         `json:"meta,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+	Notice BiawinNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// SubscriptionListEnvelope defines model for SubscriptionListEnvelope.
+type SubscriptionListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID         `json:"correlation_id"`
+	Items         *[]BiawinSubscription `json:"items,omitempty"`
+	Meta          *BiawinMeta           `json:"meta,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+	Notice BiawinNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo     `json:"page,omitempty"`
+	Reasons Reasons       `json:"reasons"`
+	Summary *[]StateCount `json:"summary,omitempty"`
+}
+
+// SubscriptionState Mapped from the preserved raw legacy status (active / suspended). Any other raw value is UNKNOWN; no lifecycle is inferred.
+type SubscriptionState string
 
 // SumState COMPLETE, INCOMPLETE (some contribution unknown), NONE (no contribution; not zero), OVERFLOW (no value claimed).
 type SumState string
@@ -6867,6 +7763,24 @@ type AttemptID = NativeID
 // BalanceState defines model for BalanceState.
 type BalanceState string
 
+// BiawinActivationEvidence Whether legacy recorded an activation time. Import time is never activation time.
+type BiawinActivationEvidence = ActivationEvidence
+
+// BiawinCustomerLinkState defines model for BiawinCustomerLinkState.
+type BiawinCustomerLinkState = LinkState
+
+// BiawinInvoiceLinkState defines model for BiawinInvoiceLinkState.
+type BiawinInvoiceLinkState = ItemInvoiceLinkState
+
+// BiawinProduct defines model for BiawinProduct.
+type BiawinProduct = string
+
+// BiawinRunID defines model for BiawinRunID.
+type BiawinRunID = openapi_types.UUID
+
+// BiawinSubscriptionState Mapped from the preserved raw legacy status (active / suspended). Any other raw value is UNKNOWN; no lifecycle is inferred.
+type BiawinSubscriptionState = SubscriptionState
+
 // CaseID Target native identifier. Never a phone, e-mail, login or legacy key.
 type CaseID = NativeID
 
@@ -6903,6 +7817,22 @@ type FinanceRunID = openapi_types.UUID
 
 // FinanceUnit Explicit monetary unit. IRR and IRT are distinct; there is no conversion.
 type FinanceUnit = Unit
+
+// FulfillmentAssignee defines model for FulfillmentAssignee.
+type FulfillmentAssignee = openapi_types.UUID
+
+// FulfillmentItemID defines model for FulfillmentItemID.
+type FulfillmentItemID = openapi_types.UUID
+
+// FulfillmentKindFilter defines model for FulfillmentKindFilter.
+type FulfillmentKindFilter = FulfillmentKind
+
+// FulfillmentStatusFilter Mapped from the preserved raw status of its namespace; any other raw value is UNKNOWN. COMPLETED / DELIVERED / OUTCOME_RECORDED
+// qualify this case only: they imply nothing about an invoice, a payment, the subscription, a sale or finance.
+type FulfillmentStatusFilter = FulfillmentStatus
+
+// FulfillmentSubscriptionID defines model for FulfillmentSubscriptionID.
+type FulfillmentSubscriptionID = openapi_types.UUID
 
 // HasConflict defines model for HasConflict.
 type HasConflict = bool
@@ -6951,6 +7881,12 @@ type OrgUnitID = NativeID
 
 // OriginalOwnerResolution defines model for OriginalOwnerResolution.
 type OriginalOwnerResolution string
+
+// ParityCheckID defines model for ParityCheckID.
+type ParityCheckID = openapi_types.UUID
+
+// ParityResultFilter defines model for ParityResultFilter.
+type ParityResultFilter = ParityResult
 
 // PaymentUnit defines model for PaymentUnit.
 type PaymentUnit string
@@ -7006,6 +7942,53 @@ type UserSort string
 // Denied Generic business result (Architecture V1 §23). Concrete envelopes add a
 // typed data property. An item-level mix aggregates to PARTIAL.
 type Denied = ResultEnvelope
+
+// GetBiawinParityParams defines parameters for GetBiawinParity.
+type GetBiawinParityParams struct {
+	// RunId Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used.
+	RunId *BiawinRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+
+	// CheckId A recorded parity check of the run. Omitted = the latest check of the run.
+	CheckId *ParityCheckID      `form:"check_id,omitempty" json:"check_id,omitempty"`
+	Result  *ParityResultFilter `form:"result,omitempty" json:"result,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListBiawinSubscriptionsParams defines parameters for ListBiawinSubscriptions.
+type ListBiawinSubscriptionsParams struct {
+	// RunId Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used.
+	RunId              *BiawinRunID              `form:"run_id,omitempty" json:"run_id,omitempty"`
+	State              *BiawinSubscriptionState  `form:"state,omitempty" json:"state,omitempty"`
+	CustomerLinkState  *BiawinCustomerLinkState  `form:"customer_link_state,omitempty" json:"customer_link_state,omitempty"`
+	InvoiceLinkState   *BiawinInvoiceLinkState   `form:"invoice_link_state,omitempty" json:"invoice_link_state,omitempty"`
+	ActivationEvidence *BiawinActivationEvidence `form:"activation_evidence,omitempty" json:"activation_evidence,omitempty"`
+
+	// Product Legacy native product key (digits). Never a title match.
+	Product *BiawinProduct `form:"product,omitempty" json:"product,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetBiawinSubscriptionParams defines parameters for GetBiawinSubscription.
+type GetBiawinSubscriptionParams struct {
+	// RunId Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used.
+	RunId *BiawinRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+}
+
+// ListBiawinSubscriptionItemsParams defines parameters for ListBiawinSubscriptionItems.
+type ListBiawinSubscriptionItemsParams struct {
+	// RunId Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used.
+	RunId *BiawinRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
 
 // ListCasesParams defines parameters for ListCases.
 type ListCasesParams struct {
@@ -7171,6 +8154,39 @@ type ListFinanceReconciliationParamsSubjectType string
 
 // ListFinanceShadowRunsParams defines parameters for ListFinanceShadowRuns.
 type ListFinanceShadowRunsParams struct {
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListFulfillmentCasesParams defines parameters for ListFulfillmentCases.
+type ListFulfillmentCasesParams struct {
+	// RunId Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used.
+	RunId          *BiawinRunID               `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Kind           *FulfillmentKindFilter     `form:"kind,omitempty" json:"kind,omitempty"`
+	Status         *FulfillmentStatusFilter   `form:"status,omitempty" json:"status,omitempty"`
+	SubscriptionId *FulfillmentSubscriptionID `form:"subscription_id,omitempty" json:"subscription_id,omitempty"`
+	ItemId         *FulfillmentItemID         `form:"item_id,omitempty" json:"item_id,omitempty"`
+
+	// Assignee Target user id of a current assignee (never a phone, name or email).
+	Assignee *FulfillmentAssignee `form:"assignee,omitempty" json:"assignee,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetFulfillmentCaseParams defines parameters for GetFulfillmentCase.
+type GetFulfillmentCaseParams struct {
+	// RunId Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used.
+	RunId *BiawinRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+}
+
+// ListFulfillmentCaseHistoryParams defines parameters for ListFulfillmentCaseHistory.
+type ListFulfillmentCaseHistoryParams struct {
+	// RunId Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used.
+	RunId *BiawinRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
@@ -7667,6 +8683,18 @@ type ServerInterface interface {
 	// GetEffectiveAccess Effective access of the current principal
 	// (GET /api/v1/authorization/effective-access)
 	GetEffectiveAccess(w http.ResponseWriter, r *http.Request)
+	// GetBiawinParity Active subscription parity (legacy vs target) of one run
+	// (GET /api/v1/biawin/parity)
+	GetBiawinParity(w http.ResponseWriter, r *http.Request, params GetBiawinParityParams)
+	// ListBiawinSubscriptions Shadow subscriptions of one import run
+	// (GET /api/v1/biawin/subscriptions)
+	ListBiawinSubscriptions(w http.ResponseWriter, r *http.Request, params ListBiawinSubscriptionsParams)
+	// GetBiawinSubscription One shadow subscription with its history
+	// (GET /api/v1/biawin/subscriptions/{subscription_id})
+	GetBiawinSubscription(w http.ResponseWriter, r *http.Request, subscriptionId openapi_types.UUID, params GetBiawinSubscriptionParams)
+	// ListBiawinSubscriptionItems Items of one shadow subscription (never merged)
+	// (GET /api/v1/biawin/subscriptions/{subscription_id}/items)
+	ListBiawinSubscriptionItems(w http.ResponseWriter, r *http.Request, subscriptionId openapi_types.UUID, params ListBiawinSubscriptionItemsParams)
 	// GetBillingReconciliationReport Billing and payments coverage report (F02 honest label)
 	// (GET /api/v1/billing/reconciliation-report)
 	GetBillingReconciliationReport(w http.ResponseWriter, r *http.Request)
@@ -7733,6 +8761,15 @@ type ServerInterface interface {
 	// GetFinanceShadowRun One shadow run with its source manifest and reconciliation summary
 	// (GET /api/v1/finance/shadow-runs/{run_id})
 	GetFinanceShadowRun(w http.ResponseWriter, r *http.Request, runId openapi_types.UUID)
+	// ListFulfillmentCases Shadow fulfillment cases of one import run
+	// (GET /api/v1/fulfillment/cases)
+	ListFulfillmentCases(w http.ResponseWriter, r *http.Request, params ListFulfillmentCasesParams)
+	// GetFulfillmentCase One shadow fulfillment case with assignees and evidence metadata
+	// (GET /api/v1/fulfillment/cases/{case_id})
+	GetFulfillmentCase(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params GetFulfillmentCaseParams)
+	// ListFulfillmentCaseHistory Append-only history of one fulfillment case
+	// (GET /api/v1/fulfillment/cases/{case_id}/history)
+	ListFulfillmentCaseHistory(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params ListFulfillmentCaseHistoryParams)
 	// ListIdentityUsers List shadow user accounts
 	// (GET /api/v1/identity/users)
 	ListIdentityUsers(w http.ResponseWriter, r *http.Request, params ListIdentityUsersParams)
@@ -7869,6 +8906,325 @@ func (siw *ServerInterfaceWrapper) GetEffectiveAccess(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetEffectiveAccess(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBiawinParity operation middleware
+func (siw *ServerInterfaceWrapper) GetBiawinParity(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetBiawinParityParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "check_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "check_id", r.URL.Query(), &params.CheckId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "check_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "check_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "result" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "result", r.URL.Query(), &params.Result, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "result"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "result", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBiawinParity(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListBiawinSubscriptions operation middleware
+func (siw *ServerInterfaceWrapper) ListBiawinSubscriptions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListBiawinSubscriptionsParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer_link_state", r.URL.Query(), &params.CustomerLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "invoice_link_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "invoice_link_state", r.URL.Query(), &params.InvoiceLinkState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "invoice_link_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invoice_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "activation_evidence" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "activation_evidence", r.URL.Query(), &params.ActivationEvidence, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "activation_evidence"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "activation_evidence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "product" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "product", r.URL.Query(), &params.Product, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "product"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "product", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBiawinSubscriptions(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBiawinSubscription operation middleware
+func (siw *ServerInterfaceWrapper) GetBiawinSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "subscription_id" -------------
+	var subscriptionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscription_id", r.PathValue("subscription_id"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscription_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetBiawinSubscriptionParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBiawinSubscription(w, r, subscriptionId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListBiawinSubscriptionItems operation middleware
+func (siw *ServerInterfaceWrapper) ListBiawinSubscriptionItems(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "subscription_id" -------------
+	var subscriptionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscription_id", r.PathValue("subscription_id"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscription_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListBiawinSubscriptionItemsParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBiawinSubscriptionItems(w, r, subscriptionId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9142,6 +10498,240 @@ func (siw *ServerInterfaceWrapper) GetFinanceShadowRun(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetFinanceShadowRun(w, r, runId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFulfillmentCases operation middleware
+func (siw *ServerInterfaceWrapper) ListFulfillmentCases(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFulfillmentCasesParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kind", r.URL.Query(), &params.Kind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "subscription_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subscription_id", r.URL.Query(), &params.SubscriptionId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subscription_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscription_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "item_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "item_id", r.URL.Query(), &params.ItemId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "item_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "item_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "assignee" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "assignee", r.URL.Query(), &params.Assignee, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "assignee"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "assignee", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFulfillmentCases(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFulfillmentCase operation middleware
+func (siw *ServerInterfaceWrapper) GetFulfillmentCase(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetFulfillmentCaseParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFulfillmentCase(w, r, caseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFulfillmentCaseHistory operation middleware
+func (siw *ServerInterfaceWrapper) ListFulfillmentCaseHistory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFulfillmentCaseHistoryParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFulfillmentCaseHistory(w, r, caseId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -12480,6 +14070,13 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/ledger/{entry_id}", wrapper.GetFinanceLedgerEntry)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/balances", wrapper.ListFinanceBalances)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/reconciliation", wrapper.ListFinanceReconciliation)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/biawin/subscriptions", wrapper.ListBiawinSubscriptions)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/biawin/subscriptions/{subscription_id}", wrapper.GetBiawinSubscription)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/biawin/subscriptions/{subscription_id}/items", wrapper.ListBiawinSubscriptionItems)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/biawin/parity", wrapper.GetBiawinParity)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases", wrapper.ListFulfillmentCases)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases/{case_id}", wrapper.GetFulfillmentCase)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases/{case_id}/history", wrapper.ListFulfillmentCaseHistory)
 
 	return m
 }
@@ -12563,6 +14160,452 @@ type GetEffectiveAccessdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetEffectiveAccessdefaultApplicationProblemPlusJSONResponse) VisitGetEffectiveAccessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinParityRequestObject struct {
+	Params GetBiawinParityParams
+}
+
+type GetBiawinParityResponseObject interface {
+	VisitGetBiawinParityResponse(w http.ResponseWriter) error
+}
+
+type GetBiawinParity200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetBiawinParity200JSONResponse struct {
+	Body    ParityEnvelope
+	Headers GetBiawinParity200ResponseHeaders
+}
+
+func (response GetBiawinParity200JSONResponse) VisitGetBiawinParityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinParity400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetBiawinParity400ApplicationProblemPlusJSONResponse) VisitGetBiawinParityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinParity403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetBiawinParity403JSONResponse) VisitGetBiawinParityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinParity404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetBiawinParity404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetBiawinParity404ResponseHeaders
+}
+
+func (response GetBiawinParity404ApplicationProblemPlusJSONResponse) VisitGetBiawinParityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinParitydefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetBiawinParitydefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetBiawinParitydefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetBiawinParitydefaultApplicationProblemPlusJSONResponse) VisitGetBiawinParityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinSubscriptionsRequestObject struct {
+	Params ListBiawinSubscriptionsParams
+}
+
+type ListBiawinSubscriptionsResponseObject interface {
+	VisitListBiawinSubscriptionsResponse(w http.ResponseWriter) error
+}
+
+type ListBiawinSubscriptions200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListBiawinSubscriptions200JSONResponse struct {
+	Body    SubscriptionListEnvelope
+	Headers ListBiawinSubscriptions200ResponseHeaders
+}
+
+func (response ListBiawinSubscriptions200JSONResponse) VisitListBiawinSubscriptionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinSubscriptions400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListBiawinSubscriptions400ApplicationProblemPlusJSONResponse) VisitListBiawinSubscriptionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinSubscriptions403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListBiawinSubscriptions403JSONResponse) VisitListBiawinSubscriptionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinSubscriptionsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListBiawinSubscriptionsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListBiawinSubscriptionsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListBiawinSubscriptionsdefaultApplicationProblemPlusJSONResponse) VisitListBiawinSubscriptionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinSubscriptionRequestObject struct {
+	SubscriptionId openapi_types.UUID `json:"subscription_id"`
+	Params         GetBiawinSubscriptionParams
+}
+
+type GetBiawinSubscriptionResponseObject interface {
+	VisitGetBiawinSubscriptionResponse(w http.ResponseWriter) error
+}
+
+type GetBiawinSubscription200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetBiawinSubscription200JSONResponse struct {
+	Body    SubscriptionEnvelope
+	Headers GetBiawinSubscription200ResponseHeaders
+}
+
+func (response GetBiawinSubscription200JSONResponse) VisitGetBiawinSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinSubscription400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetBiawinSubscription400ApplicationProblemPlusJSONResponse) VisitGetBiawinSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinSubscription403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetBiawinSubscription403JSONResponse) VisitGetBiawinSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinSubscription404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetBiawinSubscription404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetBiawinSubscription404ResponseHeaders
+}
+
+func (response GetBiawinSubscription404ApplicationProblemPlusJSONResponse) VisitGetBiawinSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBiawinSubscriptiondefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetBiawinSubscriptiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetBiawinSubscriptiondefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetBiawinSubscriptiondefaultApplicationProblemPlusJSONResponse) VisitGetBiawinSubscriptionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinSubscriptionItemsRequestObject struct {
+	SubscriptionId openapi_types.UUID `json:"subscription_id"`
+	Params         ListBiawinSubscriptionItemsParams
+}
+
+type ListBiawinSubscriptionItemsResponseObject interface {
+	VisitListBiawinSubscriptionItemsResponse(w http.ResponseWriter) error
+}
+
+type ListBiawinSubscriptionItems200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListBiawinSubscriptionItems200JSONResponse struct {
+	Body    SubscriptionItemListEnvelope
+	Headers ListBiawinSubscriptionItems200ResponseHeaders
+}
+
+func (response ListBiawinSubscriptionItems200JSONResponse) VisitListBiawinSubscriptionItemsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinSubscriptionItems400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListBiawinSubscriptionItems400ApplicationProblemPlusJSONResponse) VisitListBiawinSubscriptionItemsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinSubscriptionItems403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListBiawinSubscriptionItems403JSONResponse) VisitListBiawinSubscriptionItemsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinSubscriptionItems404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListBiawinSubscriptionItems404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListBiawinSubscriptionItems404ResponseHeaders
+}
+
+func (response ListBiawinSubscriptionItems404ApplicationProblemPlusJSONResponse) VisitListBiawinSubscriptionItemsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinSubscriptionItemsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListBiawinSubscriptionItemsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListBiawinSubscriptionItemsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListBiawinSubscriptionItemsdefaultApplicationProblemPlusJSONResponse) VisitListBiawinSubscriptionItemsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -14875,6 +16918,335 @@ type GetFinanceShadowRundefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetFinanceShadowRundefaultApplicationProblemPlusJSONResponse) VisitGetFinanceShadowRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentCasesRequestObject struct {
+	Params ListFulfillmentCasesParams
+}
+
+type ListFulfillmentCasesResponseObject interface {
+	VisitListFulfillmentCasesResponse(w http.ResponseWriter) error
+}
+
+type ListFulfillmentCases200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFulfillmentCases200JSONResponse struct {
+	Body    FulfillmentCaseListEnvelope
+	Headers ListFulfillmentCases200ResponseHeaders
+}
+
+func (response ListFulfillmentCases200JSONResponse) VisitListFulfillmentCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentCases400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFulfillmentCases400ApplicationProblemPlusJSONResponse) VisitListFulfillmentCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentCases403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListFulfillmentCases403JSONResponse) VisitListFulfillmentCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentCasesdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFulfillmentCasesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListFulfillmentCasesdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListFulfillmentCasesdefaultApplicationProblemPlusJSONResponse) VisitListFulfillmentCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentCaseRequestObject struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+	Params GetFulfillmentCaseParams
+}
+
+type GetFulfillmentCaseResponseObject interface {
+	VisitGetFulfillmentCaseResponse(w http.ResponseWriter) error
+}
+
+type GetFulfillmentCase200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFulfillmentCase200JSONResponse struct {
+	Body    FulfillmentCaseEnvelope
+	Headers GetFulfillmentCase200ResponseHeaders
+}
+
+func (response GetFulfillmentCase200JSONResponse) VisitGetFulfillmentCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentCase400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetFulfillmentCase400ApplicationProblemPlusJSONResponse) VisitGetFulfillmentCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentCase403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetFulfillmentCase403JSONResponse) VisitGetFulfillmentCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentCase404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFulfillmentCase404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetFulfillmentCase404ResponseHeaders
+}
+
+func (response GetFulfillmentCase404ApplicationProblemPlusJSONResponse) VisitGetFulfillmentCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentCasedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFulfillmentCasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetFulfillmentCasedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetFulfillmentCasedefaultApplicationProblemPlusJSONResponse) VisitGetFulfillmentCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentCaseHistoryRequestObject struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+	Params ListFulfillmentCaseHistoryParams
+}
+
+type ListFulfillmentCaseHistoryResponseObject interface {
+	VisitListFulfillmentCaseHistoryResponse(w http.ResponseWriter) error
+}
+
+type ListFulfillmentCaseHistory200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFulfillmentCaseHistory200JSONResponse struct {
+	Body    FulfillmentCaseHistoryEnvelope
+	Headers ListFulfillmentCaseHistory200ResponseHeaders
+}
+
+func (response ListFulfillmentCaseHistory200JSONResponse) VisitListFulfillmentCaseHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentCaseHistory400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFulfillmentCaseHistory400ApplicationProblemPlusJSONResponse) VisitListFulfillmentCaseHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentCaseHistory403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListFulfillmentCaseHistory403JSONResponse) VisitListFulfillmentCaseHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentCaseHistory404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFulfillmentCaseHistory404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListFulfillmentCaseHistory404ResponseHeaders
+}
+
+func (response ListFulfillmentCaseHistory404ApplicationProblemPlusJSONResponse) VisitListFulfillmentCaseHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentCaseHistorydefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFulfillmentCaseHistorydefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListFulfillmentCaseHistorydefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListFulfillmentCaseHistorydefaultApplicationProblemPlusJSONResponse) VisitListFulfillmentCaseHistoryResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -18951,6 +21323,18 @@ type StrictServerInterface interface {
 	// GetEffectiveAccess Effective access of the current principal
 	// (GET /api/v1/authorization/effective-access)
 	GetEffectiveAccess(ctx context.Context, request GetEffectiveAccessRequestObject) (GetEffectiveAccessResponseObject, error)
+	// GetBiawinParity Active subscription parity (legacy vs target) of one run
+	// (GET /api/v1/biawin/parity)
+	GetBiawinParity(ctx context.Context, request GetBiawinParityRequestObject) (GetBiawinParityResponseObject, error)
+	// ListBiawinSubscriptions Shadow subscriptions of one import run
+	// (GET /api/v1/biawin/subscriptions)
+	ListBiawinSubscriptions(ctx context.Context, request ListBiawinSubscriptionsRequestObject) (ListBiawinSubscriptionsResponseObject, error)
+	// GetBiawinSubscription One shadow subscription with its history
+	// (GET /api/v1/biawin/subscriptions/{subscription_id})
+	GetBiawinSubscription(ctx context.Context, request GetBiawinSubscriptionRequestObject) (GetBiawinSubscriptionResponseObject, error)
+	// ListBiawinSubscriptionItems Items of one shadow subscription (never merged)
+	// (GET /api/v1/biawin/subscriptions/{subscription_id}/items)
+	ListBiawinSubscriptionItems(ctx context.Context, request ListBiawinSubscriptionItemsRequestObject) (ListBiawinSubscriptionItemsResponseObject, error)
 	// GetBillingReconciliationReport Billing and payments coverage report (F02 honest label)
 	// (GET /api/v1/billing/reconciliation-report)
 	GetBillingReconciliationReport(ctx context.Context, request GetBillingReconciliationReportRequestObject) (GetBillingReconciliationReportResponseObject, error)
@@ -19017,6 +21401,15 @@ type StrictServerInterface interface {
 	// GetFinanceShadowRun One shadow run with its source manifest and reconciliation summary
 	// (GET /api/v1/finance/shadow-runs/{run_id})
 	GetFinanceShadowRun(ctx context.Context, request GetFinanceShadowRunRequestObject) (GetFinanceShadowRunResponseObject, error)
+	// ListFulfillmentCases Shadow fulfillment cases of one import run
+	// (GET /api/v1/fulfillment/cases)
+	ListFulfillmentCases(ctx context.Context, request ListFulfillmentCasesRequestObject) (ListFulfillmentCasesResponseObject, error)
+	// GetFulfillmentCase One shadow fulfillment case with assignees and evidence metadata
+	// (GET /api/v1/fulfillment/cases/{case_id})
+	GetFulfillmentCase(ctx context.Context, request GetFulfillmentCaseRequestObject) (GetFulfillmentCaseResponseObject, error)
+	// ListFulfillmentCaseHistory Append-only history of one fulfillment case
+	// (GET /api/v1/fulfillment/cases/{case_id}/history)
+	ListFulfillmentCaseHistory(ctx context.Context, request ListFulfillmentCaseHistoryRequestObject) (ListFulfillmentCaseHistoryResponseObject, error)
 	// ListIdentityUsers List shadow user accounts
 	// (GET /api/v1/identity/users)
 	ListIdentityUsers(ctx context.Context, request ListIdentityUsersRequestObject) (ListIdentityUsersResponseObject, error)
@@ -19195,6 +21588,112 @@ func (sh *strictHandler) GetEffectiveAccess(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetEffectiveAccessResponseObject); ok {
 		if err := validResponse.VisitGetEffectiveAccessResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetBiawinParity operation middleware
+func (sh *strictHandler) GetBiawinParity(w http.ResponseWriter, r *http.Request, params GetBiawinParityParams) {
+	var request GetBiawinParityRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetBiawinParity(ctx, request.(GetBiawinParityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetBiawinParity")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetBiawinParityResponseObject); ok {
+		if err := validResponse.VisitGetBiawinParityResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListBiawinSubscriptions operation middleware
+func (sh *strictHandler) ListBiawinSubscriptions(w http.ResponseWriter, r *http.Request, params ListBiawinSubscriptionsParams) {
+	var request ListBiawinSubscriptionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListBiawinSubscriptions(ctx, request.(ListBiawinSubscriptionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListBiawinSubscriptions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListBiawinSubscriptionsResponseObject); ok {
+		if err := validResponse.VisitListBiawinSubscriptionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetBiawinSubscription operation middleware
+func (sh *strictHandler) GetBiawinSubscription(w http.ResponseWriter, r *http.Request, subscriptionId openapi_types.UUID, params GetBiawinSubscriptionParams) {
+	var request GetBiawinSubscriptionRequestObject
+
+	request.SubscriptionId = subscriptionId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetBiawinSubscription(ctx, request.(GetBiawinSubscriptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetBiawinSubscription")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetBiawinSubscriptionResponseObject); ok {
+		if err := validResponse.VisitGetBiawinSubscriptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListBiawinSubscriptionItems operation middleware
+func (sh *strictHandler) ListBiawinSubscriptionItems(w http.ResponseWriter, r *http.Request, subscriptionId openapi_types.UUID, params ListBiawinSubscriptionItemsParams) {
+	var request ListBiawinSubscriptionItemsRequestObject
+
+	request.SubscriptionId = subscriptionId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListBiawinSubscriptionItems(ctx, request.(ListBiawinSubscriptionItemsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListBiawinSubscriptionItems")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListBiawinSubscriptionItemsResponseObject); ok {
+		if err := validResponse.VisitListBiawinSubscriptionItemsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -19767,6 +22266,86 @@ func (sh *strictHandler) GetFinanceShadowRun(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetFinanceShadowRunResponseObject); ok {
 		if err := validResponse.VisitGetFinanceShadowRunResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFulfillmentCases operation middleware
+func (sh *strictHandler) ListFulfillmentCases(w http.ResponseWriter, r *http.Request, params ListFulfillmentCasesParams) {
+	var request ListFulfillmentCasesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFulfillmentCases(ctx, request.(ListFulfillmentCasesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFulfillmentCases")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFulfillmentCasesResponseObject); ok {
+		if err := validResponse.VisitListFulfillmentCasesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFulfillmentCase operation middleware
+func (sh *strictHandler) GetFulfillmentCase(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params GetFulfillmentCaseParams) {
+	var request GetFulfillmentCaseRequestObject
+
+	request.CaseId = caseId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFulfillmentCase(ctx, request.(GetFulfillmentCaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFulfillmentCase")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFulfillmentCaseResponseObject); ok {
+		if err := validResponse.VisitGetFulfillmentCaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFulfillmentCaseHistory operation middleware
+func (sh *strictHandler) ListFulfillmentCaseHistory(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params ListFulfillmentCaseHistoryParams) {
+	var request ListFulfillmentCaseHistoryRequestObject
+
+	request.CaseId = caseId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFulfillmentCaseHistory(ctx, request.(ListFulfillmentCaseHistoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFulfillmentCaseHistory")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFulfillmentCaseHistoryResponseObject); ok {
+		if err := validResponse.VisitListFulfillmentCaseHistoryResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

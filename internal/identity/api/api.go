@@ -67,6 +67,12 @@ const (
 	CapFinanceShadowRead         Capability = "finance.shadow.read"
 	CapFinanceLedgerRead         Capability = "finance.ledger.read"
 	CapFinanceReconciliationRead Capability = "finance.reconciliation.read"
+	// Slice 10 Biawin / fulfillment READ shadow. READ only (no activation,
+	// suspension, provider, shipping or assignment command exists); no role
+	// receives them (fail closed).
+	CapBiawinSubscriptionRead Capability = "biawin.subscription.read"
+	CapFulfillmentCaseRead    Capability = "fulfillment.case.read"
+	CapBiawinParityRead       Capability = "biawin.parity.read"
 )
 
 // CapabilityDef is one vocabulary entry.
@@ -97,6 +103,9 @@ var vocabulary = []CapabilityDef{
 	{CapFinanceShadowRead, "Read finance SHADOW runs, accounts and derived balances (not the system of record)"},
 	{CapFinanceLedgerRead, "Read the finance SHADOW journal entries and lines (not the system of record)"},
 	{CapFinanceReconciliationRead, "Read the legacy vs SHADOW ledger reconciliation (not the system of record)"},
+	{CapBiawinSubscriptionRead, "Read shadow Biawin subscriptions, their items, invoice links and history (no activation authority)"},
+	{CapFulfillmentCaseRead, "Read shadow fulfillment cases, assignees, evidence metadata and history (no workflow authority)"},
+	{CapBiawinParityRead, "Read the legacy vs target active subscription parity report"},
 }
 
 // HRReadCapabilities returns the Slice 4 HR read capabilities: the set the

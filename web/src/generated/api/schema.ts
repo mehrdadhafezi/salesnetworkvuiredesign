@@ -1349,6 +1349,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/biawin/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shadow subscriptions of one import run
+         * @description Requires biawin.subscription.read.
+         *     Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listBiawinSubscriptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/biawin/subscriptions/{subscription_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One shadow subscription with its history
+         * @description Requires biawin.subscription.read.
+         *     Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["getBiawinSubscription"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/biawin/subscriptions/{subscription_id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Items of one shadow subscription (never merged)
+         * @description Requires biawin.subscription.read.
+         *     Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listBiawinSubscriptionItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/biawin/parity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Active subscription parity (legacy vs target) of one run
+         * @description Requires biawin.parity.read.
+         *     Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["getBiawinParity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfillment/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shadow fulfillment cases of one import run
+         * @description Requires fulfillment.case.read.
+         *     Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listFulfillmentCases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfillment/cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One shadow fulfillment case with assignees and evidence metadata
+         * @description Requires fulfillment.case.read.
+         *     Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["getFulfillmentCase"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfillment/cases/{case_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Append-only history of one fulfillment case
+         * @description Requires fulfillment.case.read.
+         *     Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listFulfillmentCaseHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1501,6 +1655,8 @@ export interface components {
                 reporting_read: boolean;
                 /** @description Slice 9 finance SHADOW ledger read (flag finance.shadow_ledger_read). Read only; never a financial system of record. */
                 finance_shadow_read: boolean;
+                /** @description Slice 10 Biawin / fulfillment READ shadow (flag biawin_fulfillment.read_shadow). Read only; no portal, activation or workflow action. */
+                biawin_fulfillment_read: boolean;
             };
         };
         SessionEnvelope: {
@@ -1785,7 +1941,7 @@ export interface components {
          * @description Slice 4 read capability vocabulary (<module>.<object>.<action>).
          * @enum {string}
          */
-        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read" | "reporting.metrics.read" | "reporting.mis.read" | "reporting.invoice_review.read" | "finance.shadow.read" | "finance.ledger.read" | "finance.reconciliation.read";
+        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read" | "reporting.metrics.read" | "reporting.mis.read" | "reporting.invoice_review.read" | "finance.shadow.read" | "finance.ledger.read" | "finance.reconciliation.read" | "biawin.subscription.read" | "fulfillment.case.read" | "biawin.parity.read";
         AccessDecision: {
             capability: components["schemas"]["Capability"];
             allowed: boolean;
@@ -3320,6 +3476,357 @@ export interface components {
             page?: components["schemas"]["PageInfo"];
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
+        /**
+         * @description Mapped from the preserved raw legacy status (active / suspended). Any other raw value is UNKNOWN; no lifecycle is inferred.
+         * @enum {string}
+         */
+        SubscriptionState: "ACTIVE" | "SUSPENDED" | "UNKNOWN" | "EMPTY";
+        /** @enum {string} */
+        LinkState: "RESOLVED" | "RELATED" | "UNKNOWN" | "CONFLICT" | "NOT_RECOVERABLE";
+        /** @enum {string} */
+        ItemInvoiceLinkState: "RESOLVED" | "UNKNOWN";
+        /**
+         * @description Whether legacy recorded an activation time. Import time is never activation time.
+         * @enum {string}
+         */
+        ActivationEvidence: "LEGACY_ACTIVATION_RECORDED" | "NOT_EVIDENCED";
+        /**
+         * @description Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+         * @enum {string}
+         */
+        BiawinNotice: "SHADOW: imported legacy subscription and fulfillment evidence for architecture validation and parity only. Not live provider state; no activation, provider, shipping or workflow authority.";
+        /** @description The normalised query; run_id is the run every part of the answer comes from. */
+        BiawinQuery: {
+            /** Format: uuid */
+            run_id: string;
+            filters: {
+                [key: string]: string;
+            };
+        };
+        /** @enum {string} */
+        BiawinCoverage: "AVAILABLE" | "PARTIAL" | "MISSING" | "UNKNOWN" | "NOT_RECOVERABLE" | "STALE";
+        BiawinRunSource: {
+            source: string;
+            status: components["schemas"]["BiawinCoverage"];
+            /** Format: int64 */
+            rows_read: number;
+        };
+        /**
+         * @description FRESH / STALE against a 24h SLA from the source cutoff (never "live").
+         * @enum {string}
+         */
+        BiawinFreshness: "FRESH" | "STALE";
+        /** @description One offline import run. outcome is technical (PARTIAL when a source is not AVAILABLE or a row was not classified); never a business state. */
+        BiawinRun: {
+            record_kind: components["schemas"]["RecordKind"];
+            /** Format: uuid */
+            run_id: string;
+            /** Format: int64 */
+            run_seq: number;
+            normalization_version: number;
+            snapshot_id: string;
+            source_cutoff: components["schemas"]["Timestamp"];
+            started_at: components["schemas"]["Timestamp"];
+            completed_at: components["schemas"]["Timestamp"];
+            /** @enum {string} */
+            outcome: "SUCCESS" | "PARTIAL";
+            reasons: components["schemas"]["Reasons"];
+            counts: {
+                [key: string]: number;
+            };
+            sources: components["schemas"]["BiawinRunSource"][];
+            freshness: components["schemas"]["BiawinFreshness"];
+        };
+        BiawinMeta: {
+            record_kind: components["schemas"]["RecordKind"];
+            notice: components["schemas"]["BiawinNotice"];
+            query: components["schemas"]["BiawinQuery"];
+            run: components["schemas"]["BiawinRun"];
+        };
+        StateCount: {
+            key: string;
+            /** Format: int64 */
+            count: number;
+        };
+        /** @description A link to another module. id is set only when state is RESOLVED; legacy_key keeps the raw native reference. */
+        BiawinLink: {
+            state: components["schemas"]["LinkState"];
+            /** Format: uuid */
+            id?: string | null;
+            basis?: string;
+            legacy_key?: string | null;
+        };
+        /** @description A shadow subscription (one legacy project membership). Product version is never guessed (UNKNOWN); the title is a historical snapshot. */
+        BiawinSubscription: {
+            /** Format: uuid */
+            subscription_id: string;
+            source_spec: string;
+            source_key: string;
+            provider: string;
+            source_ref_raw?: string | null;
+            source_type_raw?: string | null;
+            product_key?: string | null;
+            product_title_snapshot?: string | null;
+            /** @enum {string} */
+            product_version_state: "UNKNOWN";
+            customer: components["schemas"]["BiawinLink"];
+            invoice: components["schemas"]["BiawinLink"];
+            first_payment_invoice: components["schemas"]["BiawinLink"];
+            case: components["schemas"]["BiawinLink"];
+            origin_user_key?: string | null;
+            /** Format: uuid */
+            origin_user_id?: string | null;
+            state_namespace: string;
+            state_raw?: string | null;
+            state_mapped: components["schemas"]["SubscriptionState"];
+            activation_evidence: components["schemas"]["ActivationEvidence"];
+            activated_at_raw?: string | null;
+            created_at_raw?: string | null;
+            updated_at_raw?: string | null;
+            item_count: number;
+        };
+        SubscriptionListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["BiawinNotice"];
+            meta?: components["schemas"]["BiawinMeta"];
+            summary?: components["schemas"]["StateCount"][];
+            items?: components["schemas"]["BiawinSubscription"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Append-only legacy history. PROVIDER_EVENT_EVIDENCE records that legacy logged a provider event; it is not a provider call. */
+        SubscriptionEvent: {
+            source_key: string;
+            /** @enum {string} */
+            event_class: "SUBSCRIPTION_EVENT" | "ITEM_EVENT" | "PROVIDER_EVENT_EVIDENCE";
+            event_key_raw: string;
+            /** Format: uuid */
+            item_id?: string | null;
+            actor_key?: string | null;
+            /** Format: uuid */
+            actor_user_id?: string | null;
+            occurred_at_raw?: string | null;
+        };
+        SubscriptionEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["BiawinNotice"];
+            meta?: components["schemas"]["BiawinMeta"];
+            subscription?: components["schemas"]["BiawinSubscription"];
+            history?: components["schemas"]["SubscriptionEvent"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        ItemInvoiceLink: {
+            source_key: string;
+            state: components["schemas"]["ItemInvoiceLinkState"];
+            /** Format: uuid */
+            invoice_id?: string | null;
+            invoice_key?: string | null;
+            status_raw?: string | null;
+            verified_at_raw?: string | null;
+        };
+        /** @description One item; items with the same title are distinct (never merged). Item lifecycle is NOT_EVIDENCED; its fulfillment is a SERVICE_FOLLOWUP case. */
+        SubscriptionItem: {
+            /** Format: uuid */
+            item_id: string;
+            /** Format: uuid */
+            subscription_id: string;
+            source_key: string;
+            /** @enum {string} */
+            state: "NOT_EVIDENCED";
+            service_key?: string | null;
+            service_title_snapshot?: string | null;
+            created_at_raw?: string | null;
+            invoice_links: components["schemas"]["ItemInvoiceLink"][];
+        };
+        /** @description item_count is the subscription's (independent of the page). */
+        SubscriptionItemListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["BiawinNotice"];
+            meta?: components["schemas"]["BiawinMeta"];
+            item_count?: number;
+            items?: components["schemas"]["SubscriptionItem"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @enum {string} */
+        ParityResult: "MATCHED" | "MISSING_TARGET" | "EXTRA_TARGET" | "UNKNOWN" | "CONFLICT" | "NOT_RECOVERABLE" | "INACTIVE_BOTH";
+        /**
+         * @description MATCH only with zero anomalies and AVAILABLE evidence; MISMATCH on drift; INCOMPLETE when evidence is not AVAILABLE; UNKNOWN otherwise.
+         * @enum {string}
+         */
+        ParityOutcome: "MATCH" | "MISMATCH" | "UNKNOWN" | "INCOMPLETE";
+        ParityRow: {
+            source_key: string;
+            result: components["schemas"]["ParityResult"];
+            legacy_class?: string | null;
+            target_state?: string | null;
+        };
+        /** @description Active subscription parity of one target run against one legacy evidence snapshot (recorded offline; a GET never computes it). cutoff_mismatch: the evidence snapshot is not the run's snapshot. */
+        ParityCheck: {
+            /** Format: uuid */
+            check_id: string;
+            /** Format: uuid */
+            run_id: string;
+            evidence_snapshot_id: string;
+            evidence_cutoff: components["schemas"]["Timestamp"];
+            evidence_status: components["schemas"]["BiawinCoverage"];
+            checked_at: components["schemas"]["Timestamp"];
+            outcome: components["schemas"]["ParityOutcome"];
+            reasons: components["schemas"]["Reasons"];
+            /** Format: int64 */
+            legacy_count: number;
+            /** Format: int64 */
+            target_count: number;
+            /** Format: int64 */
+            matched: number;
+            /** Format: int64 */
+            missing_target: number;
+            /** Format: int64 */
+            extra_target: number;
+            /** Format: int64 */
+            unknown: number;
+            /** Format: int64 */
+            conflict: number;
+            /** Format: int64 */
+            not_recoverable: number;
+            cutoff_mismatch: boolean;
+            rows: components["schemas"]["ParityRow"][];
+        };
+        /** @description check is absent (UNKNOWN outcome) when no parity check was recorded for the run. */
+        ParityEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["BiawinNotice"];
+            meta?: components["schemas"]["BiawinMeta"];
+            check?: components["schemas"]["ParityCheck"];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @enum {string} */
+        FulfillmentKind: "SERVICE_FOLLOWUP" | "EXECUTION" | "UPGRADE_EXECUTION" | "SHIPPING";
+        /**
+         * @description Mapped from the preserved raw status of its namespace; any other raw value is UNKNOWN. COMPLETED / DELIVERED / OUTCOME_RECORDED
+         *     qualify this case only: they imply nothing about an invoice, a payment, the subscription, a sale or finance.
+         * @enum {string}
+         */
+        FulfillmentStatus: "NOT_STARTED" | "IN_PROGRESS" | "AWAITING_PAYMENT" | "AWAITING_PROVIDER" | "PROVIDER_ACTION_RECORDED" | "OUTCOME_RECORDED" | "SHIPPED" | "DELIVERED" | "RETURNED" | "NOT_EXECUTED" | "CANCELLED" | "COMPLETED" | "FAILED_AT_PROVIDER" | "UNKNOWN" | "EMPTY";
+        CaseCount: {
+            kind: components["schemas"]["FulfillmentKind"];
+            status: components["schemas"]["FulfillmentStatus"];
+            /** Format: int64 */
+            count: number;
+        };
+        /** @description A current assignee as evidenced at the run (never an owner, credit owner or custody). */
+        FulfillmentAssignment: {
+            /** @enum {string} */
+            role: "MANAGER" | "EXPERT" | "HANDLER";
+            user_key: string;
+            /** Format: uuid */
+            user_id?: string | null;
+            assigned_at_raw?: string | null;
+        };
+        /** @description A shadow fulfillment case. External references (tracking codes, provider ids) are only SHA-256 digests. */
+        FulfillmentCase: {
+            /** Format: uuid */
+            case_id: string;
+            kind: components["schemas"]["FulfillmentKind"];
+            source_spec: string;
+            source_key: string;
+            subtype_raw?: string | null;
+            /** Format: uuid */
+            subscription_id?: string | null;
+            /** Format: uuid */
+            item_id?: string | null;
+            invoice_link_state: components["schemas"]["ItemInvoiceLinkState"];
+            /** Format: uuid */
+            invoice_id?: string | null;
+            invoice_key?: string | null;
+            status_namespace: string;
+            status_raw?: string | null;
+            status_mapped: components["schemas"]["FulfillmentStatus"];
+            shipping_status_raw?: string | null;
+            provider_status_raw?: string | null;
+            contact_status_raw?: string | null;
+            completed_at_raw?: string | null;
+            completed_by_key?: string | null;
+            /** Format: uuid */
+            completed_by_user_id?: string | null;
+            cancelled_at_raw?: string | null;
+            shipped_at_raw?: string | null;
+            delivered_at_raw?: string | null;
+            status_updated_at_raw?: string | null;
+            carrier_raw?: string | null;
+            tracking_ref_sha256?: string | null;
+            provider_ref_sha256?: string | null;
+            provider_ref_scheme?: string | null;
+            created_at_raw?: string | null;
+            updated_at_raw?: string | null;
+            assignments: components["schemas"]["FulfillmentAssignment"][];
+        };
+        FulfillmentCaseListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["BiawinNotice"];
+            meta?: components["schemas"]["BiawinMeta"];
+            summary?: components["schemas"]["CaseCount"][];
+            items?: components["schemas"]["FulfillmentCase"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Service evidence metadata (form contents are never read). */
+        ServiceEvidence: {
+            source_key: string;
+            /** @enum {string} */
+            outcome_mapped: "EXECUTED" | "NOT_EXECUTED" | "UNKNOWN" | "NONE";
+            form_definition_key?: string | null;
+            submitted_by_key?: string | null;
+            /** Format: uuid */
+            submitted_by_user_id?: string | null;
+            submitted_at_raw?: string | null;
+            outcome_raw?: string | null;
+            decided_by_key?: string | null;
+            decided_at_raw?: string | null;
+        };
+        FulfillmentCaseEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["BiawinNotice"];
+            meta?: components["schemas"]["BiawinMeta"];
+            case?: components["schemas"]["FulfillmentCase"];
+            evidence?: components["schemas"]["ServiceEvidence"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Append-only legacy case history. */
+        CaseEvent: {
+            source_spec: string;
+            source_key: string;
+            event_key_raw: string;
+            actor_key?: string | null;
+            /** Format: uuid */
+            actor_user_id?: string | null;
+            old_status_raw?: string | null;
+            new_status_raw?: string | null;
+            occurred_at_raw?: string | null;
+        };
+        FulfillmentCaseHistoryEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["BiawinNotice"];
+            meta?: components["schemas"]["BiawinMeta"];
+            items?: components["schemas"]["CaseEvent"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
     };
     responses: {
         /** @description RFC 9457 problem details (transport, contract or server error). */
@@ -3443,6 +3950,23 @@ export interface components {
         ReconciliationUnit: "IRR" | "IRT" | "UNKNOWN";
         ReconciliationState: components["schemas"]["ReconciliationState"];
         SubjectType: "legacy_wallet" | "invoice";
+        /** @description Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used. */
+        BiawinRunID: string;
+        BiawinSubscriptionState: components["schemas"]["SubscriptionState"];
+        BiawinCustomerLinkState: components["schemas"]["LinkState"];
+        BiawinInvoiceLinkState: components["schemas"]["ItemInvoiceLinkState"];
+        BiawinActivationEvidence: components["schemas"]["ActivationEvidence"];
+        /** @description Legacy native product key (digits). Never a title match. */
+        BiawinProduct: string;
+        /** @description A recorded parity check of the run. Omitted = the latest check of the run. */
+        ParityCheckID: string;
+        ParityResultFilter: components["schemas"]["ParityResult"];
+        FulfillmentKindFilter: components["schemas"]["FulfillmentKind"];
+        FulfillmentStatusFilter: components["schemas"]["FulfillmentStatus"];
+        FulfillmentSubscriptionID: string;
+        FulfillmentItemID: string;
+        /** @description Target user id of a current assignee (never a phone, name or email). */
+        FulfillmentAssignee: string;
     };
     requestBodies: never;
     headers: {
@@ -5423,6 +5947,238 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listBiawinSubscriptions: {
+        parameters: {
+            query?: {
+                /** @description Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["BiawinRunID"];
+                state?: components["parameters"]["BiawinSubscriptionState"];
+                customer_link_state?: components["parameters"]["BiawinCustomerLinkState"];
+                invoice_link_state?: components["parameters"]["BiawinInvoiceLinkState"];
+                activation_evidence?: components["parameters"]["BiawinActivationEvidence"];
+                /** @description Legacy native product key (digits). Never a title match. */
+                product?: components["parameters"]["BiawinProduct"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getBiawinSubscription: {
+        parameters: {
+            query?: {
+                /** @description Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["BiawinRunID"];
+            };
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listBiawinSubscriptionItems: {
+        parameters: {
+            query?: {
+                /** @description Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["BiawinRunID"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionItemListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getBiawinParity: {
+        parameters: {
+            query?: {
+                /** @description Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["BiawinRunID"];
+                /** @description A recorded parity check of the run. Omitted = the latest check of the run. */
+                check_id?: components["parameters"]["ParityCheckID"];
+                result?: components["parameters"]["ParityResultFilter"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParityEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listFulfillmentCases: {
+        parameters: {
+            query?: {
+                /** @description Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["BiawinRunID"];
+                kind?: components["parameters"]["FulfillmentKindFilter"];
+                status?: components["parameters"]["FulfillmentStatusFilter"];
+                subscription_id?: components["parameters"]["FulfillmentSubscriptionID"];
+                item_id?: components["parameters"]["FulfillmentItemID"];
+                /** @description Target user id of a current assignee (never a phone, name or email). */
+                assignee?: components["parameters"]["FulfillmentAssignee"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfillmentCaseListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getFulfillmentCase: {
+        parameters: {
+            query?: {
+                /** @description Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["BiawinRunID"];
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfillmentCaseEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listFulfillmentCaseHistory: {
+        parameters: {
+            query?: {
+                /** @description Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["BiawinRunID"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FulfillmentCaseHistoryEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

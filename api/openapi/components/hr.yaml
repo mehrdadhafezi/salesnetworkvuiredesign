@@ -463,7 +463,8 @@ Capability:
     cases.case.read, custody.custody.read, sales.report.read,
     billing.invoice.read, payments.attempt.read, billing.reconciliation.read,
     reporting.metrics.read, reporting.mis.read, reporting.invoice_review.read,
-    finance.shadow.read, finance.ledger.read, finance.reconciliation.read]
+    finance.shadow.read, finance.ledger.read, finance.reconciliation.read,
+    biawin.subscription.read, fulfillment.case.read, biawin.parity.read]
 
 AccessDecision:
   type: object

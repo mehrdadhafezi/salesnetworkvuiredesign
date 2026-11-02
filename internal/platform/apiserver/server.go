@@ -88,8 +88,17 @@ var ContractPaths = map[string][]string{
 	"/api/v1/finance/ledger/{entry_id}":     {http.MethodGet},
 	"/api/v1/finance/balances":              {http.MethodGet},
 	"/api/v1/finance/reconciliation":        {http.MethodGet},
-	"/api/v1/invoice-review":                {http.MethodGet},
-	"/api/v1/invoice-review/{invoice_id}":   {http.MethodGet},
+	// Slice 10 Biawin / fulfillment READ shadow (GET only; no activation,
+	// suspension, provider, wallet, shipping, assignment or completion path).
+	"/api/v1/biawin/subscriptions":                         {http.MethodGet},
+	"/api/v1/biawin/subscriptions/{subscription_id}":       {http.MethodGet},
+	"/api/v1/biawin/subscriptions/{subscription_id}/items": {http.MethodGet},
+	"/api/v1/biawin/parity":                                {http.MethodGet},
+	"/api/v1/fulfillment/cases":                            {http.MethodGet},
+	"/api/v1/fulfillment/cases/{case_id}":                  {http.MethodGet},
+	"/api/v1/fulfillment/cases/{case_id}/history":          {http.MethodGet},
+	"/api/v1/invoice-review":                               {http.MethodGet},
+	"/api/v1/invoice-review/{invoice_id}":                  {http.MethodGet},
 }
 
 // ContractQuery is the allowlist of query parameters per Slice 4 path. A
@@ -155,8 +164,16 @@ var ContractQuery = map[string][]string{
 	"/api/v1/finance/ledger/{entry_id}":                     {"run_id"},
 	"/api/v1/finance/balances":                              {"run_id", "basis", "unit", "account_category", "state", "cursor", "limit"},
 	"/api/v1/finance/reconciliation":                        {"run_id", "basis", "unit", "state", "subject_type", "cursor", "limit"},
-	"/api/v1/invoice-review":                                {"presence", "customer_link_state", "case_link_state", "has_unknown_status", "total_class", "unit", "cursor", "limit"},
-	"/api/v1/invoice-review/{invoice_id}":                   {},
+	// Slice 10: no phone (or any contact) parameter exists on any path.
+	"/api/v1/biawin/subscriptions":                         {"run_id", "state", "customer_link_state", "invoice_link_state", "activation_evidence", "product", "cursor", "limit"},
+	"/api/v1/biawin/subscriptions/{subscription_id}":       {"run_id"},
+	"/api/v1/biawin/subscriptions/{subscription_id}/items": {"run_id", "cursor", "limit"},
+	"/api/v1/biawin/parity":                                {"run_id", "check_id", "result", "cursor", "limit"},
+	"/api/v1/fulfillment/cases":                            {"run_id", "kind", "status", "subscription_id", "item_id", "assignee", "cursor", "limit"},
+	"/api/v1/fulfillment/cases/{case_id}":                  {"run_id"},
+	"/api/v1/fulfillment/cases/{case_id}/history":          {"run_id", "cursor", "limit"},
+	"/api/v1/invoice-review":                               {"presence", "customer_link_state", "case_link_state", "has_unknown_status", "total_class", "unit", "cursor", "limit"},
+	"/api/v1/invoice-review/{invoice_id}":                  {},
 }
 
 // CustomersAPI is the Slice 5 customer identity read surface (customers
@@ -249,6 +266,22 @@ type FinanceAPI interface {
 	FinanceEnabled(ctx context.Context) bool
 }
 
+// BiawinAPI is the Slice 10 Biawin / fulfillment READ shadow surface
+// (biawin and fulfillment modules, composed by cmd/crm-api). Without one,
+// every operation answers BLOCKED / FEATURE_DISABLED. It has no write,
+// activation, provider, shipping, assignment or completion operation.
+type BiawinAPI interface {
+	ListBiawinSubscriptions(ctx context.Context, request oapi.ListBiawinSubscriptionsRequestObject) (oapi.ListBiawinSubscriptionsResponseObject, error)
+	GetBiawinSubscription(ctx context.Context, request oapi.GetBiawinSubscriptionRequestObject) (oapi.GetBiawinSubscriptionResponseObject, error)
+	ListBiawinSubscriptionItems(ctx context.Context, request oapi.ListBiawinSubscriptionItemsRequestObject) (oapi.ListBiawinSubscriptionItemsResponseObject, error)
+	GetBiawinParity(ctx context.Context, request oapi.GetBiawinParityRequestObject) (oapi.GetBiawinParityResponseObject, error)
+	ListFulfillmentCases(ctx context.Context, request oapi.ListFulfillmentCasesRequestObject) (oapi.ListFulfillmentCasesResponseObject, error)
+	GetFulfillmentCase(ctx context.Context, request oapi.GetFulfillmentCaseRequestObject) (oapi.GetFulfillmentCaseResponseObject, error)
+	ListFulfillmentCaseHistory(ctx context.Context, request oapi.ListFulfillmentCaseHistoryRequestObject) (oapi.ListFulfillmentCaseHistoryResponseObject, error)
+	// BiawinEnabled reports the Slice 10 flag for the session navigation hint.
+	BiawinEnabled(ctx context.Context) bool
+}
+
 // Surfaces are the optional business read surfaces; nil ones answer
 // BLOCKED / FEATURE_DISABLED.
 type Surfaces struct {
@@ -258,6 +291,7 @@ type Surfaces struct {
 	Billing   BillingAPI
 	Reporting ReportingAPI
 	Finance   FinanceAPI
+	Biawin    BiawinAPI
 }
 
 // ReadAPI is the Slice 4 read surface (identity, organization,
@@ -289,6 +323,7 @@ type api struct {
 	BillingAPI
 	ReportingAPI
 	FinanceAPI
+	BiawinAPI
 	clock   timeutil.Clock
 	devAuth bool
 }
@@ -335,15 +370,16 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 		}
 	}
 	data.Features = &struct {
-		BillingRead       bool `json:"billing_read"`
-		CustomersIdentity bool `json:"customers_identity"`
-		FinanceShadowRead bool `json:"finance_shadow_read"`
-		HrRead            bool `json:"hr_read"`
-		ReportingRead     bool `json:"reporting_read"`
-		SalesRead         bool `json:"sales_read"`
+		BiawinFulfillmentRead bool `json:"biawin_fulfillment_read"`
+		BillingRead           bool `json:"billing_read"`
+		CustomersIdentity     bool `json:"customers_identity"`
+		FinanceShadowRead     bool `json:"finance_shadow_read"`
+		HrRead                bool `json:"hr_read"`
+		ReportingRead         bool `json:"reporting_read"`
+		SalesRead             bool `json:"sales_read"`
 	}{BillingRead: a.BillingAPI.BillingEnabled(ctx), CustomersIdentity: a.CustomersAPI.CustomersEnabled(ctx), HrRead: a.ReadAPI.HRReadEnabled(ctx),
 		ReportingRead: a.ReportingAPI.ReportingEnabled(ctx), SalesRead: a.SalesAPI.SalesEnabled(ctx),
-		FinanceShadowRead: a.FinanceAPI.FinanceEnabled(ctx)}
+		FinanceShadowRead: a.FinanceAPI.FinanceEnabled(ctx), BiawinFulfillmentRead: a.BiawinAPI.BiawinEnabled(ctx)}
 	return oapi.GetSession200JSONResponse{Body: oapi.SessionEnvelope{
 		Outcome:       outcome,
 		Reasons:       []oapi.ReasonCode{},
@@ -367,7 +403,7 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 
 // NewHandlerWithSurfaces builds the full handler chain over every surface.
 func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logger, sf Surfaces) (http.Handler, error) {
-	read, customers, sales, billing, rep, fin := sf.Read, sf.Customers, sf.Sales, sf.Billing, sf.Reporting, sf.Finance
+	read, customers, sales, billing, rep, fin, bw := sf.Read, sf.Customers, sf.Sales, sf.Billing, sf.Reporting, sf.Finance, sf.Biawin
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -392,9 +428,12 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	if fin == nil {
 		fin = unconfiguredFinance{}
 	}
+	if bw == nil {
+		bw = unconfiguredBiawin{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},

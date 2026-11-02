@@ -53,3 +53,16 @@ func TestFinanceSurfaceNeedsFlagStore(t *testing.T) {
 		t.Fatalf("partial finance config: %v", err)
 	}
 }
+
+func TestBiawinSurfaceNeedsBothModulesAndFlagStore(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	for _, partial := range []map[string]string{
+		{"CRM_ENV": "test", EnvBiawinReadURL: "postgres://x@127.0.0.1:1/x"},
+		{"CRM_ENV": "test", EnvFulfillmentReadURL: "postgres://x@127.0.0.1:1/x"},
+		{"CRM_ENV": "test", EnvBiawinReadURL: "postgres://x@127.0.0.1:1/x", EnvFulfillmentReadURL: "postgres://x@127.0.0.1:1/x"},
+	} {
+		if err := run(context.Background(), env(partial), logger); !errors.Is(err, ErrBiawinConfig) {
+			t.Fatalf("partial biawin config %v: %v", partial, err)
+		}
+	}
+}

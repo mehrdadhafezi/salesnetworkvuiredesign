@@ -243,6 +243,10 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 	// Slice 2 technical surface + Slice 4 read-only identity/organization/authorization surface
 	// + Slice 5 read-only customer identity surface (no merge/resolve/write path).
 	want := []string{"/api/v1/authorization/effective-access",
+		// Slice 10 Biawin read shadow: GET only; no activation / suspension /
+		// order / wallet / provider path.
+		"/api/v1/biawin/parity", "/api/v1/biawin/subscriptions", "/api/v1/biawin/subscriptions/{subscription_id}",
+		"/api/v1/biawin/subscriptions/{subscription_id}/items",
 		// Slice 7 billing + payments read shadow: GET only, no action path.
 		"/api/v1/billing/reconciliation-report",
 		// Slice 6 sales read shadow: GET only, no action path.
@@ -255,6 +259,9 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		// reverse / settle / refund / credit / debit path.
 		"/api/v1/finance/accounts", "/api/v1/finance/accounts/{account_id}", "/api/v1/finance/balances", "/api/v1/finance/ledger",
 		"/api/v1/finance/ledger/{entry_id}", "/api/v1/finance/reconciliation", "/api/v1/finance/shadow-runs", "/api/v1/finance/shadow-runs/{run_id}",
+		// Slice 10 fulfillment read shadow: GET only; no assignment / shipping /
+		// completion / evidence upload / upgrade path.
+		"/api/v1/fulfillment/cases", "/api/v1/fulfillment/cases/{case_id}", "/api/v1/fulfillment/cases/{case_id}/history",
 		"/api/v1/identity/users", "/api/v1/identity/users/{user_id}",
 		"/api/v1/invoice-review", "/api/v1/invoice-review/{invoice_id}",
 		"/api/v1/invoices", "/api/v1/invoices/{invoice_id}", "/api/v1/invoices/{invoice_id}/items", "/api/v1/invoices/{invoice_id}/payments",

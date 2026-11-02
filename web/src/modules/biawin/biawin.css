@@ -1,0 +1,20 @@
+/* Biawin / fulfillment READ shadow surfaces (Slice 10). Layout only, SN-207 tokens. */
+.bw-banner{border:2px dashed var(--border);border-radius:8px;padding:10px 12px;margin:0 0 12px;display:grid;gap:4px;background:var(--surface-2)}
+.bw-banner strong{letter-spacing:.08em}
+.bw-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}
+.bw-ltr{direction:ltr;unicode-bidi:isolate}
+.bw-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--gap);align-items:end}
+.bw-table-wrap{overflow-x:auto}
+.bw-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.bw-table th,.bw-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.bw-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.bw-sections{display:grid;gap:12px}
+.bw-counts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--gap)}
+.bw-count{border:1px solid var(--border);border-radius:8px;padding:10px;display:grid;gap:4px}
+.bw-count strong{font-size:var(--fs-lg,1.25rem)}
+.bw-dl{display:grid;grid-template-columns:minmax(140px,max-content) 1fr;gap:6px 12px;margin:0}
+.bw-dl dt{color:var(--text-2)}
+.bw-dl dd{margin:0}
+.bw-pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+@media (max-width:760px){.bw-filters{grid-template-columns:1fr}.bw-dl{grid-template-columns:1fr}}
+.bw-list{margin:0;padding-inline-start:18px;display:grid;gap:4px}

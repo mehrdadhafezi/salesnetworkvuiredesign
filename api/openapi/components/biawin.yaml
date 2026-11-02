@@ -1,0 +1,424 @@
+# Slice 10 Biawin / fulfillment READ shadow (GET only). Every answer is
+# pinned to one offline import run (snapshot + cutoff + normalization
+# version) and repeats the SHADOW notice. No activation, suspension,
+# termination, provider (create_order / charge_wallet), shipping,
+# assignment, completion, evidence upload or upgrade operation exists.
+# Phone is never an identity, filter or join. Unknown values stay UNKNOWN
+# with their raw value; nothing is converted to zero or inferred.
+
+BiawinNotice:
+  type: string
+  description: Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+  enum: ['SHADOW: imported legacy subscription and fulfillment evidence for architecture validation and parity only. Not live provider state; no activation, provider, shipping or workflow authority.']
+
+BiawinCoverage:
+  type: string
+  enum: [AVAILABLE, PARTIAL, MISSING, UNKNOWN, NOT_RECOVERABLE, STALE]
+
+BiawinFreshness:
+  type: string
+  description: FRESH / STALE against a 24h SLA from the source cutoff (never "live").
+  enum: [FRESH, STALE]
+
+BiawinRunSource:
+  type: object
+  required: [source, status, rows_read]
+  additionalProperties: false
+  properties:
+    source: {type: string, maxLength: 80}
+    status: {$ref: '#/BiawinCoverage'}
+    rows_read: {type: integer, format: int64}
+
+BiawinRun:
+  type: object
+  description: 'One offline import run. outcome is technical (PARTIAL when a source is not AVAILABLE or a row was not classified); never a business state.'
+  required: [record_kind, run_id, run_seq, normalization_version, snapshot_id, source_cutoff, started_at, completed_at, outcome, reasons, counts, sources, freshness]
+  additionalProperties: false
+  properties:
+    record_kind: {$ref: './finance.yaml#/RecordKind'}
+    run_id: {type: string, format: uuid}
+    run_seq: {type: integer, format: int64}
+    normalization_version: {type: integer}
+    snapshot_id: {type: string, maxLength: 128}
+    source_cutoff: {$ref: './schemas.yaml#/Timestamp'}
+    started_at: {$ref: './schemas.yaml#/Timestamp'}
+    completed_at: {$ref: './schemas.yaml#/Timestamp'}
+    outcome: {type: string, enum: [SUCCESS, PARTIAL]}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    counts: {type: object, additionalProperties: {type: integer, format: int64}}
+    sources: {type: array, maxItems: 20, items: {$ref: '#/BiawinRunSource'}}
+    freshness: {$ref: '#/BiawinFreshness'}
+
+BiawinQuery:
+  type: object
+  description: 'The normalised query; run_id is the run every part of the answer comes from.'
+  required: [run_id, filters]
+  additionalProperties: false
+  properties:
+    run_id: {type: string, format: uuid}
+    filters: {type: object, additionalProperties: {type: string, maxLength: 60}}
+
+BiawinMeta:
+  type: object
+  required: [record_kind, notice, query, run]
+  additionalProperties: false
+  properties:
+    record_kind: {$ref: './finance.yaml#/RecordKind'}
+    notice: {$ref: '#/BiawinNotice'}
+    query: {$ref: '#/BiawinQuery'}
+    run: {$ref: '#/BiawinRun'}
+
+SubscriptionState:
+  type: string
+  description: Mapped from the preserved raw legacy status (active / suspended). Any other raw value is UNKNOWN; no lifecycle is inferred.
+  enum: [ACTIVE, SUSPENDED, UNKNOWN, EMPTY]
+
+LinkState:
+  type: string
+  enum: [RESOLVED, RELATED, UNKNOWN, CONFLICT, NOT_RECOVERABLE]
+
+ItemInvoiceLinkState:
+  type: string
+  enum: [RESOLVED, UNKNOWN]
+
+ActivationEvidence:
+  type: string
+  description: Whether legacy recorded an activation time. Import time is never activation time.
+  enum: [LEGACY_ACTIVATION_RECORDED, NOT_EVIDENCED]
+
+BiawinLink:
+  type: object
+  description: 'A link to another module. id is set only when state is RESOLVED; legacy_key keeps the raw native reference.'
+  required: [state]
+  additionalProperties: false
+  properties:
+    state: {$ref: '#/LinkState'}
+    id: {type: string, format: uuid, nullable: true}
+    basis: {type: string, maxLength: 80}
+    legacy_key: {type: string, maxLength: 300, nullable: true}
+
+BiawinSubscription:
+  type: object
+  description: 'A shadow subscription (one legacy project membership). Product version is never guessed (UNKNOWN); the title is a historical snapshot.'
+  required: [subscription_id, source_spec, source_key, provider, state_namespace, state_mapped, activation_evidence, product_version_state, customer, invoice, first_payment_invoice, case, item_count]
+  additionalProperties: false
+  properties:
+    subscription_id: {type: string, format: uuid}
+    source_spec: {type: string, maxLength: 80}
+    source_key: {type: string, maxLength: 40}
+    provider: {type: string, maxLength: 40}
+    source_ref_raw: {type: string, maxLength: 300, nullable: true}
+    source_type_raw: {type: string, maxLength: 300, nullable: true}
+    product_key: {type: string, maxLength: 300, nullable: true}
+    product_title_snapshot: {type: string, maxLength: 300, nullable: true}
+    product_version_state: {type: string, enum: [UNKNOWN]}
+    customer: {$ref: '#/BiawinLink'}
+    invoice: {$ref: '#/BiawinLink'}
+    first_payment_invoice: {$ref: '#/BiawinLink'}
+    case: {$ref: '#/BiawinLink'}
+    origin_user_key: {type: string, maxLength: 300, nullable: true}
+    origin_user_id: {type: string, format: uuid, nullable: true}
+    state_namespace: {type: string, maxLength: 80}
+    state_raw: {type: string, maxLength: 300, nullable: true}
+    state_mapped: {$ref: '#/SubscriptionState'}
+    activation_evidence: {$ref: '#/ActivationEvidence'}
+    activated_at_raw: {type: string, maxLength: 300, nullable: true}
+    created_at_raw: {type: string, maxLength: 300, nullable: true}
+    updated_at_raw: {type: string, maxLength: 300, nullable: true}
+    item_count: {type: integer}
+
+ItemInvoiceLink:
+  type: object
+  required: [source_key, state]
+  additionalProperties: false
+  properties:
+    source_key: {type: string, maxLength: 40}
+    state: {$ref: '#/ItemInvoiceLinkState'}
+    invoice_id: {type: string, format: uuid, nullable: true}
+    invoice_key: {type: string, maxLength: 300, nullable: true}
+    status_raw: {type: string, maxLength: 300, nullable: true}
+    verified_at_raw: {type: string, maxLength: 300, nullable: true}
+
+SubscriptionItem:
+  type: object
+  description: 'One item; items with the same title are distinct (never merged). Item lifecycle is NOT_EVIDENCED; its fulfillment is a SERVICE_FOLLOWUP case.'
+  required: [item_id, subscription_id, source_key, state, invoice_links]
+  additionalProperties: false
+  properties:
+    item_id: {type: string, format: uuid}
+    subscription_id: {type: string, format: uuid}
+    source_key: {type: string, maxLength: 40}
+    state: {type: string, enum: [NOT_EVIDENCED]}
+    service_key: {type: string, maxLength: 300, nullable: true}
+    service_title_snapshot: {type: string, maxLength: 300, nullable: true}
+    created_at_raw: {type: string, maxLength: 300, nullable: true}
+    invoice_links: {type: array, maxItems: 50, items: {$ref: '#/ItemInvoiceLink'}}
+
+SubscriptionEvent:
+  type: object
+  description: 'Append-only legacy history. PROVIDER_EVENT_EVIDENCE records that legacy logged a provider event; it is not a provider call.'
+  required: [source_key, event_class, event_key_raw]
+  additionalProperties: false
+  properties:
+    source_key: {type: string, maxLength: 40}
+    event_class: {type: string, enum: [SUBSCRIPTION_EVENT, ITEM_EVENT, PROVIDER_EVENT_EVIDENCE]}
+    event_key_raw: {type: string, maxLength: 120}
+    item_id: {type: string, format: uuid, nullable: true}
+    actor_key: {type: string, maxLength: 300, nullable: true}
+    actor_user_id: {type: string, format: uuid, nullable: true}
+    occurred_at_raw: {type: string, maxLength: 300, nullable: true}
+
+StateCount:
+  type: object
+  required: [key, count]
+  additionalProperties: false
+  properties:
+    key: {type: string, maxLength: 60}
+    count: {type: integer, format: int64}
+
+SubscriptionListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/BiawinNotice'}
+    meta: {$ref: '#/BiawinMeta'}
+    summary: {type: array, maxItems: 20, items: {$ref: '#/StateCount'}}
+    items: {type: array, maxItems: 200, items: {$ref: '#/BiawinSubscription'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+SubscriptionEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/BiawinNotice'}
+    meta: {$ref: '#/BiawinMeta'}
+    subscription: {$ref: '#/BiawinSubscription'}
+    history: {type: array, maxItems: 500, items: {$ref: '#/SubscriptionEvent'}}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+SubscriptionItemListEnvelope:
+  type: object
+  description: 'item_count is the subscription''s (independent of the page).'
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/BiawinNotice'}
+    meta: {$ref: '#/BiawinMeta'}
+    item_count: {type: integer}
+    items: {type: array, maxItems: 200, items: {$ref: '#/SubscriptionItem'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+ParityOutcome:
+  type: string
+  description: MATCH only with zero anomalies and AVAILABLE evidence; MISMATCH on drift; INCOMPLETE when evidence is not AVAILABLE; UNKNOWN otherwise.
+  enum: [MATCH, MISMATCH, UNKNOWN, INCOMPLETE]
+
+ParityResult:
+  type: string
+  enum: [MATCHED, MISSING_TARGET, EXTRA_TARGET, UNKNOWN, CONFLICT, NOT_RECOVERABLE, INACTIVE_BOTH]
+
+ParityRow:
+  type: object
+  required: [source_key, result]
+  additionalProperties: false
+  properties:
+    source_key: {type: string, maxLength: 40}
+    result: {$ref: '#/ParityResult'}
+    legacy_class: {type: string, maxLength: 300, nullable: true}
+    target_state: {type: string, maxLength: 300, nullable: true}
+
+ParityCheck:
+  type: object
+  description: 'Active subscription parity of one target run against one legacy evidence snapshot (recorded offline; a GET never computes it). cutoff_mismatch: the evidence snapshot is not the run''s snapshot.'
+  required: [check_id, run_id, evidence_snapshot_id, evidence_cutoff, evidence_status, checked_at, outcome, reasons, legacy_count, target_count, matched, missing_target, extra_target, unknown, conflict, not_recoverable, cutoff_mismatch, rows]
+  additionalProperties: false
+  properties:
+    check_id: {type: string, format: uuid}
+    run_id: {type: string, format: uuid}
+    evidence_snapshot_id: {type: string, maxLength: 128}
+    evidence_cutoff: {$ref: './schemas.yaml#/Timestamp'}
+    evidence_status: {$ref: '#/BiawinCoverage'}
+    checked_at: {$ref: './schemas.yaml#/Timestamp'}
+    outcome: {$ref: '#/ParityOutcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    legacy_count: {type: integer, format: int64}
+    target_count: {type: integer, format: int64}
+    matched: {type: integer, format: int64}
+    missing_target: {type: integer, format: int64}
+    extra_target: {type: integer, format: int64}
+    unknown: {type: integer, format: int64}
+    conflict: {type: integer, format: int64}
+    not_recoverable: {type: integer, format: int64}
+    cutoff_mismatch: {type: boolean}
+    rows: {type: array, maxItems: 200, items: {$ref: '#/ParityRow'}}
+
+ParityEnvelope:
+  type: object
+  description: 'check is absent (UNKNOWN outcome) when no parity check was recorded for the run.'
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/BiawinNotice'}
+    meta: {$ref: '#/BiawinMeta'}
+    check: {$ref: '#/ParityCheck'}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+FulfillmentKind:
+  type: string
+  enum: [SERVICE_FOLLOWUP, EXECUTION, UPGRADE_EXECUTION, SHIPPING]
+
+FulfillmentStatus:
+  type: string
+  description: |
+    Mapped from the preserved raw status of its namespace; any other raw value is UNKNOWN. COMPLETED / DELIVERED / OUTCOME_RECORDED
+    qualify this case only: they imply nothing about an invoice, a payment, the subscription, a sale or finance.
+  enum: [NOT_STARTED, IN_PROGRESS, AWAITING_PAYMENT, AWAITING_PROVIDER, PROVIDER_ACTION_RECORDED, OUTCOME_RECORDED, SHIPPED, DELIVERED,
+    RETURNED, NOT_EXECUTED, CANCELLED, COMPLETED, FAILED_AT_PROVIDER, UNKNOWN, EMPTY]
+
+FulfillmentAssignment:
+  type: object
+  description: 'A current assignee as evidenced at the run (never an owner, credit owner or custody).'
+  required: [role, user_key]
+  additionalProperties: false
+  properties:
+    role: {type: string, enum: [MANAGER, EXPERT, HANDLER]}
+    user_key: {type: string, maxLength: 40}
+    user_id: {type: string, format: uuid, nullable: true}
+    assigned_at_raw: {type: string, maxLength: 300, nullable: true}
+
+FulfillmentCase:
+  type: object
+  description: 'A shadow fulfillment case. External references (tracking codes, provider ids) are only SHA-256 digests.'
+  required: [case_id, kind, source_spec, source_key, invoice_link_state, status_namespace, status_mapped, assignments]
+  additionalProperties: false
+  properties:
+    case_id: {type: string, format: uuid}
+    kind: {$ref: '#/FulfillmentKind'}
+    source_spec: {type: string, maxLength: 80}
+    source_key: {type: string, maxLength: 40}
+    subtype_raw: {type: string, maxLength: 300, nullable: true}
+    subscription_id: {type: string, format: uuid, nullable: true}
+    item_id: {type: string, format: uuid, nullable: true}
+    invoice_link_state: {$ref: '#/ItemInvoiceLinkState'}
+    invoice_id: {type: string, format: uuid, nullable: true}
+    invoice_key: {type: string, maxLength: 300, nullable: true}
+    status_namespace: {type: string, maxLength: 80}
+    status_raw: {type: string, maxLength: 300, nullable: true}
+    status_mapped: {$ref: '#/FulfillmentStatus'}
+    shipping_status_raw: {type: string, maxLength: 300, nullable: true}
+    provider_status_raw: {type: string, maxLength: 300, nullable: true}
+    contact_status_raw: {type: string, maxLength: 300, nullable: true}
+    completed_at_raw: {type: string, maxLength: 300, nullable: true}
+    completed_by_key: {type: string, maxLength: 300, nullable: true}
+    completed_by_user_id: {type: string, format: uuid, nullable: true}
+    cancelled_at_raw: {type: string, maxLength: 300, nullable: true}
+    shipped_at_raw: {type: string, maxLength: 300, nullable: true}
+    delivered_at_raw: {type: string, maxLength: 300, nullable: true}
+    status_updated_at_raw: {type: string, maxLength: 300, nullable: true}
+    carrier_raw: {type: string, maxLength: 300, nullable: true}
+    tracking_ref_sha256: {type: string, maxLength: 300, nullable: true}
+    provider_ref_sha256: {type: string, maxLength: 300, nullable: true}
+    provider_ref_scheme: {type: string, maxLength: 300, nullable: true}
+    created_at_raw: {type: string, maxLength: 300, nullable: true}
+    updated_at_raw: {type: string, maxLength: 300, nullable: true}
+    assignments: {type: array, maxItems: 10, items: {$ref: '#/FulfillmentAssignment'}}
+
+ServiceEvidence:
+  type: object
+  description: 'Service evidence metadata (form contents are never read).'
+  required: [source_key, outcome_mapped]
+  additionalProperties: false
+  properties:
+    source_key: {type: string, maxLength: 40}
+    outcome_mapped: {type: string, enum: [EXECUTED, NOT_EXECUTED, UNKNOWN, NONE]}
+    form_definition_key: {type: string, maxLength: 300, nullable: true}
+    submitted_by_key: {type: string, maxLength: 300, nullable: true}
+    submitted_by_user_id: {type: string, format: uuid, nullable: true}
+    submitted_at_raw: {type: string, maxLength: 300, nullable: true}
+    outcome_raw: {type: string, maxLength: 300, nullable: true}
+    decided_by_key: {type: string, maxLength: 300, nullable: true}
+    decided_at_raw: {type: string, maxLength: 300, nullable: true}
+
+CaseEvent:
+  type: object
+  description: 'Append-only legacy case history.'
+  required: [source_spec, source_key, event_key_raw]
+  additionalProperties: false
+  properties:
+    source_spec: {type: string, maxLength: 80}
+    source_key: {type: string, maxLength: 40}
+    event_key_raw: {type: string, maxLength: 120}
+    actor_key: {type: string, maxLength: 300, nullable: true}
+    actor_user_id: {type: string, format: uuid, nullable: true}
+    old_status_raw: {type: string, maxLength: 300, nullable: true}
+    new_status_raw: {type: string, maxLength: 300, nullable: true}
+    occurred_at_raw: {type: string, maxLength: 300, nullable: true}
+
+CaseCount:
+  type: object
+  required: [kind, status, count]
+  additionalProperties: false
+  properties:
+    kind: {$ref: '#/FulfillmentKind'}
+    status: {$ref: '#/FulfillmentStatus'}
+    count: {type: integer, format: int64}
+
+FulfillmentCaseListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/BiawinNotice'}
+    meta: {$ref: '#/BiawinMeta'}
+    summary: {type: array, maxItems: 80, items: {$ref: '#/CaseCount'}}
+    items: {type: array, maxItems: 200, items: {$ref: '#/FulfillmentCase'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+FulfillmentCaseEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/BiawinNotice'}
+    meta: {$ref: '#/BiawinMeta'}
+    case: {$ref: '#/FulfillmentCase'}
+    evidence: {type: array, maxItems: 50, items: {$ref: '#/ServiceEvidence'}}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+FulfillmentCaseHistoryEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/BiawinNotice'}
+    meta: {$ref: '#/BiawinMeta'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/CaseEvent'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}

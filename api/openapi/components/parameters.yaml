@@ -543,3 +543,106 @@ EffectiveTo:
   description: Entries whose evidenced effective time is before (UTC).
   schema:
     $ref: './schemas.yaml#/Timestamp'
+
+# ---- Slice 10 Biawin / fulfillment READ shadow (no phone parameter exists) ----
+
+BiawinRunID:
+  name: run_id
+  in: query
+  required: false
+  description: Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used.
+  schema:
+    type: string
+    format: uuid
+
+BiawinSubscriptionState:
+  name: state
+  in: query
+  required: false
+  schema:
+    $ref: './biawin.yaml#/SubscriptionState'
+
+BiawinCustomerLinkState:
+  name: customer_link_state
+  in: query
+  required: false
+  schema:
+    $ref: './biawin.yaml#/LinkState'
+
+BiawinInvoiceLinkState:
+  name: invoice_link_state
+  in: query
+  required: false
+  schema:
+    $ref: './biawin.yaml#/ItemInvoiceLinkState'
+
+BiawinActivationEvidence:
+  name: activation_evidence
+  in: query
+  required: false
+  schema:
+    $ref: './biawin.yaml#/ActivationEvidence'
+
+BiawinProduct:
+  name: product
+  in: query
+  required: false
+  description: Legacy native product key (digits). Never a title match.
+  schema:
+    type: string
+    pattern: '^[0-9]{1,20}$'
+
+FulfillmentKindFilter:
+  name: kind
+  in: query
+  required: false
+  schema:
+    $ref: './biawin.yaml#/FulfillmentKind'
+
+FulfillmentStatusFilter:
+  name: status
+  in: query
+  required: false
+  schema:
+    $ref: './biawin.yaml#/FulfillmentStatus'
+
+FulfillmentSubscriptionID:
+  name: subscription_id
+  in: query
+  required: false
+  schema:
+    type: string
+    format: uuid
+
+FulfillmentItemID:
+  name: item_id
+  in: query
+  required: false
+  schema:
+    type: string
+    format: uuid
+
+FulfillmentAssignee:
+  name: assignee
+  in: query
+  required: false
+  description: Target user id of a current assignee (never a phone, name or email).
+  schema:
+    type: string
+    format: uuid
+
+ParityCheckID:
+  name: check_id
+  in: query
+  required: false
+  description: A recorded parity check of the run. Omitted = the latest check of the run.
+  schema:
+    type: string
+    format: uuid
+
+ParityResultFilter:
+  name: result
+  in: query
+  required: false
+  schema:
+    $ref: './biawin.yaml#/ParityResult'
