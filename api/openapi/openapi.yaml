@@ -42,6 +42,10 @@ tags:
     description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
   - name: finance
     description: Slice 9 finance SHADOW ledger read (GET only). Derived shadow journal, balances and reconciliation against legacy balances; not the financial system of record, not settled, bank-confirmed or Finance-approved money.
+  - name: biawin
+    description: Slice 10 Biawin subscription READ shadow and active subscription parity (GET only; no activation, provider or wallet operation).
+  - name: fulfillment
+    description: Slice 10 fulfillment READ shadow — service follow-up, execution, upgrade execution and shipping cases (GET only; no workflow, assignment, shipping or completion operation).
   - name: reporting
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: billing
@@ -1983,6 +1987,251 @@ paths:
               schema:
                 $ref: './components/finance.yaml#/ReconciliationListEnvelope'
         '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/biawin/subscriptions:
+    get:
+      tags: [biawin]
+      operationId: listBiawinSubscriptions
+      summary: "Shadow subscriptions of one import run"
+      description: |
+        Requires biawin.subscription.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/BiawinRunID'
+        - $ref: './components/parameters.yaml#/BiawinSubscriptionState'
+        - $ref: './components/parameters.yaml#/BiawinCustomerLinkState'
+        - $ref: './components/parameters.yaml#/BiawinInvoiceLinkState'
+        - $ref: './components/parameters.yaml#/BiawinActivationEvidence'
+        - $ref: './components/parameters.yaml#/BiawinProduct'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/biawin.yaml#/SubscriptionListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/biawin/subscriptions/{subscription_id}:
+    get:
+      tags: [biawin]
+      operationId: getBiawinSubscription
+      summary: "One shadow subscription with its history"
+      description: |
+        Requires biawin.subscription.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - name: subscription_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/BiawinRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/biawin.yaml#/SubscriptionEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/biawin/subscriptions/{subscription_id}/items:
+    get:
+      tags: [biawin]
+      operationId: listBiawinSubscriptionItems
+      summary: "Items of one shadow subscription (never merged)"
+      description: |
+        Requires biawin.subscription.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - name: subscription_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/BiawinRunID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/biawin.yaml#/SubscriptionItemListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/biawin/parity:
+    get:
+      tags: [biawin]
+      operationId: getBiawinParity
+      summary: "Active subscription parity (legacy vs target) of one run"
+      description: |
+        Requires biawin.parity.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/BiawinRunID'
+        - $ref: './components/parameters.yaml#/ParityCheckID'
+        - $ref: './components/parameters.yaml#/ParityResultFilter'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/biawin.yaml#/ParityEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/fulfillment/cases:
+    get:
+      tags: [fulfillment]
+      operationId: listFulfillmentCases
+      summary: "Shadow fulfillment cases of one import run"
+      description: |
+        Requires fulfillment.case.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/BiawinRunID'
+        - $ref: './components/parameters.yaml#/FulfillmentKindFilter'
+        - $ref: './components/parameters.yaml#/FulfillmentStatusFilter'
+        - $ref: './components/parameters.yaml#/FulfillmentSubscriptionID'
+        - $ref: './components/parameters.yaml#/FulfillmentItemID'
+        - $ref: './components/parameters.yaml#/FulfillmentAssignee'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/biawin.yaml#/FulfillmentCaseListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/fulfillment/cases/{case_id}:
+    get:
+      tags: [fulfillment]
+      operationId: getFulfillmentCase
+      summary: "One shadow fulfillment case with assignees and evidence metadata"
+      description: |
+        Requires fulfillment.case.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/BiawinRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/biawin.yaml#/FulfillmentCaseEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/fulfillment/cases/{case_id}/history:
+    get:
+      tags: [fulfillment]
+      operationId: listFulfillmentCaseHistory
+      summary: "Append-only history of one fulfillment case"
+      description: |
+        Requires fulfillment.case.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/BiawinRunID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/biawin.yaml#/FulfillmentCaseHistoryEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
           $ref: './components/responses.yaml#/Problem'
         '403':
           $ref: './components/responses.yaml#/Denied'

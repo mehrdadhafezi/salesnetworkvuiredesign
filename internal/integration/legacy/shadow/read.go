@@ -134,7 +134,11 @@ func ReadBatch(ctx context.Context, staged *db.Runner, reg *spec.Registry, snaps
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		for _, id := range append(append(append(append(ConsumedSpecs(), CustomerSpecs()...), SalesSpecs()...), BillingSpecs()...), FinanceSpecs()...) {
+		var consumed []string
+		for _, set := range [][]string{ConsumedSpecs(), CustomerSpecs(), SalesSpecs(), BillingSpecs(), FinanceSpecs(), BiawinSpecs()} {
+			consumed = append(consumed, set...)
+		}
+		for _, id := range consumed {
 			e, ok := b.Entities[id]
 			if !ok || !e.Usable() {
 				continue

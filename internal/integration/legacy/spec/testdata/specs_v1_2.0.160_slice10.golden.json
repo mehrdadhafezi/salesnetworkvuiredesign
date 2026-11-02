@@ -1,0 +1,1143 @@
+[
+  {
+    "id": "legacy.operations_execution_case.v1",
+    "entity": "operations_execution_case",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_operations_execution_cases",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:102 (table definition)"
+      },
+      {
+        "name": "operation_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:103 (table definition)",
+        "note": "legacy operation reference"
+      },
+      {
+        "name": "membership_item_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:104 (table definition)",
+        "note": "legacy membership item reference"
+      },
+      {
+        "name": "content_product_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:105 (table definition)",
+        "note": "legacy content product reference"
+      },
+      {
+        "name": "fulfillment_type",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:106 (table definition)",
+        "note": "raw execution type (unconfigured / form / wallet_charge / activation_code / ...)"
+      },
+      {
+        "name": "manager_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:110 (table definition)",
+        "note": "legacy staff user reference"
+      },
+      {
+        "name": "expert_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:111 (table definition)",
+        "note": "legacy staff user reference (current assignee; mutable)"
+      },
+      {
+        "name": "assigned_by_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:112 (table definition)",
+        "note": "legacy staff user reference"
+      },
+      {
+        "name": "assigned_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:113 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:114 (table definition)",
+        "note": "raw execution status"
+      },
+      {
+        "name": "wallet_status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:123 (table definition)",
+        "note": "raw provider wallet status (evidence only; D-38)"
+      },
+      {
+        "name": "wallet_external_id",
+        "raw_type": "VARCHAR(191)",
+        "nullability": "NULLABLE",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:121 (table definition)",
+        "note": "external provider reference; exposed only namespaced and hashed"
+      },
+      {
+        "name": "shipping_status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:127 (table definition)",
+        "note": "raw shipping status"
+      },
+      {
+        "name": "shipping_carrier",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:132 (table definition)",
+        "note": "raw carrier name"
+      },
+      {
+        "name": "shipping_tracking_code",
+        "raw_type": "VARCHAR(191)",
+        "nullability": "NULLABLE",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:133 (table definition)",
+        "note": "tracking reference; exposed only hashed"
+      },
+      {
+        "name": "form_submission_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:134 (table definition)",
+        "note": "legacy form submission reference"
+      },
+      {
+        "name": "final_decision",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:135 (table definition)",
+        "note": "raw final decision"
+      },
+      {
+        "name": "completed_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:136 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "completed_by_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:137 (table definition)",
+        "note": "legacy staff user reference"
+      },
+      {
+        "name": "cancelled_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:120 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:138 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:139 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_operations_execution_case_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-operations-execution.php",
+        "lines": "101-142",
+        "note": "table definition of sn_operations_execution_cases"
+      }
+    ],
+    "notes": [
+      "shipping address / province / city / postal code (PII), wallet_activation_code and wallet_customer_url (secrets), wallet_usage_json, snapshots, last_note and cancel_reason (free text) are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.operations_execution_event.v1",
+    "entity": "operations_execution_event",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_operations_execution_events",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:160 (table definition)"
+      },
+      {
+        "name": "execution_case_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:161 (table definition)",
+        "note": "legacy execution case reference"
+      },
+      {
+        "name": "operation_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:162 (table definition)",
+        "note": "legacy operation reference"
+      },
+      {
+        "name": "membership_item_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:163 (table definition)",
+        "note": "legacy membership item reference"
+      },
+      {
+        "name": "actor_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:164 (table definition)",
+        "note": "legacy staff user reference (event actor)"
+      },
+      {
+        "name": "event_key",
+        "raw_type": "VARCHAR(90)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:165 (table definition)",
+        "note": "raw event key"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:167 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_operations_execution_event_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-operations-execution.php",
+        "lines": "159-169",
+        "note": "table definition of sn_operations_execution_events"
+      }
+    ],
+    "notes": [
+      "details_json is deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.operations_form_submission.v1",
+    "entity": "operations_form_submission",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_operations_form_submissions",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:144 (table definition)"
+      },
+      {
+        "name": "execution_case_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:145 (table definition)",
+        "note": "legacy execution case reference"
+      },
+      {
+        "name": "form_definition_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:146 (table definition)",
+        "note": "legacy form definition reference"
+      },
+      {
+        "name": "submitted_by_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:149 (table definition)",
+        "note": "legacy staff user reference"
+      },
+      {
+        "name": "submitted_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:150 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "final_decision",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:151 (table definition)",
+        "note": "raw final decision (service outcome evidence)"
+      },
+      {
+        "name": "decided_by_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:153 (table definition)",
+        "note": "legacy staff user reference"
+      },
+      {
+        "name": "decided_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-operations-execution.php:154 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_operations_form_submission_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-operations-execution.php",
+        "lines": "143-158",
+        "note": "table definition of sn_operations_form_submissions"
+      }
+    ],
+    "notes": [
+      "values_json (customer-entered answers), schema_snapshot_json and final_note are deliberately NOT extracted: evidence METADATA only"
+    ]
+  },
+  {
+    "id": "legacy.project_action.v1",
+    "entity": "project_action",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_project_actions",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:416 (table definition)"
+      },
+      {
+        "name": "membership_item_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:417 (table definition)",
+        "note": "legacy membership item reference"
+      },
+      {
+        "name": "actor_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:418 (table definition)",
+        "note": "legacy staff user reference"
+      },
+      {
+        "name": "action_type",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:419 (table definition)",
+        "note": "raw action type (upgrade / upsell request kind)"
+      },
+      {
+        "name": "fulfillment_mode",
+        "raw_type": "VARCHAR(20)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:420 (table definition)",
+        "note": "raw fulfillment mode"
+      },
+      {
+        "name": "target_product_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:421 (table definition)",
+        "note": "legacy target product reference"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:426 (table definition)",
+        "note": "raw action status (payment / remote-provider centric; mapped only where evidenced)"
+      },
+      {
+        "name": "invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:427 (table definition)",
+        "note": "legacy invoice reference"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:431 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:432 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_project_action_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "415-438",
+        "note": "table definition of sn_project_actions"
+      }
+    ],
+    "notes": [
+      "target_product_name, credits and amounts, payment counters and note (free text) are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.project_event.v1",
+    "entity": "project_event",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_project_events",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:401 (table definition)"
+      },
+      {
+        "name": "membership_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:402 (table definition)",
+        "note": "legacy membership reference"
+      },
+      {
+        "name": "membership_item_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:403 (table definition)",
+        "note": "legacy membership item reference"
+      },
+      {
+        "name": "actor_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:404 (table definition)",
+        "note": "legacy staff user reference (event actor)"
+      },
+      {
+        "name": "event_key",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:405 (table definition)",
+        "note": "raw event key (messaging keys are classified MESSAGING_ONLY by the connector)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:407 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_project_event_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "400-413",
+        "note": "table definition of sn_project_events"
+      }
+    ],
+    "notes": [
+      "details (JSON with free text and reasons) is deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.project_invoice_link.v1",
+    "entity": "project_invoice_link",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_project_invoice_links",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:350 (table definition)"
+      },
+      {
+        "name": "membership_item_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:351 (table definition)",
+        "note": "legacy membership item reference"
+      },
+      {
+        "name": "invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:352 (table definition)",
+        "note": "legacy invoice reference"
+      },
+      {
+        "name": "content_product_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:353 (table definition)",
+        "note": "legacy content product reference"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:355 (table definition)",
+        "note": "raw link status"
+      },
+      {
+        "name": "verified_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:357 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:358 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_project_invoice_link_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "349-365",
+        "note": "table definition of sn_project_invoice_links"
+      }
+    ],
+    "notes": [
+      "line_total and linked_by_user_id are not extracted (billing owns amounts)"
+    ]
+  },
+  {
+    "id": "legacy.project_membership.v1",
+    "entity": "project_membership",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_project_memberships",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:242 (table definition)"
+      },
+      {
+        "name": "source_key",
+        "raw_type": "VARCHAR(191)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:243 (table definition)",
+        "note": "raw legacy idempotency key of the membership (source type + invoice / Dot refs); never a customer key"
+      },
+      {
+        "name": "source_type",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:244 (table definition)",
+        "note": "raw source path (e.g. dot, product_star)"
+      },
+      {
+        "name": "source_invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:245 (table definition)",
+        "note": "legacy invoice reference (billing link)"
+      },
+      {
+        "name": "dot_case_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:246 (table definition)",
+        "note": "legacy Dot case reference (raw; Dot cases are not a published Case source)"
+      },
+      {
+        "name": "subscription_product_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:247 (table definition)",
+        "note": "legacy product reference of the bundle (historical; catalog read only)"
+      },
+      {
+        "name": "subscription_name_snapshot",
+        "raw_type": "VARCHAR(255)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:248 (table definition)",
+        "note": "title SNAPSHOT at activation; historical evidence, never replaced by the live catalog"
+      },
+      {
+        "name": "customer_wp_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:249 (table definition)",
+        "note": "legacy customer account reference (raw; not an identity key)"
+      },
+      {
+        "name": "origin_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:252 (table definition)",
+        "note": "legacy staff user reference (historical origin)"
+      },
+      {
+        "name": "first_payment_invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:257 (table definition)",
+        "note": "legacy invoice reference of the activating payment"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:261 (table definition)",
+        "note": "raw membership status ('active' on insert / reactivation, 'suspended' on financial reversal)"
+      },
+      {
+        "name": "activated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:266 (table definition)",
+        "note": "raw legacy DATETIME of the LAST activation (overwritten on reactivation; zone not asserted)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:267 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:268 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_project_membership_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "241-279",
+        "note": "table definition of sn_project_memberships"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "952",
+        "note": "active insert (product_star); activated_at = now"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "1059-1069",
+        "note": "suspended -> active reactivation; activated_at overwritten"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "1093",
+        "note": "active insert (subscription); activated_at = now"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "1241",
+        "note": "active -> suspended on financial reversal"
+      }
+    ],
+    "notes": [
+      "customer_name and customer_phone (PII), the portal invite fields and contents_snapshot_json are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.project_membership_item.v1",
+    "entity": "project_membership_item",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_project_membership_items",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:283 (table definition)"
+      },
+      {
+        "name": "membership_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:284 (table definition)",
+        "note": "legacy membership reference"
+      },
+      {
+        "name": "content_product_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:285 (table definition)",
+        "note": "legacy service / content product reference (historical)"
+      },
+      {
+        "name": "content_name_snapshot",
+        "raw_type": "VARCHAR(255)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:286 (table definition)",
+        "note": "title SNAPSHOT at activation; historical evidence"
+      },
+      {
+        "name": "manager_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:289 (table definition)",
+        "note": "legacy staff user reference (current manager)"
+      },
+      {
+        "name": "expert_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:290 (table definition)",
+        "note": "legacy staff user reference (current expert; mutable)"
+      },
+      {
+        "name": "workflow_status",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:291 (table definition)",
+        "note": "raw follow-up workflow status (mutable)"
+      },
+      {
+        "name": "assigned_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:295 (table definition)",
+        "note": "raw legacy DATETIME of the current expert assignment"
+      },
+      {
+        "name": "status_updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:296 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:297 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-projects.php:298 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_project_membership_item_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "282-305",
+        "note": "table definition of sn_project_membership_items"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "2350-2371",
+        "note": "workflow_status writer (waiting / no_answer / follow_up / cancelled / normal / upsell / purchased / regretted)"
+      }
+    ],
+    "notes": [
+      "cancel_reason (free text), base_credit_snapshot and upgrade_options_snapshot_json (D-35 credit semantics) and the contact counters are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.shipping_order.v1",
+    "entity": "shipping_order",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_shipping_orders",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:70 (table definition)"
+      },
+      {
+        "name": "invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:71 (table definition)",
+        "note": "legacy invoice reference"
+      },
+      {
+        "name": "seller_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:72 (table definition)",
+        "note": "legacy staff user reference"
+      },
+      {
+        "name": "customer_wp_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:73 (table definition)",
+        "note": "legacy customer account reference (raw)"
+      },
+      {
+        "name": "contact_status",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:82 (table definition)",
+        "note": "raw contact status"
+      },
+      {
+        "name": "fulfillment_status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:83 (table definition)",
+        "note": "raw shipping fulfillment status"
+      },
+      {
+        "name": "shipping_method",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:84 (table definition)",
+        "note": "raw shipping method"
+      },
+      {
+        "name": "carrier",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:85 (table definition)",
+        "note": "raw carrier name"
+      },
+      {
+        "name": "tracking_code",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NULLABLE",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:86 (table definition)",
+        "note": "tracking reference; exposed only hashed"
+      },
+      {
+        "name": "handled_by",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:89 (table definition)",
+        "note": "legacy staff user reference (current handler)"
+      },
+      {
+        "name": "shipped_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:91 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "delivered_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:92 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:93 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:94 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_shipping_order_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-product-flow.php",
+        "lines": "69-100",
+        "note": "table definition of sn_shipping_orders"
+      }
+    ],
+    "notes": [
+      "customer_name, customer_phone, province, city, address, postal_code (PII), items_snapshot_json, total_amount, expert_note and failure_reason (free text) are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.shipping_order_log.v1",
+    "entity": "shipping_order_log",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_shipping_order_logs",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:102 (table definition)"
+      },
+      {
+        "name": "shipping_order_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:103 (table definition)",
+        "note": "legacy shipping order reference"
+      },
+      {
+        "name": "invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:104 (table definition)",
+        "note": "legacy invoice reference"
+      },
+      {
+        "name": "actor_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:105 (table definition)",
+        "note": "legacy staff user reference (event actor)"
+      },
+      {
+        "name": "event_key",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:106 (table definition)",
+        "note": "raw event key"
+      },
+      {
+        "name": "old_status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:107 (table definition)",
+        "note": "raw previous status"
+      },
+      {
+        "name": "new_status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:108 (table definition)",
+        "note": "raw new status"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-product-flow.php:110 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_shipping_order_log_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-product-flow.php",
+        "lines": "101-115",
+        "note": "table definition of sn_shipping_order_logs"
+      }
+    ],
+    "notes": [
+      "details_json is deliberately NOT extracted"
+    ]
+  }
+]

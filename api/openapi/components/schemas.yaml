@@ -273,7 +273,7 @@ SessionContext:
       description: |
         Server feature switches for navigation only (Slice 4 rollback is
         flag-off). Never authority: every read is evaluated by the server.
-      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read, finance_shadow_read]
+      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read, finance_shadow_read, biawin_fulfillment_read]
       additionalProperties: false
       properties:
         hr_read:
@@ -293,6 +293,9 @@ SessionContext:
         finance_shadow_read:
           type: boolean
           description: Slice 9 finance SHADOW ledger read (flag finance.shadow_ledger_read). Read only; never a financial system of record.
+        biawin_fulfillment_read:
+          type: boolean
+          description: Slice 10 Biawin / fulfillment READ shadow (flag biawin_fulfillment.read_shadow). Read only; no portal, activation or workflow action.
 
 SessionEnvelope:
   type: object

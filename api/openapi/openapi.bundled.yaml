@@ -42,6 +42,10 @@ tags:
     description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
   - name: finance
     description: Slice 9 finance SHADOW ledger read (GET only). Derived shadow journal, balances and reconciliation against legacy balances; not the financial system of record, not settled, bank-confirmed or Finance-approved money.
+  - name: biawin
+    description: Slice 10 Biawin subscription READ shadow and active subscription parity (GET only; no activation, provider or wallet operation).
+  - name: fulfillment
+    description: Slice 10 fulfillment READ shadow — service follow-up, execution, upgrade execution and shipping cases (GET only; no workflow, assignment, shipping or completion operation).
   - name: reporting
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: billing
@@ -2051,6 +2055,258 @@ paths:
           $ref: '#/components/responses/Denied'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/biawin/subscriptions:
+    get:
+      tags:
+        - biawin
+      operationId: listBiawinSubscriptions
+      summary: Shadow subscriptions of one import run
+      description: |
+        Requires biawin.subscription.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/BiawinRunID'
+        - $ref: '#/components/parameters/BiawinSubscriptionState'
+        - $ref: '#/components/parameters/BiawinCustomerLinkState'
+        - $ref: '#/components/parameters/BiawinInvoiceLinkState'
+        - $ref: '#/components/parameters/BiawinActivationEvidence'
+        - $ref: '#/components/parameters/BiawinProduct'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/biawin/subscriptions/{subscription_id}:
+    get:
+      tags:
+        - biawin
+      operationId: getBiawinSubscription
+      summary: One shadow subscription with its history
+      description: |
+        Requires biawin.subscription.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - name: subscription_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/BiawinRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/biawin/subscriptions/{subscription_id}/items:
+    get:
+      tags:
+        - biawin
+      operationId: listBiawinSubscriptionItems
+      summary: Items of one shadow subscription (never merged)
+      description: |
+        Requires biawin.subscription.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - name: subscription_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/BiawinRunID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionItemListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/biawin/parity:
+    get:
+      tags:
+        - biawin
+      operationId: getBiawinParity
+      summary: Active subscription parity (legacy vs target) of one run
+      description: |
+        Requires biawin.parity.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/BiawinRunID'
+        - $ref: '#/components/parameters/ParityCheckID'
+        - $ref: '#/components/parameters/ParityResultFilter'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParityEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/fulfillment/cases:
+    get:
+      tags:
+        - fulfillment
+      operationId: listFulfillmentCases
+      summary: Shadow fulfillment cases of one import run
+      description: |
+        Requires fulfillment.case.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/BiawinRunID'
+        - $ref: '#/components/parameters/FulfillmentKindFilter'
+        - $ref: '#/components/parameters/FulfillmentStatusFilter'
+        - $ref: '#/components/parameters/FulfillmentSubscriptionID'
+        - $ref: '#/components/parameters/FulfillmentItemID'
+        - $ref: '#/components/parameters/FulfillmentAssignee'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FulfillmentCaseListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/fulfillment/cases/{case_id}:
+    get:
+      tags:
+        - fulfillment
+      operationId: getFulfillmentCase
+      summary: One shadow fulfillment case with assignees and evidence metadata
+      description: |
+        Requires fulfillment.case.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/BiawinRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FulfillmentCaseEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/fulfillment/cases/{case_id}/history:
+    get:
+      tags:
+        - fulfillment
+      operationId: listFulfillmentCaseHistory
+      summary: Append-only history of one fulfillment case
+      description: |
+        Requires fulfillment.case.read.
+        Read-only (READ ONLY transaction pinned to one import run); never imports, activates, calls a provider or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/BiawinRunID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when biawin_fulfillment.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FulfillmentCaseHistoryEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
 components:
   parameters:
     CorrelationID:
@@ -2587,6 +2843,94 @@ components:
         enum:
           - legacy_wallet
           - invoice
+    BiawinRunID:
+      name: run_id
+      in: query
+      required: false
+      description: Pin the import run (snapshot + cutoff). Omitted = the latest run; the answer names the run it used.
+      schema:
+        type: string
+        format: uuid
+    BiawinSubscriptionState:
+      name: state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/SubscriptionState'
+    BiawinCustomerLinkState:
+      name: customer_link_state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/LinkState'
+    BiawinInvoiceLinkState:
+      name: invoice_link_state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ItemInvoiceLinkState'
+    BiawinActivationEvidence:
+      name: activation_evidence
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ActivationEvidence'
+    BiawinProduct:
+      name: product
+      in: query
+      required: false
+      description: Legacy native product key (digits). Never a title match.
+      schema:
+        type: string
+        pattern: ^[0-9]{1,20}$
+    ParityCheckID:
+      name: check_id
+      in: query
+      required: false
+      description: A recorded parity check of the run. Omitted = the latest check of the run.
+      schema:
+        type: string
+        format: uuid
+    ParityResultFilter:
+      name: result
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ParityResult'
+    FulfillmentKindFilter:
+      name: kind
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/FulfillmentKind'
+    FulfillmentStatusFilter:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/FulfillmentStatus'
+    FulfillmentSubscriptionID:
+      name: subscription_id
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+    FulfillmentItemID:
+      name: item_id
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+    FulfillmentAssignee:
+      name: assignee
+      in: query
+      required: false
+      description: Target user id of a current assignee (never a phone, name or email).
+      schema:
+        type: string
+        format: uuid
   headers:
     CorrelationID:
       description: Correlation id of this request (inbound value when valid, otherwise generated).
@@ -2944,6 +3288,7 @@ components:
             - billing_read
             - reporting_read
             - finance_shadow_read
+            - biawin_fulfillment_read
           additionalProperties: false
           properties:
             hr_read:
@@ -2963,6 +3308,9 @@ components:
             finance_shadow_read:
               type: boolean
               description: Slice 9 finance SHADOW ledger read (flag finance.shadow_ledger_read). Read only; never a financial system of record.
+            biawin_fulfillment_read:
+              type: boolean
+              description: Slice 10 Biawin / fulfillment READ shadow (flag biawin_fulfillment.read_shadow). Read only; no portal, activation or workflow action.
     SessionEnvelope:
       type: object
       required:
@@ -3757,6 +4105,9 @@ components:
         - finance.shadow.read
         - finance.ledger.read
         - finance.reconciliation.read
+        - biawin.subscription.read
+        - fulfillment.case.read
+        - biawin.parity.read
     AccessDecision:
       type: object
       required:
@@ -7893,6 +8244,986 @@ components:
           maxItems: 200
           items:
             $ref: '#/components/schemas/ReconciliationRow'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    SubscriptionState:
+      type: string
+      description: Mapped from the preserved raw legacy status (active / suspended). Any other raw value is UNKNOWN; no lifecycle is inferred.
+      enum:
+        - ACTIVE
+        - SUSPENDED
+        - UNKNOWN
+        - EMPTY
+    LinkState:
+      type: string
+      enum:
+        - RESOLVED
+        - RELATED
+        - UNKNOWN
+        - CONFLICT
+        - NOT_RECOVERABLE
+    ItemInvoiceLinkState:
+      type: string
+      enum:
+        - RESOLVED
+        - UNKNOWN
+    ActivationEvidence:
+      type: string
+      description: Whether legacy recorded an activation time. Import time is never activation time.
+      enum:
+        - LEGACY_ACTIVATION_RECORDED
+        - NOT_EVIDENCED
+    BiawinNotice:
+      type: string
+      description: Fixed SHADOW notice repeated on every Biawin / fulfillment answer.
+      enum:
+        - 'SHADOW: imported legacy subscription and fulfillment evidence for architecture validation and parity only. Not live provider state; no activation, provider, shipping or workflow authority.'
+    BiawinQuery:
+      type: object
+      description: The normalised query; run_id is the run every part of the answer comes from.
+      required:
+        - run_id
+        - filters
+      additionalProperties: false
+      properties:
+        run_id:
+          type: string
+          format: uuid
+        filters:
+          type: object
+          additionalProperties:
+            type: string
+            maxLength: 60
+    BiawinCoverage:
+      type: string
+      enum:
+        - AVAILABLE
+        - PARTIAL
+        - MISSING
+        - UNKNOWN
+        - NOT_RECOVERABLE
+        - STALE
+    BiawinRunSource:
+      type: object
+      required:
+        - source
+        - status
+        - rows_read
+      additionalProperties: false
+      properties:
+        source:
+          type: string
+          maxLength: 80
+        status:
+          $ref: '#/components/schemas/BiawinCoverage'
+        rows_read:
+          type: integer
+          format: int64
+    BiawinFreshness:
+      type: string
+      description: FRESH / STALE against a 24h SLA from the source cutoff (never "live").
+      enum:
+        - FRESH
+        - STALE
+    BiawinRun:
+      type: object
+      description: One offline import run. outcome is technical (PARTIAL when a source is not AVAILABLE or a row was not classified); never a business state.
+      required:
+        - record_kind
+        - run_id
+        - run_seq
+        - normalization_version
+        - snapshot_id
+        - source_cutoff
+        - started_at
+        - completed_at
+        - outcome
+        - reasons
+        - counts
+        - sources
+        - freshness
+      additionalProperties: false
+      properties:
+        record_kind:
+          $ref: '#/components/schemas/RecordKind'
+        run_id:
+          type: string
+          format: uuid
+        run_seq:
+          type: integer
+          format: int64
+        normalization_version:
+          type: integer
+        snapshot_id:
+          type: string
+          maxLength: 128
+        source_cutoff:
+          $ref: '#/components/schemas/Timestamp'
+        started_at:
+          $ref: '#/components/schemas/Timestamp'
+        completed_at:
+          $ref: '#/components/schemas/Timestamp'
+        outcome:
+          type: string
+          enum:
+            - SUCCESS
+            - PARTIAL
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        sources:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/BiawinRunSource'
+        freshness:
+          $ref: '#/components/schemas/BiawinFreshness'
+    BiawinMeta:
+      type: object
+      required:
+        - record_kind
+        - notice
+        - query
+        - run
+      additionalProperties: false
+      properties:
+        record_kind:
+          $ref: '#/components/schemas/RecordKind'
+        notice:
+          $ref: '#/components/schemas/BiawinNotice'
+        query:
+          $ref: '#/components/schemas/BiawinQuery'
+        run:
+          $ref: '#/components/schemas/BiawinRun'
+    StateCount:
+      type: object
+      required:
+        - key
+        - count
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+          maxLength: 60
+        count:
+          type: integer
+          format: int64
+    BiawinLink:
+      type: object
+      description: A link to another module. id is set only when state is RESOLVED; legacy_key keeps the raw native reference.
+      required:
+        - state
+      additionalProperties: false
+      properties:
+        state:
+          $ref: '#/components/schemas/LinkState'
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        basis:
+          type: string
+          maxLength: 80
+        legacy_key:
+          type: string
+          maxLength: 300
+          nullable: true
+    BiawinSubscription:
+      type: object
+      description: A shadow subscription (one legacy project membership). Product version is never guessed (UNKNOWN); the title is a historical snapshot.
+      required:
+        - subscription_id
+        - source_spec
+        - source_key
+        - provider
+        - state_namespace
+        - state_mapped
+        - activation_evidence
+        - product_version_state
+        - customer
+        - invoice
+        - first_payment_invoice
+        - case
+        - item_count
+      additionalProperties: false
+      properties:
+        subscription_id:
+          type: string
+          format: uuid
+        source_spec:
+          type: string
+          maxLength: 80
+        source_key:
+          type: string
+          maxLength: 40
+        provider:
+          type: string
+          maxLength: 40
+        source_ref_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        source_type_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        product_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        product_title_snapshot:
+          type: string
+          maxLength: 300
+          nullable: true
+        product_version_state:
+          type: string
+          enum:
+            - UNKNOWN
+        customer:
+          $ref: '#/components/schemas/BiawinLink'
+        invoice:
+          $ref: '#/components/schemas/BiawinLink'
+        first_payment_invoice:
+          $ref: '#/components/schemas/BiawinLink'
+        case:
+          $ref: '#/components/schemas/BiawinLink'
+        origin_user_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        origin_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        state_namespace:
+          type: string
+          maxLength: 80
+        state_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        state_mapped:
+          $ref: '#/components/schemas/SubscriptionState'
+        activation_evidence:
+          $ref: '#/components/schemas/ActivationEvidence'
+        activated_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        created_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        updated_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        item_count:
+          type: integer
+    SubscriptionListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/BiawinNotice'
+        meta:
+          $ref: '#/components/schemas/BiawinMeta'
+        summary:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/StateCount'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/BiawinSubscription'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    SubscriptionEvent:
+      type: object
+      description: Append-only legacy history. PROVIDER_EVENT_EVIDENCE records that legacy logged a provider event; it is not a provider call.
+      required:
+        - source_key
+        - event_class
+        - event_key_raw
+      additionalProperties: false
+      properties:
+        source_key:
+          type: string
+          maxLength: 40
+        event_class:
+          type: string
+          enum:
+            - SUBSCRIPTION_EVENT
+            - ITEM_EVENT
+            - PROVIDER_EVENT_EVIDENCE
+        event_key_raw:
+          type: string
+          maxLength: 120
+        item_id:
+          type: string
+          format: uuid
+          nullable: true
+        actor_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        actor_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        occurred_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+    SubscriptionEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/BiawinNotice'
+        meta:
+          $ref: '#/components/schemas/BiawinMeta'
+        subscription:
+          $ref: '#/components/schemas/BiawinSubscription'
+        history:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/SubscriptionEvent'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ItemInvoiceLink:
+      type: object
+      required:
+        - source_key
+        - state
+      additionalProperties: false
+      properties:
+        source_key:
+          type: string
+          maxLength: 40
+        state:
+          $ref: '#/components/schemas/ItemInvoiceLinkState'
+        invoice_id:
+          type: string
+          format: uuid
+          nullable: true
+        invoice_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        status_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        verified_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+    SubscriptionItem:
+      type: object
+      description: One item; items with the same title are distinct (never merged). Item lifecycle is NOT_EVIDENCED; its fulfillment is a SERVICE_FOLLOWUP case.
+      required:
+        - item_id
+        - subscription_id
+        - source_key
+        - state
+        - invoice_links
+      additionalProperties: false
+      properties:
+        item_id:
+          type: string
+          format: uuid
+        subscription_id:
+          type: string
+          format: uuid
+        source_key:
+          type: string
+          maxLength: 40
+        state:
+          type: string
+          enum:
+            - NOT_EVIDENCED
+        service_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        service_title_snapshot:
+          type: string
+          maxLength: 300
+          nullable: true
+        created_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        invoice_links:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/ItemInvoiceLink'
+    SubscriptionItemListEnvelope:
+      type: object
+      description: item_count is the subscription's (independent of the page).
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/BiawinNotice'
+        meta:
+          $ref: '#/components/schemas/BiawinMeta'
+        item_count:
+          type: integer
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/SubscriptionItem'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ParityResult:
+      type: string
+      enum:
+        - MATCHED
+        - MISSING_TARGET
+        - EXTRA_TARGET
+        - UNKNOWN
+        - CONFLICT
+        - NOT_RECOVERABLE
+        - INACTIVE_BOTH
+    ParityOutcome:
+      type: string
+      description: MATCH only with zero anomalies and AVAILABLE evidence; MISMATCH on drift; INCOMPLETE when evidence is not AVAILABLE; UNKNOWN otherwise.
+      enum:
+        - MATCH
+        - MISMATCH
+        - UNKNOWN
+        - INCOMPLETE
+    ParityRow:
+      type: object
+      required:
+        - source_key
+        - result
+      additionalProperties: false
+      properties:
+        source_key:
+          type: string
+          maxLength: 40
+        result:
+          $ref: '#/components/schemas/ParityResult'
+        legacy_class:
+          type: string
+          maxLength: 300
+          nullable: true
+        target_state:
+          type: string
+          maxLength: 300
+          nullable: true
+    ParityCheck:
+      type: object
+      description: 'Active subscription parity of one target run against one legacy evidence snapshot (recorded offline; a GET never computes it). cutoff_mismatch: the evidence snapshot is not the run''s snapshot.'
+      required:
+        - check_id
+        - run_id
+        - evidence_snapshot_id
+        - evidence_cutoff
+        - evidence_status
+        - checked_at
+        - outcome
+        - reasons
+        - legacy_count
+        - target_count
+        - matched
+        - missing_target
+        - extra_target
+        - unknown
+        - conflict
+        - not_recoverable
+        - cutoff_mismatch
+        - rows
+      additionalProperties: false
+      properties:
+        check_id:
+          type: string
+          format: uuid
+        run_id:
+          type: string
+          format: uuid
+        evidence_snapshot_id:
+          type: string
+          maxLength: 128
+        evidence_cutoff:
+          $ref: '#/components/schemas/Timestamp'
+        evidence_status:
+          $ref: '#/components/schemas/BiawinCoverage'
+        checked_at:
+          $ref: '#/components/schemas/Timestamp'
+        outcome:
+          $ref: '#/components/schemas/ParityOutcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        legacy_count:
+          type: integer
+          format: int64
+        target_count:
+          type: integer
+          format: int64
+        matched:
+          type: integer
+          format: int64
+        missing_target:
+          type: integer
+          format: int64
+        extra_target:
+          type: integer
+          format: int64
+        unknown:
+          type: integer
+          format: int64
+        conflict:
+          type: integer
+          format: int64
+        not_recoverable:
+          type: integer
+          format: int64
+        cutoff_mismatch:
+          type: boolean
+        rows:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ParityRow'
+    ParityEnvelope:
+      type: object
+      description: check is absent (UNKNOWN outcome) when no parity check was recorded for the run.
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/BiawinNotice'
+        meta:
+          $ref: '#/components/schemas/BiawinMeta'
+        check:
+          $ref: '#/components/schemas/ParityCheck'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    FulfillmentKind:
+      type: string
+      enum:
+        - SERVICE_FOLLOWUP
+        - EXECUTION
+        - UPGRADE_EXECUTION
+        - SHIPPING
+    FulfillmentStatus:
+      type: string
+      description: |
+        Mapped from the preserved raw status of its namespace; any other raw value is UNKNOWN. COMPLETED / DELIVERED / OUTCOME_RECORDED
+        qualify this case only: they imply nothing about an invoice, a payment, the subscription, a sale or finance.
+      enum:
+        - NOT_STARTED
+        - IN_PROGRESS
+        - AWAITING_PAYMENT
+        - AWAITING_PROVIDER
+        - PROVIDER_ACTION_RECORDED
+        - OUTCOME_RECORDED
+        - SHIPPED
+        - DELIVERED
+        - RETURNED
+        - NOT_EXECUTED
+        - CANCELLED
+        - COMPLETED
+        - FAILED_AT_PROVIDER
+        - UNKNOWN
+        - EMPTY
+    CaseCount:
+      type: object
+      required:
+        - kind
+        - status
+        - count
+      additionalProperties: false
+      properties:
+        kind:
+          $ref: '#/components/schemas/FulfillmentKind'
+        status:
+          $ref: '#/components/schemas/FulfillmentStatus'
+        count:
+          type: integer
+          format: int64
+    FulfillmentAssignment:
+      type: object
+      description: A current assignee as evidenced at the run (never an owner, credit owner or custody).
+      required:
+        - role
+        - user_key
+      additionalProperties: false
+      properties:
+        role:
+          type: string
+          enum:
+            - MANAGER
+            - EXPERT
+            - HANDLER
+        user_key:
+          type: string
+          maxLength: 40
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        assigned_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+    FulfillmentCase:
+      type: object
+      description: A shadow fulfillment case. External references (tracking codes, provider ids) are only SHA-256 digests.
+      required:
+        - case_id
+        - kind
+        - source_spec
+        - source_key
+        - invoice_link_state
+        - status_namespace
+        - status_mapped
+        - assignments
+      additionalProperties: false
+      properties:
+        case_id:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/FulfillmentKind'
+        source_spec:
+          type: string
+          maxLength: 80
+        source_key:
+          type: string
+          maxLength: 40
+        subtype_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        subscription_id:
+          type: string
+          format: uuid
+          nullable: true
+        item_id:
+          type: string
+          format: uuid
+          nullable: true
+        invoice_link_state:
+          $ref: '#/components/schemas/ItemInvoiceLinkState'
+        invoice_id:
+          type: string
+          format: uuid
+          nullable: true
+        invoice_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        status_namespace:
+          type: string
+          maxLength: 80
+        status_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        status_mapped:
+          $ref: '#/components/schemas/FulfillmentStatus'
+        shipping_status_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        provider_status_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        contact_status_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        completed_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        completed_by_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        completed_by_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        cancelled_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        shipped_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        delivered_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        status_updated_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        carrier_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        tracking_ref_sha256:
+          type: string
+          maxLength: 300
+          nullable: true
+        provider_ref_sha256:
+          type: string
+          maxLength: 300
+          nullable: true
+        provider_ref_scheme:
+          type: string
+          maxLength: 300
+          nullable: true
+        created_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        updated_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        assignments:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/FulfillmentAssignment'
+    FulfillmentCaseListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/BiawinNotice'
+        meta:
+          $ref: '#/components/schemas/BiawinMeta'
+        summary:
+          type: array
+          maxItems: 80
+          items:
+            $ref: '#/components/schemas/CaseCount'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/FulfillmentCase'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ServiceEvidence:
+      type: object
+      description: Service evidence metadata (form contents are never read).
+      required:
+        - source_key
+        - outcome_mapped
+      additionalProperties: false
+      properties:
+        source_key:
+          type: string
+          maxLength: 40
+        outcome_mapped:
+          type: string
+          enum:
+            - EXECUTED
+            - NOT_EXECUTED
+            - UNKNOWN
+            - NONE
+        form_definition_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        submitted_by_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        submitted_by_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        submitted_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        outcome_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        decided_by_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        decided_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+    FulfillmentCaseEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/BiawinNotice'
+        meta:
+          $ref: '#/components/schemas/BiawinMeta'
+        case:
+          $ref: '#/components/schemas/FulfillmentCase'
+        evidence:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/ServiceEvidence'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CaseEvent:
+      type: object
+      description: Append-only legacy case history.
+      required:
+        - source_spec
+        - source_key
+        - event_key_raw
+      additionalProperties: false
+      properties:
+        source_spec:
+          type: string
+          maxLength: 80
+        source_key:
+          type: string
+          maxLength: 40
+        event_key_raw:
+          type: string
+          maxLength: 120
+        actor_key:
+          type: string
+          maxLength: 300
+          nullable: true
+        actor_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        old_status_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        new_status_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+        occurred_at_raw:
+          type: string
+          maxLength: 300
+          nullable: true
+    FulfillmentCaseHistoryEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/BiawinNotice'
+        meta:
+          $ref: '#/components/schemas/BiawinMeta'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CaseEvent'
         page:
           $ref: '#/components/schemas/PageInfo'
         allowed_actions:

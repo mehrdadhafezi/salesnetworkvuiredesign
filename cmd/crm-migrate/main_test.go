@@ -57,7 +57,7 @@ func TestUpThenStatus(t *testing.T) {
 		t.Fatalf("second up code=%d out=%q", code, out.String())
 	}
 	out.Reset()
-	if code := run(context.Background(), []string{"status"}, e, &out, &errOut); code != 0 || strings.Count(out.String(), "applied") != 27 || strings.Contains(out.String(), "pending") {
+	if code := run(context.Background(), []string{"status"}, e, &out, &errOut); code != 0 || strings.Count(out.String(), "applied") != 33 || strings.Contains(out.String(), "pending") {
 		t.Fatalf("status code=%d out=%q", code, out.String())
 	}
 }

@@ -148,6 +148,33 @@
 //   - legacy-import also allows cmd/crm-finance-shadow (the offline job that
 //     composes the staged wallet source); finance itself never imports it.
 //
+// Slice 10 rules (Biawin / fulfillment READ shadow; D-35 and D-38 open):
+//
+//   - module-boundary covers biawin and fulfillment: they reach identity
+//     only through identity/api from their http packages, never another
+//     module's internals; biawin and fulfillment never import each other.
+//   - foreign-schema-write covers the biawin and fulfillment schemas (only
+//     their own trees write them), so biawin never mutates finance, billing
+//     or payments and fulfillment never mutates billing or a wallet;
+//     append-only-write covers every biawin and fulfillment table.
+//   - biawin-foreign-sql: no SQL literal in internal/biawin or
+//     internal/fulfillment names another schema (read or write).
+//   - biawin-read-write: the read path (biawin|fulfillment /http, /query)
+//     holds no write SQL (no GET writes); read-path-import also forbids the
+//     import commands there.
+//   - biawin-provider-call: no create_order / charge_wallet (or any
+//     CreateOrder / ChargeWallet identifier) outside internal/integration/
+//     biawin, and nothing but its own tests imports internal/integration/
+//     biawin (no provider is wired into the composed system).
+//   - biawin-forbidden-command: no activation / suspension / termination,
+//     direct Dot completion, project-membership write, shipping, assignment,
+//     service completion, evidence upload, upgrade execution or commission
+//     execution identifier or route literal in the Slice 10 trees.
+//   - phone-key covers every literal and identifier in internal/biawin and
+//     internal/fulfillment: phone is never a subscription / fulfillment
+//     identity, join, dedupe or provider key.
+//   - legacy-import also allows cmd/crm-biawin-shadow (the offline job).
+//
 // Test files are composition roots for module-boundary (as cmd/ is); every
 // other rule applies to them as before.
 package architecture
@@ -209,7 +236,35 @@ const (
 	RuleFinanceFloat     = "finance-float"
 	RuleCrossUnitSum     = "finance-cross-unit-sum"
 	RuleBusinessKey      = "finance-business-key"
+	RuleBiawinSQL        = "biawin-foreign-sql"
+	RuleBiawinReadWrite  = "biawin-read-write"
+	RuleProviderCall     = "biawin-provider-call"
+	RuleForbiddenCommand = "biawin-forbidden-command"
 )
+
+// slice10Modules are the Slice 10 module trees.
+var slice10Modules = []string{"internal/biawin", "internal/fulfillment"}
+
+// slice10Trees are every tree where a Slice 10 command could hide.
+var slice10Trees = []string{"internal/biawin", "internal/fulfillment", "internal/integration/biawin", "internal/platform/apiserver", "cmd/crm-api",
+	"cmd/crm-biawin-shadow"}
+
+// providerPkg is the only tree that may know the Biawin provider.
+const providerPkg = "internal/integration/biawin"
+
+// providerWrite matches a Biawin provider write call or name.
+var providerWrite = regexp.MustCompile(`(?i)create_?order|charge_?wallet`)
+
+// biawinForeignSQL matches SQL naming a schema other than biawin / fulfillment.
+var biawinForeignSQL = regexp.MustCompile(`(?i)\b(from|join|into|update)\s+(identity|organization|customers|cases|custody|billing|payments|integration|audit|platform_featureflags|reporting|finance|commission)\.`)
+
+// forbiddenCommand matches identifiers of Slice 10 forbidden commands.
+var forbiddenCommand = regexp.MustCompile(`(?i)^(activate|suspend|terminate|reactivate)(subscription|membership|item)?s?$|^cancel(subscription|membership|item)s?$|^complete(dot|dotcase|case|service|item|fulfillment)$|` +
+	`^(create|update|write|upsert|insert|save|sync)(project)?memberships?$|^(run|execute|calculate|process|pay)commissions?$|^(ship|dispatch|deliver)(order|case)?$|` +
+	`^assign(case|expert|manager|handler|fulfillment)$|^(upload|attach)(service)?evidence$|^(execute|run|apply)upgrade$|^(charge|debit|credit|topup)wallet$`)
+
+// forbiddenRoute matches a Slice 10 write / command route literal.
+var forbiddenRoute = regexp.MustCompile(`(?i)/(biawin|fulfillment)/[a-z0-9_/{}.-]*\b(activate|suspend|terminate|cancel|order|orders|charge|wallet|ship|shipping|assign|complete|completion|evidence|upload|upgrade|commission|sync|import|refresh)\b`)
 
 // writeSQL matches a mutating SQL statement.
 var writeSQL = regexp.MustCompile(`(?i)\b(insert\s+into|update\s+[a-z_]+\.|delete\s+from)\b`)
@@ -249,7 +304,7 @@ var statusResolver = regexp.MustCompile(`(?i)^(resolve|derive|compute|pick|selec
 var moneyModules = []string{"internal/billing", "internal/payments", "internal/finance"}
 
 // appendOnlyWrite matches SQL that would mutate an append-only table.
-var appendOnlyWrite = regexp.MustCompile(`(?i)\b(update|delete\s+from)\s+(custody\.custody_event|cases\.case_state_history|cases\.attribution_snapshot|payments\.attempt_state_history|reporting\.[a-z_]+|finance\.[a-z_]+)\b`)
+var appendOnlyWrite = regexp.MustCompile(`(?i)\b(update|delete\s+from)\s+(custody\.custody_event|cases\.case_state_history|cases\.attribution_snapshot|payments\.attempt_state_history|reporting\.[a-z_]+|finance\.[a-z_]+|biawin\.[a-z_]+|fulfillment\.[a-z_]+)\b`)
 
 // phoneLiteral matches a phone reference in cases/custody string literals.
 var phoneLiteral = regexp.MustCompile(`(?i)phone`)
@@ -260,7 +315,8 @@ var mergePath = regexp.MustCompile(`(?i)^(resolvemerge|mergecustomers?|applymerg
 
 // slice4Modules are the business modules of Slice 4.
 var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true, "customers": true,
-	"cases": true, "custody": true, "billing": true, "payments": true, "reporting": true, "finance": true, "commission": true}
+	"cases": true, "custody": true, "billing": true, "payments": true, "reporting": true, "finance": true, "commission": true,
+	"biawin": true, "fulfillment": true}
 
 // schemaOwners maps a module schema to the only tree allowed to write it.
 var schemaOwners = map[string]string{
@@ -273,12 +329,14 @@ var schemaOwners = map[string]string{
 	"payments":              "internal/payments",
 	"reporting":             "internal/reporting",
 	"finance":               "internal/finance",
+	"biawin":                "internal/biawin",
+	"fulfillment":           "internal/fulfillment",
 	"integration":           "internal/integration",
 	"audit":                 "internal/platform/audit",
 	"platform_featureflags": "internal/platform/featureflags",
 }
 
-var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|billing|payments|reporting|finance|integration|audit|platform_featureflags)\.`)
+var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|billing|payments|reporting|finance|biawin|fulfillment|integration|audit|platform_featureflags)\.`)
 
 // readPathDirs never import an import command.
 var readPathDirs = []string{"internal/platform/apiserver", "cmd/crm-api"}
@@ -320,6 +378,8 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 		return rest == "api" && (under(rel, "internal/finance/shadow") || under(rel, "internal/finance/domain"))
 	case top == "commission" && other == "finance":
 		return false
+	case (top == "biawin" || top == "fulfillment") && other == "identity":
+		return rest == "api" && under(rel, "internal/"+top+"/http")
 	case other == "authorization" && (rest == "" || rest == "http"):
 		return under(rel, "internal/"+top+"/http")
 	case top == "authorization" || top == "organization" && other == "identity":
@@ -369,7 +429,7 @@ var legacyLiteral = regexp.MustCompile(`(^|[^A-Za-z0-9_])(wp|sn)_[A-Za-z0-9_]`)
 var wooLiteral = regexp.MustCompile(`(?i)woo` + `commerce`)
 
 // legacyImporters may import internal/integration/legacy/**.
-var legacyImporters = []string{legacyInteg, "cmd/crm-legacy-import", "cmd/crm-finance-shadow"}
+var legacyImporters = []string{legacyInteg, "cmd/crm-legacy-import", "cmd/crm-finance-shadow", "cmd/crm-biawin-shadow"}
 
 // legacyMigrationsImporter may import only the legacy migrations package.
 const (
@@ -470,7 +530,7 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			}
 		}
 		if full := internalTop + "/" + internalRest; hasPrefixPath(full, strings.TrimPrefix(legacyInteg, "internal/")) && !legacyImportAllowed(rel, full) {
-			add(RuleLegacyImport, imp.Pos(), "imports the legacy connector "+p+" outside "+legacyInteg+", cmd/crm-legacy-import and cmd/crm-finance-shadow")
+			add(RuleLegacyImport, imp.Pos(), "imports the legacy connector "+p+" outside "+legacyInteg+" and the offline jobs (crm-legacy-import, crm-finance-shadow, crm-biawin-shadow)")
 		}
 		// Test files are composition roots (like cmd/) and may wire modules.
 		if relTop, ok := internalTopOf(rel); ok && !isTest && internalTop != "kernel" && internalTop != "platform" {
@@ -486,12 +546,15 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			under(rel, "internal/platform/apiserver") || under(rel, "cmd/crm-api")) {
 			add(RuleReadPathImport, imp.Pos(), "read path imports the offline shadow rebuild "+p)
 		}
+		if full := internalTop + "/" + internalRest; hasPrefixPath(full, strings.TrimPrefix(providerPkg, "internal/")) && !under(rel, providerPkg) {
+			add(RuleProviderCall, imp.Pos(), "imports the Biawin provider "+p+"; no provider is wired in Slice 10")
+		}
 		if internalRest == "imports" || strings.HasPrefix(internalRest, "imports/") {
 			readPath := false
 			for _, d := range readPathDirs {
 				readPath = readPath || under(rel, d)
 			}
-			if top, ok := internalTopOf(rel); ok && under(rel, "internal/"+top+"/http") {
+			if top, ok := internalTopOf(rel); ok && (under(rel, "internal/"+top+"/http") || (top == "biawin" || top == "fulfillment") && under(rel, "internal/"+top+"/query")) {
 				readPath = true
 			}
 			if readPath {
@@ -551,6 +614,22 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 					if inFinance && phoneIdent.MatchString(s) {
 						add(RulePhoneKey, x.Pos(), "phone / mobile in a finance literal; never an account key, filter or join")
 					}
+					inSlice10 := !isTest && inAny(rel, slice10Modules)
+					if inSlice10 && biawinForeignSQL.MatchString(s) {
+						add(RuleBiawinSQL, x.Pos(), "biawin / fulfillment SQL names another schema: "+biawinForeignSQL.FindString(s))
+					}
+					if inSlice10 && slice10ReadPath(rel) && writeSQL.MatchString(s) {
+						add(RuleBiawinReadWrite, x.Pos(), "write SQL on the biawin / fulfillment read path: "+writeSQL.FindString(s))
+					}
+					if inSlice10 && phoneIdent.MatchString(s) {
+						add(RulePhoneKey, x.Pos(), "phone / mobile in a biawin / fulfillment literal; never an identity, join, dedupe or provider key")
+					}
+					if !isTest && !under(rel, providerPkg) && providerWrite.MatchString(s) {
+						add(RuleProviderCall, x.Pos(), "Biawin provider write literal "+providerWrite.FindString(s)+" outside "+providerPkg)
+					}
+					if !isTest && inAny(rel, slice10Trees) && forbiddenRoute.MatchString(s) {
+						add(RuleForbiddenCommand, x.Pos(), "Slice 10 command route literal: "+forbiddenRoute.FindString(s))
+					}
 					if !under(rel, legacyInteg) && statusFallbackSQL.MatchString(s) {
 						add(RuleStatusFallback, x.Pos(), "COALESCE status fallback outside the legacy connector (TAD #20 deferred)")
 					}
@@ -588,6 +667,15 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			}
 			if !isTest && under(rel, "internal/finance") && phoneIdent.MatchString(x.Name) {
 				add(RulePhoneKey, x.Pos(), "phone / mobile identifier "+x.Name+" in finance")
+			}
+			if !isTest && inAny(rel, slice10Modules) && phoneIdent.MatchString(x.Name) {
+				add(RulePhoneKey, x.Pos(), "phone / mobile identifier "+x.Name+" in biawin / fulfillment")
+			}
+			if !isTest && !under(rel, architectureDir) && !under(rel, providerPkg) && providerWrite.MatchString(x.Name) {
+				add(RuleProviderCall, x.Pos(), "Biawin provider write identifier "+x.Name+" outside "+providerPkg)
+			}
+			if !isTest && inAny(rel, slice10Trees) && forbiddenCommand.MatchString(x.Name) {
+				add(RuleForbiddenCommand, x.Pos(), "Slice 10 forbidden command identifier "+x.Name)
 			}
 		case *ast.SelectorExpr:
 			if x.Sel.Name == legacyRefMaker && !under(rel, legacyInteg) && !under(rel, refsDir) {
@@ -637,6 +725,25 @@ func isEntryType(t ast.Expr) bool {
 		return v.Name == "Entry"
 	case *ast.SelectorExpr:
 		return v.Sel.Name == "Entry"
+	}
+	return false
+}
+
+// slice10ReadPath reports the biawin / fulfillment read path (http, query).
+func slice10ReadPath(rel string) bool {
+	for _, m := range slice10Modules {
+		if under(rel, m+"/http") || under(rel, m+"/query") {
+			return true
+		}
+	}
+	return false
+}
+
+func inAny(rel string, dirs []string) bool {
+	for _, d := range dirs {
+		if under(rel, d) {
+			return true
+		}
 	}
 	return false
 }

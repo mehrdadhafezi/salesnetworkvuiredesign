@@ -30,7 +30,8 @@ func (unconfigured) GetEffectiveAccess(ctx context.Context, _ oapi.GetEffectiveA
 		oapi.OrgAssignmentRead, oapi.CustomersCustomerRead, oapi.CustomersMergeCaseRead, oapi.CustomersIdentityReportRead,
 		oapi.CasesCaseRead, oapi.CustodyCustodyRead, oapi.SalesReportRead, oapi.BillingInvoiceRead, oapi.PaymentsAttemptRead,
 		oapi.BillingReconciliationRead, oapi.ReportingMetricsRead, oapi.ReportingMisRead, oapi.ReportingInvoiceReviewRead,
-		oapi.FinanceShadowRead, oapi.FinanceLedgerRead, oapi.FinanceReconciliationRead} {
+		oapi.FinanceShadowRead, oapi.FinanceLedgerRead, oapi.FinanceReconciliationRead,
+		oapi.BiawinSubscriptionRead, oapi.FulfillmentCaseRead, oapi.BiawinParityRead} {
 		data.Decisions = append(data.Decisions, oapi.AccessDecision{Capability: c, Outcome: oapi.Outcome(result.Blocked.String()),
 			ReasonCode: &reason, Scope: oapi.AccessDecisionScopeNONE, MatchedRoles: []string{}})
 	}
@@ -371,4 +372,49 @@ func (unconfiguredFinance) ListFinanceBalances(ctx context.Context, _ oapi.ListF
 func (unconfiguredFinance) ListFinanceReconciliation(ctx context.Context, _ oapi.ListFinanceReconciliationRequestObject) (oapi.ListFinanceReconciliationResponseObject, error) {
 	o, r, c := blocked(ctx)
 	return oapi.ListFinanceReconciliation200JSONResponse{Body: oapi.ReconciliationListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+// unconfiguredBiawin is the Slice 10 surface without the biawin and
+// fulfillment modules: every operation is BLOCKED / FEATURE_DISABLED.
+type unconfiguredBiawin struct{}
+
+var _ BiawinAPI = unconfiguredBiawin{}
+
+const biawinNotice = oapi.SHADOWImportedLegacySubscriptionAndFulfillmentEvidenceForArchitectureValidationAndParityOnlyNotLiveProviderStateNoActivationProviderShippingOrWorkflowAuthority
+
+func (unconfiguredBiawin) BiawinEnabled(context.Context) bool { return false }
+
+func (unconfiguredBiawin) ListBiawinSubscriptions(ctx context.Context, _ oapi.ListBiawinSubscriptionsRequestObject) (oapi.ListBiawinSubscriptionsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListBiawinSubscriptions200JSONResponse{Body: oapi.SubscriptionListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: biawinNotice}}, nil
+}
+
+func (unconfiguredBiawin) GetBiawinSubscription(ctx context.Context, _ oapi.GetBiawinSubscriptionRequestObject) (oapi.GetBiawinSubscriptionResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetBiawinSubscription200JSONResponse{Body: oapi.SubscriptionEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: biawinNotice}}, nil
+}
+
+func (unconfiguredBiawin) ListBiawinSubscriptionItems(ctx context.Context, _ oapi.ListBiawinSubscriptionItemsRequestObject) (oapi.ListBiawinSubscriptionItemsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListBiawinSubscriptionItems200JSONResponse{Body: oapi.SubscriptionItemListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: biawinNotice}}, nil
+}
+
+func (unconfiguredBiawin) GetBiawinParity(ctx context.Context, _ oapi.GetBiawinParityRequestObject) (oapi.GetBiawinParityResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetBiawinParity200JSONResponse{Body: oapi.ParityEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: biawinNotice}}, nil
+}
+
+func (unconfiguredBiawin) ListFulfillmentCases(ctx context.Context, _ oapi.ListFulfillmentCasesRequestObject) (oapi.ListFulfillmentCasesResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListFulfillmentCases200JSONResponse{Body: oapi.FulfillmentCaseListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: biawinNotice}}, nil
+}
+
+func (unconfiguredBiawin) GetFulfillmentCase(ctx context.Context, _ oapi.GetFulfillmentCaseRequestObject) (oapi.GetFulfillmentCaseResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetFulfillmentCase200JSONResponse{Body: oapi.FulfillmentCaseEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: biawinNotice}}, nil
+}
+
+func (unconfiguredBiawin) ListFulfillmentCaseHistory(ctx context.Context, _ oapi.ListFulfillmentCaseHistoryRequestObject) (oapi.ListFulfillmentCaseHistoryResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListFulfillmentCaseHistory200JSONResponse{Body: oapi.FulfillmentCaseHistoryEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: biawinNotice}}, nil
 }

@@ -5,7 +5,8 @@
 // shadow migrations (Slice 5), then the cases and custody sales read
 // migrations (Slice 6), then the billing and payments read migrations
 // (Slice 7), then the reporting projection migrations (Slice 8), then the
-// finance shadow ledger migrations (Slice 9), each source in its own version
+// finance shadow ledger migrations (Slice 9), then the biawin and
+// fulfillment read shadow migrations (Slice 10), each source in its own version
 // table; no application process runs migrations on startup.
 //
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate up
@@ -23,11 +24,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	biawinmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/biawin/migrations"
 	billingmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing/migrations"
 	casesmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/migrations"
 	custodymigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/migrations"
 	customersmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/migrations"
 	financemigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/finance/migrations"
+	fulfillmentmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/fulfillment/migrations"
 	identitymigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/migrations"
 	integrationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/migrations"
 	organizationmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/migrations"
@@ -41,7 +44,8 @@ func sources() []migrations.Source {
 	return []migrations.Source{migrations.Platform(), integrationmigrations.Source(),
 		identitymigrations.Source(), organizationmigrations.Source(), customersmigrations.Source(),
 		casesmigrations.Source(), custodymigrations.Source(),
-		billingmigrations.Source(), paymentsmigrations.Source(), reportingmigrations.Source(), financemigrations.Source()}
+		billingmigrations.Source(), paymentsmigrations.Source(), reportingmigrations.Source(), financemigrations.Source(), biawinmigrations.Source(),
+		fulfillmentmigrations.Source()}
 }
 
 func main() {

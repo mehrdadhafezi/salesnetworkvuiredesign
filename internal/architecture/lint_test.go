@@ -62,12 +62,12 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RulePgtestImport:     2,  // pgtest from platform/bad; legacytest from the import tool
 		RuleForeignStore:     3,  // sales imports billing/store; authorization imports organization/store; connector imports customers/store
 		RuleLegacyImport:     3,  // sales, crm-api and crm-migrate (non-migrations) import the connector
-		RuleModuleBoundary:   17, // + finance→billing/query, commission→finance/api; + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
-		RuleForeignWrite:     6,  // connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*; finance UPDATE billing.*; commission INSERT INTO finance.*
-		RuleReadPathImport:   6,  // organization/http, customers/http, cases/http and crm-api import an import command; reporting/http imports the projection rebuild; finance/http imports the shadow rebuild
+		RuleModuleBoundary:   19, // + biawin→billing/query, fulfillment→biawin/query; + finance→billing/query, commission→finance/api; + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
+		RuleForeignWrite:     8,  // + biawin UPDATE finance.*, fulfillment INSERT INTO billing.*; connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*; finance UPDATE billing.*; commission INSERT INTO finance.*
+		RuleReadPathImport:   8,  // + biawin/http and fulfillment/query import an import command; organization/http, customers/http, cases/http and crm-api import an import command; reporting/http imports the projection rebuild; finance/http imports the shadow rebuild
 		RuleMergePath:        2,  // customers MergeCustomers, canonicalizeByPhone
-		RuleAppendOnlyWrite:  4,  // custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact; finance DELETE FROM finance.ledger_entry
-		RulePhoneKey:         6,  // custody, payments and reporting customer_phone joins; finance phone key literal + byPhone and mobileKey identifiers
+		RuleAppendOnlyWrite:  7,  // + biawin UPDATE finance.ledger_entry, DELETE FROM biawin.subscription, fulfillment/query UPDATE fulfillment.*; custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact; finance DELETE FROM finance.ledger_entry
+		RulePhoneKey:         9,  // + biawin phone join literal, phoneJoin and byPhone identifiers; custody, payments and reporting customer_phone joins; finance phone key literal + byPhone and mobileKey identifiers
 		RuleStatusFallback:   2,  // billing COALESCE status chain and resolveMainStatus
 		RuleUnitConversion:   5,  // payments toRial and toman * 10; finance ratioOf, toRial and v * 10
 		RuleReportingRead:    1,  // reporting SELECT FROM billing.invoice
@@ -79,6 +79,10 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleFinanceFloat:     2,  // finance float64 parameter and result
 		RuleCrossUnitSum:     1,  // finance sum( without unit
 		RuleBusinessKey:      1,  // finance/domain Entry literal without BusinessKey
+		RuleBiawinSQL:        3,  // biawin UPDATE finance.* and FROM billing.*; fulfillment INTO billing.*
+		RuleBiawinReadWrite:  2,  // biawin/http INSERT; fulfillment/query UPDATE
+		RuleProviderCall:     4,  // biawin imports the provider, charge_wallet literal, ChargeWallet identifier; crm-api imports the provider
+		RuleForbiddenCommand: 10, // ChargeWallet, ActivateSubscription, CompleteDot, WriteProjectMembership, RunCommission, AssignExpert, ShipOrder, UploadEvidence + two command routes
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -419,8 +423,25 @@ func TestAPIServerHasNoImportDependency(t *testing.T) {
 		// No import command, migration, projection rebuild or finance shadow
 		// rebuild is reachable from the API server (a GET never derives).
 		if strings.HasSuffix(p, "/imports") || strings.HasSuffix(p, "/migrations") || strings.HasSuffix(p, "/projections") ||
-			strings.HasSuffix(p, "/finance/shadow") || strings.Contains(p, "/integration/legacy/") {
+			strings.HasSuffix(p, "/finance/shadow") || strings.Contains(p, "/integration/legacy/") || strings.HasSuffix(p, "/integration/biawin") {
 			t.Errorf("crm-api depends on %s", p)
+		}
+	}
+}
+
+// TestNoProviderInComposedSystem proves no binary reaches the Biawin
+// provider package: Slice 10 makes no external call of any kind.
+func TestNoProviderInComposedSystem(t *testing.T) {
+	mod := modulePath(t)
+	cmd := exec.Command("go", "list", "-deps", "./cmd/...")
+	cmd.Dir = repoRoot
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("go list: %v", err)
+	}
+	for _, p := range strings.Fields(string(out)) {
+		if p == mod+"/internal/integration/biawin" {
+			t.Errorf("a command depends on the Biawin provider %s", p)
 		}
 	}
 }
@@ -565,6 +586,72 @@ func TestSliceNineRules(t *testing.T) {
 	for _, s := range []string{"/api/v1/finance/ledger", "/api/v1/finance/balances", "/api/v1/finance/reconciliation", "/api/v1/finance/shadow-runs/{run_id}"} {
 		if financeWriteRoute.MatchString(s) {
 			t.Errorf("%q wrongly flagged", s)
+		}
+	}
+}
+
+// TestSliceTenRules proves each Slice 10 rule fires where intended and the
+// read routes of the contract stay clean.
+func TestSliceTenRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct {
+		file, rule string
+		n          int
+	}{
+		{"internal/biawin/bad.go", RuleModuleBoundary, 1},
+		{"internal/biawin/bad.go", RuleProviderCall, 3},
+		{"internal/biawin/bad.go", RuleForeignWrite, 1},
+		{"internal/biawin/bad.go", RuleAppendOnlyWrite, 2},
+		{"internal/biawin/bad.go", RuleBiawinSQL, 2},
+		{"internal/biawin/bad.go", RulePhoneKey, 3},
+		{"internal/biawin/bad.go", RuleForbiddenCommand, 5},
+		{"internal/biawin/http/handler.go", RuleReadPathImport, 1},
+		{"internal/biawin/http/handler.go", RuleBiawinReadWrite, 1},
+		{"internal/biawin/http/handler.go", RuleForbiddenCommand, 1},
+		{"internal/fulfillment/query/read.go", RuleReadPathImport, 1},
+		{"internal/fulfillment/query/read.go", RuleBiawinReadWrite, 1},
+		{"internal/fulfillment/query/read.go", RuleAppendOnlyWrite, 1},
+		{"internal/fulfillment/query/read.go", RuleForbiddenCommand, 4},
+		{"internal/fulfillment/bad.go", RuleModuleBoundary, 1},
+		{"internal/fulfillment/bad.go", RuleForeignWrite, 1},
+		{"internal/fulfillment/bad.go", RuleBiawinSQL, 1},
+		{"cmd/crm-api/biawin.go", RuleProviderCall, 1},
+	}
+	for _, w := range want {
+		n := 0
+		for _, v := range vs {
+			if v.File == w.file && v.Rule == w.rule {
+				n++
+			}
+		}
+		if n != w.n {
+			t.Errorf("rule %s fired %d times in %s, want %d", w.rule, n, w.file, w.n)
+		}
+	}
+	for _, s := range []string{"/api/v1/biawin/subscriptions/{subscription_id}/suspend", "/api/v1/biawin/orders", "/api/v1/biawin/wallet/charge",
+		"/api/v1/fulfillment/cases/{case_id}/assign", "/api/v1/fulfillment/cases/{case_id}/ship", "/api/v1/fulfillment/cases/{case_id}/evidence",
+		"/api/v1/fulfillment/upgrade", "/api/v1/biawin/sync", "/api/v1/biawin/import"} {
+		if !forbiddenRoute.MatchString(s) {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	for _, s := range []string{"/api/v1/biawin/subscriptions", "/api/v1/biawin/subscriptions/{subscription_id}", "/api/v1/biawin/subscriptions/{subscription_id}/items",
+		"/api/v1/biawin/parity", "/api/v1/fulfillment/cases", "/api/v1/fulfillment/cases/{case_id}", "/api/v1/fulfillment/cases/{case_id}/history"} {
+		if forbiddenRoute.MatchString(s) {
+			t.Errorf("%q wrongly flagged", s)
+		}
+	}
+	for _, id := range []string{"CreateOrder", "createOrder", "chargeWallet"} {
+		if !providerWrite.MatchString(id) {
+			t.Errorf("%q not detected", id)
+		}
+	}
+	for _, id := range []string{"cancel", "assignments", "Activated", "ctx", "History"} {
+		if forbiddenCommand.MatchString(id) {
+			t.Errorf("%q wrongly flagged", id)
 		}
 	}
 }

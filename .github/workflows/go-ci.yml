@@ -140,6 +140,30 @@ jobs:
           bad="$(go list -deps ./internal/finance/... | grep -E "^${module}/internal/(integration/legacy/|[a-z]+/store$|commission)" || true)"
           if [ -n "$bad" ]; then echo "finance depends on a legacy, store or commission package:"; echo "$bad"; exit 1; fi
 
+      - name: Slice 10 Biawin / fulfillment READ shadow gates (verbose; synthetic data only; parity, multi-item, D-35/D-38 open, read purity, flag, auth)
+        run: |
+          go test -count=1 -v ./internal/biawin/... ./internal/fulfillment/... ./internal/integration/biawin/ ./cmd/crm-biawin-shadow/ ./cmd/crm-api/
+          go test -count=1 -v -run 'Biawin' ./internal/integration/legacy/shadow/
+          go test -count=1 -v -run 'SliceTen|NoProvider|APIServerHasNoImport' ./internal/architecture/
+          go test -count=1 -race ./internal/biawin/... ./internal/fulfillment/... ./internal/integration/biawin/ ./cmd/crm-biawin-shadow/
+          go test -count=1 -race -run 'Biawin' ./internal/integration/legacy/shadow/
+
+      - name: Slice 10 boundary — no provider, no import command and no legacy connector on the read path
+        shell: bash
+        run: |
+          module="$(go list -m)"
+          # No binary reaches the Biawin provider port (no external call in Slice 10).
+          bad="$(go list -deps ./cmd/... | grep -E "^${module}/internal/integration/biawin$" || true)"
+          if [ -n "$bad" ]; then echo "a command depends on the Biawin provider:"; echo "$bad"; exit 1; fi
+          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/(biawin|fulfillment)/imports$" || true)"
+          if [ -n "$bad" ]; then echo "crm-api depends on a Slice 10 import command:"; echo "$bad"; exit 1; fi
+          # biawin / fulfillment never import a legacy package, an owner store, finance, billing internals or each other.
+          bad="$(go list -deps ./internal/biawin/... ./internal/fulfillment/... | grep -E "^${module}/internal/(integration/|[a-z]+/store$|finance|billing|payments|commission)" || true)"
+          if [ -n "$bad" ]; then echo "biawin / fulfillment depend on a forbidden package:"; echo "$bad"; exit 1; fi
+          # No provider write operation is named anywhere outside the provider package.
+          hits="$(grep -rniE 'create_?order|charge_?wallet' --include=*.go --include=*.ts --include=*.tsx internal cmd web/src | grep -vE '^internal/(integration/biawin|architecture)/' | grep -vE '_test\.go:|\.test\.tsx?:' || true)"
+          if [ -n "$hits" ]; then echo "provider write operation named outside internal/integration/biawin:"; echo "$hits"; exit 1; fi
+
       - name: Slice 3 boundary — crm-api never reaches the legacy connector
         shell: bash
         run: |
@@ -170,7 +194,7 @@ jobs:
           ! grep -q pending <<< "$status"
           grep -q 'applied  00001_integration_staging.sql' <<< "$status"
           stg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'integration' AND table_name LIKE 'stg\_%'")"
-          test "$stg" = "22" || { echo "expected 22 integration staging tables (Slice 3 + invoice issued-to + Slice 6 sales + Slice 7 billing + Slice 9 wallets), got $stg"; exit 1; }
+          test "$stg" = "32" || { echo "expected 32 integration staging tables (Slice 3 + invoice issued-to + Slice 6 sales + Slice 7 billing + Slice 9 wallets + Slice 10 Biawin / fulfillment), got $stg"; exit 1; }
           grep -q 'applied  00003_integration_staging_invoice_issued_to.sql' <<< "$status"
           grep -q 'applied  00004_integration_staging_sales.sql' <<< "$status"
           grep -q 'applied  00001_identity.sql' <<< "$status"
@@ -257,6 +281,26 @@ jobs:
           test "$pii" = "0" || { echo "finance has a PII/URL/token or float/numeric/money column"; exit 1; }
           uniq="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_constraint WHERE conname = 'ledger_entry_business_key' AND contype = 'u'")"
           test "$uniq" = "1" || { echo "ledger business key must be UNIQUE"; exit 1; }
+          # Slice 10 Biawin / fulfillment READ shadow (insert-only; no PII; no wallet balance; no foreign role; no role grant).
+          for f in 00007_integration_staging_biawin.sql 00007_identity_biawin_capabilities.sql 00001_biawin.sql 00002_biawin_append_only_guards.sql \
+            00001_fulfillment.sql 00002_fulfillment_append_only_guards.sql; do
+            grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
+          done
+          for spec in "biawin 11 8" "fulfillment 9 6"; do
+            set -- $spec
+            n="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = '$1'")"
+            test "$n" = "$2" || { echo "expected $2 $1 tables, got $n"; exit 1; }
+            g="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_name LIKE '%_append_only' AND trigger_schema = '$1'")"
+            test "$g" = "$3" || { echo "$1 append-only triggers missing: $g"; exit 1; }
+            bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = '$1' AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name NOT IN ('outbox_event', 'inbox_message', 'idempotency_record')))")"
+            test "$bad" = "0" || { echo "$1 shadow facts must be insert-only"; exit 1; }
+            foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = '$1' AND grantee NOT IN ('crm_owner_$1', current_user)")"
+            test "$foreign" = "0" || { echo "foreign role granted on $1"; exit 1; }
+            pii="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = '$1' AND (column_name ~* '(phone|mobile|address|postcode|national|email|url|path|token|secret|authority|card|balance)' OR data_type IN ('real', 'double precision', 'numeric', 'money'))")"
+            test "$pii" = "0" || { echo "$1 has a PII/URL/token/balance or float/numeric/money column"; exit 1; }
+          done
+          granted="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.role_capability WHERE capability_key IN ('biawin.subscription.read', 'fulfillment.case.read', 'biawin.parity.read')")"
+          test "$granted" = "0" || { echo "Slice 10 capabilities must be granted to no role"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

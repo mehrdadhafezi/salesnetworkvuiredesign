@@ -35,6 +35,12 @@
 // (default off). GET only; the shadow ledger is rebuilt offline by
 // crm-finance-shadow and is never a financial system of record.
 //
+// Slice 10 Biawin / fulfillment READ shadow surface (optional):
+// CRM_BIAWIN_READ_DATABASE_URL and CRM_FULFILLMENT_READ_DATABASE_URL plus
+// CRM_FEATUREFLAGS_DATABASE_URL, behind biawin_fulfillment.read_shadow
+// (default off). GET only; the import is the offline crm-biawin-shadow job
+// and no provider is ever called.
+//
 // It never runs migrations, never imports legacy data and never writes.
 package main
 
@@ -99,8 +105,13 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closeFinance()
+	bw, closeBiawin, err := openBiawin(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closeBiawin()
 	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill,
-		Reporting: rep, Finance: fin})
+		Reporting: rep, Finance: fin, Biawin: bw})
 	if err != nil {
 		return err
 	}

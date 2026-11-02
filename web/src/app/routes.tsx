@@ -36,6 +36,9 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { to: '/finance/ledger', label: 'دفتر روزنامه سایه', feature: 'finance_shadow_read' },
     { to: '/finance/balances', label: 'مانده‌های سایه', feature: 'finance_shadow_read' },
     { to: '/finance/reconciliation', label: 'تطبیق سایه', feature: 'finance_shadow_read' },
+    { to: '/biawin/subscriptions', label: 'اشتراک‌های بیاوین', feature: 'biawin_fulfillment_read' },
+    { to: '/biawin/parity', label: 'تطبیق اشتراک‌های فعال', feature: 'biawin_fulfillment_read' },
+    { to: '/fulfillment/cases', label: 'پرونده‌های اجرای خدمت', feature: 'biawin_fulfillment_read' },
     { to: '/system', label: 'وضعیت سامانه' },
   ]
   const children: RouteObject[] = [
@@ -70,6 +73,12 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'finance/ledger', lazy: async () => ({ Component: (await import('../modules/finance/pages/LedgerPage')).LedgerPage }) },
     { path: 'finance/balances', lazy: async () => ({ Component: (await import('../modules/finance/pages/BalancesPage')).BalancesPage }) },
     { path: 'finance/reconciliation', lazy: async () => ({ Component: (await import('../modules/finance/pages/FinanceReconciliationPage')).FinanceReconciliationPage }) },
+    // Slice 10 Biawin / fulfillment READ shadow (no activation, provider, portal or workflow control).
+    { path: 'biawin/subscriptions', lazy: async () => ({ Component: (await import('../modules/biawin/pages/SubscriptionsPage')).SubscriptionsPage }) },
+    { path: 'biawin/subscriptions/:subscriptionId', lazy: async () => ({ Component: (await import('../modules/biawin/pages/SubscriptionPage')).SubscriptionPage }) },
+    { path: 'biawin/parity', lazy: async () => ({ Component: (await import('../modules/biawin/pages/ParityPage')).ParityPage }) },
+    { path: 'fulfillment/cases', lazy: async () => ({ Component: (await import('../modules/biawin/pages/CasesPage')).CasesPage }) },
+    { path: 'fulfillment/cases/:caseId', lazy: async () => ({ Component: (await import('../modules/biawin/pages/CasePage')).CasePage }) },
   ]
   // import.meta.env.DEV is a build-time constant: production bundles drop this branch entirely.
   if (import.meta.env.DEV && config.devTools) {
