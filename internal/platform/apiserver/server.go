@@ -78,6 +78,16 @@ var ContractPaths = map[string][]string{
 	"/api/v1/mis/overview":                  {http.MethodGet},
 	"/api/v1/mis/source-quality":            {http.MethodGet},
 	"/api/v1/mis/reconciliation":            {http.MethodGet},
+	// Slice 9 finance SHADOW ledger read (GET only; no posting, approval,
+	// reversal, settlement, refund, credit or debit path of any kind).
+	"/api/v1/finance/shadow-runs":           {http.MethodGet},
+	"/api/v1/finance/shadow-runs/{run_id}":  {http.MethodGet},
+	"/api/v1/finance/accounts":              {http.MethodGet},
+	"/api/v1/finance/accounts/{account_id}": {http.MethodGet},
+	"/api/v1/finance/ledger":                {http.MethodGet},
+	"/api/v1/finance/ledger/{entry_id}":     {http.MethodGet},
+	"/api/v1/finance/balances":              {http.MethodGet},
+	"/api/v1/finance/reconciliation":        {http.MethodGet},
 	"/api/v1/invoice-review":                {http.MethodGet},
 	"/api/v1/invoice-review/{invoice_id}":   {http.MethodGet},
 }
@@ -137,6 +147,14 @@ var ContractQuery = map[string][]string{
 	"/api/v1/mis/overview":                                  {},
 	"/api/v1/mis/source-quality":                            {},
 	"/api/v1/mis/reconciliation":                            {"cursor", "limit"},
+	"/api/v1/finance/shadow-runs":                           {"cursor", "limit"},
+	"/api/v1/finance/shadow-runs/{run_id}":                  {},
+	"/api/v1/finance/accounts":                              {"run_id", "account_category", "cursor", "limit"},
+	"/api/v1/finance/accounts/{account_id}":                 {"run_id"},
+	"/api/v1/finance/ledger":                                {"run_id", "basis", "unit", "state", "source_type", "account_category", "effective_from", "effective_to", "cursor", "limit"},
+	"/api/v1/finance/ledger/{entry_id}":                     {"run_id"},
+	"/api/v1/finance/balances":                              {"run_id", "basis", "unit", "account_category", "state", "cursor", "limit"},
+	"/api/v1/finance/reconciliation":                        {"run_id", "basis", "unit", "state", "subject_type", "cursor", "limit"},
 	"/api/v1/invoice-review":                                {"presence", "customer_link_state", "case_link_state", "has_unknown_status", "total_class", "unit", "cursor", "limit"},
 	"/api/v1/invoice-review/{invoice_id}":                   {},
 }
@@ -215,6 +233,22 @@ type ReportingAPI interface {
 	ReportingEnabled(ctx context.Context) bool
 }
 
+// FinanceAPI is the Slice 9 finance SHADOW ledger read surface (finance
+// module, composed by cmd/crm-api). Without one, every operation answers
+// BLOCKED / FEATURE_DISABLED. It has no write operation of any kind.
+type FinanceAPI interface {
+	ListFinanceShadowRuns(ctx context.Context, request oapi.ListFinanceShadowRunsRequestObject) (oapi.ListFinanceShadowRunsResponseObject, error)
+	GetFinanceShadowRun(ctx context.Context, request oapi.GetFinanceShadowRunRequestObject) (oapi.GetFinanceShadowRunResponseObject, error)
+	ListFinanceAccounts(ctx context.Context, request oapi.ListFinanceAccountsRequestObject) (oapi.ListFinanceAccountsResponseObject, error)
+	GetFinanceAccount(ctx context.Context, request oapi.GetFinanceAccountRequestObject) (oapi.GetFinanceAccountResponseObject, error)
+	ListFinanceLedger(ctx context.Context, request oapi.ListFinanceLedgerRequestObject) (oapi.ListFinanceLedgerResponseObject, error)
+	GetFinanceLedgerEntry(ctx context.Context, request oapi.GetFinanceLedgerEntryRequestObject) (oapi.GetFinanceLedgerEntryResponseObject, error)
+	ListFinanceBalances(ctx context.Context, request oapi.ListFinanceBalancesRequestObject) (oapi.ListFinanceBalancesResponseObject, error)
+	ListFinanceReconciliation(ctx context.Context, request oapi.ListFinanceReconciliationRequestObject) (oapi.ListFinanceReconciliationResponseObject, error)
+	// FinanceEnabled reports the Slice 9 flag for the session navigation hint.
+	FinanceEnabled(ctx context.Context) bool
+}
+
 // Surfaces are the optional business read surfaces; nil ones answer
 // BLOCKED / FEATURE_DISABLED.
 type Surfaces struct {
@@ -223,6 +257,7 @@ type Surfaces struct {
 	Sales     SalesAPI
 	Billing   BillingAPI
 	Reporting ReportingAPI
+	Finance   FinanceAPI
 }
 
 // ReadAPI is the Slice 4 read surface (identity, organization,
@@ -253,6 +288,7 @@ type api struct {
 	SalesAPI
 	BillingAPI
 	ReportingAPI
+	FinanceAPI
 	clock   timeutil.Clock
 	devAuth bool
 }
@@ -301,11 +337,13 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 	data.Features = &struct {
 		BillingRead       bool `json:"billing_read"`
 		CustomersIdentity bool `json:"customers_identity"`
+		FinanceShadowRead bool `json:"finance_shadow_read"`
 		HrRead            bool `json:"hr_read"`
 		ReportingRead     bool `json:"reporting_read"`
 		SalesRead         bool `json:"sales_read"`
 	}{BillingRead: a.BillingAPI.BillingEnabled(ctx), CustomersIdentity: a.CustomersAPI.CustomersEnabled(ctx), HrRead: a.ReadAPI.HRReadEnabled(ctx),
-		ReportingRead: a.ReportingAPI.ReportingEnabled(ctx), SalesRead: a.SalesAPI.SalesEnabled(ctx)}
+		ReportingRead: a.ReportingAPI.ReportingEnabled(ctx), SalesRead: a.SalesAPI.SalesEnabled(ctx),
+		FinanceShadowRead: a.FinanceAPI.FinanceEnabled(ctx)}
 	return oapi.GetSession200JSONResponse{Body: oapi.SessionEnvelope{
 		Outcome:       outcome,
 		Reasons:       []oapi.ReasonCode{},
@@ -329,7 +367,7 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 
 // NewHandlerWithSurfaces builds the full handler chain over every surface.
 func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logger, sf Surfaces) (http.Handler, error) {
-	read, customers, sales, billing, rep := sf.Read, sf.Customers, sf.Sales, sf.Billing, sf.Reporting
+	read, customers, sales, billing, rep, fin := sf.Read, sf.Customers, sf.Sales, sf.Billing, sf.Reporting, sf.Finance
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -351,9 +389,12 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	if rep == nil {
 		rep = unconfiguredReporting{}
 	}
+	if fin == nil {
+		fin = unconfiguredFinance{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},

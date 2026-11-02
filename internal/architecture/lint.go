@@ -114,6 +114,40 @@
 //     server names an export, CSV, XLSX or download route or media type (no
 //     Invoice Review export, D-23).
 //
+// Slice 9 rules (finance SHADOW ledger; D-41, OPD-06, OPD-09, F06, F07):
+//
+//   - module-boundary also covers finance (and a future commission module):
+//     finance reaches billing and payments only through their published api
+//     packages, its http adapter may use identity/api and the evaluator, and
+//     only integration (the normalized wallet source port) and nothing else
+//     imports finance/api; commission never imports finance (posting
+//     requests will be events, Slice 13).
+//   - foreign-schema-write covers the finance schema (only internal/finance
+//     writes it; commission or reporting never), so finance never writes
+//     billing or payments; append-only-write covers every finance table
+//     (no UPDATE / DELETE of a ledger fact anywhere).
+//   - finance-foreign-read: no SQL literal in internal/finance reads another
+//     module's schema (finance reads only finance.*).
+//   - finance-read-write: the finance read path (finance/http, finance/query)
+//     holds no INSERT / UPDATE / DELETE literal; read-path-import forbids it
+//     (and the API server) importing the offline shadow rebuild: a GET never
+//     derives, posts or records anything (F07).
+//   - finance-write-route: no string literal in the API server or finance
+//     names a finance posting / approval / reversal / settlement / refund /
+//     credit / debit route (GET-only read surface, F06).
+//   - finance-float: no float32 / float64 anywhere in internal/finance.
+//   - money-unit-conversion also covers internal/finance (no x10 / /10, no
+//     conversion-like function: OPD-06).
+//   - finance-cross-unit-sum: every SQL sum in internal/finance is scoped by
+//     unit (units are never summed together).
+//   - finance-business-key: every ledger Entry literal in the finance domain
+//     and the shadow rebuild sets BusinessKey (also NOT NULL + UNIQUE in the
+//     database).
+//   - phone-key covers every literal and identifier in internal/finance:
+//     phone / mobile are never an account key, filter or join.
+//   - legacy-import also allows cmd/crm-finance-shadow (the offline job that
+//     composes the staged wallet source); finance itself never imports it.
+//
 // Test files are composition roots for module-boundary (as cmd/ is); every
 // other rule applies to them as before.
 package architecture
@@ -169,10 +203,31 @@ const (
 	RuleReportingRead    = "reporting-foreign-read"
 	RuleMetricFormula    = "metric-formula"
 	RuleExportEndpoint   = "export-endpoint"
+	RuleFinanceRead      = "finance-foreign-read"
+	RuleFinanceReadWrite = "finance-read-write"
+	RuleFinanceRoute     = "finance-write-route"
+	RuleFinanceFloat     = "finance-float"
+	RuleCrossUnitSum     = "finance-cross-unit-sum"
+	RuleBusinessKey      = "finance-business-key"
 )
+
+// writeSQL matches a mutating SQL statement.
+var writeSQL = regexp.MustCompile(`(?i)\b(insert\s+into|update\s+[a-z_]+\.|delete\s+from)\b`)
+
+// financeWriteRoute matches a finance write / posting route.
+var financeWriteRoute = regexp.MustCompile(`(?i)/finance/[a-z0-9_/{}.-]*\b(post|posting|approve|reverse|settle|settlement|refund|credit|debit|adjust)\b`)
+
+// sumSQL matches an SQL sum.
+var sumSQL = regexp.MustCompile(`(?i)\bsum\s*\(`)
+
+// phoneIdent matches a phone-like identifier.
+var phoneIdent = regexp.MustCompile(`(?i)phone|mobile`)
 
 // ownerSchemaRead matches SQL reading another module's schema.
 var ownerSchemaRead = regexp.MustCompile(`(?i)\b(from|join)\s+(identity|organization|customers|cases|custody|billing|payments|integration|audit|platform_featureflags)\.`)
+
+// financeForeignRead matches SQL reading a schema other than finance.
+var financeForeignRead = regexp.MustCompile(`(?i)\b(from|join)\s+(identity|organization|customers|cases|custody|billing|payments|integration|audit|platform_featureflags|reporting)\.`)
 
 // sqlish matches a string literal that is SQL (where a phone join could hide).
 var sqlish = regexp.MustCompile(`(?i)\b(select|where|join|insert\s+into|update)\b`)
@@ -191,10 +246,10 @@ var statusFallbackSQL = regexp.MustCompile(`(?i)coalesce\s*\(\s*nullif\s*\(\s*[a
 var statusResolver = regexp.MustCompile(`(?i)^(resolve|derive|compute|pick|select)?(canonical|effective|main|current)(invoice)?status(resolver|fallback)?$|^(resolve|derive|compute)(invoice)?(main)?status`)
 
 // moneyModules are the trees where amounts live with explicit units.
-var moneyModules = []string{"internal/billing", "internal/payments"}
+var moneyModules = []string{"internal/billing", "internal/payments", "internal/finance"}
 
 // appendOnlyWrite matches SQL that would mutate an append-only table.
-var appendOnlyWrite = regexp.MustCompile(`(?i)\b(update|delete\s+from)\s+(custody\.custody_event|cases\.case_state_history|cases\.attribution_snapshot|payments\.attempt_state_history|reporting\.[a-z_]+)\b`)
+var appendOnlyWrite = regexp.MustCompile(`(?i)\b(update|delete\s+from)\s+(custody\.custody_event|cases\.case_state_history|cases\.attribution_snapshot|payments\.attempt_state_history|reporting\.[a-z_]+|finance\.[a-z_]+)\b`)
 
 // phoneLiteral matches a phone reference in cases/custody string literals.
 var phoneLiteral = regexp.MustCompile(`(?i)phone`)
@@ -205,7 +260,7 @@ var mergePath = regexp.MustCompile(`(?i)^(resolvemerge|mergecustomers?|applymerg
 
 // slice4Modules are the business modules of Slice 4.
 var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true, "customers": true,
-	"cases": true, "custody": true, "billing": true, "payments": true, "reporting": true}
+	"cases": true, "custody": true, "billing": true, "payments": true, "reporting": true, "finance": true, "commission": true}
 
 // schemaOwners maps a module schema to the only tree allowed to write it.
 var schemaOwners = map[string]string{
@@ -217,12 +272,13 @@ var schemaOwners = map[string]string{
 	"billing":               "internal/billing",
 	"payments":              "internal/payments",
 	"reporting":             "internal/reporting",
+	"finance":               "internal/finance",
 	"integration":           "internal/integration",
 	"audit":                 "internal/platform/audit",
 	"platform_featureflags": "internal/platform/featureflags",
 }
 
-var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|billing|payments|reporting|integration|audit|platform_featureflags)\.`)
+var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|billing|payments|reporting|finance|integration|audit|platform_featureflags)\.`)
 
 // readPathDirs never import an import command.
 var readPathDirs = []string{"internal/platform/apiserver", "cmd/crm-api"}
@@ -258,6 +314,12 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 		return rest == "api" && under(rel, "internal/reporting/http")
 	case top == "reporting" && (other == "cases" || other == "custody" || other == "billing" || other == "payments" || other == "customers"):
 		return rest == "api" && under(rel, "internal/reporting/projections")
+	case top == "finance" && other == "identity":
+		return rest == "api" && under(rel, "internal/finance/http")
+	case top == "finance" && (other == "billing" || other == "payments"):
+		return rest == "api" && (under(rel, "internal/finance/shadow") || under(rel, "internal/finance/domain"))
+	case top == "commission" && other == "finance":
+		return false
 	case other == "authorization" && (rest == "" || rest == "http"):
 		return under(rel, "internal/"+top+"/http")
 	case top == "authorization" || top == "organization" && other == "identity":
@@ -307,7 +369,7 @@ var legacyLiteral = regexp.MustCompile(`(^|[^A-Za-z0-9_])(wp|sn)_[A-Za-z0-9_]`)
 var wooLiteral = regexp.MustCompile(`(?i)woo` + `commerce`)
 
 // legacyImporters may import internal/integration/legacy/**.
-var legacyImporters = []string{legacyInteg, "cmd/crm-legacy-import"}
+var legacyImporters = []string{legacyInteg, "cmd/crm-legacy-import", "cmd/crm-finance-shadow"}
 
 // legacyMigrationsImporter may import only the legacy migrations package.
 const (
@@ -408,7 +470,7 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			}
 		}
 		if full := internalTop + "/" + internalRest; hasPrefixPath(full, strings.TrimPrefix(legacyInteg, "internal/")) && !legacyImportAllowed(rel, full) {
-			add(RuleLegacyImport, imp.Pos(), "imports the legacy connector "+p+" outside "+legacyInteg+" and cmd/crm-legacy-import")
+			add(RuleLegacyImport, imp.Pos(), "imports the legacy connector "+p+" outside "+legacyInteg+", cmd/crm-legacy-import and cmd/crm-finance-shadow")
 		}
 		// Test files are composition roots (like cmd/) and may wire modules.
 		if relTop, ok := internalTopOf(rel); ok && !isTest && internalTop != "kernel" && internalTop != "platform" {
@@ -419,6 +481,10 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		if !isTest && internalTop == "reporting" && internalRest == "projections" && (under(rel, "internal/reporting/http") || under(rel, "internal/reporting/query") ||
 			under(rel, "internal/platform/apiserver") || under(rel, "cmd/crm-api")) {
 			add(RuleReadPathImport, imp.Pos(), "read path imports the projection rebuild "+p)
+		}
+		if !isTest && internalTop == "finance" && internalRest == "shadow" && (under(rel, "internal/finance/http") || under(rel, "internal/finance/query") ||
+			under(rel, "internal/platform/apiserver") || under(rel, "cmd/crm-api")) {
+			add(RuleReadPathImport, imp.Pos(), "read path imports the offline shadow rebuild "+p)
 		}
 		if internalRest == "imports" || strings.HasPrefix(internalRest, "imports/") {
 			readPath := false
@@ -469,6 +535,22 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 					if !isTest && (under(rel, "internal/reporting") || under(rel, "internal/platform/apiserver")) && exportLiteral.MatchString(s) {
 						add(RuleExportEndpoint, x.Pos(), "export/download literal: "+exportLiteral.FindString(s))
 					}
+					inFinance := !isTest && under(rel, "internal/finance")
+					if inFinance && financeForeignRead.MatchString(s) {
+						add(RuleFinanceRead, x.Pos(), "finance reads another module's schema: "+financeForeignRead.FindString(s))
+					}
+					if inFinance && (under(rel, "internal/finance/http") || under(rel, "internal/finance/query")) && writeSQL.MatchString(s) {
+						add(RuleFinanceReadWrite, x.Pos(), "write SQL on the finance read path: "+writeSQL.FindString(s))
+					}
+					if !isTest && (under(rel, "internal/finance") || under(rel, "internal/platform/apiserver")) && financeWriteRoute.MatchString(s) {
+						add(RuleFinanceRoute, x.Pos(), "finance write route literal: "+financeWriteRoute.FindString(s))
+					}
+					if inFinance && sumSQL.MatchString(s) && !strings.Contains(strings.ToLower(s), "unit") {
+						add(RuleCrossUnitSum, x.Pos(), "SQL sum not scoped by unit in finance")
+					}
+					if inFinance && phoneIdent.MatchString(s) {
+						add(RulePhoneKey, x.Pos(), "phone / mobile in a finance literal; never an account key, filter or join")
+					}
 					if !under(rel, legacyInteg) && statusFallbackSQL.MatchString(s) {
 						add(RuleStatusFallback, x.Pos(), "COALESCE status fallback outside the legacy connector (TAD #20 deferred)")
 					}
@@ -501,6 +583,12 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			if inKernel && (x.Name == "float32" || x.Name == "float64") {
 				add(RuleKernelFloat, x.Pos(), x.Name+" in kernel")
 			}
+			if under(rel, "internal/finance") && (x.Name == "float32" || x.Name == "float64") {
+				add(RuleFinanceFloat, x.Pos(), x.Name+" in finance (money is int64 + unit)")
+			}
+			if !isTest && under(rel, "internal/finance") && phoneIdent.MatchString(x.Name) {
+				add(RulePhoneKey, x.Pos(), "phone / mobile identifier "+x.Name+" in finance")
+			}
 		case *ast.SelectorExpr:
 			if x.Sel.Name == legacyRefMaker && !under(rel, legacyInteg) && !under(rel, refsDir) {
 				add(RuleLegacyRefFactory, x.Pos(), legacyRefMaker+" called outside "+legacyInteg)
@@ -515,9 +603,23 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 					add(RuleKernelClock, x.Pos(), ".Local() converts to the machine-local zone")
 				}
 			}
+		case *ast.CompositeLit:
+			if !isTest && (under(rel, "internal/finance/domain") || under(rel, "internal/finance/shadow")) && isEntryType(x.Type) && len(x.Elts) > 0 {
+				has := false
+				for _, e := range x.Elts {
+					if kv, ok := e.(*ast.KeyValueExpr); ok {
+						if k, ok := kv.Key.(*ast.Ident); ok && k.Name == "BusinessKey" {
+							has = true
+						}
+					}
+				}
+				if !has {
+					add(RuleBusinessKey, x.Pos(), "ledger Entry literal without a BusinessKey")
+				}
+			}
 		case *ast.FuncDecl:
 			if inMoney(rel) && !isTest && conversionName.MatchString(x.Name.Name) {
-				add(RuleUnitConversion, x.Pos(), "conversion-like function "+x.Name.Name+" in billing/payments")
+				add(RuleUnitConversion, x.Pos(), "conversion-like function "+x.Name.Name+" in billing/payments/finance")
 			}
 			if under(rel, moneyDir) && !isTest && x.Name.IsExported() && conversionName.MatchString(x.Name.Name) {
 				add(RuleMoneyConversion, x.Pos(), "money exports conversion-like function "+x.Name.Name)
@@ -526,6 +628,17 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		return true
 	})
 	return out, nil
+}
+
+// isEntryType reports a composite literal of the ledger Entry type.
+func isEntryType(t ast.Expr) bool {
+	switch v := t.(type) {
+	case *ast.Ident:
+		return v.Name == "Entry"
+	case *ast.SelectorExpr:
+		return v.Sel.Name == "Entry"
+	}
+	return false
 }
 
 func inMoney(rel string) bool {

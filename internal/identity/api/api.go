@@ -62,6 +62,11 @@ const (
 	CapReportingMetricsRead Capability = "reporting.metrics.read"
 	CapReportingMISRead     Capability = "reporting.mis.read"
 	CapInvoiceReviewRead    Capability = "reporting.invoice_review.read"
+	// Slice 9 finance SHADOW ledger read. READ only (F06: no sensitive
+	// finance write exists); no role receives them (fail closed).
+	CapFinanceShadowRead         Capability = "finance.shadow.read"
+	CapFinanceLedgerRead         Capability = "finance.ledger.read"
+	CapFinanceReconciliationRead Capability = "finance.reconciliation.read"
 )
 
 // CapabilityDef is one vocabulary entry.
@@ -89,6 +94,9 @@ var vocabulary = []CapabilityDef{
 	{CapReportingMetricsRead, "Read metric contracts and aggregate report projections"},
 	{CapReportingMISRead, "Read MIS overview, source quality and reconciliation projections"},
 	{CapInvoiceReviewRead, "Read the Invoice Review query surface (audited; no export)"},
+	{CapFinanceShadowRead, "Read finance SHADOW runs, accounts and derived balances (not the system of record)"},
+	{CapFinanceLedgerRead, "Read the finance SHADOW journal entries and lines (not the system of record)"},
+	{CapFinanceReconciliationRead, "Read the legacy vs SHADOW ledger reconciliation (not the system of record)"},
 }
 
 // HRReadCapabilities returns the Slice 4 HR read capabilities: the set the

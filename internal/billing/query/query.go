@@ -437,7 +437,7 @@ func (s *Service) InvoiceFacts(ctx context.Context, fn func(api.InvoiceFact) err
 					return api.ErrTooManyFacts
 				}
 				if err := fn(api.InvoiceFact{InvoiceID: v.InvoiceID, SourceSpec: v.Source.Spec, SourceKey: v.Source.Key, CodeRaw: v.CodeRaw,
-					Presence: v.Source.Presence, CustomerLink: v.CustomerLink, CaseLink: v.CaseLink, SellerKey: v.SellerKey,
+					Presence: v.Source.Presence, CustomerLink: v.CustomerLink, CustomerID: resolvedCustomer(v), CaseLink: v.CaseLink, SellerKey: v.SellerKey,
 					States: states[v.InvoiceID], ItemCount: v.ItemCount, StageCount: v.StageCount, UnknownStates: v.UnknownStates,
 					ItemsComplete: v.ItemsComplete, StagesComplete: v.StagesComplete, FirstSeenAt: v.Source.FirstSeen}); err != nil {
 					return err
@@ -450,6 +450,64 @@ func (s *Service) InvoiceFacts(ctx context.Context, fn func(api.InvoiceFact) err
 			after = &last
 		}
 	})
+}
+
+func resolvedCustomer(v store.Invoice) *string {
+	if v.CustomerLink != "RESOLVED" {
+		return nil
+	}
+	return v.CustomerID
+}
+
+// InvoiceAmountEvidence implements api.AmountEvidenceSource: per invoice and
+// unit, the declared totals compared with item and stage sums (payment
+// evidence not compared) plus the legacy declared paid / remaining figures,
+// in one read-only snapshot.
+func (s *Service) InvoiceAmountEvidence(ctx context.Context, invoiceIDs []string) (map[string][]api.AmountEvidence, error) {
+	out := map[string][]api.AmountEvidence{}
+	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		for _, id := range invoiceIDs {
+			if !uuidPattern.MatchString(id) {
+				return invalid("invoice_id")
+			}
+			// No payment evidence: payment_sum is NONE and never compared.
+			ts, err := totalsTx(ctx, tx, id, nil, true)
+			if err != nil {
+				return err
+			}
+			v, err := store.GetInvoice(ctx, tx, id)
+			if err != nil {
+				return err
+			}
+			legacy := func(kind, unit string) (*int64, string) {
+				for _, d := range v.Declared {
+					if d.Kind != kind {
+						continue
+					}
+					if d.Representation == domain.Representable && d.Unit != nil && *d.Unit == unit {
+						return d.Amount, d.Representation
+					}
+					if d.Representation == domain.Representable {
+						// declared in another unit: never compared across units
+						return nil, api.OtherUnit
+					}
+					return nil, d.Representation
+				}
+				return nil, domain.Absent
+			}
+			for _, t := range ts {
+				conv := func(x domain.Sum) api.PaymentUnitSum {
+					return api.PaymentUnitSum{Amount: x.Amount, State: x.State, Rows: x.Rows}
+				}
+				e := api.AmountEvidence{Unit: t.Unit, Declared: t.Declared, ItemSum: conv(t.ItemSum), StageSum: conv(t.StageSum), Class: t.Class}
+				e.LegacyPaid, e.LegacyPaidRepr = legacy("PAID_TOTAL_AMOUNT", t.Unit)
+				e.LegacyRemaining, e.LegacyRemainingRepr = legacy("REMAINING_AMOUNT", t.Unit)
+				out[id] = append(out[id], e)
+			}
+		}
+		return nil
+	})
+	return out, err
 }
 
 // InvoiceUnitTotals implements api.FactSource: the same per-unit evidence

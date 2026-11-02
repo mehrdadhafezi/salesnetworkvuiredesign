@@ -122,6 +122,24 @@ jobs:
           bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/reporting/projections$" || true)"
           if [ -n "$bad" ]; then echo "crm-api depends on the offline projection rebuild:"; echo "$bad"; exit 1; fi
 
+      - name: Slice 9 finance SHADOW ledger gates (verbose; synthetic data only; double entry, D-41 bases, OPD-06 units, OPD-09 routes, reconciliation, F06/F07)
+        run: |
+          go test -count=1 -v ./internal/finance/... ./cmd/crm-finance-shadow/ ./cmd/crm-api/
+          go test -count=1 -v -run 'Finance' ./internal/integration/legacy/shadow/
+          go test -count=1 -v ./internal/integration/legacy/spec/ ./internal/integration/legacy/migrations/
+          go test -count=1 -race ./internal/finance/... ./cmd/crm-finance-shadow/
+          go test -count=1 -race -run 'Finance' ./internal/integration/legacy/shadow/
+
+      - name: Slice 9 boundary — crm-api never reaches the finance shadow rebuild or the legacy connector
+        shell: bash
+        run: |
+          module="$(go list -m)"
+          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/(finance/shadow|integration/legacy/.*)$" || true)"
+          if [ -n "$bad" ]; then echo "crm-api depends on the offline finance shadow rebuild or the legacy connector:"; echo "$bad"; exit 1; fi
+          # finance never imports a legacy package, an owner store or the commission engine.
+          bad="$(go list -deps ./internal/finance/... | grep -E "^${module}/internal/(integration/legacy/|[a-z]+/store$|commission)" || true)"
+          if [ -n "$bad" ]; then echo "finance depends on a legacy, store or commission package:"; echo "$bad"; exit 1; fi
+
       - name: Slice 3 boundary — crm-api never reaches the legacy connector
         shell: bash
         run: |
@@ -152,7 +170,7 @@ jobs:
           ! grep -q pending <<< "$status"
           grep -q 'applied  00001_integration_staging.sql' <<< "$status"
           stg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'integration' AND table_name LIKE 'stg\_%'")"
-          test "$stg" = "20" || { echo "expected 20 integration staging tables (Slice 3 + invoice issued-to + Slice 6 sales + Slice 7 billing), got $stg"; exit 1; }
+          test "$stg" = "22" || { echo "expected 22 integration staging tables (Slice 3 + invoice issued-to + Slice 6 sales + Slice 7 billing + Slice 9 wallets), got $stg"; exit 1; }
           grep -q 'applied  00003_integration_staging_invoice_issued_to.sql' <<< "$status"
           grep -q 'applied  00004_integration_staging_sales.sql' <<< "$status"
           grep -q 'applied  00001_identity.sql' <<< "$status"
@@ -221,6 +239,24 @@ jobs:
           test "$foreign" = "0" || { echo "foreign role granted on reporting"; exit 1; }
           pii="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'reporting' AND (column_name ~* '(phone|address|postcode|national|email|url|path|token|secret|authority)' OR data_type IN ('real', 'double precision', 'numeric'))")"
           test "$pii" = "0" || { echo "reporting has a PII/URL/token or float/numeric column"; exit 1; }
+          # Slice 9 finance SHADOW ledger (insert-only; balanced at commit; no PII; no float; no foreign role).
+          for f in 00006_integration_staging_finance.sql 00006_identity_finance_capabilities.sql 00001_finance.sql 00002_finance_ledger_guards.sql; do
+            grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
+          done
+          s9="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'finance'")"
+          test "$s9" = "11" || { echo "expected 11 finance tables (8 shadow + 3 infra), got $s9"; exit 1; }
+          guards="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_name LIKE '%_append_only' AND trigger_schema = 'finance'")"
+          test "$guards" = "8" || { echo "finance append-only triggers missing: $guards"; exit 1; }
+          balanced="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'finance' AND t.tgname LIKE '%_balanced' AND t.tgdeferrable AND t.tginitdeferred")"
+          test "$balanced" = "2" || { echo "finance deferred double-entry triggers missing: $balanced"; exit 1; }
+          bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'finance' AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name NOT IN ('outbox_event', 'inbox_message', 'idempotency_record')))")"
+          test "$bad" = "0" || { echo "finance shadow facts must be insert-only"; exit 1; }
+          foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'finance' AND grantee NOT IN ('crm_owner_finance', current_user)")"
+          test "$foreign" = "0" || { echo "foreign role granted on finance (commission / reporting never write it)"; exit 1; }
+          pii="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'finance' AND (column_name ~* '(phone|mobile|address|postcode|national|email|url|path|token|secret|authority|card)' OR data_type IN ('real', 'double precision', 'numeric', 'money'))")"
+          test "$pii" = "0" || { echo "finance has a PII/URL/token or float/numeric/money column"; exit 1; }
+          uniq="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_constraint WHERE conname = 'ledger_entry_business_key' AND contype = 'u'")"
+          test "$uniq" = "1" || { echo "ledger business key must be UNIQUE"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

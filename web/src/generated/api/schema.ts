@@ -1170,6 +1170,185 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/shadow-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shadow derivation runs (newest first)
+         * @description Requires finance.shadow.read.
+         *     Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+         *     SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listFinanceShadowRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/shadow-runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One shadow run with its source manifest and reconciliation summary
+         * @description Requires finance.shadow.read.
+         *     Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+         *     SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getFinanceShadowRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shadow ledger accounts of one run
+         * @description Requires finance.shadow.read.
+         *     Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+         *     SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["listFinanceAccounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/accounts/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One shadow account with its per-basis, per-unit balances (same run)
+         * @description Requires finance.shadow.read.
+         *     Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+         *     SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getFinanceAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shadow journal entries with lines (one run)
+         * @description Requires finance.ledger.read.
+         *     Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+         *     SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+         *     The summary covers the full filtered set (pagination never changes it).
+         */
+        get: operations["listFinanceLedger"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/ledger/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One shadow journal entry with its lines (same run)
+         * @description Requires finance.ledger.read.
+         *     Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+         *     SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+         */
+        get: operations["getFinanceLedgerEntry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Derived shadow balances per account, basis and unit with the comparable legacy figure
+         * @description Requires finance.shadow.read.
+         *     Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+         *     SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+         *     Accrual and cash are separate rows; no basis is preferred; no total across units, accounts or bases exists.
+         */
+        get: operations["listFinanceBalances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legacy vs shadow reconciliation (one run, per basis and unit)
+         * @description Requires finance.reconciliation.read.
+         *     Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+         *     SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+         *     The summary counts the full filtered set (pagination never changes it).
+         */
+        get: operations["listFinanceReconciliation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1320,6 +1499,8 @@ export interface components {
                 billing_read: boolean;
                 /** @description Slice 8 MIS / reporting read (flag reporting.read_shadow). Never shows an Invoice Review page. */
                 reporting_read: boolean;
+                /** @description Slice 9 finance SHADOW ledger read (flag finance.shadow_ledger_read). Read only; never a financial system of record. */
+                finance_shadow_read: boolean;
             };
         };
         SessionEnvelope: {
@@ -1604,7 +1785,7 @@ export interface components {
          * @description Slice 4 read capability vocabulary (<module>.<object>.<action>).
          * @enum {string}
          */
-        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read" | "reporting.metrics.read" | "reporting.mis.read" | "reporting.invoice_review.read";
+        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read" | "reporting.metrics.read" | "reporting.mis.read" | "reporting.invoice_review.read" | "finance.shadow.read" | "finance.ledger.read" | "finance.reconciliation.read";
         AccessDecision: {
             capability: components["schemas"]["Capability"];
             allowed: boolean;
@@ -2850,6 +3031,295 @@ export interface components {
             data?: components["schemas"]["InvoiceFactRow"];
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
+        /**
+         * @description Fixed SHADOW notice repeated on every finance answer.
+         * @enum {string}
+         */
+        ShadowNotice: "SHADOW: derived for architecture validation and reconciliation only. Not the financial system of record; not settled, bank-confirmed or Finance-approved money; not an official or accounting balance.";
+        /** @enum {string} */
+        RecordKind: "SHADOW";
+        /**
+         * @description ACCRUAL_SHADOW and CASH_SHADOW are computed side by side (D-41 unresolved: neither is canonical, preferred or final).
+         *     WALLET_MIRROR_SHADOW mirrors legacy wallet postings (neither accrual nor cash).
+         * @enum {string}
+         */
+        ShadowBasis: "ACCRUAL_SHADOW" | "CASH_SHADOW" | "WALLET_MIRROR_SHADOW";
+        /** @enum {string} */
+        FinanceCoverage: "AVAILABLE" | "PARTIAL" | "MISSING" | "UNKNOWN" | "NOT_RECOVERABLE" | "STALE";
+        /**
+         * @description FRESH / STALE against a 24h SLA; UNKNOWN when no time is known.
+         * @enum {string}
+         */
+        FinanceFreshness: "FRESH" | "STALE" | "UNKNOWN";
+        FinanceRunSource: {
+            /** @enum {string} */
+            source: "billing" | "payments" | "legacy_wallets" | "legacy_wallet_transactions";
+            status: components["schemas"]["FinanceCoverage"];
+            /** Format: int64 */
+            rows_read?: number | null;
+            snapshot_id?: string | null;
+            source_cutoff?: components["schemas"]["Timestamp"];
+            read_at: components["schemas"]["Timestamp"];
+            reason: string;
+            freshness: components["schemas"]["FinanceFreshness"];
+        };
+        ShadowRun: {
+            record_kind: components["schemas"]["RecordKind"];
+            /** Format: uuid */
+            run_id: string;
+            /** Format: int64 */
+            run_seq: number;
+            derivation_version: number;
+            bases: components["schemas"]["ShadowBasis"][];
+            source_cutoff: components["schemas"]["Timestamp"];
+            started_at: components["schemas"]["Timestamp"];
+            completed_at: components["schemas"]["Timestamp"];
+            /**
+             * @description Technical run outcome only (PARTIAL when any required source is not AVAILABLE). Never a financial reconciliation result.
+             * @enum {string}
+             */
+            outcome: "SUCCESS" | "PARTIAL";
+            reasons: components["schemas"]["Reasons"];
+            fact_counts: {
+                [key: string]: number;
+            };
+            facts_sha256: string;
+            sources: components["schemas"]["FinanceRunSource"][];
+            freshness: components["schemas"]["FinanceFreshness"];
+        };
+        ShadowRunListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["ShadowNotice"];
+            items?: components["schemas"]["ShadowRun"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        GroupCount: {
+            basis?: string;
+            unit?: string;
+            state?: string;
+            reason?: string;
+            /** Format: int64 */
+            count: number;
+        };
+        ShadowRunEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["ShadowNotice"];
+            run?: components["schemas"]["ShadowRun"];
+            reconciliation_summary?: components["schemas"]["GroupCount"][];
+            finding_summary?: components["schemas"]["GroupCount"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description The normalised query; run_id is the run every part of the answer comes from. */
+        FinanceQuery: {
+            /** Format: uuid */
+            run_id: string;
+            filters: {
+                [key: string]: string;
+            };
+        };
+        FinanceMeta: {
+            record_kind: components["schemas"]["RecordKind"];
+            notice: components["schemas"]["ShadowNotice"];
+            query: components["schemas"]["FinanceQuery"];
+            run: components["schemas"]["ShadowRun"];
+        };
+        /**
+         * @description Identity is a category plus a stable target / native reference (never a phone, name or email). customer_id is set only
+         *     when the customer link is RESOLVED; an unresolved link stays explicit.
+         */
+        LedgerAccount: {
+            /** Format: uuid */
+            account_id: string;
+            account_key: string;
+            /** @enum {string} */
+            category: "customer_receivable" | "revenue_by_product_kind" | "cash_bank_clearing" | "commission_payable" | "legacy_wallet_unclassified" | "legacy_wallet_contra";
+            /** @enum {string} */
+            normal_side: "DEBIT" | "CREDIT";
+            subject_domain: string;
+            subject_ref: string;
+            /** @enum {string|null} */
+            customer_link?: "RESOLVED" | "RELATED" | "UNKNOWN" | "CONFLICT" | "NOT_RECOVERABLE" | null;
+            /** Format: uuid */
+            customer_id?: string | null;
+            holder_key?: string | null;
+            /** Format: uuid */
+            holder_user_id?: string | null;
+            wallet_type_raw?: string | null;
+            provenance?: string | null;
+            route?: string | null;
+        };
+        AccountListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["FinanceMeta"];
+            summary?: components["schemas"]["GroupCount"][];
+            items?: components["schemas"]["LedgerAccount"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /**
+         * @description REPRESENTABLE = exact int64 value given; OVERFLOW = the int64 sum overflowed and no value is claimed.
+         * @enum {string}
+         */
+        AmountState: "REPRESENTABLE" | "OVERFLOW";
+        /** @description An exact shadow amount in its unit, or no money with OVERFLOW (never zero for unknown). */
+        ShadowAmount: {
+            money?: components["schemas"]["Money"];
+            state: components["schemas"]["AmountState"];
+        };
+        /** @enum {string} */
+        ReconciliationState: "MATCH" | "MISMATCH" | "UNKNOWN" | "INCOMPLETE" | "CONFLICT" | "NOT_RECOVERABLE";
+        /**
+         * @description One legacy figure vs one shadow amount for one subject, basis and unit in one run. difference = shadow - legacy and is
+         *     present only for MATCH / MISMATCH / a complete CONFLICT. Units are never compared across.
+         */
+        ReconciliationRow: {
+            /** @enum {string} */
+            subject_domain: "legacy_wallet" | "invoice";
+            subject_ref: string;
+            /** Format: uuid */
+            account_id?: string | null;
+            basis: components["schemas"]["ShadowBasis"];
+            /** @enum {string} */
+            unit: "IRR" | "IRT" | "UNKNOWN";
+            /** @enum {string} */
+            legacy_figure: "WALLET_BALANCE" | "INVOICE_REMAINING" | "INVOICE_PAID";
+            legacy_raw?: string | null;
+            legacy_amount?: components["schemas"]["Money"];
+            /** @enum {string} */
+            legacy_repr: "REPRESENTABLE" | "UNREPRESENTABLE" | "ABSENT" | "OTHER_UNIT";
+            shadow_amount?: components["schemas"]["Money"];
+            difference?: components["schemas"]["Money"];
+            state: components["schemas"]["ReconciliationState"];
+            reasons: string[];
+            coverage: components["schemas"]["FinanceCoverage"];
+            source_snapshot?: string | null;
+        };
+        /** @description Derived from ledger lines at read time (never stored); one account, basis and unit. No combined total exists. */
+        AccountBalance: {
+            account: components["schemas"]["LedgerAccount"];
+            basis: components["schemas"]["ShadowBasis"];
+            unit: components["schemas"]["Unit"];
+            debits: components["schemas"]["ShadowAmount"];
+            credits: components["schemas"]["ShadowAmount"];
+            net: components["schemas"]["ShadowAmount"];
+            /** Format: int64 */
+            lines: number;
+            legacy?: components["schemas"]["ReconciliationRow"];
+        };
+        AccountEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["FinanceMeta"];
+            account?: components["schemas"]["LedgerAccount"];
+            balances?: components["schemas"]["AccountBalance"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        LedgerGroup: {
+            basis: components["schemas"]["ShadowBasis"];
+            unit: components["schemas"]["Unit"];
+            /** Format: int64 */
+            entries: number;
+            debits: components["schemas"]["ShadowAmount"];
+            /** Format: int64 */
+            unknown_effective_at: number;
+        };
+        SourceRef: {
+            domain: string;
+            ref: string;
+            role: string;
+        };
+        LedgerLine: {
+            line_no: number;
+            /** Format: uuid */
+            account_id: string;
+            account_key: string;
+            category: string;
+            /** @enum {string} */
+            side: "DEBIT" | "CREDIT";
+            amount: components["schemas"]["Money"];
+            source_ref?: string | null;
+        };
+        /**
+         * @description One balanced, single-unit SHADOW entry (debits == credits). Corrections are separate entries linked by
+         *     reverses_entry_id; the original never changes. effective_at / posted_at are absent when no UTC business time is
+         *     evidenced (never an import time); source_time_raw keeps the legacy text with its zone unasserted.
+         */
+        LedgerEntry: {
+            record_kind: components["schemas"]["RecordKind"];
+            /** Format: uuid */
+            entry_id: string;
+            /** Format: int64 */
+            entry_seq: number;
+            business_key: string;
+            basis: components["schemas"]["ShadowBasis"];
+            unit: components["schemas"]["Unit"];
+            effect_kind: string;
+            /** @description Evidence provenance (e.g. GATEWAY_AUTO stays GATEWAY_AUTO). Never FINANCE_REVIEWED in Slice 9. */
+            provenance: string;
+            /** @enum {string} */
+            finance_review: "NOT_FINANCE_REVIEWED";
+            source_refs: components["schemas"]["SourceRef"][];
+            effective_at?: components["schemas"]["Timestamp"];
+            posted_at?: components["schemas"]["Timestamp"];
+            source_time_raw?: string | null;
+            /** @enum {string} */
+            time_evidence: "BUSINESS_TIME_ABSENT" | "SOURCE_TIME_ZONE_UNASSERTED" | "SOURCE_TIME_UTC";
+            /** Format: uuid */
+            reverses_entry_id?: string | null;
+            /** Format: uuid */
+            reversed_by_entry_id?: string | null;
+            /** @enum {string} */
+            reconciliation_status: "CONSISTENT" | "CONFLICT" | "UNRESOLVED_CORRECTION";
+            lines: components["schemas"]["LedgerLine"][];
+            debits: components["schemas"]["Money"];
+            credits: components["schemas"]["Money"];
+        };
+        LedgerListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["FinanceMeta"];
+            summary?: components["schemas"]["LedgerGroup"][];
+            items?: components["schemas"]["LedgerEntry"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        LedgerEntryEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["FinanceMeta"];
+            entry?: components["schemas"]["LedgerEntry"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        BalanceListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["FinanceMeta"];
+            summary?: components["schemas"]["GroupCount"][];
+            items?: components["schemas"]["AccountBalance"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        ReconciliationListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            meta?: components["schemas"]["FinanceMeta"];
+            summary?: components["schemas"]["GroupCount"][];
+            items?: components["schemas"]["ReconciliationRow"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
     };
     responses: {
         /** @description RFC 9457 problem details (transport, contract or server error). */
@@ -2957,6 +3427,22 @@ export interface components {
         /** @description Explicit attempt state, or UNMAPPED when the raw state has no verified mapping. */
         ReportAttemptState: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "RECONCILIATION_REQUIRED" | "UNMAPPED";
         PaymentUnit: "IRT" | "IRR" | "NONE";
+        /** @description Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used. */
+        FinanceRunID: string;
+        AccountCategory: "customer_receivable" | "revenue_by_product_kind" | "cash_bank_clearing" | "commission_payable" | "legacy_wallet_unclassified" | "legacy_wallet_contra";
+        ShadowBasis: components["schemas"]["ShadowBasis"];
+        FinanceUnit: components["schemas"]["Unit"];
+        EntryState: "CONSISTENT" | "CONFLICT" | "UNRESOLVED_CORRECTION";
+        SourceType: "billing.invoice" | "payments.attempt" | "legacy.wallet_transaction";
+        /** @description Entries whose evidenced effective time is at or after (UTC). Entries with an unknown effective time never match a date range. */
+        EffectiveFrom: components["schemas"]["Timestamp"];
+        /** @description Entries whose evidenced effective time is before (UTC). */
+        EffectiveTo: components["schemas"]["Timestamp"];
+        /** @description The legacy comparison state of the balance, or NOT_COMPARABLE when no legacy figure exists. */
+        BalanceState: "MATCH" | "MISMATCH" | "UNKNOWN" | "INCOMPLETE" | "CONFLICT" | "NOT_RECOVERABLE" | "NOT_COMPARABLE";
+        ReconciliationUnit: "IRR" | "IRT" | "UNKNOWN";
+        ReconciliationState: components["schemas"]["ReconciliationState"];
+        SubjectType: "legacy_wallet" | "invoice";
     };
     requestBodies: never;
     headers: {
@@ -4680,6 +5166,263 @@ export interface operations {
             400: components["responses"]["Problem"];
             403: components["responses"]["Denied"];
             404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listFinanceShadowRuns: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShadowRunListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getFinanceShadowRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shadow run. */
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShadowRunEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listFinanceAccounts: {
+        parameters: {
+            query?: {
+                /** @description Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["FinanceRunID"];
+                account_category?: components["parameters"]["AccountCategory"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getFinanceAccount: {
+        parameters: {
+            query?: {
+                /** @description Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["FinanceRunID"];
+            };
+            header?: never;
+            path: {
+                /** @description The account (run-local id). */
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listFinanceLedger: {
+        parameters: {
+            query?: {
+                /** @description Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["FinanceRunID"];
+                basis?: components["parameters"]["ShadowBasis"];
+                unit?: components["parameters"]["FinanceUnit"];
+                state?: components["parameters"]["EntryState"];
+                source_type?: components["parameters"]["SourceType"];
+                account_category?: components["parameters"]["AccountCategory"];
+                /** @description Entries whose evidenced effective time is at or after (UTC). Entries with an unknown effective time never match a date range. */
+                effective_from?: components["parameters"]["EffectiveFrom"];
+                /** @description Entries whose evidenced effective time is before (UTC). */
+                effective_to?: components["parameters"]["EffectiveTo"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getFinanceLedgerEntry: {
+        parameters: {
+            query?: {
+                /** @description Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["FinanceRunID"];
+            };
+            header?: never;
+            path: {
+                /** @description The entry (run-local id). */
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerEntryEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listFinanceBalances: {
+        parameters: {
+            query?: {
+                /** @description Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["FinanceRunID"];
+                basis?: components["parameters"]["ShadowBasis"];
+                unit?: components["parameters"]["FinanceUnit"];
+                account_category?: components["parameters"]["AccountCategory"];
+                /** @description The legacy comparison state of the balance, or NOT_COMPARABLE when no legacy figure exists. */
+                state?: components["parameters"]["BalanceState"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BalanceListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listFinanceReconciliation: {
+        parameters: {
+            query?: {
+                /** @description Pin the shadow run (source cutoff + snapshot). Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["FinanceRunID"];
+                basis?: components["parameters"]["ShadowBasis"];
+                unit?: components["parameters"]["ReconciliationUnit"];
+                state?: components["parameters"]["ReconciliationState"];
+                subject_type?: components["parameters"]["SubjectType"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
             default: components["responses"]["Problem"];
         };
     };

@@ -29,7 +29,8 @@ func (unconfigured) GetEffectiveAccess(ctx context.Context, _ oapi.GetEffectiveA
 	for _, c := range []oapi.Capability{oapi.IdentityUserRead, oapi.OrgPersonRead, oapi.OrgEmploymentRead, oapi.OrgPositionRead, oapi.OrgUnitRead,
 		oapi.OrgAssignmentRead, oapi.CustomersCustomerRead, oapi.CustomersMergeCaseRead, oapi.CustomersIdentityReportRead,
 		oapi.CasesCaseRead, oapi.CustodyCustodyRead, oapi.SalesReportRead, oapi.BillingInvoiceRead, oapi.PaymentsAttemptRead,
-		oapi.BillingReconciliationRead, oapi.ReportingMetricsRead, oapi.ReportingMisRead, oapi.ReportingInvoiceReviewRead} {
+		oapi.BillingReconciliationRead, oapi.ReportingMetricsRead, oapi.ReportingMisRead, oapi.ReportingInvoiceReviewRead,
+		oapi.FinanceShadowRead, oapi.FinanceLedgerRead, oapi.FinanceReconciliationRead} {
 		data.Decisions = append(data.Decisions, oapi.AccessDecision{Capability: c, Outcome: oapi.Outcome(result.Blocked.String()),
 			ReasonCode: &reason, Scope: oapi.AccessDecisionScopeNONE, MatchedRoles: []string{}})
 	}
@@ -322,4 +323,52 @@ func (unconfiguredReporting) ListInvoiceReview(ctx context.Context, _ oapi.ListI
 func (unconfiguredReporting) GetInvoiceReview(ctx context.Context, _ oapi.GetInvoiceReviewRequestObject) (oapi.GetInvoiceReviewResponseObject, error) {
 	o, r, c := blocked(ctx)
 	return oapi.GetInvoiceReview200JSONResponse{Body: oapi.InvoiceReviewEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+// unconfiguredFinance is the Slice 9 surface without the finance module:
+// every operation is BLOCKED / FEATURE_DISABLED.
+type unconfiguredFinance struct{}
+
+var _ FinanceAPI = unconfiguredFinance{}
+
+func (unconfiguredFinance) FinanceEnabled(context.Context) bool { return false }
+
+func (unconfiguredFinance) ListFinanceShadowRuns(ctx context.Context, _ oapi.ListFinanceShadowRunsRequestObject) (oapi.ListFinanceShadowRunsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListFinanceShadowRuns200JSONResponse{Body: oapi.ShadowRunListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: oapi.SHADOWDerivedForArchitectureValidationAndReconciliationOnlyNotTheFinancialSystemOfRecordNotSettledBankConfirmedOrFinanceApprovedMoneyNotAnOfficialOrAccountingBalance}}, nil
+}
+
+func (unconfiguredFinance) GetFinanceShadowRun(ctx context.Context, _ oapi.GetFinanceShadowRunRequestObject) (oapi.GetFinanceShadowRunResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetFinanceShadowRun200JSONResponse{Body: oapi.ShadowRunEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: oapi.SHADOWDerivedForArchitectureValidationAndReconciliationOnlyNotTheFinancialSystemOfRecordNotSettledBankConfirmedOrFinanceApprovedMoneyNotAnOfficialOrAccountingBalance}}, nil
+}
+
+func (unconfiguredFinance) ListFinanceAccounts(ctx context.Context, _ oapi.ListFinanceAccountsRequestObject) (oapi.ListFinanceAccountsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListFinanceAccounts200JSONResponse{Body: oapi.AccountListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredFinance) GetFinanceAccount(ctx context.Context, _ oapi.GetFinanceAccountRequestObject) (oapi.GetFinanceAccountResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetFinanceAccount200JSONResponse{Body: oapi.AccountEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredFinance) ListFinanceLedger(ctx context.Context, _ oapi.ListFinanceLedgerRequestObject) (oapi.ListFinanceLedgerResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListFinanceLedger200JSONResponse{Body: oapi.LedgerListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredFinance) GetFinanceLedgerEntry(ctx context.Context, _ oapi.GetFinanceLedgerEntryRequestObject) (oapi.GetFinanceLedgerEntryResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetFinanceLedgerEntry200JSONResponse{Body: oapi.LedgerEntryEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredFinance) ListFinanceBalances(ctx context.Context, _ oapi.ListFinanceBalancesRequestObject) (oapi.ListFinanceBalancesResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListFinanceBalances200JSONResponse{Body: oapi.BalanceListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredFinance) ListFinanceReconciliation(ctx context.Context, _ oapi.ListFinanceReconciliationRequestObject) (oapi.ListFinanceReconciliationResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListFinanceReconciliation200JSONResponse{Body: oapi.ReconciliationListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
 }

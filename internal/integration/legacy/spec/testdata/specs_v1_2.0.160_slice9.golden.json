@@ -1,0 +1,265 @@
+[
+  {
+    "id": "legacy.wallet.v1",
+    "entity": "wallet",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_wallets",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35535 (table definition)"
+      },
+      {
+        "name": "user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35536 (table definition)",
+        "note": "legacy staff user reference (wallet holder)"
+      },
+      {
+        "name": "wallet_type",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35537 (table definition)",
+        "note": "raw wallet type (seller / supervisor / biavin written; others kept raw)"
+      },
+      {
+        "name": "balance",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35538 (table definition)",
+        "note": "raw decimal text; legacy MUTABLE running total (UPDATE balance = balance +/- amount); evidence, not truth"
+      },
+      {
+        "name": "total_credit",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35539 (table definition)",
+        "note": "raw decimal text; legacy MUTABLE running total (UPDATE balance = balance +/- amount); evidence, not truth"
+      },
+      {
+        "name": "total_debit",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35540 (table definition)",
+        "note": "raw decimal text; legacy MUTABLE running total (UPDATE balance = balance +/- amount); evidence, not truth"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35541 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35542 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_wallet_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "35534-35546",
+        "note": "table definition of sn_wallets"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-purpose-commission.php",
+        "lines": "111-121",
+        "note": "same definition (purpose matrix writer)"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "588-600",
+        "note": "same definition (Biawin project writer)"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "35626-35631",
+        "note": "balance mutated in place on every transaction insert"
+      }
+    ],
+    "notes": []
+  },
+  {
+    "id": "legacy.wallet_transaction.v1",
+    "entity": "wallet_transaction",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_wallet_transactions",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35548 (table definition)"
+      },
+      {
+        "name": "wallet_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35549 (table definition)",
+        "note": "legacy wallet reference"
+      },
+      {
+        "name": "user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35550 (table definition)",
+        "note": "legacy staff user reference (historical recipient)"
+      },
+      {
+        "name": "wallet_type",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35551 (table definition)",
+        "note": "raw wallet type"
+      },
+      {
+        "name": "invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35552 (table definition)",
+        "note": "legacy invoice reference"
+      },
+      {
+        "name": "lead_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35553 (table definition)",
+        "note": "legacy lead reference"
+      },
+      {
+        "name": "amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35554 (table definition)",
+        "note": "raw decimal text; positive, direction carries the sign"
+      },
+      {
+        "name": "direction",
+        "raw_type": "VARCHAR(10)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35555 (table definition)",
+        "note": "raw: credit / debit"
+      },
+      {
+        "name": "type",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35556 (table definition)",
+        "note": "raw transaction type; may be rewritten in place by legacy reversal (*_reversed / *_reopened)"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(30)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35557 (table definition)",
+        "note": "raw; every 2.0.160 writer inserts 'approved'"
+      },
+      {
+        "name": "meta",
+        "raw_type": "LONGTEXT",
+        "nullability": "NULLABLE",
+        "classification": "SENSITIVE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35559 (table definition)",
+        "note": "JSON; may hold a free text reason; only the numeric reversal-link and stage keys are ever read"
+      },
+      {
+        "name": "idempotency_key",
+        "raw_type": "VARCHAR(191)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35560 (table definition)",
+        "note": "raw; nulled in place on legacy reversal"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-plugin.php:35562 (table definition)",
+        "note": "raw legacy DATETIME (site-local; zone not asserted)"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_wallet_transaction_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "35547-35572",
+        "note": "table definition of sn_wallet_transactions"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "35588-35635",
+        "note": "seller / supervisor / commission engine writer"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "29297-29331",
+        "note": "legacy commission reversal: debit with original_credit_transaction_id; original type rewritten"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "30795-30815",
+        "note": "finance reopen reversal: debit with reopened_credit_transaction_id; original type rewritten"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-purpose-commission.php",
+        "lines": "562-640",
+        "note": "purpose matrix writer (idempotency key purpose-commission:...)"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-purpose-commission.php",
+        "lines": "675-689",
+        "note": "purpose matrix reversal: debit with original_credit_transaction_id"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-projects.php",
+        "lines": "1159-1260",
+        "note": "Biawin project commission, recredit and reversal (original_transaction_id)"
+      }
+    ],
+    "notes": [
+      "description (free text) and created_by are deliberately NOT extracted"
+    ]
+  }
+]

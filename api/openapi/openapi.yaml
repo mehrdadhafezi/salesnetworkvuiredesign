@@ -40,6 +40,8 @@ tags:
     description: Slice 5 customer identity shadow model and merge-case queue (read only; no merge).
   - name: sales
     description: Slice 6 sales read shadow — cases, custody events, attribution snapshots (read only; no actions).
+  - name: finance
+    description: Slice 9 finance SHADOW ledger read (GET only). Derived shadow journal, balances and reconciliation against legacy balances; not the financial system of record, not settled, bank-confirmed or Finance-approved money.
   - name: reporting
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: billing
@@ -1714,6 +1716,276 @@ paths:
           $ref: './components/responses.yaml#/Denied'
         '404':
           $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/shadow-runs:
+    get:
+      tags: [finance]
+      operationId: listFinanceShadowRuns
+      summary: "Shadow derivation runs (newest first)"
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/finance.yaml#/ShadowRunListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/shadow-runs/{run_id}:
+    get:
+      tags: [finance]
+      operationId: getFinanceShadowRun
+      summary: "One shadow run with its source manifest and reconciliation summary"
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          description: The shadow run.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/finance.yaml#/ShadowRunEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/accounts:
+    get:
+      tags: [finance]
+      operationId: listFinanceAccounts
+      summary: "Shadow ledger accounts of one run"
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/FinanceRunID'
+        - $ref: './components/parameters.yaml#/AccountCategory'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/finance.yaml#/AccountListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/accounts/{account_id}:
+    get:
+      tags: [finance]
+      operationId: getFinanceAccount
+      summary: "One shadow account with its per-basis, per-unit balances (same run)"
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          description: The account (run-local id).
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/FinanceRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/finance.yaml#/AccountEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/ledger:
+    get:
+      tags: [finance]
+      operationId: listFinanceLedger
+      summary: "Shadow journal entries with lines (one run)"
+      description: |
+        Requires finance.ledger.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+        The summary covers the full filtered set (pagination never changes it).
+      parameters:
+        - $ref: './components/parameters.yaml#/FinanceRunID'
+        - $ref: './components/parameters.yaml#/ShadowBasis'
+        - $ref: './components/parameters.yaml#/FinanceUnit'
+        - $ref: './components/parameters.yaml#/EntryState'
+        - $ref: './components/parameters.yaml#/SourceType'
+        - $ref: './components/parameters.yaml#/AccountCategory'
+        - $ref: './components/parameters.yaml#/EffectiveFrom'
+        - $ref: './components/parameters.yaml#/EffectiveTo'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/finance.yaml#/LedgerListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/ledger/{entry_id}:
+    get:
+      tags: [finance]
+      operationId: getFinanceLedgerEntry
+      summary: "One shadow journal entry with its lines (same run)"
+      description: |
+        Requires finance.ledger.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+      parameters:
+        - name: entry_id
+          in: path
+          required: true
+          description: The entry (run-local id).
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/FinanceRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/finance.yaml#/LedgerEntryEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/balances:
+    get:
+      tags: [finance]
+      operationId: listFinanceBalances
+      summary: "Derived shadow balances per account, basis and unit with the comparable legacy figure"
+      description: |
+        Requires finance.shadow.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+        Accrual and cash are separate rows; no basis is preferred; no total across units, accounts or bases exists.
+      parameters:
+        - $ref: './components/parameters.yaml#/FinanceRunID'
+        - $ref: './components/parameters.yaml#/ShadowBasis'
+        - $ref: './components/parameters.yaml#/FinanceUnit'
+        - $ref: './components/parameters.yaml#/AccountCategory'
+        - $ref: './components/parameters.yaml#/BalanceState'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/finance.yaml#/BalanceListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/reconciliation:
+    get:
+      tags: [finance]
+      operationId: listFinanceReconciliation
+      summary: "Legacy vs shadow reconciliation (one run, per basis and unit)"
+      description: |
+        Requires finance.reconciliation.read.
+        Read-only (READ ONLY transaction over the finance schema); never derives, refreshes, posts or records anything.
+        SHADOW only: not the financial system of record. Unknown query parameters are 400 CONTRACT_INVALID.
+        The summary counts the full filtered set (pagination never changes it).
+      parameters:
+        - $ref: './components/parameters.yaml#/FinanceRunID'
+        - $ref: './components/parameters.yaml#/ShadowBasis'
+        - $ref: './components/parameters.yaml#/ReconciliationUnit'
+        - $ref: './components/parameters.yaml#/ReconciliationState'
+        - $ref: './components/parameters.yaml#/SubjectType'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when finance.shadow_ledger_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/finance.yaml#/ReconciliationListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
         default:
           $ref: './components/responses.yaml#/Problem'
 components:
