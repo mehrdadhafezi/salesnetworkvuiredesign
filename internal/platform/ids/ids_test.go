@@ -29,3 +29,11 @@ func TestNewUUID(t *testing.T) {
 		}
 	}
 }
+
+func TestStable(t *testing.T) {
+	a, b := Stable("cases.contact_outcome", "key-1"), Stable("cases.contact_outcome", "key-1")
+	if a != b || ValidateUUID(a) != nil || a == Stable("cases.contact_outcome", "key-2") || a == Stable("other", "key-1") ||
+		Stable("ns", "a", "bc") == Stable("ns", "ab", "c") {
+		t.Fatalf("stable ids: %s %s", a, b)
+	}
+}

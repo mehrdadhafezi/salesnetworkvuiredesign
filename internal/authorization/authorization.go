@@ -52,7 +52,12 @@ type OrgContext struct {
 type Subject struct {
 	// PrincipalID is empty for an anonymous request.
 	PrincipalID string
-	Grants      []identityapi.Grant
+	// UserID is the principal's target identity user id when it is proven.
+	// Row-scoped commands (Slice 11) compare it with domain facts; empty
+	// means row scope cannot be proven and every row-scoped command denies.
+	// It never grants anything by itself.
+	UserID string
+	Grants []identityapi.Grant
 	// EvidenceConflict marks grant evidence the caller knows to be ambiguous
 	// (e.g. one account linked to several legacy profiles). It fails closed.
 	EvidenceConflict bool

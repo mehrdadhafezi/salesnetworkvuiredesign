@@ -260,3 +260,13 @@ func TestServeGracefulShutdown(t *testing.T) {
 		t.Fatal("an unusable listen address must fail")
 	}
 }
+
+func doBody(h http.Handler, method, path, body string, headers map[string]string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}

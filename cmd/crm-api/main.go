@@ -41,7 +41,15 @@
 // (default off). GET only; the import is the offline crm-biawin-shadow job
 // and no provider is ever called.
 //
-// It never runs migrations, never imports legacy data and never writes.
+// Slice 11 controlled non-financial writes (optional, each OFF by default):
+// CRM_CASES_WRITE_DATABASE_URL + CRM_CUSTODY_HOLDER_DATABASE_URL (contact
+// outcome), CRM_ORGANIZATION_WRITE_DATABASE_URL (HR change requests) and
+// CRM_WRITEBACK_READ_DATABASE_URL (write-back diagnostics), with the flag
+// store. The API commits only the owning module's aggregate, history and
+// outbox; legacy write-back is integration's, never the API's.
+//
+// It never runs migrations and never imports legacy data; its only writes
+// are the Slice 11 commands above, each in its owning module's schema.
 package main
 
 import (
@@ -110,8 +118,14 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closeBiawin()
+	writes, closeWrites, err := openWrites(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closeWrites()
 	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill,
-		Reporting: rep, Finance: fin, Biawin: bw})
+		Reporting: rep, Finance: fin, Biawin: bw,
+		CaseWrite: writes.CaseWrite, HRRequest: writes.HRRequest, Writeback: writes.Writeback})
 	if err != nil {
 		return err
 	}

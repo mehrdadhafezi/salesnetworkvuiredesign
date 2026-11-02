@@ -190,3 +190,35 @@ func (s *Service) AssignmentFacts(ctx context.Context, fn func(api.AssignmentFac
 		}
 	})
 }
+
+// CurrentHolder returns the published current-holder evidence of a case
+// (read only). The legacy holder columns are the evidence while legacy is
+// the master; contradicting projections fail closed.
+func (s *Service) CurrentHolder(ctx context.Context, caseID string) (api.CurrentHolder, error) {
+	if !uuidPattern.MatchString(caseID) {
+		return api.CurrentHolder{}, invalid("case_id")
+	}
+	var out api.CurrentHolder
+	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		a, err := store.AssignmentOf(ctx, tx, caseID)
+		if errors.Is(err, store.ErrNotFound) {
+			out.Basis = "NO_CUSTODY_RECORD"
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		switch {
+		case a.Presence != "PRESENT":
+			out.Basis = "CASE_ABSENT_IN_LATEST"
+		case a.LegacyUserID == nil:
+			out.Basis = "NO_RESOLVED_LEGACY_HOLDER"
+		case a.Derivation == "MULTIPLE" || a.Parity == "CONFLICT" || a.Parity == "MULTIPLE_CURRENT":
+			out.Basis = "CONTRADICTING_HOLDER_EVIDENCE"
+		default:
+			out = api.CurrentHolder{Known: true, UserID: *a.LegacyUserID, Basis: "LEGACY_HOLDER_COLUMNS"}
+		}
+		return nil
+	})
+	return out, err
+}

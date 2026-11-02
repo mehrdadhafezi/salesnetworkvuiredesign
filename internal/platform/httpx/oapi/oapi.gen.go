@@ -301,6 +301,7 @@ const (
 	BillingInvoiceRead          Capability = "billing.invoice.read"
 	BillingReconciliationRead   Capability = "billing.reconciliation.read"
 	CasesCaseRead               Capability = "cases.case.read"
+	CasesContactOutcomeRecord   Capability = "cases.contact_outcome.record"
 	CustodyCustodyRead          Capability = "custody.custody.read"
 	CustomersCustomerRead       Capability = "customers.customer.read"
 	CustomersIdentityReportRead Capability = "customers.identity_report.read"
@@ -310,8 +311,12 @@ const (
 	FinanceShadowRead           Capability = "finance.shadow.read"
 	FulfillmentCaseRead         Capability = "fulfillment.case.read"
 	IdentityUserRead            Capability = "identity.user.read"
+	IntegrationWritebackRead    Capability = "integration.writeback.read"
 	OrgAssignmentRead           Capability = "org.assignment.read"
 	OrgEmploymentRead           Capability = "org.employment.read"
+	OrgHrRequestCreate          Capability = "org.hr_request.create"
+	OrgHrRequestRead            Capability = "org.hr_request.read"
+	OrgHrRequestReview          Capability = "org.hr_request.review"
 	OrgPersonRead               Capability = "org.person.read"
 	OrgPositionRead             Capability = "org.position.read"
 	OrgUnitRead                 Capability = "org.unit.read"
@@ -335,6 +340,8 @@ func (e Capability) Valid() bool {
 		return true
 	case CasesCaseRead:
 		return true
+	case CasesContactOutcomeRecord:
+		return true
 	case CustodyCustodyRead:
 		return true
 	case CustomersCustomerRead:
@@ -353,9 +360,17 @@ func (e Capability) Valid() bool {
 		return true
 	case IdentityUserRead:
 		return true
+	case IntegrationWritebackRead:
+		return true
 	case OrgAssignmentRead:
 		return true
 	case OrgEmploymentRead:
+		return true
+	case OrgHrRequestCreate:
+		return true
+	case OrgHrRequestRead:
+		return true
+	case OrgHrRequestReview:
 		return true
 	case OrgPersonRead:
 		return true
@@ -411,6 +426,72 @@ func (e CaseReason) Valid() bool {
 	case SHAREDPHONE:
 		return true
 	case SUPPLIEDEVIDENCE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommandWritebackState.
+const (
+	LEGACYWRITEBACKPENDING CommandWritebackState = "LEGACY_WRITEBACK_PENDING"
+	NOTREQUESTED           CommandWritebackState = "NOT_REQUESTED"
+)
+
+// Valid indicates whether the value is a known member of the CommandWritebackState enum.
+func (e CommandWritebackState) Valid() bool {
+	switch e {
+	case LEGACYWRITEBACKPENDING:
+		return true
+	case NOTREQUESTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ContactOutcomeCurrentOutcome.
+const (
+	ContactOutcomeCurrentOutcomeCALLBACK     ContactOutcomeCurrentOutcome = "CALLBACK"
+	ContactOutcomeCurrentOutcomeNOANSWER     ContactOutcomeCurrentOutcome = "NO_ANSWER"
+	ContactOutcomeCurrentOutcomeNOTPURCHASED ContactOutcomeCurrentOutcome = "NOT_PURCHASED"
+)
+
+// Valid indicates whether the value is a known member of the ContactOutcomeCurrentOutcome enum.
+func (e ContactOutcomeCurrentOutcome) Valid() bool {
+	switch e {
+	case ContactOutcomeCurrentOutcomeCALLBACK:
+		return true
+	case ContactOutcomeCurrentOutcomeNOANSWER:
+		return true
+	case ContactOutcomeCurrentOutcomeNOTPURCHASED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ContactOutcomeRequestOutcome.
+const (
+	ContactOutcomeRequestOutcomeCALLBACK     ContactOutcomeRequestOutcome = "CALLBACK"
+	ContactOutcomeRequestOutcomeDUPLICATE    ContactOutcomeRequestOutcome = "DUPLICATE"
+	ContactOutcomeRequestOutcomeNOANSWER     ContactOutcomeRequestOutcome = "NO_ANSWER"
+	ContactOutcomeRequestOutcomeNOTPURCHASED ContactOutcomeRequestOutcome = "NOT_PURCHASED"
+	ContactOutcomeRequestOutcomePREINVOICE   ContactOutcomeRequestOutcome = "PRE_INVOICE"
+)
+
+// Valid indicates whether the value is a known member of the ContactOutcomeRequestOutcome enum.
+func (e ContactOutcomeRequestOutcome) Valid() bool {
+	switch e {
+	case ContactOutcomeRequestOutcomeCALLBACK:
+		return true
+	case ContactOutcomeRequestOutcomeDUPLICATE:
+		return true
+	case ContactOutcomeRequestOutcomeNOANSWER:
+		return true
+	case ContactOutcomeRequestOutcomeNOTPURCHASED:
+		return true
+	case ContactOutcomeRequestOutcomePREINVOICE:
 		return true
 	default:
 		return false
@@ -1116,6 +1197,93 @@ func (e GatewayEvidenceState) Valid() bool {
 	case GatewayEvidenceStateLessThannil:
 		return true
 	case GatewayEvidenceStateVERIFIED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HRDecisionRequestDecision.
+const (
+	Approve HRDecisionRequestDecision = "approve"
+	Reject  HRDecisionRequestDecision = "reject"
+)
+
+// Valid indicates whether the value is a known member of the HRDecisionRequestDecision enum.
+func (e HRDecisionRequestDecision) Valid() bool {
+	switch e {
+	case Approve:
+		return true
+	case Reject:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HRRequestEventAction.
+const (
+	HRRequestEventActionApprovedStep HRRequestEventAction = "approved_step"
+	HRRequestEventActionCreated      HRRequestEventAction = "created"
+	HRRequestEventActionRejected     HRRequestEventAction = "rejected"
+)
+
+// Valid indicates whether the value is a known member of the HRRequestEventAction enum.
+func (e HRRequestEventAction) Valid() bool {
+	switch e {
+	case HRRequestEventActionApprovedStep:
+		return true
+	case HRRequestEventActionCreated:
+		return true
+	case HRRequestEventActionRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HRRequestStatus.
+const (
+	HRRequestStatusApproved      HRRequestStatus = "approved"
+	HRRequestStatusCancelled     HRRequestStatus = "cancelled"
+	HRRequestStatusFailed        HRRequestStatus = "failed"
+	HRRequestStatusPendingHr     HRRequestStatus = "pending_hr"
+	HRRequestStatusPendingReview HRRequestStatus = "pending_review"
+	HRRequestStatusRejected      HRRequestStatus = "rejected"
+)
+
+// Valid indicates whether the value is a known member of the HRRequestStatus enum.
+func (e HRRequestStatus) Valid() bool {
+	switch e {
+	case HRRequestStatusApproved:
+		return true
+	case HRRequestStatusCancelled:
+		return true
+	case HRRequestStatusFailed:
+		return true
+	case HRRequestStatusPendingHr:
+		return true
+	case HRRequestStatusPendingReview:
+		return true
+	case HRRequestStatusRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HRRequestType.
+const (
+	TerminateSeller HRRequestType = "terminate_seller"
+	TransferSeller  HRRequestType = "transfer_seller"
+)
+
+// Valid indicates whether the value is a known member of the HRRequestType enum.
+func (e HRRequestType) Valid() bool {
+	switch e {
+	case TerminateSeller:
+		return true
+	case TransferSeller:
 		return true
 	default:
 		return false
@@ -1860,6 +2028,33 @@ func (e ParityResult) Valid() bool {
 	}
 }
 
+// Defines values for ParityResult11.
+const (
+	ParityResult11CONFLICT   ParityResult11 = "CONFLICT"
+	ParityResult11INCOMPLETE ParityResult11 = "INCOMPLETE"
+	ParityResult11MATCH      ParityResult11 = "MATCH"
+	ParityResult11MISMATCH   ParityResult11 = "MISMATCH"
+	ParityResult11UNKNOWN    ParityResult11 = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ParityResult11 enum.
+func (e ParityResult11) Valid() bool {
+	switch e {
+	case ParityResult11CONFLICT:
+		return true
+	case ParityResult11INCOMPLETE:
+		return true
+	case ParityResult11MATCH:
+		return true
+	case ParityResult11MISMATCH:
+		return true
+	case ParityResult11UNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PaymentAttemptInvoiceLinkState.
 const (
 	PaymentAttemptInvoiceLinkStateRESOLVED PaymentAttemptInvoiceLinkState = "RESOLVED"
@@ -2352,6 +2547,27 @@ func (e ResolutionState) Valid() bool {
 	}
 }
 
+// Defines values for RolloutMode.
+const (
+	RolloutModeCONTROLLEDWRITEBACK RolloutMode = "CONTROLLED_WRITEBACK"
+	RolloutModeSHADOWCOMPARE       RolloutMode = "SHADOW_COMPARE"
+	RolloutModeTARGETWRITEDISABLED RolloutMode = "TARGET_WRITE_DISABLED"
+)
+
+// Valid indicates whether the value is a known member of the RolloutMode enum.
+func (e RolloutMode) Valid() bool {
+	switch e {
+	case RolloutModeCONTROLLEDWRITEBACK:
+		return true
+	case RolloutModeSHADOWCOMPARE:
+		return true
+	case RolloutModeTARGETWRITEDISABLED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ServiceEvidenceOutcomeMapped.
 const (
 	ServiceEvidenceOutcomeMappedEXECUTED    ServiceEvidenceOutcomeMapped = "EXECUTED"
@@ -2751,6 +2967,180 @@ func (e WorkflowType) Valid() bool {
 	case WorkflowTypeDISTRIBUTIONITEM:
 		return true
 	case WorkflowTypeLEGACYLEAD:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WritebackAttemptKind.
+const (
+	APPLY   WritebackAttemptKind = "APPLY"
+	OBSERVE WritebackAttemptKind = "OBSERVE"
+)
+
+// Valid indicates whether the value is a known member of the WritebackAttemptKind enum.
+func (e WritebackAttemptKind) Valid() bool {
+	switch e {
+	case APPLY:
+		return true
+	case OBSERVE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WritebackAttemptObservation.
+const (
+	WritebackAttemptObservationABSENT    WritebackAttemptObservation = "ABSENT"
+	WritebackAttemptObservationAMBIGUOUS WritebackAttemptObservation = "AMBIGUOUS"
+	WritebackAttemptObservationCOMMITTED WritebackAttemptObservation = "COMMITTED"
+	WritebackAttemptObservationUNKNOWN   WritebackAttemptObservation = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the WritebackAttemptObservation enum.
+func (e WritebackAttemptObservation) Valid() bool {
+	switch e {
+	case WritebackAttemptObservationABSENT:
+		return true
+	case WritebackAttemptObservationAMBIGUOUS:
+		return true
+	case WritebackAttemptObservationCOMMITTED:
+		return true
+	case WritebackAttemptObservationUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WritebackCommandRolloutMode.
+const (
+	WritebackCommandRolloutModeCONTROLLEDWRITEBACK WritebackCommandRolloutMode = "CONTROLLED_WRITEBACK"
+	WritebackCommandRolloutModeSHADOWCOMPARE       WritebackCommandRolloutMode = "SHADOW_COMPARE"
+)
+
+// Valid indicates whether the value is a known member of the WritebackCommandRolloutMode enum.
+func (e WritebackCommandRolloutMode) Valid() bool {
+	switch e {
+	case WritebackCommandRolloutModeCONTROLLEDWRITEBACK:
+		return true
+	case WritebackCommandRolloutModeSHADOWCOMPARE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WritebackCommandSourceModule.
+const (
+	WritebackCommandSourceModuleCases        WritebackCommandSourceModule = "cases"
+	WritebackCommandSourceModuleOrganization WritebackCommandSourceModule = "organization"
+)
+
+// Valid indicates whether the value is a known member of the WritebackCommandSourceModule enum.
+func (e WritebackCommandSourceModule) Valid() bool {
+	switch e {
+	case WritebackCommandSourceModuleCases:
+		return true
+	case WritebackCommandSourceModuleOrganization:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WritebackCommandSubjectKind.
+const (
+	Case      WritebackCommandSubjectKind = "case"
+	HrRequest WritebackCommandSubjectKind = "hr_request"
+)
+
+// Valid indicates whether the value is a known member of the WritebackCommandSubjectKind enum.
+func (e WritebackCommandSubjectKind) Valid() bool {
+	switch e {
+	case Case:
+		return true
+	case HrRequest:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WritebackReconciliationNextSafeAction.
+const (
+	DOMAINOWNERREVIEW        WritebackReconciliationNextSafeAction = "DOMAIN_OWNER_REVIEW"
+	NOAUTOMATICACTION        WritebackReconciliationNextSafeAction = "NO_AUTOMATIC_ACTION"
+	OBSERVELEGACYBEFORERETRY WritebackReconciliationNextSafeAction = "OBSERVE_LEGACY_BEFORE_RETRY"
+)
+
+// Valid indicates whether the value is a known member of the WritebackReconciliationNextSafeAction enum.
+func (e WritebackReconciliationNextSafeAction) Valid() bool {
+	switch e {
+	case DOMAINOWNERREVIEW:
+		return true
+	case NOAUTOMATICACTION:
+		return true
+	case OBSERVELEGACYBEFORERETRY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WritebackReconciliationReason.
+const (
+	LEGACYAMBIGUOUS   WritebackReconciliationReason = "LEGACY_AMBIGUOUS"
+	PARITYMISMATCH    WritebackReconciliationReason = "PARITY_MISMATCH"
+	WRITEBACKREJECTED WritebackReconciliationReason = "WRITEBACK_REJECTED"
+	WRITEBACKUNKNOWN  WritebackReconciliationReason = "WRITEBACK_UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the WritebackReconciliationReason enum.
+func (e WritebackReconciliationReason) Valid() bool {
+	switch e {
+	case LEGACYAMBIGUOUS:
+		return true
+	case PARITYMISMATCH:
+		return true
+	case WRITEBACKREJECTED:
+		return true
+	case WRITEBACKUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WritebackState.
+const (
+	WritebackStateAPPLIED                WritebackState = "APPLIED"
+	WritebackStateCOMPARED               WritebackState = "COMPARED"
+	WritebackStatePENDING                WritebackState = "PENDING"
+	WritebackStateRECONCILIATIONREQUIRED WritebackState = "RECONCILIATION_REQUIRED"
+	WritebackStateREJECTED               WritebackState = "REJECTED"
+	WritebackStateUNKNOWN                WritebackState = "UNKNOWN"
+	WritebackStateWAITINGDEPENDENCY      WritebackState = "WAITING_DEPENDENCY"
+)
+
+// Valid indicates whether the value is a known member of the WritebackState enum.
+func (e WritebackState) Valid() bool {
+	switch e {
+	case WritebackStateAPPLIED:
+		return true
+	case WritebackStateCOMPARED:
+		return true
+	case WritebackStatePENDING:
+		return true
+	case WritebackStateRECONCILIATIONREQUIRED:
+		return true
+	case WritebackStateREJECTED:
+		return true
+	case WritebackStateUNKNOWN:
+		return true
+	case WritebackStateWAITINGDEPENDENCY:
 		return true
 	default:
 		return false
@@ -4386,6 +4776,12 @@ type BillingSum struct {
 	State SumState `json:"state"`
 }
 
+// BlockedAction An action that exists in legacy but is unavailable here, with the decisions blocking it. Never clickable.
+type BlockedAction struct {
+	Action    string   `json:"action"`
+	BlockedBy []string `json:"blocked_by"`
+}
+
 // Capability Slice 4 read capability vocabulary (<module>.<object>.<action>).
 type Capability string
 
@@ -4665,6 +5061,115 @@ type CaseSummary struct {
 
 	// WorkflowType Source work unit a Case stands for (one staged legacy row each).
 	WorkflowType WorkflowType `json:"workflow_type"`
+}
+
+// CommandEnvelope Result of one command: SUCCESS (applied or shadow-evaluated), BLOCKED (feature or policy), UNKNOWN (reconcile, never resubmit blindly).
+type CommandEnvelope struct {
+	Command *CommandResult `json:"command,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// CommandResult defines model for CommandResult.
+type CommandResult struct {
+	Applied        bool                `json:"applied"`
+	BlockedBy      []string            `json:"blocked_by"`
+	CommandId      *openapi_types.UUID `json:"command_id,omitempty"`
+	CurrentVersion *int64              `json:"current_version,omitempty"`
+	Replayed       *bool               `json:"replayed,omitempty"`
+	RequestId      *openapi_types.UUID `json:"request_id,omitempty"`
+	RequestStatus  *string             `json:"request_status,omitempty"`
+
+	// RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+	RolloutMode RolloutMode `json:"rollout_mode"`
+	Version     *int64      `json:"version,omitempty"`
+
+	// WritebackState Write-back state at commit time. The final legacy outcome is read from the write-back command (never assumed).
+	WritebackState CommandWritebackState `json:"writeback_state"`
+}
+
+// CommandWritebackState Write-back state at commit time. The final legacy outcome is read from the write-back command (never assumed).
+type CommandWritebackState string
+
+// ContactOutcomeCurrent defines model for ContactOutcomeCurrent.
+type ContactOutcomeCurrent struct {
+	CallbackAt    *time.Time                   `json:"callback_at,omitempty"`
+	LastCommandId openapi_types.UUID           `json:"last_command_id"`
+	Outcome       ContactOutcomeCurrentOutcome `json:"outcome"`
+	Reason        *string                      `json:"reason,omitempty"`
+
+	// RecordedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	RecordedAt Timestamp `json:"recorded_at"`
+}
+
+// ContactOutcomeCurrentOutcome defines model for ContactOutcomeCurrent.Outcome.
+type ContactOutcomeCurrentOutcome string
+
+// ContactOutcomeEnvelope defines model for ContactOutcomeEnvelope.
+type ContactOutcomeEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data The case's contact outcome facts. The contact outcome is never the case state, ready state, invoice or payment state.
+	Data *ContactOutcomeView `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// ContactOutcomeEvent Append-only contact outcome history.
+type ContactOutcomeEvent struct {
+	ActorUserId   openapi_types.UUID `json:"actor_user_id"`
+	AfterVersion  int64              `json:"after_version"`
+	BeforeVersion int64              `json:"before_version"`
+	CallbackAt    *time.Time         `json:"callback_at,omitempty"`
+	CommandId     openapi_types.UUID `json:"command_id"`
+	CorrelationId string             `json:"correlation_id"`
+	EventId       openapi_types.UUID `json:"event_id"`
+
+	// OccurredAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	OccurredAt      Timestamp `json:"occurred_at"`
+	Outcome         string    `json:"outcome"`
+	PreviousOutcome *string   `json:"previous_outcome,omitempty"`
+	Reason          *string   `json:"reason,omitempty"`
+}
+
+// ContactOutcomeRequest Field scope of RecordContactOutcome. DUPLICATE (D-29/D-31) and PRE_INVOICE (ADR-01) are accepted only to be refused as BLOCKED.
+type ContactOutcomeRequest struct {
+	// CallbackAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	CallbackAt *Timestamp                   `json:"callback_at,omitempty"`
+	Outcome    ContactOutcomeRequestOutcome `json:"outcome"`
+	Reason     *string                      `json:"reason,omitempty"`
+}
+
+// ContactOutcomeRequestOutcome defines model for ContactOutcomeRequest.Outcome.
+type ContactOutcomeRequestOutcome string
+
+// ContactOutcomeView The case's contact outcome facts. The contact outcome is never the case state, ready state, invoice or payment state.
+type ContactOutcomeView struct {
+	BlockedActions []BlockedAction        `json:"blocked_actions"`
+	CaseId         openapi_types.UUID     `json:"case_id"`
+	CaseVersion    int64                  `json:"case_version"`
+	Current        *ContactOutcomeCurrent `json:"current,omitempty"`
+	History        []ContactOutcomeEvent  `json:"history"`
+
+	// RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+	RolloutMode  RolloutMode `json:"rollout_mode"`
+	WorkflowType string      `json:"workflow_type"`
 }
 
 // ContactPoint A masked contact point. Equal values on several customers are shown as ambiguity, never as identity.
@@ -5414,6 +5919,119 @@ type GroupCount struct {
 	State  *string `json:"state,omitempty"`
 	Unit   *string `json:"unit,omitempty"`
 }
+
+// HRDecisionRequest defines model for HRDecisionRequest.
+type HRDecisionRequest struct {
+	Decision HRDecisionRequestDecision `json:"decision"`
+	Notes    *string                   `json:"notes,omitempty"`
+}
+
+// HRDecisionRequestDecision defines model for HRDecisionRequest.Decision.
+type HRDecisionRequestDecision string
+
+// HRRequest Requester, subject parent, target and reviewer are snapshots taken at the transition.
+type HRRequest struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+	BlockedActions []BlockedAction `json:"blocked_actions"`
+
+	// CreatedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	CreatedAt             Timestamp           `json:"created_at"`
+	CurrentReviewerUserId *openapi_types.UUID `json:"current_reviewer_user_id,omitempty"`
+	Reason                string              `json:"reason"`
+	RequestId             openapi_types.UUID  `json:"request_id"`
+	RequestType           HRRequestType       `json:"request_type"`
+	RequestedByUserId     openapi_types.UUID  `json:"requested_by_user_id"`
+	ReviewerNotes         *string             `json:"reviewer_notes,omitempty"`
+
+	// Status Legacy HR request namespace (preserved). pending_hr is NOT applied; approved / failed are never reached in Slice 11.
+	Status              HRRequestStatus     `json:"status"`
+	SubjectParentUserId *openapi_types.UUID `json:"subject_parent_user_id,omitempty"`
+	SubjectUserId       openapi_types.UUID  `json:"subject_user_id"`
+	TargetParentUserId  *openapi_types.UUID `json:"target_parent_user_id,omitempty"`
+
+	// UpdatedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	UpdatedAt Timestamp `json:"updated_at"`
+	Version   int64     `json:"version"`
+}
+
+// HRRequestCreateRequest defines model for HRRequestCreateRequest.
+type HRRequestCreateRequest struct {
+	Reason             string              `json:"reason"`
+	RequestType        HRRequestType       `json:"request_type"`
+	SubjectUserId      openapi_types.UUID  `json:"subject_user_id"`
+	TargetParentUserId *openapi_types.UUID `json:"target_parent_user_id,omitempty"`
+}
+
+// HRRequestEnvelope defines model for HRRequestEnvelope.
+type HRRequestEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID     `json:"correlation_id"`
+	History       *[]HRRequestEvent `json:"history,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+
+	// Request Requester, subject parent, target and reviewer are snapshots taken at the transition.
+	Request *HRRequest `json:"request,omitempty"`
+
+	// RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+	RolloutMode *RolloutMode `json:"rollout_mode,omitempty"`
+}
+
+// HRRequestEvent Append-only HR request history.
+type HRRequestEvent struct {
+	Action             HRRequestEventAction `json:"action"`
+	ActorUserId        openapi_types.UUID   `json:"actor_user_id"`
+	AfterVersion       int64                `json:"after_version"`
+	CommandId          openapi_types.UUID   `json:"command_id"`
+	CorrelationId      string               `json:"correlation_id"`
+	EventId            openapi_types.UUID   `json:"event_id"`
+	FromStatus         *string              `json:"from_status,omitempty"`
+	NextReviewerUserId *openapi_types.UUID  `json:"next_reviewer_user_id,omitempty"`
+	Notes              *string              `json:"notes,omitempty"`
+
+	// OccurredAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	OccurredAt Timestamp `json:"occurred_at"`
+	ToStatus   string    `json:"to_status"`
+}
+
+// HRRequestEventAction defines model for HRRequestEvent.Action.
+type HRRequestEventAction string
+
+// HRRequestListEnvelope defines model for HRRequestListEnvelope.
+type HRRequestListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]HRRequest  `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+
+	// RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+	RolloutMode *RolloutMode `json:"rollout_mode,omitempty"`
+}
+
+// HRRequestStatus Legacy HR request namespace (preserved). pending_hr is NOT applied; approved / failed are never reached in Slice 11.
+type HRRequestStatus string
+
+// HRRequestType defines model for HRRequestType.
+type HRRequestType string
 
 // HealthLive defines model for HealthLive.
 type HealthLive struct {
@@ -6508,6 +7126,9 @@ type ParityOutcome string
 // ParityResult defines model for ParityResult.
 type ParityResult string
 
+// ParityResult11 defines model for ParityResult11.
+type ParityResult11 string
+
 // ParityRow defines model for ParityRow.
 type ParityRow struct {
 	LegacyClass *string      `json:"legacy_class,omitempty"`
@@ -7193,6 +7814,9 @@ type ResultEnvelope struct {
 	Reasons []ReasonCode `json:"reasons"`
 }
 
+// RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+type RolloutMode string
+
 // SalesCoverageReport defines model for SalesCoverageReport.
 type SalesCoverageReport struct {
 	AliasesByResolution             CountMap            `json:"aliases_by_resolution"`
@@ -7272,6 +7896,9 @@ type SessionContext struct {
 		// BillingRead Slice 7 billing + payments read shadow (flag billing_payments.read_shadow).
 		BillingRead bool `json:"billing_read"`
 
+		// ContactOutcomeWrite Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server.
+		ContactOutcomeWrite bool `json:"contact_outcome_write"`
+
 		// CustomersIdentity Slice 5 customer identity shadow read (flag customers.identity_shadow_read).
 		CustomersIdentity bool `json:"customers_identity"`
 
@@ -7279,11 +7906,17 @@ type SessionContext struct {
 		FinanceShadowRead bool `json:"finance_shadow_read"`
 		HrRead            bool `json:"hr_read"`
 
+		// HrRequestWrite Slice 11 HR change request family enabled (flag organization.hr_request_write). Navigation hint only.
+		HrRequestWrite bool `json:"hr_request_write"`
+
 		// ReportingRead Slice 8 MIS / reporting read (flag reporting.read_shadow). Never shows an Invoice Review page.
 		ReportingRead bool `json:"reporting_read"`
 
 		// SalesRead Slice 6 sales read shadow (flag sales.read_shadow).
 		SalesRead bool `json:"sales_read"`
+
+		// WritebackRead Slice 11 write-back diagnostics (flag integration.writeback_read). Read only.
+		WritebackRead bool `json:"writeback_read"`
 	} `json:"features,omitempty"`
 	Principal *struct {
 		DisplayName string                           `json:"display_name"`
@@ -7751,6 +8384,145 @@ type UserSummaryLoginEnabled bool
 // WorkflowType Source work unit a Case stands for (one staged legacy row each).
 type WorkflowType string
 
+// WritebackAttempt defines model for WritebackAttempt.
+type WritebackAttempt struct {
+	AttemptNo int `json:"attempt_no"`
+
+	// FinishedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	FinishedAt  Timestamp                    `json:"finished_at"`
+	Kind        WritebackAttemptKind         `json:"kind"`
+	LegacyRef   *string                      `json:"legacy_ref,omitempty"`
+	Observation *WritebackAttemptObservation `json:"observation,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome      Outcome  `json:"outcome"`
+	Reasons      []string `json:"reasons"`
+	ServiceActor string   `json:"service_actor"`
+
+	// StartedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	StartedAt Timestamp `json:"started_at"`
+}
+
+// WritebackAttemptKind defines model for WritebackAttempt.Kind.
+type WritebackAttemptKind string
+
+// WritebackAttemptObservation defines model for WritebackAttempt.Observation.
+type WritebackAttemptObservation string
+
+// WritebackCommand One target command's legacy write-back (no intent payload: no PII).
+type WritebackCommand struct {
+	AttemptLog  *[]WritebackAttempt `json:"attempt_log,omitempty"`
+	Attempts    int                 `json:"attempts"`
+	CommandId   openapi_types.UUID  `json:"command_id"`
+	CommandType string              `json:"command_type"`
+	LegacyRef   *string             `json:"legacy_ref,omitempty"`
+	Parity      *ParityResult11     `json:"parity,omitempty"`
+
+	// ReceivedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	ReceivedAt      Timestamp                    `json:"received_at"`
+	Reconciliations *[]WritebackReconciliation   `json:"reconciliations,omitempty"`
+	RolloutMode     WritebackCommandRolloutMode  `json:"rollout_mode"`
+	SourceModule    WritebackCommandSourceModule `json:"source_module"`
+
+	// State APPLIED only when legacy reported SUCCESS or observation proved the effect; UNKNOWN is reconciled before any retry; REJECTED keeps target history and opens reconciliation.
+	State       WritebackState              `json:"state"`
+	SubjectId   openapi_types.UUID          `json:"subject_id"`
+	SubjectKind WritebackCommandSubjectKind `json:"subject_kind"`
+
+	// UpdatedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	UpdatedAt Timestamp `json:"updated_at"`
+}
+
+// WritebackCommandRolloutMode defines model for WritebackCommand.RolloutMode.
+type WritebackCommandRolloutMode string
+
+// WritebackCommandSourceModule defines model for WritebackCommand.SourceModule.
+type WritebackCommandSourceModule string
+
+// WritebackCommandSubjectKind defines model for WritebackCommand.SubjectKind.
+type WritebackCommandSubjectKind string
+
+// WritebackCommandEnvelope defines model for WritebackCommandEnvelope.
+type WritebackCommandEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data One target command's legacy write-back (no intent payload: no PII).
+	Data *WritebackCommand `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// WritebackCommandListEnvelope defines model for WritebackCommandListEnvelope.
+type WritebackCommandListEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID       `json:"correlation_id"`
+	Items         *[]WritebackCommand `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// WritebackCount defines model for WritebackCount.
+type WritebackCount struct {
+	Count int64  `json:"count"`
+	Key   string `json:"key"`
+}
+
+// WritebackReconciliation defines model for WritebackReconciliation.
+type WritebackReconciliation struct {
+	AttemptNo      int                                   `json:"attempt_no"`
+	NextSafeAction WritebackReconciliationNextSafeAction `json:"next_safe_action"`
+
+	// OpenedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	OpenedAt Timestamp                     `json:"opened_at"`
+	Reason   WritebackReconciliationReason `json:"reason"`
+}
+
+// WritebackReconciliationNextSafeAction defines model for WritebackReconciliation.NextSafeAction.
+type WritebackReconciliationNextSafeAction string
+
+// WritebackReconciliationReason defines model for WritebackReconciliation.Reason.
+type WritebackReconciliationReason string
+
+// WritebackState APPLIED only when legacy reported SUCCESS or observation proved the effect; UNKNOWN is reconciled before any retry; REJECTED keeps target history and opens reconciliation.
+type WritebackState string
+
+// WritebackSummary Bounded diagnostics: pending, unknown, reconciliation backlog and parity counts. No PII, no payloads.
+type WritebackSummary struct {
+	Parity          []WritebackCount `json:"parity"`
+	Reconciliations []WritebackCount `json:"reconciliations"`
+	States          []WritebackCount `json:"states"`
+}
+
+// WritebackSummaryEnvelope defines model for WritebackSummaryEnvelope.
+type WritebackSummaryEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data Bounded diagnostics: pending, unknown, reconciliation backlog and parity counts. No PII, no payloads.
+	Data *WritebackSummary `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
 // AccountCategory defines model for AccountCategory.
 type AccountCategory string
 
@@ -7939,6 +8711,9 @@ type SubjectType string
 // UserSort defines model for UserSort.
 type UserSort string
 
+// WritebackStateFilter APPLIED only when legacy reported SUCCESS or observation proved the effect; UNKNOWN is reconciled before any retry; REJECTED keeps target history and opens reconciliation.
+type WritebackStateFilter = WritebackState
+
 // Denied Generic business result (Architecture V1 §23). Concrete envelopes add a
 // typed data property. An item-level mix aggregates to PARTIAL.
 type Denied = ResultEnvelope
@@ -8000,6 +8775,17 @@ type ListCasesParams struct {
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// RecordContactOutcomeParams defines parameters for RecordContactOutcome.
+type RecordContactOutcomeParams struct {
+	// IdempotencyKey Required on every future mutating command (Architecture V1 §23). Same key
+	// and same request replays the stored result; same key with a different
+	// request is CONFLICT.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+	IfMatch IfMatch `json:"If-Match"`
 }
 
 // ListCaseHistoryParams defines parameters for ListCaseHistory.
@@ -8190,6 +8976,32 @@ type ListFulfillmentCaseHistoryParams struct {
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListHRRequestsParams defines parameters for ListHRRequests.
+type ListHRRequestsParams struct {
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CreateHRRequestParams defines parameters for CreateHRRequest.
+type CreateHRRequestParams struct {
+	// IdempotencyKey Required on every future mutating command (Architecture V1 §23). Same key
+	// and same request replays the stored result; same key with a different
+	// request is CONFLICT.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// DecideHRRequestParams defines parameters for DecideHRRequest.
+type DecideHRRequestParams struct {
+	// IdempotencyKey Required on every future mutating command (Architecture V1 §23). Same key
+	// and same request replays the stored result; same key with a different
+	// request is CONFLICT.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+	IfMatch IfMatch `json:"If-Match"`
 }
 
 // ListIdentityUsersParams defines parameters for ListIdentityUsers.
@@ -8678,6 +9490,24 @@ type GetPaymentReportRowParamsInvoiceLinkState string
 // GetPaymentReportRowParamsUnit defines parameters for GetPaymentReportRow.
 type GetPaymentReportRowParamsUnit string
 
+// ListWritebackCommandsParams defines parameters for ListWritebackCommands.
+type ListWritebackCommandsParams struct {
+	State *WritebackStateFilter `form:"state,omitempty" json:"state,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// RecordContactOutcomeJSONRequestBody defines body for RecordContactOutcome for application/json ContentType.
+type RecordContactOutcomeJSONRequestBody = ContactOutcomeRequest
+
+// CreateHRRequestJSONRequestBody defines body for CreateHRRequest for application/json ContentType.
+type CreateHRRequestJSONRequestBody = HRRequestCreateRequest
+
+// DecideHRRequestJSONRequestBody defines body for DecideHRRequest for application/json ContentType.
+type DecideHRRequestJSONRequestBody = HRDecisionRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetEffectiveAccess Effective access of the current principal
@@ -8707,6 +9537,12 @@ type ServerInterface interface {
 	// ListCaseAttribution List a case's immutable attribution snapshots
 	// (GET /api/v1/cases/{case_id}/attribution)
 	ListCaseAttribution(w http.ResponseWriter, r *http.Request, caseId CaseID)
+	// GetCaseContactOutcomes Contact outcome facts of one case (read; allowed_actions from the command evaluator)
+	// (GET /api/v1/cases/{case_id}/contact-outcomes)
+	GetCaseContactOutcomes(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID)
+	// RecordContactOutcome Record the holder seller's contact outcome (NO_ANSWER / CALLBACK / NOT_PURCHASED)
+	// (POST /api/v1/cases/{case_id}/contact-outcomes)
+	RecordContactOutcome(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params RecordContactOutcomeParams)
 	// ListCaseHistory List a case's append-only state history
 	// (GET /api/v1/cases/{case_id}/history)
 	ListCaseHistory(w http.ResponseWriter, r *http.Request, caseId CaseID, params ListCaseHistoryParams)
@@ -8770,6 +9606,18 @@ type ServerInterface interface {
 	// ListFulfillmentCaseHistory Append-only history of one fulfillment case
 	// (GET /api/v1/fulfillment/cases/{case_id}/history)
 	ListFulfillmentCaseHistory(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params ListFulfillmentCaseHistoryParams)
+	// ListHRRequests HR change requests the caller requested or currently reviews
+	// (GET /api/v1/hr/requests)
+	ListHRRequests(w http.ResponseWriter, r *http.Request, params ListHRRequestsParams)
+	// CreateHRRequest Create an HR change request (transfer_seller / terminate_seller)
+	// (POST /api/v1/hr/requests)
+	CreateHRRequest(w http.ResponseWriter, r *http.Request, params CreateHRRequestParams)
+	// GetHRRequest One HR change request with its append-only history
+	// (GET /api/v1/hr/requests/{request_id})
+	GetHRRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
+	// DecideHRRequest Step-approve or reject an HR change request as its current reviewer
+	// (POST /api/v1/hr/requests/{request_id}/decisions)
+	DecideHRRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID, params DecideHRRequestParams)
 	// ListIdentityUsers List shadow user accounts
 	// (GET /api/v1/identity/users)
 	ListIdentityUsers(w http.ResponseWriter, r *http.Request, params ListIdentityUsersParams)
@@ -8884,6 +9732,15 @@ type ServerInterface interface {
 	// GetSession Current session context
 	// (GET /api/v1/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
+	// ListWritebackCommands Write-back commands (bounded list)
+	// (GET /api/v1/writeback/commands)
+	ListWritebackCommands(w http.ResponseWriter, r *http.Request, params ListWritebackCommandsParams)
+	// GetWritebackCommand One write-back command with its attempts and reconciliation records
+	// (GET /api/v1/writeback/commands/{command_id})
+	GetWritebackCommand(w http.ResponseWriter, r *http.Request, commandId openapi_types.UUID)
+	// GetWritebackSummary Write-back diagnostics: states, parity and reconciliation backlog (counts only)
+	// (GET /api/v1/writeback/summary)
+	GetWritebackSummary(w http.ResponseWriter, r *http.Request)
 	// GetHealthLive Liveness
 	// (GET /health/live)
 	GetHealthLive(w http.ResponseWriter, r *http.Request)
@@ -9389,6 +10246,109 @@ func (siw *ServerInterfaceWrapper) ListCaseAttribution(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListCaseAttribution(w, r, caseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCaseContactOutcomes operation middleware
+func (siw *ServerInterfaceWrapper) GetCaseContactOutcomes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCaseContactOutcomes(w, r, caseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RecordContactOutcome operation middleware
+func (siw *ServerInterfaceWrapper) RecordContactOutcome(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RecordContactOutcomeParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch IfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RecordContactOutcome(w, r, caseId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10732,6 +11692,200 @@ func (siw *ServerInterfaceWrapper) ListFulfillmentCaseHistory(w http.ResponseWri
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListFulfillmentCaseHistory(w, r, caseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListHRRequests operation middleware
+func (siw *ServerInterfaceWrapper) ListHRRequests(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListHRRequestsParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListHRRequests(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateHRRequest operation middleware
+func (siw *ServerInterfaceWrapper) CreateHRRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateHRRequestParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateHRRequest(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHRRequest operation middleware
+func (siw *ServerInterfaceWrapper) GetHRRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "request_id" -------------
+	var requestId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "request_id", r.PathValue("request_id"), &requestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "request_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHRRequest(w, r, requestId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DecideHRRequest operation middleware
+func (siw *ServerInterfaceWrapper) DecideHRRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "request_id" -------------
+	var requestId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "request_id", r.PathValue("request_id"), &requestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "request_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DecideHRRequestParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch IfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DecideHRRequest(w, r, requestId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -13859,6 +15013,105 @@ func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ListWritebackCommands operation middleware
+func (siw *ServerInterfaceWrapper) ListWritebackCommands(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListWritebackCommandsParams
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWritebackCommands(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetWritebackCommand operation middleware
+func (siw *ServerInterfaceWrapper) GetWritebackCommand(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "command_id" -------------
+	var commandId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "command_id", r.PathValue("command_id"), &commandId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "command_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWritebackCommand(w, r, commandId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetWritebackSummary operation middleware
+func (siw *ServerInterfaceWrapper) GetWritebackSummary(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWritebackSummary(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetHealthLive operation middleware
 func (siw *ServerInterfaceWrapper) GetHealthLive(w http.ResponseWriter, r *http.Request) {
 
@@ -14077,6 +15330,15 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases", wrapper.ListFulfillmentCases)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases/{case_id}", wrapper.GetFulfillmentCase)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases/{case_id}/history", wrapper.ListFulfillmentCaseHistory)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/cases/{case_id}/contact-outcomes", wrapper.GetCaseContactOutcomes)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/cases/{case_id}/contact-outcomes", wrapper.RecordContactOutcome)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hr/requests", wrapper.ListHRRequests)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/hr/requests", wrapper.CreateHRRequest)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hr/requests/{request_id}", wrapper.GetHRRequest)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/hr/requests/{request_id}/decisions", wrapper.DecideHRRequest)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/writeback/summary", wrapper.GetWritebackSummary)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/writeback/commands", wrapper.ListWritebackCommands)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/writeback/commands/{command_id}", wrapper.GetWritebackCommand)
 
 	return m
 }
@@ -15025,6 +16287,266 @@ type ListCaseAttributiondefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response ListCaseAttributiondefaultApplicationProblemPlusJSONResponse) VisitListCaseAttributionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseContactOutcomesRequestObject struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+}
+
+type GetCaseContactOutcomesResponseObject interface {
+	VisitGetCaseContactOutcomesResponse(w http.ResponseWriter) error
+}
+
+type GetCaseContactOutcomes200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCaseContactOutcomes200JSONResponse struct {
+	Body    ContactOutcomeEnvelope
+	Headers GetCaseContactOutcomes200ResponseHeaders
+}
+
+func (response GetCaseContactOutcomes200JSONResponse) VisitGetCaseContactOutcomesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseContactOutcomes400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCaseContactOutcomes400ApplicationProblemPlusJSONResponse) VisitGetCaseContactOutcomesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseContactOutcomes403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetCaseContactOutcomes403JSONResponse) VisitGetCaseContactOutcomesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseContactOutcomes404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCaseContactOutcomes404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetCaseContactOutcomes404ResponseHeaders
+}
+
+func (response GetCaseContactOutcomes404ApplicationProblemPlusJSONResponse) VisitGetCaseContactOutcomesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaseContactOutcomesdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCaseContactOutcomesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetCaseContactOutcomesdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetCaseContactOutcomesdefaultApplicationProblemPlusJSONResponse) VisitGetCaseContactOutcomesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordContactOutcomeRequestObject struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+	Params RecordContactOutcomeParams
+	Body   *RecordContactOutcomeJSONRequestBody
+}
+
+type RecordContactOutcomeResponseObject interface {
+	VisitRecordContactOutcomeResponse(w http.ResponseWriter) error
+}
+
+type RecordContactOutcome200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type RecordContactOutcome200JSONResponse struct {
+	Body    CommandEnvelope
+	Headers RecordContactOutcome200ResponseHeaders
+}
+
+func (response RecordContactOutcome200JSONResponse) VisitRecordContactOutcomeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordContactOutcome400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response RecordContactOutcome400ApplicationProblemPlusJSONResponse) VisitRecordContactOutcomeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordContactOutcome403JSONResponse struct{ DeniedJSONResponse }
+
+func (response RecordContactOutcome403JSONResponse) VisitRecordContactOutcomeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordContactOutcome404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type RecordContactOutcome404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers RecordContactOutcome404ResponseHeaders
+}
+
+func (response RecordContactOutcome404ApplicationProblemPlusJSONResponse) VisitRecordContactOutcomeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordContactOutcome409ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type RecordContactOutcome409JSONResponse struct {
+	Body    CommandEnvelope
+	Headers RecordContactOutcome409ResponseHeaders
+}
+
+func (response RecordContactOutcome409JSONResponse) VisitRecordContactOutcomeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordContactOutcomedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type RecordContactOutcomedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    RecordContactOutcomedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response RecordContactOutcomedefaultApplicationProblemPlusJSONResponse) VisitRecordContactOutcomeResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -17247,6 +18769,477 @@ type ListFulfillmentCaseHistorydefaultApplicationProblemPlusJSONResponse struct 
 }
 
 func (response ListFulfillmentCaseHistorydefaultApplicationProblemPlusJSONResponse) VisitListFulfillmentCaseHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHRRequestsRequestObject struct {
+	Params ListHRRequestsParams
+}
+
+type ListHRRequestsResponseObject interface {
+	VisitListHRRequestsResponse(w http.ResponseWriter) error
+}
+
+type ListHRRequests200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListHRRequests200JSONResponse struct {
+	Body    HRRequestListEnvelope
+	Headers ListHRRequests200ResponseHeaders
+}
+
+func (response ListHRRequests200JSONResponse) VisitListHRRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHRRequests400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListHRRequests400ApplicationProblemPlusJSONResponse) VisitListHRRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHRRequests403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListHRRequests403JSONResponse) VisitListHRRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListHRRequestsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListHRRequestsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListHRRequestsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListHRRequestsdefaultApplicationProblemPlusJSONResponse) VisitListHRRequestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHRRequestRequestObject struct {
+	Params CreateHRRequestParams
+	Body   *CreateHRRequestJSONRequestBody
+}
+
+type CreateHRRequestResponseObject interface {
+	VisitCreateHRRequestResponse(w http.ResponseWriter) error
+}
+
+type CreateHRRequest200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type CreateHRRequest200JSONResponse struct {
+	Body    CommandEnvelope
+	Headers CreateHRRequest200ResponseHeaders
+}
+
+func (response CreateHRRequest200JSONResponse) VisitCreateHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHRRequest400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateHRRequest400ApplicationProblemPlusJSONResponse) VisitCreateHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHRRequest403JSONResponse struct{ DeniedJSONResponse }
+
+func (response CreateHRRequest403JSONResponse) VisitCreateHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHRRequest409ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type CreateHRRequest409JSONResponse struct {
+	Body    CommandEnvelope
+	Headers CreateHRRequest409ResponseHeaders
+}
+
+func (response CreateHRRequest409JSONResponse) VisitCreateHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateHRRequestdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type CreateHRRequestdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    CreateHRRequestdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response CreateHRRequestdefaultApplicationProblemPlusJSONResponse) VisitCreateHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetHRRequestRequestObject struct {
+	RequestId openapi_types.UUID `json:"request_id"`
+}
+
+type GetHRRequestResponseObject interface {
+	VisitGetHRRequestResponse(w http.ResponseWriter) error
+}
+
+type GetHRRequest200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetHRRequest200JSONResponse struct {
+	Body    HRRequestEnvelope
+	Headers GetHRRequest200ResponseHeaders
+}
+
+func (response GetHRRequest200JSONResponse) VisitGetHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetHRRequest400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetHRRequest400ApplicationProblemPlusJSONResponse) VisitGetHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetHRRequest403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetHRRequest403JSONResponse) VisitGetHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetHRRequest404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetHRRequest404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetHRRequest404ResponseHeaders
+}
+
+func (response GetHRRequest404ApplicationProblemPlusJSONResponse) VisitGetHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetHRRequestdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetHRRequestdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetHRRequestdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetHRRequestdefaultApplicationProblemPlusJSONResponse) VisitGetHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideHRRequestRequestObject struct {
+	RequestId openapi_types.UUID `json:"request_id"`
+	Params    DecideHRRequestParams
+	Body      *DecideHRRequestJSONRequestBody
+}
+
+type DecideHRRequestResponseObject interface {
+	VisitDecideHRRequestResponse(w http.ResponseWriter) error
+}
+
+type DecideHRRequest200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type DecideHRRequest200JSONResponse struct {
+	Body    CommandEnvelope
+	Headers DecideHRRequest200ResponseHeaders
+}
+
+func (response DecideHRRequest200JSONResponse) VisitDecideHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideHRRequest400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DecideHRRequest400ApplicationProblemPlusJSONResponse) VisitDecideHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideHRRequest403JSONResponse struct{ DeniedJSONResponse }
+
+func (response DecideHRRequest403JSONResponse) VisitDecideHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideHRRequest404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type DecideHRRequest404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers DecideHRRequest404ResponseHeaders
+}
+
+func (response DecideHRRequest404ApplicationProblemPlusJSONResponse) VisitDecideHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideHRRequest409ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type DecideHRRequest409JSONResponse struct {
+	Body    CommandEnvelope
+	Headers DecideHRRequest409ResponseHeaders
+}
+
+func (response DecideHRRequest409JSONResponse) VisitDecideHRRequestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideHRRequestdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type DecideHRRequestdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    DecideHRRequestdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response DecideHRRequestdefaultApplicationProblemPlusJSONResponse) VisitDecideHRRequestResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -21190,6 +23183,308 @@ func (response GetSessiondefaultApplicationProblemPlusJSONResponse) VisitGetSess
 	return err
 }
 
+type ListWritebackCommandsRequestObject struct {
+	Params ListWritebackCommandsParams
+}
+
+type ListWritebackCommandsResponseObject interface {
+	VisitListWritebackCommandsResponse(w http.ResponseWriter) error
+}
+
+type ListWritebackCommands200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListWritebackCommands200JSONResponse struct {
+	Body    WritebackCommandListEnvelope
+	Headers ListWritebackCommands200ResponseHeaders
+}
+
+func (response ListWritebackCommands200JSONResponse) VisitListWritebackCommandsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWritebackCommands400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListWritebackCommands400ApplicationProblemPlusJSONResponse) VisitListWritebackCommandsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWritebackCommands403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListWritebackCommands403JSONResponse) VisitListWritebackCommandsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWritebackCommandsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListWritebackCommandsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListWritebackCommandsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListWritebackCommandsdefaultApplicationProblemPlusJSONResponse) VisitListWritebackCommandsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWritebackCommandRequestObject struct {
+	CommandId openapi_types.UUID `json:"command_id"`
+}
+
+type GetWritebackCommandResponseObject interface {
+	VisitGetWritebackCommandResponse(w http.ResponseWriter) error
+}
+
+type GetWritebackCommand200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetWritebackCommand200JSONResponse struct {
+	Body    WritebackCommandEnvelope
+	Headers GetWritebackCommand200ResponseHeaders
+}
+
+func (response GetWritebackCommand200JSONResponse) VisitGetWritebackCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWritebackCommand400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetWritebackCommand400ApplicationProblemPlusJSONResponse) VisitGetWritebackCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWritebackCommand403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetWritebackCommand403JSONResponse) VisitGetWritebackCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWritebackCommand404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetWritebackCommand404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetWritebackCommand404ResponseHeaders
+}
+
+func (response GetWritebackCommand404ApplicationProblemPlusJSONResponse) VisitGetWritebackCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWritebackCommanddefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetWritebackCommanddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetWritebackCommanddefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetWritebackCommanddefaultApplicationProblemPlusJSONResponse) VisitGetWritebackCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWritebackSummaryRequestObject struct {
+}
+
+type GetWritebackSummaryResponseObject interface {
+	VisitGetWritebackSummaryResponse(w http.ResponseWriter) error
+}
+
+type GetWritebackSummary200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetWritebackSummary200JSONResponse struct {
+	Body    WritebackSummaryEnvelope
+	Headers GetWritebackSummary200ResponseHeaders
+}
+
+func (response GetWritebackSummary200JSONResponse) VisitGetWritebackSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWritebackSummary400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetWritebackSummary400ApplicationProblemPlusJSONResponse) VisitGetWritebackSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWritebackSummary403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetWritebackSummary403JSONResponse) VisitGetWritebackSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWritebackSummarydefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetWritebackSummarydefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetWritebackSummarydefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetWritebackSummarydefaultApplicationProblemPlusJSONResponse) VisitGetWritebackSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetHealthLiveRequestObject struct {
 }
 
@@ -21347,6 +23642,12 @@ type StrictServerInterface interface {
 	// ListCaseAttribution List a case's immutable attribution snapshots
 	// (GET /api/v1/cases/{case_id}/attribution)
 	ListCaseAttribution(ctx context.Context, request ListCaseAttributionRequestObject) (ListCaseAttributionResponseObject, error)
+	// GetCaseContactOutcomes Contact outcome facts of one case (read; allowed_actions from the command evaluator)
+	// (GET /api/v1/cases/{case_id}/contact-outcomes)
+	GetCaseContactOutcomes(ctx context.Context, request GetCaseContactOutcomesRequestObject) (GetCaseContactOutcomesResponseObject, error)
+	// RecordContactOutcome Record the holder seller's contact outcome (NO_ANSWER / CALLBACK / NOT_PURCHASED)
+	// (POST /api/v1/cases/{case_id}/contact-outcomes)
+	RecordContactOutcome(ctx context.Context, request RecordContactOutcomeRequestObject) (RecordContactOutcomeResponseObject, error)
 	// ListCaseHistory List a case's append-only state history
 	// (GET /api/v1/cases/{case_id}/history)
 	ListCaseHistory(ctx context.Context, request ListCaseHistoryRequestObject) (ListCaseHistoryResponseObject, error)
@@ -21410,6 +23711,18 @@ type StrictServerInterface interface {
 	// ListFulfillmentCaseHistory Append-only history of one fulfillment case
 	// (GET /api/v1/fulfillment/cases/{case_id}/history)
 	ListFulfillmentCaseHistory(ctx context.Context, request ListFulfillmentCaseHistoryRequestObject) (ListFulfillmentCaseHistoryResponseObject, error)
+	// ListHRRequests HR change requests the caller requested or currently reviews
+	// (GET /api/v1/hr/requests)
+	ListHRRequests(ctx context.Context, request ListHRRequestsRequestObject) (ListHRRequestsResponseObject, error)
+	// CreateHRRequest Create an HR change request (transfer_seller / terminate_seller)
+	// (POST /api/v1/hr/requests)
+	CreateHRRequest(ctx context.Context, request CreateHRRequestRequestObject) (CreateHRRequestResponseObject, error)
+	// GetHRRequest One HR change request with its append-only history
+	// (GET /api/v1/hr/requests/{request_id})
+	GetHRRequest(ctx context.Context, request GetHRRequestRequestObject) (GetHRRequestResponseObject, error)
+	// DecideHRRequest Step-approve or reject an HR change request as its current reviewer
+	// (POST /api/v1/hr/requests/{request_id}/decisions)
+	DecideHRRequest(ctx context.Context, request DecideHRRequestRequestObject) (DecideHRRequestResponseObject, error)
 	// ListIdentityUsers List shadow user accounts
 	// (GET /api/v1/identity/users)
 	ListIdentityUsers(ctx context.Context, request ListIdentityUsersRequestObject) (ListIdentityUsersResponseObject, error)
@@ -21524,6 +23837,15 @@ type StrictServerInterface interface {
 	// GetSession Current session context
 	// (GET /api/v1/session)
 	GetSession(ctx context.Context, request GetSessionRequestObject) (GetSessionResponseObject, error)
+	// ListWritebackCommands Write-back commands (bounded list)
+	// (GET /api/v1/writeback/commands)
+	ListWritebackCommands(ctx context.Context, request ListWritebackCommandsRequestObject) (ListWritebackCommandsResponseObject, error)
+	// GetWritebackCommand One write-back command with its attempts and reconciliation records
+	// (GET /api/v1/writeback/commands/{command_id})
+	GetWritebackCommand(ctx context.Context, request GetWritebackCommandRequestObject) (GetWritebackCommandResponseObject, error)
+	// GetWritebackSummary Write-back diagnostics: states, parity and reconciliation backlog (counts only)
+	// (GET /api/v1/writeback/summary)
+	GetWritebackSummary(ctx context.Context, request GetWritebackSummaryRequestObject) (GetWritebackSummaryResponseObject, error)
 	// GetHealthLive Liveness
 	// (GET /health/live)
 	GetHealthLive(ctx context.Context, request GetHealthLiveRequestObject) (GetHealthLiveResponseObject, error)
@@ -21796,6 +24118,66 @@ func (sh *strictHandler) ListCaseAttribution(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListCaseAttributionResponseObject); ok {
 		if err := validResponse.VisitListCaseAttributionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCaseContactOutcomes operation middleware
+func (sh *strictHandler) GetCaseContactOutcomes(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID) {
+	var request GetCaseContactOutcomesRequestObject
+
+	request.CaseId = caseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCaseContactOutcomes(ctx, request.(GetCaseContactOutcomesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCaseContactOutcomes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCaseContactOutcomesResponseObject); ok {
+		if err := validResponse.VisitGetCaseContactOutcomesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RecordContactOutcome operation middleware
+func (sh *strictHandler) RecordContactOutcome(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params RecordContactOutcomeParams) {
+	var request RecordContactOutcomeRequestObject
+
+	request.CaseId = caseId
+	request.Params = params
+
+	var body RecordContactOutcomeJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RecordContactOutcome(ctx, request.(RecordContactOutcomeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RecordContactOutcome")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RecordContactOutcomeResponseObject); ok {
+		if err := validResponse.VisitRecordContactOutcomeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -22346,6 +24728,125 @@ func (sh *strictHandler) ListFulfillmentCaseHistory(w http.ResponseWriter, r *ht
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListFulfillmentCaseHistoryResponseObject); ok {
 		if err := validResponse.VisitListFulfillmentCaseHistoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListHRRequests operation middleware
+func (sh *strictHandler) ListHRRequests(w http.ResponseWriter, r *http.Request, params ListHRRequestsParams) {
+	var request ListHRRequestsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListHRRequests(ctx, request.(ListHRRequestsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListHRRequests")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListHRRequestsResponseObject); ok {
+		if err := validResponse.VisitListHRRequestsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateHRRequest operation middleware
+func (sh *strictHandler) CreateHRRequest(w http.ResponseWriter, r *http.Request, params CreateHRRequestParams) {
+	var request CreateHRRequestRequestObject
+
+	request.Params = params
+
+	var body CreateHRRequestJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateHRRequest(ctx, request.(CreateHRRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateHRRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateHRRequestResponseObject); ok {
+		if err := validResponse.VisitCreateHRRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetHRRequest operation middleware
+func (sh *strictHandler) GetHRRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID) {
+	var request GetHRRequestRequestObject
+
+	request.RequestId = requestId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetHRRequest(ctx, request.(GetHRRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetHRRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetHRRequestResponseObject); ok {
+		if err := validResponse.VisitGetHRRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DecideHRRequest operation middleware
+func (sh *strictHandler) DecideHRRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID, params DecideHRRequestParams) {
+	var request DecideHRRequestRequestObject
+
+	request.RequestId = requestId
+	request.Params = params
+
+	var body DecideHRRequestJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DecideHRRequest(ctx, request.(DecideHRRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DecideHRRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DecideHRRequestResponseObject); ok {
+		if err := validResponse.VisitDecideHRRequestResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -23332,6 +25833,82 @@ func (sh *strictHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetSessionResponseObject); ok {
 		if err := validResponse.VisitGetSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListWritebackCommands operation middleware
+func (sh *strictHandler) ListWritebackCommands(w http.ResponseWriter, r *http.Request, params ListWritebackCommandsParams) {
+	var request ListWritebackCommandsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListWritebackCommands(ctx, request.(ListWritebackCommandsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListWritebackCommands")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListWritebackCommandsResponseObject); ok {
+		if err := validResponse.VisitListWritebackCommandsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetWritebackCommand operation middleware
+func (sh *strictHandler) GetWritebackCommand(w http.ResponseWriter, r *http.Request, commandId openapi_types.UUID) {
+	var request GetWritebackCommandRequestObject
+
+	request.CommandId = commandId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWritebackCommand(ctx, request.(GetWritebackCommandRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWritebackCommand")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetWritebackCommandResponseObject); ok {
+		if err := validResponse.VisitGetWritebackCommandResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetWritebackSummary operation middleware
+func (sh *strictHandler) GetWritebackSummary(w http.ResponseWriter, r *http.Request) {
+	var request GetWritebackSummaryRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWritebackSummary(ctx, request.(GetWritebackSummaryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWritebackSummary")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetWritebackSummaryResponseObject); ok {
+		if err := validResponse.VisitGetWritebackSummaryResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

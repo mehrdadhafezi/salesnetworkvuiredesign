@@ -50,39 +50,48 @@ func TestViolatingFixtureFails(t *testing.T) {
 		hits[v.Rule]++
 	}
 	want := map[string]int{
-		RuleKernelImport:     4, // business module, net/http, os, math/rand in production code
-		RuleKernelClock:      2, // time.Now and .Local()
-		RuleKernelFloat:      2, // float64 parameter and float32 conversion
-		RuleMoneyConversion:  1,
-		RuleLegacyLiteral:    4, // kernel, business package, WooCommerce literal, .sql file
-		RuleLegacyRefFactory: 1,
-		RuleDotImport:        1,  // internal/sales/dotimport.go
-		RuleRuntimeDDL:       3,  // platform/bad CREATE TABLE; sales/ddl alter table + GRANT
-		RulePlatformImport:   1,  // platform/bad imports billing
-		RulePgtestImport:     2,  // pgtest from platform/bad; legacytest from the import tool
-		RuleForeignStore:     3,  // sales imports billing/store; authorization imports organization/store; connector imports customers/store
-		RuleLegacyImport:     3,  // sales, crm-api and crm-migrate (non-migrations) import the connector
-		RuleModuleBoundary:   19, // + biawin→billing/query, fulfillment→biawin/query; + finance→billing/query, commission→finance/api; + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
-		RuleForeignWrite:     8,  // + biawin UPDATE finance.*, fulfillment INSERT INTO billing.*; connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*; finance UPDATE billing.*; commission INSERT INTO finance.*
-		RuleReadPathImport:   8,  // + biawin/http and fulfillment/query import an import command; organization/http, customers/http, cases/http and crm-api import an import command; reporting/http imports the projection rebuild; finance/http imports the shadow rebuild
-		RuleMergePath:        2,  // customers MergeCustomers, canonicalizeByPhone
-		RuleAppendOnlyWrite:  7,  // + biawin UPDATE finance.ledger_entry, DELETE FROM biawin.subscription, fulfillment/query UPDATE fulfillment.*; custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact; finance DELETE FROM finance.ledger_entry
-		RulePhoneKey:         9,  // + biawin phone join literal, phoneJoin and byPhone identifiers; custody, payments and reporting customer_phone joins; finance phone key literal + byPhone and mobileKey identifiers
-		RuleStatusFallback:   2,  // billing COALESCE status chain and resolveMainStatus
-		RuleUnitConversion:   5,  // payments toRial and toman * 10; finance ratioOf, toRial and v * 10
-		RuleReportingRead:    1,  // reporting SELECT FROM billing.invoice
-		RuleMetricFormula:    1,  // reporting count( outside the query spec
-		RuleExportEndpoint:   1,  // reporting /invoice-review/export
-		RuleFinanceRead:      1,  // finance SELECT FROM payments.payment_attempt
-		RuleFinanceReadWrite: 1,  // finance/http INSERT INTO finance.shadow_run
-		RuleFinanceRoute:     1,  // finance/http /ledger/{entry_id}/reverse
-		RuleFinanceFloat:     2,  // finance float64 parameter and result
-		RuleCrossUnitSum:     1,  // finance sum( without unit
-		RuleBusinessKey:      1,  // finance/domain Entry literal without BusinessKey
-		RuleBiawinSQL:        3,  // biawin UPDATE finance.* and FROM billing.*; fulfillment INTO billing.*
-		RuleBiawinReadWrite:  2,  // biawin/http INSERT; fulfillment/query UPDATE
-		RuleProviderCall:     4,  // biawin imports the provider, charge_wallet literal, ChargeWallet identifier; crm-api imports the provider
-		RuleForbiddenCommand: 10, // ChargeWallet, ActivateSubscription, CompleteDot, WriteProjectMembership, RunCommission, AssignExpert, ShipOrder, UploadEvidence + two command routes
+		RuleKernelImport:       4, // business module, net/http, os, math/rand in production code
+		RuleKernelClock:        2, // time.Now and .Local()
+		RuleKernelFloat:        2, // float64 parameter and float32 conversion
+		RuleMoneyConversion:    1,
+		RuleLegacyLiteral:      4, // kernel, business package, WooCommerce literal, .sql file
+		RuleLegacyRefFactory:   1,
+		RuleDotImport:          1,  // internal/sales/dotimport.go
+		RuleRuntimeDDL:         3,  // platform/bad CREATE TABLE; sales/ddl alter table + GRANT
+		RulePlatformImport:     1,  // platform/bad imports billing
+		RulePgtestImport:       2,  // pgtest from platform/bad; legacytest from the import tool
+		RuleForeignStore:       3,  // sales imports billing/store; authorization imports organization/store; connector imports customers/store
+		RuleLegacyImport:       4,  // + cases/http imports the legacy write-back connector; sales, crm-api and crm-migrate (non-migrations) import the connector
+		RuleModuleBoundary:     20, // + cases/command→billing/api; + biawin→billing/query, fulfillment→biawin/query; + finance→billing/query, commission→finance/api; + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
+		RuleForeignWrite:       8,  // + biawin UPDATE finance.*, fulfillment INSERT INTO billing.*; connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*; finance UPDATE billing.*; commission INSERT INTO finance.*
+		RuleReadPathImport:     8,  // + biawin/http and fulfillment/query import an import command; organization/http, customers/http, cases/http and crm-api import an import command; reporting/http imports the projection rebuild; finance/http imports the shadow rebuild
+		RuleMergePath:          2,  // customers MergeCustomers, canonicalizeByPhone
+		RuleAppendOnlyWrite:    7,  // + biawin UPDATE finance.ledger_entry, DELETE FROM biawin.subscription, fulfillment/query UPDATE fulfillment.*; custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact; finance DELETE FROM finance.ledger_entry
+		RulePhoneKey:           10, // + cases/command byPhone; + biawin phone join literal, phoneJoin and byPhone identifiers; custody, payments and reporting customer_phone joins; finance phone key literal + byPhone and mobileKey identifiers
+		RuleStatusFallback:     2,  // billing COALESCE status chain and resolveMainStatus
+		RuleUnitConversion:     5,  // payments toRial and toman * 10; finance ratioOf, toRial and v * 10
+		RuleReportingRead:      1,  // reporting SELECT FROM billing.invoice
+		RuleMetricFormula:      1,  // reporting count( outside the query spec
+		RuleExportEndpoint:     1,  // reporting /invoice-review/export
+		RuleFinanceRead:        1,  // finance SELECT FROM payments.payment_attempt
+		RuleFinanceReadWrite:   1,  // finance/http INSERT INTO finance.shadow_run
+		RuleFinanceRoute:       1,  // finance/http /ledger/{entry_id}/reverse
+		RuleFinanceFloat:       2,  // finance float64 parameter and result
+		RuleCrossUnitSum:       1,  // finance sum( without unit
+		RuleBusinessKey:        1,  // finance/domain Entry literal without BusinessKey
+		RuleBiawinSQL:          3,  // biawin UPDATE finance.* and FROM billing.*; fulfillment INTO billing.*
+		RuleBiawinReadWrite:    2,  // biawin/http INSERT; fulfillment/query UPDATE
+		RuleProviderCall:       4,  // biawin imports the provider, charge_wallet literal, ChargeWallet identifier; crm-api imports the provider
+		RuleS11FinancialImport: 1,  // cases/command → billing/api
+		RuleS11Forbidden:       5,  // IssueInvoice, ReturnCase, MarkReady, ApplyHRRequest + /cases/{case_id}/return
+		RuleS11HRIdentity:      1,  // GrantRole
+		RuleS11RankShortcut:    2,  // IsHigherRank, "manage_options"
+		RuleS11ReadPathSQL:     1,  // SQL in cases/http
+		RuleS11Outbox:          1,  // command write without outbox append
+		RuleS11DomainConnector: 2,  // cases/command → integration/writeback; cases/http → legacy/writeback
+		RuleS11Bulk:            1,  // BulkReassign
+		RuleS11BlindRetry:      1,  // Apply outside apply()
+		RuleForbiddenCommand:   10, // ChargeWallet, ActivateSubscription, CompleteDot, WriteProjectMembership, RunCommission, AssignExpert, ShipOrder, UploadEvidence + two command routes
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -237,7 +246,9 @@ func TestSliceThreeRules(t *testing.T) {
 }
 
 // TestAPIServerHasNoLegacyDependency proves, transitively, that the target
-// API server binary cannot reach the legacy connector.
+// API server binary cannot reach the legacy connector or the Biawin
+// provider. Slice 11 lets it read the integration-owned write-back
+// diagnostics (internal/integration/writeback, read service + http) only.
 func TestAPIServerHasNoLegacyDependency(t *testing.T) {
 	mod := modulePath(t)
 	cmd := exec.Command("go", "list", "-deps", "./cmd/crm-api")
@@ -247,7 +258,8 @@ func TestAPIServerHasNoLegacyDependency(t *testing.T) {
 		t.Fatalf("go list: %v", err)
 	}
 	for _, p := range strings.Fields(string(out)) {
-		if hasPrefixPath(p, mod+"/internal/integration") {
+		allowed := p == mod+"/internal/integration" || p == mod+"/internal/integration/writeback" || p == mod+"/internal/integration/writeback/http"
+		if hasPrefixPath(p, mod+"/internal/integration") && !allowed {
 			t.Errorf("crm-api depends on %s", p)
 		}
 	}
@@ -652,6 +664,58 @@ func TestSliceTenRules(t *testing.T) {
 	for _, id := range []string{"cancel", "assignments", "Activated", "ctx", "History"} {
 		if forbiddenCommand.MatchString(id) {
 			t.Errorf("%q wrongly flagged", id)
+		}
+	}
+}
+
+// TestSliceElevenRules proves each Slice 11 rule fires where intended and the
+// evidenced command routes stay clean.
+func TestSliceElevenRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct {
+		file, rule string
+		n          int
+	}{
+		{"internal/cases/command/bad.go", RuleS11FinancialImport, 1},
+		{"internal/cases/command/bad.go", RuleS11DomainConnector, 1},
+		{"internal/cases/command/bad.go", RuleS11Outbox, 1},
+		{"internal/cases/command/bad.go", RuleS11Forbidden, 3},
+		{"internal/cases/command/bad.go", RuleS11RankShortcut, 1},
+		{"internal/cases/command/bad.go", RuleS11Bulk, 1},
+		{"internal/cases/command/bad.go", RulePhoneKey, 1},
+		{"internal/organization/hrrequest/bad.go", RuleS11HRIdentity, 1},
+		{"internal/organization/hrrequest/bad.go", RuleS11RankShortcut, 1},
+		{"internal/organization/hrrequest/bad.go", RuleS11Forbidden, 1},
+		{"internal/cases/http/command.go", RuleS11ReadPathSQL, 1},
+		{"internal/cases/http/command.go", RuleS11Forbidden, 1},
+		{"internal/cases/http/command.go", RuleS11DomainConnector, 1},
+		{"internal/integration/writeback/retry.go", RuleS11BlindRetry, 1},
+	}
+	for _, w := range want {
+		n := 0
+		for _, v := range vs {
+			if v.File == w.file && v.Rule == w.rule {
+				n++
+			}
+		}
+		if n != w.n {
+			t.Errorf("rule %s fired %d times in %s, want %d", w.rule, n, w.file, w.n)
+		}
+	}
+	for _, s := range []string{"/api/v1/cases/{case_id}/return", "/api/v1/cases/{case_id}/ready", "/api/v1/invoices/{invoice_id}/issue",
+		"/api/v1/custody/transfers", "/api/v1/custody/allocations", "/api/v1/hr/requests/{request_id}/apply", "/api/v1/cases/{case_id}/transitions",
+		"/api/v1/cases/bulk"} {
+		if !s11Route.MatchString(s) {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	for _, s := range []string{"/api/v1/cases/{case_id}/contact-outcomes", "/api/v1/hr/requests", "/api/v1/hr/requests/{request_id}/decisions",
+		"/api/v1/cases/{case_id}/history", "/api/v1/custody/cases/{case_id}"} {
+		if s11Route.MatchString(s) {
+			t.Errorf("%q wrongly flagged", s)
 		}
 	}
 }

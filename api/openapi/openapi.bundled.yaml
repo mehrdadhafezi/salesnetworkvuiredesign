@@ -46,6 +46,8 @@ tags:
     description: Slice 10 Biawin subscription READ shadow and active subscription parity (GET only; no activation, provider or wallet operation).
   - name: fulfillment
     description: Slice 10 fulfillment READ shadow — service follow-up, execution, upgrade execution and shipping cases (GET only; no workflow, assignment, shipping or completion operation).
+  - name: writeback
+    description: Slice 11 legacy write-back diagnostics (read only; no fix action).
   - name: reporting
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: billing
@@ -2307,6 +2309,338 @@ paths:
           $ref: '#/components/responses/Problem'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/cases/{case_id}/contact-outcomes:
+    get:
+      tags:
+        - sales
+      operationId: getCaseContactOutcomes
+      summary: Contact outcome facts of one case (read; allowed_actions from the command evaluator)
+      description: |
+        Requires cases.case.read (flag sales.read_shadow). Read only: never writes, enqueues or reconciles anything.
+        allowed_actions[cases.contact_outcome.record] is computed by the same evaluator the command uses (capability + holder row scope + rollout mode).
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactOutcomeEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      tags:
+        - sales
+      operationId: recordContactOutcome
+      summary: Record the holder seller's contact outcome (NO_ANSWER / CALLBACK / NOT_PURCHASED)
+      description: |
+        Requires cases.contact_outcome.record; flag cases.nonfinancial_write (rollout mode SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays the stored result; same key + another body is 409 CONFLICT.
+        Every authority, scope, state and version check is re-evaluated at commit. Unknown body fields are 400.
+        SUCCESS with applied=true means the TARGET committed; the legacy write-back is reported separately and may be pending or unknown.
+        Row scope: the actor must be the case's current holder; rank never substitutes. Only legacy leads.
+        DUPLICATE (D-29/D-31) and PRE_INVOICE (ADR-01) are BLOCKED. Never changes custody, attribution, invoice, payment or finance.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactOutcomeRequest'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          description: CONFLICT (stale version, idempotency key reused with another request, duplicate open request).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandEnvelope'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/hr/requests:
+    get:
+      tags:
+        - organization
+      operationId: listHRRequests
+      summary: HR change requests the caller requested or currently reviews
+      description: |
+        Requires org.hr_request.read (flag organization.hr_request_write). Read only.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HRRequestListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      tags:
+        - organization
+      operationId: createHRRequest
+      summary: Create an HR change request (transfer_seller / terminate_seller)
+      description: |
+        Requires org.hr_request.create; flag organization.hr_request_write (rollout mode SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays the stored result; same key + another body is 409 CONFLICT.
+        Every authority, scope, state and version check is re-evaluated at commit. Unknown body fields are 400.
+        SUCCESS with applied=true means the TARGET committed; the legacy write-back is reported separately and may be pending or unknown.
+        Subject must be a seller below the actor in the current hierarchy; a transfer destination outside the actor's scope or equal to the current parent is BLOCKED (SD-04).
+        Creating a request applies nothing: no hierarchy, employment, credential or capability change (OPD-05, D-34, D-42).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HRRequestCreateRequest'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '409':
+          description: CONFLICT (stale version, idempotency key reused with another request, duplicate open request).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandEnvelope'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/hr/requests/{request_id}:
+    get:
+      tags:
+        - organization
+      operationId: getHRRequest
+      summary: One HR change request with its append-only history
+      description: |
+        Requires org.hr_request.read (flag organization.hr_request_write). Visible to its requester and current reviewer only.
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HRRequestEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/hr/requests/{request_id}/decisions:
+    post:
+      tags:
+        - organization
+      operationId: decideHRRequest
+      summary: Step-approve or reject an HR change request as its current reviewer
+      description: |
+        Requires org.hr_request.review; flag organization.hr_request_write (rollout mode SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays the stored result; same key + another body is 409 CONFLICT.
+        Every authority, scope, state and version check is re-evaluated at commit. Unknown body fields are 400.
+        SUCCESS with applied=true means the TARGET committed; the legacy write-back is reported separately and may be pending or unknown.
+        Only the current reviewer of a pending_review request. Final apply (pending_hr / HR) is BLOCKED (OPD-05, SD-04): approved is never reached.
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HRDecisionRequest'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          description: CONFLICT (stale version, idempotency key reused with another request, duplicate open request).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandEnvelope'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/writeback/summary:
+    get:
+      tags:
+        - writeback
+      operationId: getWritebackSummary
+      summary: 'Write-back diagnostics: states, parity and reconciliation backlog (counts only)'
+      description: |
+        Requires integration.writeback.read (flag integration.writeback_read). Read only; no PII; no payloads; no fix action.
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WritebackSummaryEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/writeback/commands:
+    get:
+      tags:
+        - writeback
+      operationId: listWritebackCommands
+      summary: Write-back commands (bounded list)
+      description: |
+        Requires integration.writeback.read (flag integration.writeback_read). Read only; no payloads.
+      parameters:
+        - $ref: '#/components/parameters/WritebackStateFilter'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WritebackCommandListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/writeback/commands/{command_id}:
+    get:
+      tags:
+        - writeback
+      operationId: getWritebackCommand
+      summary: One write-back command with its attempts and reconciliation records
+      description: |
+        Requires integration.writeback.read (flag integration.writeback_read), or the command's own target actor through the domain read.
+      parameters:
+        - name: command_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WritebackCommandEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
 components:
   parameters:
     CorrelationID:
@@ -2931,6 +3265,12 @@ components:
       schema:
         type: string
         format: uuid
+    WritebackStateFilter:
+      name: state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/WritebackState'
   headers:
     CorrelationID:
       description: Correlation id of this request (inbound value when valid, otherwise generated).
@@ -3289,6 +3629,9 @@ components:
             - reporting_read
             - finance_shadow_read
             - biawin_fulfillment_read
+            - contact_outcome_write
+            - hr_request_write
+            - writeback_read
           additionalProperties: false
           properties:
             hr_read:
@@ -3311,6 +3654,15 @@ components:
             biawin_fulfillment_read:
               type: boolean
               description: Slice 10 Biawin / fulfillment READ shadow (flag biawin_fulfillment.read_shadow). Read only; no portal, activation or workflow action.
+            contact_outcome_write:
+              type: boolean
+              description: Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server.
+            hr_request_write:
+              type: boolean
+              description: Slice 11 HR change request family enabled (flag organization.hr_request_write). Navigation hint only.
+            writeback_read:
+              type: boolean
+              description: Slice 11 write-back diagnostics (flag integration.writeback_read). Read only.
     SessionEnvelope:
       type: object
       required:
@@ -4108,6 +4460,11 @@ components:
         - biawin.subscription.read
         - fulfillment.case.read
         - biawin.parity.read
+        - cases.contact_outcome.record
+        - org.hr_request.create
+        - org.hr_request.review
+        - org.hr_request.read
+        - integration.writeback.read
     AccessDecision:
       type: object
       required:
@@ -9228,3 +9585,700 @@ components:
           $ref: '#/components/schemas/PageInfo'
         allowed_actions:
           $ref: '#/components/schemas/AllowedActions'
+    RolloutMode:
+      type: string
+      description: TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+      enum:
+        - TARGET_WRITE_DISABLED
+        - SHADOW_COMPARE
+        - CONTROLLED_WRITEBACK
+    ContactOutcomeCurrent:
+      type: object
+      required:
+        - outcome
+        - last_command_id
+        - recorded_at
+      additionalProperties: false
+      properties:
+        outcome:
+          type: string
+          enum:
+            - NO_ANSWER
+            - CALLBACK
+            - NOT_PURCHASED
+        reason:
+          type: string
+          maxLength: 1000
+          nullable: true
+        callback_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_command_id:
+          type: string
+          format: uuid
+        recorded_at:
+          $ref: '#/components/schemas/Timestamp'
+    ContactOutcomeEvent:
+      type: object
+      description: Append-only contact outcome history.
+      required:
+        - event_id
+        - command_id
+        - outcome
+        - before_version
+        - after_version
+        - actor_user_id
+        - correlation_id
+        - occurred_at
+      additionalProperties: false
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        command_id:
+          type: string
+          format: uuid
+        outcome:
+          type: string
+          maxLength: 40
+        reason:
+          type: string
+          maxLength: 1000
+          nullable: true
+        callback_at:
+          type: string
+          format: date-time
+          nullable: true
+        previous_outcome:
+          type: string
+          maxLength: 40
+          nullable: true
+        before_version:
+          type: integer
+          format: int64
+        after_version:
+          type: integer
+          format: int64
+        actor_user_id:
+          type: string
+          format: uuid
+        correlation_id:
+          type: string
+          maxLength: 128
+        occurred_at:
+          $ref: '#/components/schemas/Timestamp'
+    BlockedAction:
+      type: object
+      description: An action that exists in legacy but is unavailable here, with the decisions blocking it. Never clickable.
+      required:
+        - action
+        - blocked_by
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          maxLength: 60
+        blocked_by:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 60
+    ContactOutcomeView:
+      type: object
+      description: The case's contact outcome facts. The contact outcome is never the case state, ready state, invoice or payment state.
+      required:
+        - case_id
+        - case_version
+        - workflow_type
+        - rollout_mode
+        - history
+        - blocked_actions
+      additionalProperties: false
+      properties:
+        case_id:
+          type: string
+          format: uuid
+        case_version:
+          type: integer
+          format: int64
+        workflow_type:
+          type: string
+          maxLength: 40
+        rollout_mode:
+          $ref: '#/components/schemas/RolloutMode'
+        current:
+          $ref: '#/components/schemas/ContactOutcomeCurrent'
+        history:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ContactOutcomeEvent'
+        blocked_actions:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/BlockedAction'
+    ContactOutcomeEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/ContactOutcomeView'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ContactOutcomeRequest:
+      type: object
+      description: Field scope of RecordContactOutcome. DUPLICATE (D-29/D-31) and PRE_INVOICE (ADR-01) are accepted only to be refused as BLOCKED.
+      required:
+        - outcome
+      additionalProperties: false
+      properties:
+        outcome:
+          type: string
+          enum:
+            - NO_ANSWER
+            - CALLBACK
+            - NOT_PURCHASED
+            - DUPLICATE
+            - PRE_INVOICE
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        callback_at:
+          $ref: '#/components/schemas/Timestamp'
+    CommandWritebackState:
+      type: string
+      description: Write-back state at commit time. The final legacy outcome is read from the write-back command (never assumed).
+      enum:
+        - LEGACY_WRITEBACK_PENDING
+        - NOT_REQUESTED
+    CommandResult:
+      type: object
+      required:
+        - rollout_mode
+        - applied
+        - writeback_state
+        - blocked_by
+      additionalProperties: false
+      properties:
+        command_id:
+          type: string
+          format: uuid
+          nullable: true
+        rollout_mode:
+          $ref: '#/components/schemas/RolloutMode'
+        applied:
+          type: boolean
+        writeback_state:
+          $ref: '#/components/schemas/CommandWritebackState'
+        blocked_by:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 60
+        version:
+          type: integer
+          format: int64
+          nullable: true
+        current_version:
+          type: integer
+          format: int64
+          nullable: true
+        request_id:
+          type: string
+          format: uuid
+          nullable: true
+        request_status:
+          type: string
+          maxLength: 40
+          nullable: true
+        replayed:
+          type: boolean
+    CommandEnvelope:
+      type: object
+      description: 'Result of one command: SUCCESS (applied or shadow-evaluated), BLOCKED (feature or policy), UNKNOWN (reconcile, never resubmit blindly).'
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        command:
+          $ref: '#/components/schemas/CommandResult'
+    HRRequestType:
+      type: string
+      enum:
+        - transfer_seller
+        - terminate_seller
+    HRRequestStatus:
+      type: string
+      description: Legacy HR request namespace (preserved). pending_hr is NOT applied; approved / failed are never reached in Slice 11.
+      enum:
+        - pending_review
+        - pending_hr
+        - approved
+        - rejected
+        - cancelled
+        - failed
+    HRRequest:
+      type: object
+      description: Requester, subject parent, target and reviewer are snapshots taken at the transition.
+      required:
+        - request_id
+        - request_type
+        - status
+        - subject_user_id
+        - requested_by_user_id
+        - reason
+        - version
+        - created_at
+        - updated_at
+        - blocked_actions
+      additionalProperties: false
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        request_type:
+          $ref: '#/components/schemas/HRRequestType'
+        status:
+          $ref: '#/components/schemas/HRRequestStatus'
+        subject_user_id:
+          type: string
+          format: uuid
+        subject_parent_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        target_parent_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        requested_by_user_id:
+          type: string
+          format: uuid
+        current_reviewer_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        reason:
+          type: string
+          maxLength: 1000
+        reviewer_notes:
+          type: string
+          maxLength: 1000
+          nullable: true
+        version:
+          type: integer
+          format: int64
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+        blocked_actions:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/BlockedAction'
+    HRRequestListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        rollout_mode:
+          $ref: '#/components/schemas/RolloutMode'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/HRRequest'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    HRRequestCreateRequest:
+      type: object
+      required:
+        - request_type
+        - subject_user_id
+        - reason
+      additionalProperties: false
+      properties:
+        request_type:
+          $ref: '#/components/schemas/HRRequestType'
+        subject_user_id:
+          type: string
+          format: uuid
+        target_parent_user_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    HRRequestEvent:
+      type: object
+      description: Append-only HR request history.
+      required:
+        - event_id
+        - command_id
+        - action
+        - to_status
+        - after_version
+        - actor_user_id
+        - correlation_id
+        - occurred_at
+      additionalProperties: false
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        command_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum:
+            - created
+            - approved_step
+            - rejected
+        from_status:
+          type: string
+          maxLength: 40
+          nullable: true
+        to_status:
+          type: string
+          maxLength: 40
+        next_reviewer_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        notes:
+          type: string
+          maxLength: 1000
+          nullable: true
+        after_version:
+          type: integer
+          format: int64
+        actor_user_id:
+          type: string
+          format: uuid
+        correlation_id:
+          type: string
+          maxLength: 128
+        occurred_at:
+          $ref: '#/components/schemas/Timestamp'
+    HRRequestEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        rollout_mode:
+          $ref: '#/components/schemas/RolloutMode'
+        request:
+          $ref: '#/components/schemas/HRRequest'
+        history:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/HRRequestEvent'
+    HRDecisionRequest:
+      type: object
+      required:
+        - decision
+      additionalProperties: false
+      properties:
+        decision:
+          type: string
+          enum:
+            - approve
+            - reject
+        notes:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    WritebackCount:
+      type: object
+      required:
+        - key
+        - count
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+          maxLength: 60
+        count:
+          type: integer
+          format: int64
+    WritebackSummary:
+      type: object
+      description: 'Bounded diagnostics: pending, unknown, reconciliation backlog and parity counts. No PII, no payloads.'
+      required:
+        - states
+        - parity
+        - reconciliations
+      additionalProperties: false
+      properties:
+        states:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/WritebackCount'
+        parity:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/WritebackCount'
+        reconciliations:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/WritebackCount'
+    WritebackSummaryEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/WritebackSummary'
+    WritebackState:
+      type: string
+      description: APPLIED only when legacy reported SUCCESS or observation proved the effect; UNKNOWN is reconciled before any retry; REJECTED keeps target history and opens reconciliation.
+      enum:
+        - PENDING
+        - WAITING_DEPENDENCY
+        - APPLIED
+        - UNKNOWN
+        - REJECTED
+        - RECONCILIATION_REQUIRED
+        - COMPARED
+    ParityResult11:
+      type: string
+      enum:
+        - MATCH
+        - MISMATCH
+        - UNKNOWN
+        - CONFLICT
+        - INCOMPLETE
+    WritebackAttempt:
+      type: object
+      required:
+        - attempt_no
+        - kind
+        - outcome
+        - reasons
+        - service_actor
+        - started_at
+        - finished_at
+      additionalProperties: false
+      properties:
+        attempt_no:
+          type: integer
+        kind:
+          type: string
+          enum:
+            - APPLY
+            - OBSERVE
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        observation:
+          type: string
+          enum:
+            - COMMITTED
+            - ABSENT
+            - AMBIGUOUS
+            - UNKNOWN
+          nullable: true
+        reasons:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 80
+        legacy_ref:
+          type: string
+          maxLength: 128
+          nullable: true
+        service_actor:
+          type: string
+          maxLength: 80
+        started_at:
+          $ref: '#/components/schemas/Timestamp'
+        finished_at:
+          $ref: '#/components/schemas/Timestamp'
+    WritebackReconciliation:
+      type: object
+      required:
+        - reason
+        - attempt_no
+        - next_safe_action
+        - opened_at
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          enum:
+            - WRITEBACK_UNKNOWN
+            - WRITEBACK_REJECTED
+            - PARITY_MISMATCH
+            - LEGACY_AMBIGUOUS
+        attempt_no:
+          type: integer
+        next_safe_action:
+          type: string
+          enum:
+            - OBSERVE_LEGACY_BEFORE_RETRY
+            - DOMAIN_OWNER_REVIEW
+            - NO_AUTOMATIC_ACTION
+        opened_at:
+          $ref: '#/components/schemas/Timestamp'
+    WritebackCommand:
+      type: object
+      description: 'One target command''s legacy write-back (no intent payload: no PII).'
+      required:
+        - command_id
+        - source_module
+        - command_type
+        - subject_kind
+        - subject_id
+        - rollout_mode
+        - state
+        - attempts
+        - received_at
+        - updated_at
+      additionalProperties: false
+      properties:
+        command_id:
+          type: string
+          format: uuid
+        source_module:
+          type: string
+          enum:
+            - cases
+            - organization
+        command_type:
+          type: string
+          maxLength: 80
+        subject_kind:
+          type: string
+          enum:
+            - case
+            - hr_request
+        subject_id:
+          type: string
+          format: uuid
+        rollout_mode:
+          type: string
+          enum:
+            - SHADOW_COMPARE
+            - CONTROLLED_WRITEBACK
+        state:
+          $ref: '#/components/schemas/WritebackState'
+        parity:
+          $ref: '#/components/schemas/ParityResult11'
+        attempts:
+          type: integer
+        legacy_ref:
+          type: string
+          maxLength: 128
+          nullable: true
+        received_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+        attempt_log:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/WritebackAttempt'
+        reconciliations:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/WritebackReconciliation'
+    WritebackCommandListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/WritebackCommand'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    WritebackCommandEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/WritebackCommand'

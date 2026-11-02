@@ -148,6 +148,29 @@ func UserIDsByKey(ctx context.Context, tx db.Tx, system string, keys []string) (
 	return out, rows.Err()
 }
 
+// UserKeysByID maps target user ids to their legacy source keys (the inverse
+// of UserIDsByKey). Unknown ids are absent from the result.
+func UserKeysByID(ctx context.Context, tx db.Tx, system string, ids []string) (map[string]string, error) {
+	if tx.Module() != identity.Module {
+		return nil, ErrWrongOwner
+	}
+	rows, err := tx.Query(ctx, `SELECT user_id::text, source_key FROM identity.user_account
+		WHERE source_system = $1 AND user_id::text = ANY($2)`, system, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var id, k string
+		if err := rows.Scan(&id, &k); err != nil {
+			return nil, err
+		}
+		out[id] = k
+	}
+	return out, rows.Err()
+}
+
 // GrantBasisLegacyProfileRole is the only Slice 4 grant basis.
 const GrantBasisLegacyProfileRole = "LEGACY_PROFILE_ROLE"
 

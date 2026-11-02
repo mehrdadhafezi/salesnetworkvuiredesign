@@ -175,6 +175,32 @@
 //     identity, join, dedupe or provider key.
 //   - legacy-import also allows cmd/crm-biawin-shadow (the offline job).
 //
+// Slice 11 rules (controlled non-financial writes; ADR-01 candidate, F01,
+// OPD-02/03/05/10, SD-04, D-29..D-42 open):
+//
+//   - s11-financial-import: cases, custody and organization never import
+//     billing, payments, finance, commission, biawin or fulfillment.
+//   - s11-forbidden-command: no IssueInvoice / ClaimCaseForInvoice, no
+//     return / release / reset / revival, no transfer / allocation, no
+//     MarkReady, no HR final apply and no generic state transition (as an
+//     identifier or a route literal) before the owning decision is approved.
+//   - s11-hr-identity-write: organization never grants roles / capabilities
+//     or writes credentials (D-34, D-42).
+//   - s11-rank-shortcut: no "admin / higher rank may act" shortcut
+//     identifier and no manage_options literal outside the legacy tree.
+//   - s11-read-path-sql: the cases / custody / organization / write-back
+//     http packages hold no SQL (GET purity and command delegation).
+//   - s11-outbox-required: a command file that writes SQL also appends to
+//     its own outbox in the same code (no "commit then best-effort event").
+//   - s11-domain-connector: domains and their http handlers never import
+//     the write-back worker or the legacy connector.
+//   - s11-unguarded-bulk: no bulk / mass-update / fix-all identifier.
+//   - s11-blind-retry: in the write-back worker, a connector Apply call
+//     appears only in apply() (the write-ahead UNKNOWN claim path); every
+//     other path observes (reconciles) first.
+//   - phone-key also covers cases/command, organization/hrrequest and
+//     integration/writeback.
+//
 // Test files are composition roots for module-boundary (as cmd/ is); every
 // other rule applies to them as before.
 package architecture
@@ -207,40 +233,79 @@ func (v Violation) String() string {
 
 // Rule names.
 const (
-	RuleKernelImport     = "kernel-import"
-	RuleKernelClock      = "kernel-clock"
-	RuleKernelFloat      = "kernel-float"
-	RuleMoneyConversion  = "money-conversion"
-	RuleLegacyLiteral    = "legacy-literal"
-	RuleLegacyRefFactory = "legacyref-factory"
-	RuleDotImport        = "dot-import"
-	RuleRuntimeDDL       = "runtime-ddl"
-	RulePlatformImport   = "platform-import"
-	RuleForeignStore     = "foreign-store"
-	RulePgtestImport     = "pgtest-import"
-	RuleLegacyImport     = "legacy-import"
-	RuleModuleBoundary   = "module-boundary"
-	RuleForeignWrite     = "foreign-schema-write"
-	RuleReadPathImport   = "read-path-import"
-	RuleMergePath        = "merge-path"
-	RuleAppendOnlyWrite  = "append-only-write"
-	RulePhoneKey         = "phone-key"
-	RuleStatusFallback   = "status-fallback"
-	RuleUnitConversion   = "money-unit-conversion"
-	RuleReportingRead    = "reporting-foreign-read"
-	RuleMetricFormula    = "metric-formula"
-	RuleExportEndpoint   = "export-endpoint"
-	RuleFinanceRead      = "finance-foreign-read"
-	RuleFinanceReadWrite = "finance-read-write"
-	RuleFinanceRoute     = "finance-write-route"
-	RuleFinanceFloat     = "finance-float"
-	RuleCrossUnitSum     = "finance-cross-unit-sum"
-	RuleBusinessKey      = "finance-business-key"
-	RuleBiawinSQL        = "biawin-foreign-sql"
-	RuleBiawinReadWrite  = "biawin-read-write"
-	RuleProviderCall     = "biawin-provider-call"
-	RuleForbiddenCommand = "biawin-forbidden-command"
+	RuleKernelImport       = "kernel-import"
+	RuleKernelClock        = "kernel-clock"
+	RuleKernelFloat        = "kernel-float"
+	RuleMoneyConversion    = "money-conversion"
+	RuleLegacyLiteral      = "legacy-literal"
+	RuleLegacyRefFactory   = "legacyref-factory"
+	RuleDotImport          = "dot-import"
+	RuleRuntimeDDL         = "runtime-ddl"
+	RulePlatformImport     = "platform-import"
+	RuleForeignStore       = "foreign-store"
+	RulePgtestImport       = "pgtest-import"
+	RuleLegacyImport       = "legacy-import"
+	RuleModuleBoundary     = "module-boundary"
+	RuleForeignWrite       = "foreign-schema-write"
+	RuleReadPathImport     = "read-path-import"
+	RuleMergePath          = "merge-path"
+	RuleAppendOnlyWrite    = "append-only-write"
+	RulePhoneKey           = "phone-key"
+	RuleStatusFallback     = "status-fallback"
+	RuleUnitConversion     = "money-unit-conversion"
+	RuleReportingRead      = "reporting-foreign-read"
+	RuleMetricFormula      = "metric-formula"
+	RuleExportEndpoint     = "export-endpoint"
+	RuleFinanceRead        = "finance-foreign-read"
+	RuleFinanceReadWrite   = "finance-read-write"
+	RuleFinanceRoute       = "finance-write-route"
+	RuleFinanceFloat       = "finance-float"
+	RuleCrossUnitSum       = "finance-cross-unit-sum"
+	RuleBusinessKey        = "finance-business-key"
+	RuleBiawinSQL          = "biawin-foreign-sql"
+	RuleBiawinReadWrite    = "biawin-read-write"
+	RuleProviderCall       = "biawin-provider-call"
+	RuleForbiddenCommand   = "biawin-forbidden-command"
+	RuleS11FinancialImport = "s11-financial-import"
+	RuleS11Forbidden       = "s11-forbidden-command"
+	RuleS11HRIdentity      = "s11-hr-identity-write"
+	RuleS11RankShortcut    = "s11-rank-shortcut"
+	RuleS11ReadPathSQL     = "s11-read-path-sql"
+	RuleS11Outbox          = "s11-outbox-required"
+	RuleS11DomainConnector = "s11-domain-connector"
+	RuleS11Bulk            = "s11-unguarded-bulk"
+	RuleS11BlindRetry      = "s11-blind-retry"
 )
+
+// Slice 11 trees.
+var (
+	s11Domains   = []string{"internal/cases", "internal/custody", "internal/organization"}
+	s11Commands  = []string{"internal/cases/command", "internal/organization/hrrequest"}
+	s11Writeback = "internal/integration/writeback"
+	s11Trees     = []string{"internal/cases", "internal/custody", "internal/organization", "internal/integration/writeback",
+		"internal/platform/apiserver", "cmd/crm-api"}
+	s11HTTP = []string{"internal/cases/http", "internal/custody/http", "internal/organization/http", "internal/integration/writeback/http"}
+	// s11Financial are the modules Slice 11 domains never import.
+	s11Financial = map[string]bool{"billing": true, "payments": true, "finance": true, "commission": true, "biawin": true, "fulfillment": true}
+)
+
+// s11Command matches identifiers of commands Slice 11 must not activate.
+var s11Command = regexp.MustCompile(`(?i)^(issueinvoice|claimcaseforinvoice|returncase|releasecase|resetcase|revivecase|reviveArchive|` +
+	`transfercase|transfercustody|allocatecase|allocatetoseller|markready|markcaseready|applyhrrequest|finalizehrrequest|applyfinal|` +
+	`transitionstate|settransition|setstate|setstatus)$`)
+
+// s11Route matches a route literal of such a command.
+var s11Route = regexp.MustCompile(`(?i)/(cases|custody|invoices|hr/requests)(/[a-z0-9_{}-]+)*/(return|returns|release|reset|revive|issue|ready|` +
+	`transfer|transfers|allocate|allocations|apply|transition|transitions|claim|claims|bulk)\b`)
+
+// s11HRIdentity matches identity / credential writes from organization.
+var s11HRIdentity = regexp.MustCompile(`(?i)(grantrole|grantcapabilit|assignrole|setpassword|resetpassword|createcredential|createuseraccount)`)
+
+// s11Rank matches "rank implies permission" shortcuts.
+var s11Rank = regexp.MustCompile(`(?i)^(isadmin|isadministrator|issuperuser|ishigherrank|outranks|rankallows|canactbyrank|isancestorallowed)$`)
+
+// s11Bulk matches unguarded bulk mutation identifiers.
+var s11Bulk = regexp.MustCompile(`(?i)^(bulk[a-z]*|massupdate|updateall|applyall|fixall)$`)
 
 // slice10Modules are the Slice 10 module trees.
 var slice10Modules = []string{"internal/biawin", "internal/fulfillment"}
@@ -349,7 +414,9 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 	}
 	switch {
 	case top == "integration":
-		return rest == "api" || other == "authorization" && rest == ""
+		// The write-back diagnostics HTTP adapter (Slice 11) uses the shared
+		// authorization HTTP helpers like every module's http package.
+		return rest == "api" || other == "authorization" && (rest == "" || rest == "http" && under(rel, "internal/integration/writeback/http"))
 	case !slice4Modules[top] || !slice4Modules[other]:
 		return true
 	case top == "identity" && other == "organization":
@@ -549,6 +616,13 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		if full := internalTop + "/" + internalRest; hasPrefixPath(full, strings.TrimPrefix(providerPkg, "internal/")) && !under(rel, providerPkg) {
 			add(RuleProviderCall, imp.Pos(), "imports the Biawin provider "+p+"; no provider is wired in Slice 10")
 		}
+		if !isTest && inAny(rel, s11Domains) && s11Financial[internalTop] {
+			add(RuleS11FinancialImport, imp.Pos(), "Slice 11 domain imports the financial / Biawin module "+p)
+		}
+		if full := internalTop + "/" + internalRest; !isTest && (hasPrefixPath(full, "integration/writeback") || hasPrefixPath(full, "integration/legacy/writeback")) &&
+			(inAny(rel, s11Domains) || (inAny(rel, s11HTTP) && !under(rel, "internal/integration/writeback/http"))) {
+			add(RuleS11DomainConnector, imp.Pos(), "domain code imports the write-back / legacy connector "+p)
+		}
 		if internalRest == "imports" || strings.HasPrefix(internalRest, "imports/") {
 			readPath := false
 			for _, d := range readPathDirs {
@@ -614,6 +688,18 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 					if inFinance && phoneIdent.MatchString(s) {
 						add(RulePhoneKey, x.Pos(), "phone / mobile in a finance literal; never an account key, filter or join")
 					}
+					if !isTest && inAny(rel, s11Trees) && s11Route.MatchString(s) {
+						add(RuleS11Forbidden, x.Pos(), "Slice 11 forbidden command route literal: "+s11Route.FindString(s))
+					}
+					if !isTest && !under(rel, legacyInteg) && !under(rel, architectureDir) && strings.Contains(s, "manage_options") {
+						add(RuleS11RankShortcut, x.Pos(), "administrator capability literal outside the legacy tree")
+					}
+					if !isTest && inAny(rel, s11HTTP) && sqlish.MatchString(s) && (strings.Contains(strings.ToLower(s), " from ") || writeSQL.MatchString(s)) {
+						add(RuleS11ReadPathSQL, x.Pos(), "SQL in a Slice 11 http package")
+					}
+					if !isTest && (inAny(rel, s11Commands) || under(rel, s11Writeback)) && phoneIdent.MatchString(s) {
+						add(RulePhoneKey, x.Pos(), "phone / mobile in a Slice 11 command literal; never a command identity or join")
+					}
 					inSlice10 := !isTest && inAny(rel, slice10Modules)
 					if inSlice10 && biawinForeignSQL.MatchString(s) {
 						add(RuleBiawinSQL, x.Pos(), "biawin / fulfillment SQL names another schema: "+biawinForeignSQL.FindString(s))
@@ -674,6 +760,21 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			if !isTest && !under(rel, architectureDir) && !under(rel, providerPkg) && providerWrite.MatchString(x.Name) {
 				add(RuleProviderCall, x.Pos(), "Biawin provider write identifier "+x.Name+" outside "+providerPkg)
 			}
+			if !isTest && inAny(rel, s11Trees) && s11Command.MatchString(x.Name) {
+				add(RuleS11Forbidden, x.Pos(), "Slice 11 forbidden command identifier "+x.Name)
+			}
+			if !isTest && under(rel, "internal/organization") && s11HRIdentity.MatchString(x.Name) {
+				add(RuleS11HRIdentity, x.Pos(), "organization identity / credential write identifier "+x.Name)
+			}
+			if !isTest && !under(rel, architectureDir) && !under(rel, legacyInteg) && s11Rank.MatchString(x.Name) {
+				add(RuleS11RankShortcut, x.Pos(), "rank-implies-permission identifier "+x.Name)
+			}
+			if !isTest && inAny(rel, s11Trees) && s11Bulk.MatchString(x.Name) {
+				add(RuleS11Bulk, x.Pos(), "unguarded bulk mutation identifier "+x.Name)
+			}
+			if !isTest && (inAny(rel, s11Commands) || under(rel, s11Writeback)) && phoneIdent.MatchString(x.Name) {
+				add(RulePhoneKey, x.Pos(), "phone / mobile identifier "+x.Name+" in a Slice 11 command")
+			}
 			if !isTest && inAny(rel, slice10Trees) && forbiddenCommand.MatchString(x.Name) {
 				add(RuleForbiddenCommand, x.Pos(), "Slice 10 forbidden command identifier "+x.Name)
 			}
@@ -715,7 +816,57 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		}
 		return true
 	})
+	if !isTest {
+		out = append(out, checkSlice11File(f, fset, rel)...)
+	}
 	return out, nil
+}
+
+// checkSlice11File applies the file-level Slice 11 rules: an outbox append
+// accompanies every command write, and the write-back worker calls a
+// connector Apply only from apply() (reconcile-before-retry elsewhere).
+func checkSlice11File(f *ast.File, fset *token.FileSet, rel string) []Violation {
+	var out []Violation
+	add := func(rule string, pos token.Pos, text string) {
+		out = append(out, Violation{Rule: rule, File: rel, Line: fset.Position(pos).Line, Text: text})
+	}
+	if inAny(rel, s11Commands) {
+		var write token.Pos
+		appends := false
+		ast.Inspect(f, func(n ast.Node) bool {
+			switch x := n.(type) {
+			case *ast.BasicLit:
+				if v, err := strconv.Unquote(x.Value); x.Kind == token.STRING && err == nil && write == token.NoPos && writeSQL.MatchString(v) {
+					write = x.Pos()
+				}
+			case *ast.SelectorExpr:
+				if id, ok := x.X.(*ast.Ident); ok && id.Name == "outbox" && x.Sel.Name == "Append" {
+					appends = true
+				}
+			}
+			return true
+		})
+		if write != token.NoPos && !appends {
+			add(RuleS11Outbox, write, "command writes SQL without appending to its own outbox in the same code")
+		}
+	}
+	if under(rel, s11Writeback) {
+		for _, d := range f.Decls {
+			fd, ok := d.(*ast.FuncDecl)
+			if !ok || fd.Body == nil || fd.Name.Name == "apply" {
+				continue
+			}
+			ast.Inspect(fd.Body, func(n ast.Node) bool {
+				if c, ok := n.(*ast.CallExpr); ok {
+					if sel, ok := c.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Apply" {
+						add(RuleS11BlindRetry, c.Pos(), "connector Apply outside apply(): an UNKNOWN command must be observed (reconciled) before any retry")
+					}
+				}
+				return true
+			})
+		}
+	}
+	return out
 }
 
 // isEntryType reports a composite literal of the ledger Entry type.

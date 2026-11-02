@@ -164,12 +164,28 @@ jobs:
           hits="$(grep -rniE 'create_?order|charge_?wallet' --include=*.go --include=*.ts --include=*.tsx internal cmd web/src | grep -vE '^internal/(integration/biawin|architecture)/' | grep -vE '_test\.go:|\.test\.tsx?:' || true)"
           if [ -n "$hits" ]; then echo "provider write operation named outside internal/integration/biawin:"; echo "$hits"; exit 1; fi
 
-      - name: Slice 3 boundary — crm-api never reaches the legacy connector
+      - name: Slice 11 controlled non-financial write gates (verbose; synthetic legacy only; idempotency, concurrency, UNKNOWN, parity, authority)
+        run: |
+          go test -count=1 -v ./internal/cases/... ./internal/organization/... ./internal/integration/writeback/... ./internal/integration/legacy/writeback/ ./internal/platform/rollout/ ./cmd/crm-api/
+          go test -count=1 -v -run 'ContactOutcome|Writeback|ShadowCompare|HRRequest|WritesHTTP|WritesInvariants' ./internal/integration/legacy/shadow/
+          go test -count=1 -v -run 'SliceEleven|NoBusinessOrMutating|RoutesMatchContract|Slice11' ./internal/architecture/ ./internal/platform/httpx/oapi/ ./internal/platform/apiserver/
+          go test -count=1 -race ./internal/cases/... ./internal/custody/... ./internal/organization/... ./internal/integration/writeback/... ./internal/integration/legacy/writeback/ ./internal/platform/apiserver/ ./internal/platform/rollout/
+          go test -count=1 -race -run 'ContactOutcome|Writeback|ShadowCompare|HRRequest|WritesHTTP|WritesInvariants' ./internal/integration/legacy/shadow/
+
+      - name: Slice 3 / 11 boundary — crm-api never reaches the legacy connector or a write-back worker
         shell: bash
         run: |
           module="$(go list -m)"
-          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/integration(/|$)" || true)"
+          # Slice 11: crm-api may read the integration-owned write-back diagnostics only.
+          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/integration(/|$)" | grep -vE "^${module}/internal/integration(/writeback(/http)?)?$" || true)"
           if [ -n "$bad" ]; then echo "crm-api depends on the integration/legacy connector:"; echo "$bad"; exit 1; fi
+          # Domains never import the write-back worker, the legacy connector or a financial module.
+          bad="$(go list -deps ./internal/cases/... ./internal/custody/... ./internal/organization/... | grep -E "^${module}/internal/(integration/|billing|payments|finance|commission|biawin|fulfillment)" || true)"
+          if [ -n "$bad" ]; then echo "a Slice 11 domain depends on integration or a financial module:"; echo "$bad"; exit 1; fi
+          # No invoice-issue / return / transfer / allocation / ready / HR-apply route in the contract.
+          if grep -nE "^  /api/v1/.*/(return|returns|release|reset|issue|ready|transfer|transfers|allocate|allocations|apply|transitions?|claims?|bulk)(/|:)" api/openapi/openapi.yaml; then
+            echo "a Slice 11 blocked command route appeared in the contract"; exit 1
+          fi
 
       - name: Slice 3 — no snapshot content tracked
         shell: bash
@@ -200,7 +216,7 @@ jobs:
           grep -q 'applied  00001_identity.sql' <<< "$status"
           grep -q 'applied  00001_organization.sql' <<< "$status"
           s4="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('identity', 'organization')")"
-          test "$s4" = "22" || { echo "expected 22 identity/organization tables (incl. per-module outbox/inbox/idempotency), got $s4"; exit 1; }
+          test "$s4" = "25" || { echo "expected 25 identity/organization tables (incl. per-module outbox/inbox/idempotency and the Slice 11 HR request tables), got $s4"; exit 1; }
           creds="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'identity' AND table_name IN ('credential', 'session')")"
           test "$creds" = "0" || { echo "Slice 4 must not create credential/session tables"; exit 1; }
           # Slice 5 customer identity (shadow).
@@ -222,7 +238,7 @@ jobs:
             grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
           done
           s6="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT string_agg(table_schema || '=' || n, ',' ORDER BY table_schema) FROM (SELECT table_schema, count(*) n FROM information_schema.tables WHERE table_schema IN ('cases', 'custody') GROUP BY 1) x")"
-          test "$s6" = "cases=10,custody=7" || { echo "expected cases=10,custody=7 tables, got $s6"; exit 1; }
+          test "$s6" = "cases=13,custody=7" || { echo "expected cases=13,custody=7 tables (Slice 6 + Slice 11 contact outcome), got $s6"; exit 1; }
           # Append-only: no DELETE/TRUNCATE anywhere, no UPDATE (table or column) on events/history/snapshots.
           bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema IN ('cases', 'custody') AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name IN ('custody_event', 'case_state_history', 'attribution_snapshot')))")"
           test "$bad" = "0" || { echo "cases/custody grants allow mutating append-only history"; exit 1; }
@@ -231,7 +247,7 @@ jobs:
           foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE (table_schema = 'cases' AND grantee NOT IN ('crm_owner_cases', current_user)) OR (table_schema = 'custody' AND grantee NOT IN ('crm_owner_custody', current_user))")"
           test "$foreign" = "0" || { echo "foreign role granted on cases/custody"; exit 1; }
           guards="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_name LIKE '%_append_only' AND trigger_schema IN ('cases', 'custody')")"
-          test "$guards" = "3" || { echo "append-only triggers missing: $guards"; exit 1; }
+          test "$guards" = "5" || { echo "append-only triggers missing: $guards"; exit 1; }
           # Slice 7 billing + payments read shadow.
           for f in 00005_integration_staging_billing.sql 00004_identity_billing_capabilities.sql 00001_billing.sql 00001_payments.sql 00002_payments_append_only_guards.sql; do
             grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
@@ -301,6 +317,20 @@ jobs:
           done
           granted="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.role_capability WHERE capability_key IN ('biawin.subscription.read', 'fulfillment.case.read', 'biawin.parity.read')")"
           test "$granted" = "0" || { echo "Slice 10 capabilities must be granted to no role"; exit 1; }
+          # Slice 11 controlled writes (append-only history; versioned aggregates; no ACK / SLA / phone / credential column; no role grant).
+          for f in 00003_cases_contact_outcome.sql 00002_organization_hr_requests.sql 00008_integration_writeback.sql 00008_identity_write_capabilities.sql; do
+            grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
+          done
+          guards="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_schema || '.' || event_object_table) FROM information_schema.triggers WHERE (event_object_schema, event_object_table) IN (('cases','contact_outcome_event'),('cases','command_record'),('organization','hr_request_event'),('organization','command_record'),('integration','writeback_attempt'),('integration','writeback_reconciliation'),('integration','writeback_parity')) AND trigger_name LIKE '%append_only'")"
+          test "$guards" = "7" || { echo "Slice 11 append-only triggers missing: $guards"; exit 1; }
+          bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE grantee <> current_user AND (table_schema, table_name) IN (('cases','contact_outcome_event'),('cases','command_record'),('organization','hr_request_event'),('organization','command_record'),('integration','writeback_attempt'),('integration','writeback_reconciliation'),('integration','writeback_parity')) AND privilege_type IN ('UPDATE', 'DELETE', 'TRUNCATE')")"
+          test "$bad" = "0" || { echo "Slice 11 history must be insert-only"; exit 1; }
+          cols="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE (table_schema, table_name) IN (('cases','contact_outcome_current'),('cases','contact_outcome_event'),('cases','command_record'),('organization','hr_request'),('organization','hr_request_event'),('organization','command_record'),('integration','writeback_command'),('integration','writeback_attempt'),('integration','writeback_reconciliation'),('integration','writeback_parity')) AND column_name ~* '(accepted_at|due_at|sla|escalat|phone|mobile|password|credential|capabilit|role_key|amount|balance)'")"
+          test "$cols" = "0" || { echo "Slice 11 tables carry an ACK / SLA / phone / credential / money column"; exit 1; }
+          granted="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.role_capability WHERE capability_key IN ('cases.contact_outcome.record', 'org.hr_request.create', 'org.hr_request.review', 'org.hr_request.read', 'integration.writeback.read')")"
+          test "$granted" = "0" || { echo "Slice 11 capabilities must be granted to no role"; exit 1; }
+          final="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_constraint WHERE conname = 'hr_request_status' AND pg_get_constraintdef(oid) LIKE '%approved%'")"
+          test "$final" = "0" || { echo "HR requests must not reach approved in Slice 11 (OPD-05)"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

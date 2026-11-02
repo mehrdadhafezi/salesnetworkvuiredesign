@@ -127,6 +127,20 @@ func (s *Service) ResolveUsers(ctx context.Context, system string, keys []string
 	return out, err
 }
 
+// UserKeys maps target user ids to legacy source keys (read only).
+func (s *Service) UserKeys(ctx context.Context, system string, ids []string) (map[string]string, error) {
+	out := map[string]string{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		var err error
+		out, err = store.UserKeysByID(ctx, tx, system, ids)
+		return err
+	})
+	return out, err
+}
+
 // Grants implements api.GrantReader.
 func (s *Service) Grants(ctx context.Context) ([]api.Grant, error) {
 	var out []api.Grant

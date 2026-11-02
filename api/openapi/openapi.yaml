@@ -46,6 +46,8 @@ tags:
     description: Slice 10 Biawin subscription READ shadow and active subscription parity (GET only; no activation, provider or wallet operation).
   - name: fulfillment
     description: Slice 10 fulfillment READ shadow — service follow-up, execution, upgrade execution and shipping cases (GET only; no workflow, assignment, shipping or completion operation).
+  - name: writeback
+    description: Slice 11 legacy write-back diagnostics (read only; no fix action).
   - name: reporting
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: billing
@@ -2229,6 +2231,329 @@ paths:
             application/json:
               schema:
                 $ref: './components/biawin.yaml#/FulfillmentCaseHistoryEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/cases/{case_id}/contact-outcomes:
+    get:
+      tags: [sales]
+      operationId: getCaseContactOutcomes
+      summary: "Contact outcome facts of one case (read; allowed_actions from the command evaluator)"
+      description: |
+        Requires cases.case.read (flag sales.read_shadow). Read only: never writes, enqueues or reconciles anything.
+        allowed_actions[cases.contact_outcome.record] is computed by the same evaluator the command uses (capability + holder row scope + rollout mode).
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/ContactOutcomeEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+    post:
+      tags: [sales]
+      operationId: recordContactOutcome
+      summary: "Record the holder seller's contact outcome (NO_ANSWER / CALLBACK / NOT_PURCHASED)"
+      description: |
+        Requires cases.contact_outcome.record; flag cases.nonfinancial_write (rollout mode SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays the stored result; same key + another body is 409 CONFLICT.
+        Every authority, scope, state and version check is re-evaluated at commit. Unknown body fields are 400.
+        SUCCESS with applied=true means the TARGET committed; the legacy write-back is reported separately and may be pending or unknown.
+        Row scope: the actor must be the case's current holder; rank never substitutes. Only legacy leads.
+        DUPLICATE (D-29/D-31) and PRE_INVOICE (ADR-01) are BLOCKED. Never changes custody, attribution, invoice, payment or finance.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/IdempotencyKey'
+        - $ref: './components/parameters.yaml#/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './components/writes.yaml#/ContactOutcomeRequest'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/CommandEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '409':
+          description: CONFLICT (stale version, idempotency key reused with another request, duplicate open request).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/CommandEnvelope'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/hr/requests:
+    get:
+      tags: [organization]
+      operationId: listHRRequests
+      summary: "HR change requests the caller requested or currently reviews"
+      description: |
+        Requires org.hr_request.read (flag organization.hr_request_write). Read only.
+      parameters:
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/HRRequestListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+    post:
+      tags: [organization]
+      operationId: createHRRequest
+      summary: "Create an HR change request (transfer_seller / terminate_seller)"
+      description: |
+        Requires org.hr_request.create; flag organization.hr_request_write (rollout mode SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays the stored result; same key + another body is 409 CONFLICT.
+        Every authority, scope, state and version check is re-evaluated at commit. Unknown body fields are 400.
+        SUCCESS with applied=true means the TARGET committed; the legacy write-back is reported separately and may be pending or unknown.
+        Subject must be a seller below the actor in the current hierarchy; a transfer destination outside the actor's scope or equal to the current parent is BLOCKED (SD-04).
+        Creating a request applies nothing: no hierarchy, employment, credential or capability change (OPD-05, D-34, D-42).
+      parameters:
+        - $ref: './components/parameters.yaml#/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './components/writes.yaml#/HRRequestCreateRequest'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/CommandEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '409':
+          description: CONFLICT (stale version, idempotency key reused with another request, duplicate open request).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/CommandEnvelope'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/hr/requests/{request_id}:
+    get:
+      tags: [organization]
+      operationId: getHRRequest
+      summary: "One HR change request with its append-only history"
+      description: |
+        Requires org.hr_request.read (flag organization.hr_request_write). Visible to its requester and current reviewer only.
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/HRRequestEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/hr/requests/{request_id}/decisions:
+    post:
+      tags: [organization]
+      operationId: decideHRRequest
+      summary: "Step-approve or reject an HR change request as its current reviewer"
+      description: |
+        Requires org.hr_request.review; flag organization.hr_request_write (rollout mode SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays the stored result; same key + another body is 409 CONFLICT.
+        Every authority, scope, state and version check is re-evaluated at commit. Unknown body fields are 400.
+        SUCCESS with applied=true means the TARGET committed; the legacy write-back is reported separately and may be pending or unknown.
+        Only the current reviewer of a pending_review request. Final apply (pending_hr / HR) is BLOCKED (OPD-05, SD-04): approved is never reached.
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/IdempotencyKey'
+        - $ref: './components/parameters.yaml#/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './components/writes.yaml#/HRDecisionRequest'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/CommandEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '409':
+          description: CONFLICT (stale version, idempotency key reused with another request, duplicate open request).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/CommandEnvelope'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/writeback/summary:
+    get:
+      tags: [writeback]
+      operationId: getWritebackSummary
+      summary: "Write-back diagnostics: states, parity and reconciliation backlog (counts only)"
+      description: |
+        Requires integration.writeback.read (flag integration.writeback_read). Read only; no PII; no payloads; no fix action.
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/WritebackSummaryEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/writeback/commands:
+    get:
+      tags: [writeback]
+      operationId: listWritebackCommands
+      summary: "Write-back commands (bounded list)"
+      description: |
+        Requires integration.writeback.read (flag integration.writeback_read). Read only; no payloads.
+      parameters:
+        - $ref: './components/parameters.yaml#/WritebackStateFilter'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/WritebackCommandListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/writeback/commands/{command_id}:
+    get:
+      tags: [writeback]
+      operationId: getWritebackCommand
+      summary: "One write-back command with its attempts and reconciliation records"
+      description: |
+        Requires integration.writeback.read (flag integration.writeback_read), or the command's own target actor through the domain read.
+      parameters:
+        - name: command_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/writes.yaml#/WritebackCommandEnvelope'
         '400':
           $ref: './components/responses.yaml#/Problem'
         '404':

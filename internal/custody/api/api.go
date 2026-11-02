@@ -172,3 +172,13 @@ type Parity struct {
 	UnknownActions  map[string]int64 `json:"unknown_legacy_actions"`
 	FullParity      bool             `json:"full_parity"`
 }
+
+// CurrentHolder is the published current-holder evidence of one case, used
+// by other modules for row scope (Slice 11). Known is false whenever custody
+// cannot name exactly one current holder from present evidence: no record,
+// an absent case, no legacy holder, or contradicting / multiple holders.
+type CurrentHolder struct {
+	Known  bool
+	UserID string
+	Basis  string
+}

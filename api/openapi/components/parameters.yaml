@@ -646,3 +646,12 @@ ParityResultFilter:
   required: false
   schema:
     $ref: './biawin.yaml#/ParityResult'
+
+# ---- Slice 11 controlled writes ----
+
+WritebackStateFilter:
+  name: state
+  in: query
+  required: false
+  schema:
+    $ref: './writes.yaml#/WritebackState'

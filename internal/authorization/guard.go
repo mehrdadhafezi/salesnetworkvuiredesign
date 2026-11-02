@@ -45,7 +45,9 @@ var devCapabilities = map[string][]identityapi.Capability{
 		identityapi.CapInvoiceRead, identityapi.CapPaymentAttemptRead, identityapi.CapBillingReportRead,
 		identityapi.CapReportingMetricsRead, identityapi.CapReportingMISRead, identityapi.CapInvoiceReviewRead,
 		identityapi.CapFinanceShadowRead, identityapi.CapFinanceLedgerRead, identityapi.CapFinanceReconciliationRead,
-		identityapi.CapBiawinSubscriptionRead, identityapi.CapFulfillmentCaseRead, identityapi.CapBiawinParityRead},
+		identityapi.CapBiawinSubscriptionRead, identityapi.CapFulfillmentCaseRead, identityapi.CapBiawinParityRead,
+		identityapi.CapContactOutcomeRecord, identityapi.CapHRRequestCreate, identityapi.CapHRRequestReview, identityapi.CapHRRequestRead,
+		identityapi.CapWritebackRead},
 }
 
 // DevGrantBasis marks synthetic dev/test grants.
@@ -147,6 +149,10 @@ func (g *Guard) Effective(ctx context.Context) (enabled bool, authenticated bool
 	s := g.subjects.Subject(ctx)
 	return on, s.PrincipalID != "", EvaluateAll(Runtime, s), nil
 }
+
+// Subject returns the caller's subject for row-scope checks of a command
+// that has already passed Check. It grants nothing.
+func (g *Guard) Subject(ctx context.Context) Subject { return g.subjects.Subject(ctx) }
 
 // Enabled reports the flag state.
 func (g *Guard) Enabled(ctx context.Context) (bool, error) { return g.enabled(ctx) }
