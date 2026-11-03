@@ -6,8 +6,9 @@
 // migrations (Slice 6), then the billing and payments read migrations
 // (Slice 7), then the reporting projection migrations (Slice 8), then the
 // finance shadow ledger migrations (Slice 9), then the biawin and
-// fulfillment read shadow migrations (Slice 10), each source in its own version
-// table; no application process runs migrations on startup.
+// fulfillment read shadow migrations (Slice 10), then the commission shadow
+// migrations (Slice 13), each source in its own version table; no
+// application process runs migrations on startup.
 //
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate up
 //	CRM_MIGRATE_DATABASE_URL=postgres://... crm-migrate status
@@ -27,6 +28,7 @@ import (
 	biawinmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/biawin/migrations"
 	billingmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing/migrations"
 	casesmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/cases/migrations"
+	commissionmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/commission/migrations"
 	custodymigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/custody/migrations"
 	customersmigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/customers/migrations"
 	financemigrations "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/finance/migrations"
@@ -45,7 +47,7 @@ func sources() []migrations.Source {
 		identitymigrations.Source(), organizationmigrations.Source(), customersmigrations.Source(),
 		casesmigrations.Source(), custodymigrations.Source(),
 		billingmigrations.Source(), paymentsmigrations.Source(), reportingmigrations.Source(), financemigrations.Source(), biawinmigrations.Source(),
-		fulfillmentmigrations.Source()}
+		fulfillmentmigrations.Source(), commissionmigrations.Source()}
 }
 
 func main() {

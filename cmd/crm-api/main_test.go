@@ -67,6 +67,14 @@ func TestBiawinSurfaceNeedsBothModulesAndFlagStore(t *testing.T) {
 	}
 }
 
+func TestCommissionSurfaceNeedsFlagStore(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	partial := map[string]string{"CRM_ENV": "test", EnvCommissionReadURL: "postgres://x@127.0.0.1:1/x"}
+	if err := run(context.Background(), env(partial), logger); !errors.Is(err, ErrCommissionConfig) {
+		t.Fatalf("partial commission config: %v", err)
+	}
+}
+
 func TestWritesSurfaceNeedsFlagStoreAndHolderRead(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	for _, partial := range []map[string]string{

@@ -655,3 +655,34 @@ WritebackStateFilter:
   required: false
   schema:
     $ref: './writes.yaml#/WritebackState'
+
+CommissionRunID:
+  name: run_id
+  in: query
+  required: false
+  description: Pin the commission shadow run. Omitted = the latest run; the answer names the run it used.
+  schema:
+    type: string
+    format: uuid
+
+CommissionParityClassFilter:
+  name: parity_class
+  in: query
+  required: false
+  schema:
+    $ref: './commission.yaml#/CommissionParityClass'
+
+CommissionEngineFilter:
+  name: engine
+  in: query
+  required: false
+  schema:
+    $ref: './commission.yaml#/CommissionEngine'
+
+CommissionFindingKindFilter:
+  name: kind
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [DUPLICATE_RISK, REWRITTEN_IN_PLACE, REVERSAL_LINK_MISSING, ENGINE_ROUTING_UNKNOWN, POSTING_LINK_MISMATCH, RECIPIENT_MISMATCH, REJECTED_THEN_APPROVED, NON_INVOICE_BLOCKED, COMPONENT_ALLOCATION_BLOCKED]

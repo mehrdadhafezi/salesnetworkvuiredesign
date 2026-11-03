@@ -536,3 +536,48 @@ func (unconfiguredPayments) GetFinanceReviewAttempt(ctx context.Context, _ oapi.
 	o, r, c := blocked(ctx)
 	return oapi.GetFinanceReviewAttempt200JSONResponse{Body: oapi.ReviewAttemptEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
 }
+
+// unconfiguredCommission is the Slice 13 surface without the commission
+// login: every operation answers BLOCKED / FEATURE_DISABLED.
+type unconfiguredCommission struct{}
+
+var _ CommissionAPI = unconfiguredCommission{}
+
+const commissionNotice = oapi.SHADOWOnlyNoCommissionWasCalculatedApprovedPostedOrCreditedByThisReadLegacyRemainsTheSystemOfRecord
+
+func (unconfiguredCommission) CommissionEnabled(context.Context) bool { return false }
+
+func (unconfiguredCommission) GetCommissionOverview(ctx context.Context, _ oapi.GetCommissionOverviewRequestObject) (oapi.GetCommissionOverviewResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetCommissionOverview200JSONResponse{Body: oapi.CommissionOverviewEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: commissionNotice}}, nil
+}
+
+func (unconfiguredCommission) ListCommissionRuns(ctx context.Context, _ oapi.ListCommissionRunsRequestObject) (oapi.ListCommissionRunsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCommissionRuns200JSONResponse{Body: oapi.CommissionRunListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: commissionNotice}}, nil
+}
+
+func (unconfiguredCommission) ListCommissionCalculations(ctx context.Context, _ oapi.ListCommissionCalculationsRequestObject) (oapi.ListCommissionCalculationsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCommissionCalculations200JSONResponse{Body: oapi.CommissionCalculationListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: commissionNotice}}, nil
+}
+
+func (unconfiguredCommission) ListCommissionFindings(ctx context.Context, _ oapi.ListCommissionFindingsRequestObject) (oapi.ListCommissionFindingsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCommissionFindings200JSONResponse{Body: oapi.CommissionFindingListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: commissionNotice}}, nil
+}
+
+func (unconfiguredCommission) ListCommissionPolicies(ctx context.Context, _ oapi.ListCommissionPoliciesRequestObject) (oapi.ListCommissionPoliciesResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCommissionPolicies200JSONResponse{Body: oapi.CommissionPolicyListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: commissionNotice}}, nil
+}
+
+func (unconfiguredCommission) ListCommissionHistoricalRuns(ctx context.Context, _ oapi.ListCommissionHistoricalRunsRequestObject) (oapi.ListCommissionHistoricalRunsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListCommissionHistoricalRuns200JSONResponse{Body: oapi.CommissionHistoricalRunListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: commissionNotice}}, nil
+}
+
+func (unconfiguredCommission) ListMyCommissionEarnings(ctx context.Context, _ oapi.ListMyCommissionEarningsRequestObject) (oapi.ListMyCommissionEarningsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListMyCommissionEarnings200JSONResponse{Body: oapi.CommissionEarningListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: commissionNotice}}, nil
+}

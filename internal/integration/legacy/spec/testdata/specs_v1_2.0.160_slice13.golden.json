@@ -1,0 +1,757 @@
+[
+  {
+    "id": "legacy.commission_dry_run.v1",
+    "entity": "commission_dry_run",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_commission_dry_runs",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1313 (table definition)"
+      },
+      {
+        "name": "run_code",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1314 (table definition)",
+        "note": "raw unique run code"
+      },
+      {
+        "name": "date_from",
+        "raw_type": "DATE",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1316 (table definition)",
+        "note": "raw DATE (window start)"
+      },
+      {
+        "name": "date_to",
+        "raw_type": "DATE",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1317 (table definition)",
+        "note": "raw DATE (window end)"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1318 (table definition)",
+        "note": "raw run status"
+      },
+      {
+        "name": "created_by",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1319 (table definition)",
+        "note": "legacy staff user reference (generator)"
+      },
+      {
+        "name": "approval_status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1321 (table definition)",
+        "note": "raw: generated / approved / rejected (rejected -> approved is possible)"
+      },
+      {
+        "name": "approved_by",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1322 (table definition)",
+        "note": "legacy staff user reference"
+      },
+      {
+        "name": "approved_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1323 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "rejected_by",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1324 (table definition)",
+        "note": "legacy staff user reference (kept after a later approval)"
+      },
+      {
+        "name": "rejected_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1325 (table definition)",
+        "note": "raw legacy DATETIME (kept after a later approval)"
+      },
+      {
+        "name": "locked_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1327 (table definition)",
+        "note": "raw legacy DATETIME (set by approve AND reject)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1328 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_commission_dry_run_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "1312-1335",
+        "note": "table definition of sn_commission_dry_runs"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "33555-33590",
+        "note": "approve allowed unless already approved; reject allowed unless approved"
+      }
+    ],
+    "notes": [
+      "title, summary_json and approval_note (free text) are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.commission_dry_run_item.v1",
+    "entity": "commission_dry_run_item",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_commission_dry_run_items",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1369 (table definition)"
+      },
+      {
+        "name": "run_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1370 (table definition)",
+        "note": "legacy dry run reference"
+      },
+      {
+        "name": "invoice_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1371 (table definition)",
+        "note": "legacy invoice reference (0 for non-invoice daily attendance items)"
+      },
+      {
+        "name": "seller_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1373 (table definition)",
+        "note": "legacy staff user reference (recipient snapshot at run time)"
+      },
+      {
+        "name": "seller_position",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1374 (table definition)",
+        "note": "raw position snapshot at calculation date"
+      },
+      {
+        "name": "seller_level",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1375 (table definition)",
+        "note": "raw level snapshot at calculation date"
+      },
+      {
+        "name": "invoice_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1376 (table definition)",
+        "note": "raw decimal text; never rounded or converted"
+      },
+      {
+        "name": "payment_method",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1377 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "invoice_status",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1378 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "matched_rule_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1379 (table definition)",
+        "note": "legacy rule reference"
+      },
+      {
+        "name": "calculated_commission",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1380 (table definition)",
+        "note": "raw decimal text; never rounded or converted"
+      },
+      {
+        "name": "legacy_commission",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1381 (table definition)",
+        "note": "raw decimal text"
+      },
+      {
+        "name": "difference_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1382 (table definition)",
+        "note": "raw decimal text"
+      },
+      {
+        "name": "item_status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1383 (table definition)",
+        "note": "raw item status (no_rule / matched / daily_attendance_bonus / ...)"
+      },
+      {
+        "name": "wallet_transaction_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1385 (table definition)",
+        "note": "legacy wallet transaction reference (posting evidence)"
+      },
+      {
+        "name": "posted_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1386 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "posting_status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1387 (table definition)",
+        "note": "raw: pending / posted / error"
+      },
+      {
+        "name": "compensation_history_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1389 (table definition)",
+        "note": "legacy compensation history reference (attribution snapshot)"
+      },
+      {
+        "name": "compensation_effective_from",
+        "raw_type": "DATE",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1390 (table definition)",
+        "note": "raw DATE"
+      },
+      {
+        "name": "compensation_effective_to",
+        "raw_type": "DATE",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1391 (table definition)",
+        "note": "raw DATE"
+      },
+      {
+        "name": "rule_source",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1392 (table definition)",
+        "note": "raw rule source (auto / HR override)"
+      },
+      {
+        "name": "warning_code",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1393 (table definition)",
+        "note": "raw warning code"
+      },
+      {
+        "name": "calculation_date",
+        "raw_type": "DATE",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1394 (table definition)",
+        "note": "raw DATE"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1395 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_commission_dry_run_item_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "1368-1407",
+        "note": "table definition of sn_commission_dry_run_items"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "33602-33665",
+        "note": "posting: approved run + flag + APPLY; per-item posted / error; meta commission_dry_run_item_id"
+      }
+    ],
+    "notes": [
+      "invoice_code, notes and posting_error (free text) are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.commission_posting_log.v1",
+    "entity": "commission_posting_log",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_commission_wallet_posting_logs",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1457 (table definition)"
+      },
+      {
+        "name": "run_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1458 (table definition)",
+        "note": "legacy dry run reference"
+      },
+      {
+        "name": "item_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1459 (table definition)",
+        "note": "legacy dry run item reference"
+      },
+      {
+        "name": "wallet_transaction_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1460 (table definition)",
+        "note": "legacy wallet transaction reference"
+      },
+      {
+        "name": "actor_user_id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1461 (table definition)",
+        "note": "legacy staff user reference (event actor)"
+      },
+      {
+        "name": "action",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1462 (table definition)",
+        "note": "raw action key (commission_run_approved / _rejected / commission_wallet_posted / ...)"
+      },
+      {
+        "name": "status",
+        "raw_type": "VARCHAR(40)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1463 (table definition)",
+        "note": "raw"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1467 (table definition)",
+        "note": "raw legacy DATETIME"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_commission_posting_log_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "1456-1474",
+        "note": "table definition of sn_commission_wallet_posting_logs"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "32964-32984",
+        "note": "log writer"
+      }
+    ],
+    "notes": [
+      "old_value, new_value and message (free text / JSON) are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.commission_rule.v1",
+    "entity": "commission_rule",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_commission_rules",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1241 (table definition)"
+      },
+      {
+        "name": "rule_code",
+        "raw_type": "VARCHAR(100)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1242 (table definition)",
+        "note": "raw unique rule code"
+      },
+      {
+        "name": "applies_to_position",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1245 (table definition)",
+        "note": "raw position slug filter (empty = any)"
+      },
+      {
+        "name": "applies_to_level",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1246 (table definition)",
+        "note": "raw level slug filter (empty = any)"
+      },
+      {
+        "name": "payment_method",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1247 (table definition)",
+        "note": "raw payment method filter"
+      },
+      {
+        "name": "invoice_status",
+        "raw_type": "VARCHAR(120)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1248 (table definition)",
+        "note": "raw invoice status filter"
+      },
+      {
+        "name": "employment_status",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1249 (table definition)",
+        "note": "raw employment status filter"
+      },
+      {
+        "name": "employment_type",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1250 (table definition)",
+        "note": "raw employment type filter"
+      },
+      {
+        "name": "calculation_type",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1251 (table definition)",
+        "note": "raw: invoice_percent_fixed / daily_attendance_plus_percent"
+      },
+      {
+        "name": "rate_percent",
+        "raw_type": "DECIMAL(10,4)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1252 (table definition)",
+        "note": "raw decimal text"
+      },
+      {
+        "name": "fixed_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1253 (table definition)",
+        "note": "raw decimal text (unit not asserted)"
+      },
+      {
+        "name": "daily_base_amount",
+        "raw_type": "DECIMAL(18,6)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1254 (table definition)",
+        "note": "raw decimal text (non-invoice entitlement; OPD-09)"
+      },
+      {
+        "name": "attendance_first_before",
+        "raw_type": "TIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1255 (table definition)",
+        "note": "raw TIME"
+      },
+      {
+        "name": "attendance_last_after",
+        "raw_type": "TIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1256 (table definition)",
+        "note": "raw TIME"
+      },
+      {
+        "name": "min_invoice_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1257 (table definition)",
+        "note": "raw decimal text"
+      },
+      {
+        "name": "max_invoice_amount",
+        "raw_type": "DECIMAL(18,2)",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1258 (table definition)",
+        "note": "raw decimal text"
+      },
+      {
+        "name": "effective_from",
+        "raw_type": "DATE",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1259 (table definition)",
+        "note": "raw DATE (inclusive)"
+      },
+      {
+        "name": "effective_to",
+        "raw_type": "DATE",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1260 (table definition)",
+        "note": "raw DATE; equal from / to is treated as open-ended by the legacy matcher"
+      },
+      {
+        "name": "is_active",
+        "raw_type": "TINYINT(1)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1261 (table definition)",
+        "note": "raw flag (mutable)"
+      },
+      {
+        "name": "priority",
+        "raw_type": "INT",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1262 (table definition)",
+        "note": "raw priority"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1263 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-migration-service.php:1264 (table definition)",
+        "note": "raw legacy DATETIME of the LAST edit"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_commission_rule_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-migration-service.php",
+        "lines": "1240-1271",
+        "note": "table definition of sn_commission_rules"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "32730-32801",
+        "note": "rule matching, effective interval and specificity / priority ordering"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-plugin.php",
+        "lines": "32905-32912",
+        "note": "round(max(0, fixed + amount * percent / 100), 2)"
+      }
+    ],
+    "notes": [
+      "title and description (free text) are deliberately NOT extracted"
+    ]
+  },
+  {
+    "id": "legacy.purpose_commission_rate.v1",
+    "entity": "purpose_commission_rate",
+    "version": 1,
+    "legacy_application": "sales-network",
+    "legacy_version": "2.0.160",
+    "source_table": "sn_payment_commission_matrix",
+    "columns": [
+      {
+        "name": "id",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-purpose-commission.php:76 (table definition)"
+      },
+      {
+        "name": "payment_purpose",
+        "raw_type": "VARCHAR(60)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-purpose-commission.php:77 (table definition)",
+        "note": "raw purpose key (assessment_fee / subscription_direct / conversion_purchase / product_sale / product_star_sale / product_star_upgrade)"
+      },
+      {
+        "name": "role_key",
+        "raw_type": "VARCHAR(80)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-purpose-commission.php:78 (table definition)",
+        "note": "raw recipient role key (share facet)"
+      },
+      {
+        "name": "rate_percent",
+        "raw_type": "DECIMAL(7,4)",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-purpose-commission.php:79 (table definition)",
+        "note": "raw decimal text; MUTABLE in place (ON DUPLICATE KEY UPDATE); a snapshot observation, never a historical version"
+      },
+      {
+        "name": "updated_by",
+        "raw_type": "BIGINT UNSIGNED",
+        "nullability": "NULLABLE",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-purpose-commission.php:80 (table definition)",
+        "note": "legacy staff user reference (last editor only)"
+      },
+      {
+        "name": "created_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-purpose-commission.php:81 (table definition)",
+        "note": "raw legacy DATETIME"
+      },
+      {
+        "name": "updated_at",
+        "raw_type": "DATETIME",
+        "nullability": "NOT_NULL",
+        "classification": "NONE",
+        "evidence": "plugin/current/includes/class-sn-purpose-commission.php:82 (table definition)",
+        "note": "raw legacy DATETIME of the LAST edit (overwritten)"
+      }
+    ],
+    "key_columns": [
+      "id"
+    ],
+    "key_kind": "UNSIGNED_DECIMAL",
+    "row_order": "ascending by the single key column, compared as an unsigned decimal; strictly increasing (also proves uniqueness)",
+    "checksum": "crm-legacy-content-v1/sha256",
+    "staging_table": "stg_purpose_commission_rate_v1",
+    "evidence": [
+      {
+        "file": "plugin/current/includes/class-sn-purpose-commission.php",
+        "lines": "75-87",
+        "note": "table definition of sn_payment_commission_matrix"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-purpose-commission.php",
+        "lines": "245-270",
+        "note": "rates overwritten in place; no history; a change queues a backfill"
+      },
+      {
+        "file": "plugin/current/includes/class-sn-purpose-commission.php",
+        "lines": "326-331",
+        "note": "rate read at credit time, clamped to 0..100"
+      }
+    ],
+    "notes": []
+  }
+]

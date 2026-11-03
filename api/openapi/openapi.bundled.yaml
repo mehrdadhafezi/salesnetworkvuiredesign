@@ -52,6 +52,8 @@ tags:
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: payments
     description: Slice 12 controlled financial writes — receipt upload, owning-seller manual payment batch, evidence diagnostics and the read-only Finance review queue (no review decision, posting, refund, gateway route or next stage).
+  - name: commission
+    description: Slice 13 commission controlled SHADOW read — overview, policy versions, stored shadow calculations with parity, reconciliation findings, legacy dry runs and own earnings (GET only; no calculate, approve, post, credit, settle or reverse operation).
   - name: billing
     description: Slice 7 billing + payments read shadow — invoices, lines, stages, attempts, receipt references (read only; no actions).
 paths:
@@ -2202,6 +2204,226 @@ paths:
           $ref: '#/components/responses/Problem'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/commission/overview:
+    get:
+      tags:
+        - commission
+      operationId: getCommissionOverview
+      summary: 'Commission shadow overview: run, parity summary, findings, blocked decisions'
+      description: |
+        Requires commission.shadow.read. posting_state is always BLOCKED_NOT_AUTHORIZED.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CommissionRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionOverviewEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/commission/runs:
+    get:
+      tags:
+        - commission
+      operationId: listCommissionRuns
+      summary: Commission shadow runs (newest first)
+      description: |
+        Requires commission.shadow.read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionRunListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/commission/calculations:
+    get:
+      tags:
+        - commission
+      operationId: listCommissionCalculations
+      summary: Stored shadow calculations with parity of one run
+      description: |
+        Requires commission.shadow.read. Stored results only: nothing is (re)calculated by this read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CommissionRunID'
+        - $ref: '#/components/parameters/CommissionParityClassFilter'
+        - $ref: '#/components/parameters/CommissionEngineFilter'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionCalculationListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/commission/findings:
+    get:
+      tags:
+        - commission
+      operationId: listCommissionFindings
+      summary: Reconciliation findings of one run
+      description: |
+        Requires commission.shadow.read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CommissionRunID'
+        - $ref: '#/components/parameters/CommissionFindingKindFilter'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionFindingListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/commission/policies:
+    get:
+      tags:
+        - commission
+      operationId: listCommissionPolicies
+      summary: Observed commission policy versions (none approved)
+      description: |
+        Requires commission.policy.read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionPolicyListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/commission/historical-runs:
+    get:
+      tags:
+        - commission
+      operationId: listCommissionHistoricalRuns
+      summary: Legacy dry runs with approval / posting provenance
+      description: |
+        Requires commission.shadow.read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CommissionRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionHistoricalRunListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/commission/me/earnings:
+    get:
+      tags:
+        - commission
+      operationId: listMyCommissionEarnings
+      summary: The caller's own historical commission credits (own scope only)
+      description: |
+        Requires commission.own.read. Own scope only: rows are filtered to the authenticated user; never another recipient, never broadened by hierarchy.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: '#/components/parameters/CommissionRunID'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionEarningListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
   /api/v1/fulfillment/cases:
     get:
       tags:
@@ -3477,6 +3699,42 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/ParityResult'
+    CommissionRunID:
+      name: run_id
+      in: query
+      required: false
+      description: Pin the commission shadow run. Omitted = the latest run; the answer names the run it used.
+      schema:
+        type: string
+        format: uuid
+    CommissionParityClassFilter:
+      name: parity_class
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/CommissionParityClass'
+    CommissionEngineFilter:
+      name: engine
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/CommissionEngine'
+    CommissionFindingKindFilter:
+      name: kind
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - DUPLICATE_RISK
+          - REWRITTEN_IN_PLACE
+          - REVERSAL_LINK_MISSING
+          - ENGINE_ROUTING_UNKNOWN
+          - POSTING_LINK_MISMATCH
+          - RECIPIENT_MISMATCH
+          - REJECTED_THEN_APPROVED
+          - NON_INVOICE_BLOCKED
+          - COMPONENT_ALLOCATION_BLOCKED
     FulfillmentKindFilter:
       name: kind
       in: query
@@ -3880,6 +4138,7 @@ components:
             - writeback_read
             - payment_submission
             - finance_review_read
+            - commission_read
           additionalProperties: false
           properties:
             hr_read:
@@ -3902,6 +4161,9 @@ components:
             biawin_fulfillment_read:
               type: boolean
               description: Slice 10 Biawin / fulfillment READ shadow (flag biawin_fulfillment.read_shadow). Read only; no portal, activation or workflow action.
+            commission_read:
+              type: boolean
+              description: Slice 13 commission controlled SHADOW read (flag commission.read_shadow). Read only; no calculate, approve, post or credit action.
             contact_outcome_write:
               type: boolean
               description: Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server.
@@ -9469,6 +9731,788 @@ components:
           $ref: '#/components/schemas/BiawinMeta'
         check:
           $ref: '#/components/schemas/ParityCheck'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CommissionNotice:
+      type: string
+      description: Fixed SHADOW notice repeated on every commission answer.
+      enum:
+        - 'SHADOW only: no commission was calculated, approved, posted or credited by this read; legacy remains the system of record'
+    CommissionSourceStatus:
+      type: string
+      enum:
+        - AVAILABLE
+        - PARTIAL
+        - MISSING
+    CommissionRunSource:
+      type: object
+      required:
+        - source
+        - status
+        - rows_read
+      additionalProperties: false
+      properties:
+        source:
+          type: string
+          maxLength: 80
+        status:
+          $ref: '#/components/schemas/CommissionSourceStatus'
+        rows_read:
+          type: integer
+          format: int64
+    CommissionRun:
+      type: object
+      description: One offline shadow run. state is always CALCULATED (no approval / posting); outcome is technical.
+      required:
+        - record_kind
+        - run_id
+        - run_seq
+        - state
+        - normalization_version
+        - rounding
+        - snapshot_id
+        - source_cutoff
+        - completed_at
+        - outcome
+        - reasons
+        - counts
+        - sources
+      additionalProperties: false
+      properties:
+        record_kind:
+          $ref: '#/components/schemas/RecordKind'
+        run_id:
+          type: string
+          format: uuid
+        run_seq:
+          type: integer
+          format: int64
+        state:
+          type: string
+          enum:
+            - CALCULATED
+        normalization_version:
+          type: integer
+        rounding:
+          type: string
+          enum:
+            - LEGACY_PHP_ROUND_HALF_AWAY_2DP
+            - NONE
+        snapshot_id:
+          type: string
+          maxLength: 128
+        source_cutoff:
+          $ref: '#/components/schemas/Timestamp'
+        completed_at:
+          $ref: '#/components/schemas/Timestamp'
+        outcome:
+          type: string
+          enum:
+            - SUCCESS
+            - PARTIAL
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        sources:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/CommissionRunSource'
+    CommissionCoverage:
+      type: string
+      enum:
+        - FULL
+        - PARTIAL
+        - NONE
+    CommissionParitySummary:
+      type: object
+      description: 'Honest parity report: coverage counts only rows that were actually compared; totals per unit are exact decimal text; missing amounts are counted, never zero.'
+      required:
+        - cohort
+        - legacy_rows
+        - compared_rows
+        - coverage
+        - classes
+        - engines
+        - legacy_totals
+        - target_totals
+        - legacy_amount_missing
+        - target_amount_missing
+        - reasons
+      additionalProperties: false
+      properties:
+        cohort:
+          type: string
+          maxLength: 300
+        window_from_raw:
+          type: string
+          nullable: true
+          maxLength: 40
+        window_to_raw:
+          type: string
+          nullable: true
+          maxLength: 40
+        legacy_rows:
+          type: integer
+          format: int64
+        compared_rows:
+          type: integer
+          format: int64
+        coverage:
+          $ref: '#/components/schemas/CommissionCoverage'
+        classes:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        engines:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        legacy_totals:
+          type: object
+          additionalProperties:
+            type: string
+            maxLength: 40
+        target_totals:
+          type: object
+          additionalProperties:
+            type: string
+            maxLength: 40
+        legacy_amount_missing:
+          type: integer
+          format: int64
+        target_amount_missing:
+          type: integer
+          format: int64
+        reasons:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+    CommissionDecision:
+      type: object
+      required:
+        - id
+        - state
+        - effect
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          maxLength: 40
+        state:
+          type: string
+          enum:
+            - APPROVED
+            - SAFE_DEFAULT_AVAILABLE
+            - IMPLEMENTATION_BLOCKED
+            - REQUIRES_HUMAN_OWNER_DECISION
+            - EVIDENCE_INCOMPLETE
+        effect:
+          type: string
+          maxLength: 300
+    CommissionPostingState:
+      type: string
+      description: The only posting state Slice 13 can report (no posting command exists).
+      enum:
+        - BLOCKED_NOT_AUTHORIZED
+    CommissionOverview:
+      type: object
+      required:
+        - decisions
+        - posting_state
+        - findings
+      additionalProperties: false
+      properties:
+        run:
+          $ref: '#/components/schemas/CommissionRun'
+        parity:
+          $ref: '#/components/schemas/CommissionParitySummary'
+        findings:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        decisions:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/CommissionDecision'
+        posting_state:
+          $ref: '#/components/schemas/CommissionPostingState'
+    CommissionOverviewEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/CommissionNotice'
+        overview:
+          $ref: '#/components/schemas/CommissionOverview'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CommissionRunListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/CommissionNotice'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CommissionRun'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CommissionParityClass:
+      type: string
+      enum:
+        - MATCH
+        - AMOUNT_MISMATCH
+        - RECIPIENT_MISMATCH
+        - POLICY_MISMATCH
+        - ATTRIBUTION_UNKNOWN
+        - DUPLICATE_RISK
+        - ENGINE_ROUTING_UNKNOWN
+        - SOURCE_INCOMPLETE
+        - NOT_COMPARABLE
+    CommissionEngine:
+      type: string
+      enum:
+        - PURPOSE_MATRIX
+        - RULES_AUTO
+        - DRY_RUN_POSTING
+        - PROJECT_CARD
+        - ENGINE_ROUTING_UNKNOWN
+    CommissionParityField:
+      type: object
+      required:
+        - name
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          maxLength: 40
+        legacy:
+          type: string
+          nullable: true
+          maxLength: 200
+        target:
+          type: string
+          nullable: true
+          maxLength: 200
+        equal:
+          type: boolean
+          nullable: true
+    CommissionCalculation:
+      type: object
+      description: One STORED shadow calculation (never computed by this read) with its immutable input / attribution snapshot refs and parity.
+      required:
+        - calc_id
+        - source_key
+        - engine
+        - function_id
+        - event_ref
+        - input_sha256
+        - recipient_state
+        - unit
+        - eligibility
+        - coverage
+        - blocks
+        - parity_class
+        - parity_fields
+        - reasons
+      additionalProperties: false
+      properties:
+        calc_id:
+          type: string
+          format: uuid
+        source_key:
+          type: string
+          maxLength: 120
+        entitlement_key:
+          type: string
+          nullable: true
+          maxLength: 300
+        engine:
+          $ref: '#/components/schemas/CommissionEngine'
+        function_id:
+          type: string
+          maxLength: 80
+        policy_key:
+          type: string
+          nullable: true
+          maxLength: 200
+        policy_version:
+          type: integer
+          nullable: true
+        event_ref:
+          type: string
+          maxLength: 200
+        input_sha256:
+          type: string
+          maxLength: 64
+        share_facet:
+          type: string
+          nullable: true
+          maxLength: 80
+        recipient_state:
+          type: string
+          enum:
+            - SNAPSHOT
+            - UNKNOWN
+            - CONFLICT
+        recipient_key:
+          type: string
+          nullable: true
+          maxLength: 40
+        recipient_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        base:
+          type: string
+          nullable: true
+          maxLength: 40
+        rate_percent:
+          type: string
+          nullable: true
+          maxLength: 40
+        amount:
+          type: string
+          nullable: true
+          maxLength: 40
+        legacy_amount:
+          type: string
+          nullable: true
+          maxLength: 40
+        unit:
+          type: string
+          enum:
+            - IRR
+            - IRT
+        eligibility:
+          type: string
+          enum:
+            - ELIGIBLE
+            - INELIGIBLE
+            - BLOCKED
+        coverage:
+          $ref: '#/components/schemas/CommissionCoverage'
+        blocks:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 60
+        parity_class:
+          $ref: '#/components/schemas/CommissionParityClass'
+        parity_fields:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/CommissionParityField'
+        reasons:
+          type: array
+          maxItems: 40
+          items:
+            type: string
+            maxLength: 80
+    CommissionCalculationListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/CommissionNotice'
+        run:
+          $ref: '#/components/schemas/CommissionRun'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CommissionCalculation'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CommissionFinding:
+      type: object
+      required:
+        - finding_id
+        - kind
+        - severity
+        - source_key
+        - detail
+      additionalProperties: false
+      properties:
+        finding_id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          maxLength: 60
+        severity:
+          type: string
+          enum:
+            - INFO
+            - WARNING
+            - BLOCKING
+        source_key:
+          type: string
+          maxLength: 120
+        entitlement_key:
+          type: string
+          nullable: true
+          maxLength: 300
+        detail:
+          type: string
+          maxLength: 400
+    CommissionFindingListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/CommissionNotice'
+        run:
+          $ref: '#/components/schemas/CommissionRun'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CommissionFinding'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CommissionPolicyVersion:
+      type: object
+      description: One OBSERVED policy version. approval_state is always NOT_APPROVED in Slice 13.
+      required:
+        - policy_key
+        - version
+        - purpose
+        - share_facet
+        - function_id
+        - unit
+        - evidence
+        - approval_state
+        - provenance
+        - source_ref
+        - first_run_id
+      additionalProperties: false
+      properties:
+        policy_key:
+          type: string
+          maxLength: 200
+        version:
+          type: integer
+        purpose:
+          type: string
+          maxLength: 80
+        share_facet:
+          type: string
+          maxLength: 80
+        function_id:
+          type: string
+          maxLength: 80
+        rate_percent:
+          type: string
+          nullable: true
+          maxLength: 40
+        fixed:
+          type: string
+          nullable: true
+          maxLength: 40
+        unit:
+          type: string
+          enum:
+            - IRR
+            - IRT
+        effective_from:
+          type: string
+          nullable: true
+          maxLength: 10
+        effective_to:
+          type: string
+          nullable: true
+          maxLength: 10
+        evidence:
+          type: string
+          enum:
+            - OBSERVED_UNVERSIONED
+            - EVENT_SNAPSHOT
+            - INVALID
+        approval_state:
+          type: string
+          enum:
+            - NOT_APPROVED
+        provenance:
+          type: string
+          maxLength: 200
+        source_ref:
+          type: string
+          maxLength: 60
+        first_run_id:
+          type: string
+          format: uuid
+    CommissionPolicyListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/CommissionNotice'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CommissionPolicyVersion'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CommissionHistoricalRun:
+      type: object
+      description: One legacy dry run with its approval provenance (raw kept; rejected-then-approved preserved).
+      required:
+        - source_key
+        - state
+        - rejected_then_approved
+        - item_count
+        - posted_items
+        - failed_items
+      additionalProperties: false
+      properties:
+        source_key:
+          type: string
+          maxLength: 40
+        run_code:
+          type: string
+          nullable: true
+          maxLength: 100
+        window_from_raw:
+          type: string
+          nullable: true
+          maxLength: 40
+        window_to_raw:
+          type: string
+          nullable: true
+          maxLength: 40
+        approval_raw:
+          type: string
+          nullable: true
+          maxLength: 40
+        state:
+          type: string
+          enum:
+            - GENERATED
+            - APPROVED
+            - REJECTED
+            - UNKNOWN
+        approved_by_key:
+          type: string
+          nullable: true
+          maxLength: 40
+        approved_at_raw:
+          type: string
+          nullable: true
+          maxLength: 40
+        rejected_by_key:
+          type: string
+          nullable: true
+          maxLength: 40
+        rejected_at_raw:
+          type: string
+          nullable: true
+          maxLength: 40
+        rejected_then_approved:
+          type: boolean
+        item_count:
+          type: integer
+          format: int64
+        posted_items:
+          type: integer
+          format: int64
+        failed_items:
+          type: integer
+          format: int64
+    CommissionHistoricalRunListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/CommissionNotice'
+        run:
+          $ref: '#/components/schemas/CommissionRun'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CommissionHistoricalRun'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    CommissionEarning:
+      type: object
+      description: One historical legacy commission credit or reversal of the CALLER (own scope only).
+      required:
+        - source_key
+        - engine
+        - direction
+        - type_raw
+        - unit
+        - reversed
+      additionalProperties: false
+      properties:
+        source_key:
+          type: string
+          maxLength: 40
+        engine:
+          $ref: '#/components/schemas/CommissionEngine'
+        direction:
+          type: string
+          enum:
+            - CREDIT
+            - DEBIT
+            - UNKNOWN
+        type_raw:
+          type: string
+          maxLength: 60
+        invoice_id:
+          type: string
+          format: uuid
+          nullable: true
+        stage_raw:
+          type: string
+          nullable: true
+          maxLength: 20
+        purpose_raw:
+          type: string
+          nullable: true
+          maxLength: 60
+        share_facet_raw:
+          type: string
+          nullable: true
+          maxLength: 80
+        amount:
+          type: string
+          nullable: true
+          maxLength: 40
+        unit:
+          type: string
+          enum:
+            - IRR
+            - IRT
+        reversed:
+          type: boolean
+        occurred_at_raw:
+          type: string
+          nullable: true
+          maxLength: 40
+        entitlement_key:
+          type: string
+          nullable: true
+          maxLength: 300
+    CommissionEarningListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+        - notice
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        notice:
+          $ref: '#/components/schemas/CommissionNotice'
+        run:
+          $ref: '#/components/schemas/CommissionRun'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CommissionEarning'
+        totals:
+          type: object
+          additionalProperties:
+            type: string
+            maxLength: 40
         page:
           $ref: '#/components/schemas/PageInfo'
         allowed_actions:

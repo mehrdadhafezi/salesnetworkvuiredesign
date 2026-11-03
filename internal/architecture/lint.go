@@ -304,7 +304,32 @@ const (
 	RuleS12Session         = "s12-session"
 	RuleS12TargetReview    = "s12-target-review"
 	RuleS12ReviewPure      = "s12-review-pure"
+	RuleS13Forbidden       = "s13-forbidden-command"
+	RuleS13Dispatch        = "s13-posting-dispatch"
+	RuleS13ForeignSQL      = "s13-foreign-sql"
+	RuleS13Float           = "s13-float"
+	RuleS13DomainPure      = "s13-domain-pure"
+	RuleS13ReadWrite       = "s13-read-write"
 )
+
+// Slice 13 commission trees.
+var (
+	s13Trees  = []string{"internal/commission", "cmd/crm-commission-shadow", "internal/platform/apiserver", "cmd/crm-api"}
+	s13Domain = "internal/commission/domain"
+	s13Read   = []string{"internal/commission/http", "internal/commission/query"}
+)
+
+// s13Command matches identifiers of commission commands Slice 13 must not
+// activate (approval and posting are decision-blocked: OPD-09, D-41).
+var s13Command = regexp.MustCompile(`(?i)^(approverun|approvecommission|rejectrun|rejectcommission|postcommission|postcommissions|creditwallet|` +
+	`creditcommission|dispatchposting|sendpostingrequest|publishposting|settlecommission|reversecommission|recalculatecommission|backfillcommission[a-z]*|` +
+	`runbackfill)$`)
+
+// s13Route matches a commission command route literal.
+var s13Route = regexp.MustCompile(`(?i)/commission(/[a-z0-9_{}-]+)*/(approve|approvals|reject|post|postings|credit|credits|settle|reverse|recalculate|calculate|backfill)\b`)
+
+// s13ForeignSQL matches commission SQL naming any other schema.
+var s13ForeignSQL = regexp.MustCompile(`(?i)\b(from|join|into|update)\s+(identity|organization|customers|cases|custody|billing|payments|integration|audit|platform_featureflags|reporting|finance|biawin|fulfillment)\.`)
 
 // Slice 12 trees.
 var (
@@ -506,6 +531,8 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 			other == "payments" && (under(rel, "internal/finance/review") || under(rel, "internal/finance/http")))
 	case top == "commission" && other == "finance":
 		return false
+	case top == "commission" && other == "identity":
+		return rest == "api" && under(rel, "internal/commission/http")
 	case (top == "biawin" || top == "fulfillment") && other == "identity":
 		return rest == "api" && under(rel, "internal/"+top+"/http")
 	case other == "authorization" && (rest == "" || rest == "http"):
@@ -557,7 +584,7 @@ var legacyLiteral = regexp.MustCompile(`(^|[^A-Za-z0-9_])(wp|sn)_[A-Za-z0-9_]`)
 var wooLiteral = regexp.MustCompile(`(?i)woo` + `commerce`)
 
 // legacyImporters may import internal/integration/legacy/**.
-var legacyImporters = []string{legacyInteg, "cmd/crm-legacy-import", "cmd/crm-finance-shadow", "cmd/crm-biawin-shadow"}
+var legacyImporters = []string{legacyInteg, "cmd/crm-legacy-import", "cmd/crm-finance-shadow", "cmd/crm-biawin-shadow", "cmd/crm-commission-shadow"}
 
 // legacyMigrationsImporter may import only the legacy migrations package.
 const (
@@ -669,6 +696,10 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		if !isTest && internalTop == "reporting" && internalRest == "projections" && (under(rel, "internal/reporting/http") || under(rel, "internal/reporting/query") ||
 			under(rel, "internal/platform/apiserver") || under(rel, "cmd/crm-api")) {
 			add(RuleReadPathImport, imp.Pos(), "read path imports the projection rebuild "+p)
+		}
+		if !isTest && internalTop == "commission" && internalRest == "shadow" && (under(rel, "internal/commission/http") || under(rel, "internal/commission/query") ||
+			under(rel, "internal/platform/apiserver") || under(rel, "cmd/crm-api")) {
+			add(RuleReadPathImport, imp.Pos(), "read path imports the offline commission shadow job "+p)
 		}
 		if !isTest && internalTop == "finance" && internalRest == "shadow" && (under(rel, "internal/finance/http") || under(rel, "internal/finance/query") ||
 			under(rel, "internal/platform/apiserver") || under(rel, "cmd/crm-api")) {
@@ -880,6 +911,7 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 	if !isTest {
 		out = append(out, checkSlice11File(f, fset, rel)...)
 		out = append(out, checkSlice12File(f, fset, rel, modulePath)...)
+		out = append(out, checkSlice13File(f, fset, rel, modulePath)...)
 	}
 	return out, nil
 }
@@ -939,6 +971,73 @@ func checkSlice12File(f *ast.File, fset *token.FileSet, rel, modulePath string) 
 			}
 			if under(rel, s12Review) && sqlish.MatchString(v) {
 				add(RuleS12ReviewPure, x.Pos(), "SQL in the Finance review gate")
+			}
+		}
+		return true
+	})
+	return out
+}
+
+// checkSlice13File applies the Slice 13 commission rules to a non-test file:
+// no approve / post / credit / settle / reverse / recalculate command or
+// route; no posting request appended to an outbox (never dispatched); no
+// SQL naming another schema; no floating point; a pure domain (no database,
+// clock, network or file system); no write SQL on the read path.
+func checkSlice13File(f *ast.File, fset *token.FileSet, rel, modulePath string) []Violation {
+	var out []Violation
+	add := func(rule string, pos token.Pos, text string) {
+		out = append(out, Violation{Rule: rule, File: rel, Line: fset.Position(pos).Line, Text: text})
+	}
+	if under(rel, architectureDir) {
+		return nil
+	}
+	inCommission := under(rel, "internal/commission") || under(rel, "cmd/crm-commission-shadow")
+	if under(rel, s13Domain) {
+		for _, imp := range f.Imports {
+			p, err := strconv.Unquote(imp.Path.Value)
+			if err != nil {
+				continue
+			}
+			if strings.HasPrefix(p, modulePath+"/internal/platform") || p == "os" || p == "net" || p == "net/http" || p == "database/sql" ||
+				strings.HasPrefix(p, "github.com/jackc/") {
+				add(RuleS13DomainPure, imp.Pos(), "the commission domain is pure: it imports "+p)
+			}
+		}
+	}
+	ast.Inspect(f, func(n ast.Node) bool {
+		switch x := n.(type) {
+		case *ast.Ident:
+			if inAny(rel, s13Trees) && s13Command.MatchString(x.Name) {
+				add(RuleS13Forbidden, x.Pos(), "Slice 13 forbidden commission command identifier "+x.Name)
+			}
+			if inCommission && (x.Name == "float32" || x.Name == "float64") {
+				add(RuleS13Float, x.Pos(), x.Name+" in commission (amounts are exact scaled integers + unit)")
+			}
+		case *ast.SelectorExpr:
+			if id, ok := x.X.(*ast.Ident); ok {
+				if under(rel, "internal/commission") && id.Name == "outbox" && x.Sel.Name == "Append" {
+					add(RuleS13Dispatch, x.Pos(), "commission appends to an outbox: a posting request is never dispatched in Slice 13")
+				}
+				if under(rel, s13Domain) && id.Name == "time" && x.Sel.Name == "Now" {
+					add(RuleS13DomainPure, x.Pos(), "the commission domain reads the clock")
+				}
+			}
+		case *ast.BasicLit:
+			if x.Kind != token.STRING {
+				return true
+			}
+			v, err := strconv.Unquote(x.Value)
+			if err != nil {
+				return true
+			}
+			if inAny(rel, s13Trees) && s13Route.MatchString(v) {
+				add(RuleS13Forbidden, x.Pos(), "Slice 13 forbidden commission route literal: "+s13Route.FindString(v))
+			}
+			if inCommission && s13ForeignSQL.MatchString(v) {
+				add(RuleS13ForeignSQL, x.Pos(), "commission SQL names another schema: "+s13ForeignSQL.FindString(v))
+			}
+			if inAny(rel, s13Read) && writeSQL.MatchString(v) {
+				add(RuleS13ReadWrite, x.Pos(), "write SQL on the commission read path")
 			}
 		}
 		return true
