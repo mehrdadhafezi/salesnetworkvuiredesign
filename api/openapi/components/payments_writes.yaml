@@ -22,8 +22,10 @@ EvidenceReceiptState:
 
 UploadState:
   type: string
-  description: UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), PURGED (unbound and expired; bytes deleted, row kept).
-  enum: [UNBOUND, BOUND, PURGED]
+  description: |
+    UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), EXPIRING (unbound and expired; deletion claimed and retried until
+    done; can never be bound), PURGED (bytes deleted, row and history kept). Re-sending the same bytes renews or revives the same upload.
+  enum: [UNBOUND, BOUND, EXPIRING, PURGED]
 
 EvidenceState:
   type: string

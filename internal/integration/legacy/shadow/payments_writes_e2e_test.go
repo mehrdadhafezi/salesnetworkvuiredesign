@@ -62,18 +62,52 @@ type faultStore struct {
 	lostReply bool // copy succeeds, the reply is lost
 	panicCopy bool // the worker "crashes" during the copy
 	copies    int
+	// putHook runs before every Put (barriers for concurrency tests).
+	putHook func(key string)
+	// deleteFails > 0 fails that many Delete calls before touching bytes.
+	deleteFails int
+	// crashBeforeDelete / crashAfterDelete simulate a worker crash around
+	// the object deletion (panic, recovered by the test).
+	crashBeforeDelete, crashAfterDelete bool
+	deletes                             []string
 }
 
 var errInjected = errors.New("injected storage failure")
 
 func (f *faultStore) Put(ctx context.Context, key string, r io.Reader, want [32]byte) error {
 	f.mu.Lock()
-	fail := f.failPut
+	fail, hook := f.failPut, f.putHook
 	f.mu.Unlock()
+	if hook != nil {
+		hook(key)
+	}
 	if fail {
 		return errInjected
 	}
 	return f.Store.Put(ctx, key, r, want)
+}
+
+func (f *faultStore) Delete(ctx context.Context, key string) error {
+	f.mu.Lock()
+	f.deletes = append(f.deletes, key)
+	fail := f.deleteFails > 0
+	if fail {
+		f.deleteFails--
+	}
+	before, after := f.crashBeforeDelete, f.crashAfterDelete
+	f.crashBeforeDelete, f.crashAfterDelete = false, false
+	f.mu.Unlock()
+	if before {
+		panic("synthetic worker crash before evidence deletion")
+	}
+	if fail {
+		return errInjected
+	}
+	err := f.Store.Delete(ctx, key)
+	if after {
+		panic("synthetic worker crash after evidence deletion")
+	}
+	return err
 }
 
 func (f *faultStore) CopyIfAbsent(ctx context.Context, src, dst string, want [32]byte) error {

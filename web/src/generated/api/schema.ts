@@ -4408,10 +4408,11 @@ export interface components {
             data?: components["schemas"]["WritebackCommand"];
         };
         /**
-         * @description UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), PURGED (unbound and expired; bytes deleted, row kept).
+         * @description UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), EXPIRING (unbound and expired; deletion claimed and retried until
+         *     done; can never be bound), PURGED (bytes deleted, row and history kept). Re-sending the same bytes renews or revives the same upload.
          * @enum {string}
          */
-        UploadState: "UNBOUND" | "BOUND" | "PURGED";
+        UploadState: "UNBOUND" | "BOUND" | "EXPIRING" | "PURGED";
         PaymentUploadResult: {
             rollout_mode: components["schemas"]["RolloutMode"];
             /** Format: uuid */

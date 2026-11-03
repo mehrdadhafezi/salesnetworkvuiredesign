@@ -3165,15 +3165,18 @@ func (e UnitAmountUnit) Valid() bool {
 
 // Defines values for UploadState.
 const (
-	BOUND   UploadState = "BOUND"
-	PURGED  UploadState = "PURGED"
-	UNBOUND UploadState = "UNBOUND"
+	BOUND    UploadState = "BOUND"
+	EXPIRING UploadState = "EXPIRING"
+	PURGED   UploadState = "PURGED"
+	UNBOUND  UploadState = "UNBOUND"
 )
 
 // Valid indicates whether the value is a known member of the UploadState enum.
 func (e UploadState) Valid() bool {
 	switch e {
 	case BOUND:
+		return true
+	case EXPIRING:
 		return true
 	case PURGED:
 		return true
@@ -7973,7 +7976,8 @@ type PaymentUploadResult struct {
 	RolloutMode RolloutMode `json:"rollout_mode"`
 	SizeBytes   *int        `json:"size_bytes,omitempty"`
 
-	// State UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), PURGED (unbound and expired; bytes deleted, row kept).
+	// State UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), EXPIRING (unbound and expired; deletion claimed and retried until
+	// done; can never be bound), PURGED (bytes deleted, row and history kept). Re-sending the same bytes renews or revives the same upload.
 	State    *UploadState        `json:"state,omitempty"`
 	UploadId *openapi_types.UUID `json:"upload_id,omitempty"`
 }
@@ -9020,7 +9024,8 @@ type UnitRef struct {
 	Label *string     `json:"label"`
 }
 
-// UploadState UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), PURGED (unbound and expired; bytes deleted, row kept).
+// UploadState UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), EXPIRING (unbound and expired; deletion claimed and retried until
+// done; can never be bound), PURGED (bytes deleted, row and history kept). Re-sending the same bytes renews or revives the same upload.
 type UploadState string
 
 // UserEnvelope defines model for UserEnvelope.

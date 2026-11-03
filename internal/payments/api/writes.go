@@ -30,9 +30,10 @@ const (
 	ReceiptStorageError   = "STORAGE_ERROR"
 	ReceiptNotRecoverable = "NOT_RECOVERABLE"
 
-	UploadUnbound = "UNBOUND"
-	UploadBound   = "BOUND"
-	UploadPurged  = "PURGED"
+	UploadUnbound  = "UNBOUND"
+	UploadBound    = "BOUND"
+	UploadExpiring = "EXPIRING"
+	UploadPurged   = "PURGED"
 )
 
 // BatchSubmitted is the payload of EventBatchSubmitted.

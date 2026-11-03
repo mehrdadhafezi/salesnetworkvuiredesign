@@ -274,13 +274,13 @@ jobs:
             grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
           done
           s7="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT string_agg(table_schema || '=' || n, ',' ORDER BY table_schema) FROM (SELECT table_schema, count(*) n FROM information_schema.tables WHERE table_schema IN ('billing', 'payments') GROUP BY 1) x")"
-          test "$s7" = "billing=9,payments=19" || { echo "expected billing=9,payments=19 tables (Slice 7 + Slice 12 evidence, batches, attempts, gateway), got $s7"; exit 1; }
+          test "$s7" = "billing=9,payments=20" || { echo "expected billing=9,payments=20 tables (Slice 7 + Slice 12 evidence, batches, attempts, gateway, upload history), got $s7"; exit 1; }
           bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema IN ('billing', 'payments') AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name IN ('attempt_state_history', 'import_run')))")"
           test "$bad" = "0" || { echo "billing/payments grants allow deleting rows or mutating history"; exit 1; }
           foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE (table_schema = 'billing' AND grantee NOT IN ('crm_owner_billing', current_user)) OR (table_schema = 'payments' AND grantee NOT IN ('crm_owner_payments', current_user))")"
           test "$foreign" = "0" || { echo "foreign role granted on billing/payments (billing never writes payments and vice versa)"; exit 1; }
           guards="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_name LIKE '%_append_only' AND trigger_schema = 'payments'")"
-          test "$guards" = "7" || { echo "payments append-only triggers missing (Slice 7 history + Slice 12 batch / attempt / receipt / reconciliation / command / gateway history): $guards"; exit 1; }
+          test "$guards" = "8" || { echo "payments append-only triggers missing (Slice 7 history + Slice 12 batch / attempt / receipt / reconciliation / command / gateway / upload history): $guards"; exit 1; }
           # No PII, URL, path, token or floating-point/numeric money column; no ledger/wallet table yet.
           pii="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema IN ('billing', 'payments') AND (column_name ~* '(phone|address|national|url|path|token|secret|card)' OR data_type IN ('real', 'double precision', 'numeric'))")"
           test "$pii" = "0" || { echo "billing/payments has a PII/URL/token or float/numeric column"; exit 1; }
@@ -353,7 +353,7 @@ jobs:
           final="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_constraint WHERE conname = 'hr_request_status' AND pg_get_constraintdef(oid) LIKE '%approved%'")"
           test "$final" = "0" || { echo "HR requests must not reach approved in Slice 11 (OPD-05)"; exit 1; }
           # Slice 12 controlled financial writes (evidence never deleted; target attempts never reviewed; D-25 / D-26 guards; no role grant).
-          for f in 00003_payments_controlled_writes.sql 00009_integration_writeback_payments.sql 00009_identity_payment_capabilities.sql; do
+          for f in 00003_payments_controlled_writes.sql 00004_payments_upload_lifecycle.sql 00009_integration_writeback_payments.sql 00009_identity_payment_capabilities.sql; do
             grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
           done
           nodel="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_schema = 'payments' AND trigger_name LIKE '%_no_delete' AND event_object_table IN ('receipt_evidence', 'upload_object', 'submitted_attempt')")"
@@ -368,6 +368,8 @@ jobs:
           test "$money" = "0" || { echo "payments carries a float / numeric / money column"; exit 1; }
           paths="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'payments' AND column_name ~* '(url|path|filename|token|secret|password|phone|mobile|card_number|session)' AND column_name <> 'session_issued'")"
           test "$paths" = "0" || { echo "payments carries a URL / path / secret / phone / card / session column"; exit 1; }
+          lifecycle="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_constraint WHERE conname = 'upload_state' AND pg_get_constraintdef(oid) LIKE '%EXPIRING%'")"
+          test "$lifecycle" = "1" || { echo "upload expiry must be a durable EXPIRING -> PURGED lifecycle"; exit 1; }
           granted="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.role_capability WHERE capability_key IN ('payments.upload.stage', 'payments.batch.submit', 'payments.submission.read', 'payments.evidence.read', 'finance.review.read')")"
           test "$granted" = "0" || { echo "Slice 12 capabilities must be granted to no role"; exit 1; }
           financecap="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.capability WHERE capability_key ~ '(approve|reject|post|refund|settle|next_stage|gateway)'")"

@@ -67,7 +67,7 @@ SERVICE-ONLY = implemented and tested without any route; BLOCKED = no route, no 
 | supervisor / manager / Finance / converter submit | payments | — | — | — | — | `sn_can_perform_internal_invoice_payment_action` | OPD-10, OPD-08 | — | — | — | — | BLOCKED |
 | customer self-service submit / pay online | payments | — | — | — | — | public token routes | §15.10 not built, D-26 | — | — | — | — | BLOCKED |
 | `payments.FinaliseReceipt` (worker) | payments | service actor | receipt | receipt QUARANTINED / STORAGE_ERROR | write-ahead FINALIZING → content-addressed copy `evidence/<sha256>` → hash verify → READY; failure → STORAGE_ERROR; missing / mismatched bytes → NOT_RECOVERABLE + reconciliation case | `commit_receipt_uploads` | D-44 | re-run finds the object and only updates state | receipt version | when every receipt of an attempt is READY: outbox `payments.attempt_evidence_ready` | never rolls back the financial transaction | **SERVICE-ONLY** |
-| `payments.ExpireUnbound` (worker) | payments | service actor | upload | UNBOUND and `expires_at` passed (DB check) | upload PURGED, quarantine bytes deleted | shutdown cleanup | D-44 | idempotent | conditional update on UNBOUND | none | — | **SERVICE-ONLY** |
+| `payments.ExpireUnbound` (worker) | payments | service actor | upload | UNBOUND and `expires_at` passed (DB check, row lock) | UNBOUND → EXPIRING (claim) → bytes deleted → PURGED; failures stay EXPIRING with attempts and error, retried | shutdown cleanup | D-44 | idempotent (deleting a missing object succeeds; ack conditional on EXPIRING + key) | row lock shared with binding; SKIP LOCKED | none | — | **SERVICE-ONLY** |
 | `payments.StartGatewayAttempt` | payments (+ integration adapter) | — (no route) | — | stage due, no pending manual attempt | write-ahead UNKNOWN → REDIRECT_ISSUED / FAILED_AT_GATEWAY | `ajax_pay_online` | D-25, D-26, §15.10 | stable request id from key | request version | none | — | **SERVICE-ONLY** (synthetic gateway; no route; production unsupported) |
 | `payments.RecordGatewayCallback` / `ReconcileGatewayAttempt` | payments | service actor | request | verified callback (adapter), inbox `(provider, external_ref, status)` | VERIFIED (provenance `GATEWAY_AUTO`, not Finance-reviewed) / FAILED / CANCELLED / RECONCILIATION_REQUIRED | `handle_zarinpal_callback` | D-25, D-26 | inbox dedupe; replay = no-op | request version | no session, no stage change | — | **SERVICE-ONLY** |
 | `finance.ApproveAttempt` | finance | — | — | — | — | `ajax_financial_approve_payment` | D-41, OPD-08, OPD-09, D-43 | — | — | — | — | BLOCKED (evaluator only) |
@@ -93,10 +93,14 @@ client bytes ─▶ StageUpload ─▶ quarantine/<upload_id> (fsync) ─▶ upl
                                        READY                     STORAGE_ERROR ─ reconcile ─▶ NOT_RECOVERABLE
                               (all READY ⇒ outbox                (quarantine kept)           (+ reconciliation case,
                                attempt_evidence_ready)                                        Finance owner)
-UNBOUND past expires_at ─▶ PURGED (row kept, bytes deleted; never for a bound upload)
+UNBOUND past expires_at ─▶ EXPIRING (claimed under the row lock; never bindable) ─▶ delete bytes ─▶ PURGED (row kept)
+                           a failed / crashed deletion stays EXPIRING and is retried (idempotent); never for a bound upload
+same bytes re-sent: unexpired UNBOUND/BOUND → returned; expired UNBOUND → RENEWED (bytes verified) or RESTAGED (fresh bytes);
+                    EXPIRING/PURGED → REVIVED (fresh bytes); always the same upload identity, recorded in upload_event
 ```
 
-- **Uploaded, unbound:** `upload_object.state = UNBOUND`; not evidence.
+- **Uploaded, unbound:** `upload_object.state = UNBOUND`; not evidence. Every write goes to a fresh, request-owned object key that a
+  conditional database change adopts; a request deletes only its own copy and only when the database proved it was not adopted.
 - **Quarantined:** receipt `QUARANTINED`: bound to exactly one attempt, batch, invoice and command; bytes durable in quarantine.
 - **Undergoing validation:** receipt `FINALIZING` (write-ahead claim by the finaliser).
 - **READY:** finalised, content-addressed, hash verified, bound.

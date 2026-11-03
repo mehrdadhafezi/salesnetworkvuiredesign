@@ -299,42 +299,109 @@ func (s *Service) markNotRecoverable(ctx context.Context, w receiptWork, detail 
 }
 
 // ExpireReport counts what one ExpireUnbound run did.
-type ExpireReport struct{ Purged, DeleteFailed int }
+type ExpireReport struct{ Claimed, Purged, DeleteFailed int }
 
-// ExpireUnbound purges unbound uploads past expires_at (D-44 safe default).
-// The row is kept (state PURGED); only the quarantine bytes are deleted, and
-// only after a conditional database update proves the upload was never
-// bound. A bound upload is never purged.
+// ExpireUnbound runs the D-44 unbound-upload expiry as a durable, retryable
+// two-step lifecycle:
+//
+//  1. claim: in one transaction, UNBOUND uploads past expires_at move to
+//     EXPIRING under their row lock (a concurrent binding holds the same lock
+//     and requires UNBOUND + unexpired, so a claimed upload can never be
+//     bound and a bound one is never claimed);
+//  2. delete: for every EXPIRING upload (this run's claims and any left by a
+//     failed or crashed run) the quarantine object is deleted (deleting a
+//     missing object succeeds), then the upload is acknowledged PURGED only
+//     if it is still EXPIRING with the same object key.
+//
+// A failed deletion keeps the upload EXPIRING with purge_attempts and
+// last_purge_error recorded, so the next run retries it. A crash before the
+// deletion or between the deletion and the acknowledgement leaves it
+// EXPIRING; the retry is idempotent. Each step is recorded in upload_event.
+// Rows are never deleted and a BOUND upload is never touched.
 func (s *Service) ExpireUnbound(ctx context.Context, limit int) (ExpireReport, error) {
 	var rep ExpireReport
-	var refs []string
 	err := s.runner.InTx(ctx, db.TxOptions{Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
 		at := s.clock.Now().Time().UTC()
-		rows, err := tx.Query(ctx, `UPDATE payments.upload_object SET state = 'PURGED', purged_at = $1, version = version + 1
+		rows, err := tx.Query(ctx, `UPDATE payments.upload_object SET state = 'EXPIRING', expiring_at = $1, version = version + 1
 			WHERE upload_id IN (SELECT upload_id FROM payments.upload_object WHERE state = 'UNBOUND' AND expires_at <= $1
-			ORDER BY expires_at LIMIT $2 FOR UPDATE SKIP LOCKED) AND state = 'UNBOUND' RETURNING quarantine_ref`, at, limit)
+			ORDER BY expires_at LIMIT $2 FOR UPDATE SKIP LOCKED) AND state = 'UNBOUND' RETURNING upload_id::text, quarantine_ref`, at, limit)
+		if err != nil {
+			return err
+		}
+		var claimed [][2]string
+		for rows.Next() {
+			var id, ref string
+			if err := rows.Scan(&id, &ref); err != nil {
+				rows.Close()
+				return err
+			}
+			claimed = append(claimed, [2]string{id, ref})
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		for _, c := range claimed {
+			if err := uploadEvent(ctx, tx, c[0], "EXPIRING", c[1], "unbound past expires_at (D-44)", ServiceActor, at); err != nil {
+				return err
+			}
+		}
+		rep.Claimed = len(claimed)
+		return nil
+	})
+	if err != nil {
+		return rep, err
+	}
+	type pending struct{ id, ref string }
+	var work []pending
+	err = s.runner.InTx(ctx, db.TxOptions{ReadOnly: true, Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
+		// Belt and braces: an upload any receipt references is never deleted.
+		rows, err := tx.Query(ctx, `SELECT u.upload_id::text, u.quarantine_ref FROM payments.upload_object u WHERE u.state = 'EXPIRING'
+			AND NOT EXISTS (SELECT 1 FROM payments.receipt_evidence r WHERE r.upload_id = u.upload_id OR r.quarantine_ref = u.quarantine_ref)
+			ORDER BY u.expiring_at, u.upload_id LIMIT $1`, limit)
 		if err != nil {
 			return err
 		}
 		defer rows.Close()
 		for rows.Next() {
-			var r string
-			if err := rows.Scan(&r); err != nil {
+			var p pending
+			if err := rows.Scan(&p.id, &p.ref); err != nil {
 				return err
 			}
-			refs = append(refs, r)
+			work = append(work, p)
 		}
 		return rows.Err()
 	})
 	if err != nil {
 		return rep, err
 	}
-	for _, r := range refs {
-		if err := s.store.Delete(ctx, r); err != nil {
-			rep.DeleteFailed++
-			continue
+	for _, p := range work {
+		derr := s.store.Delete(ctx, p.ref)
+		err := s.runner.InTx(ctx, db.TxOptions{Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
+			at := s.clock.Now().Time().UTC()
+			if derr != nil {
+				tag, err := tx.Exec(ctx, `UPDATE payments.upload_object SET purge_attempts = purge_attempts + 1, last_purge_error = $3,
+					version = version + 1 WHERE upload_id = $1 AND state = 'EXPIRING' AND quarantine_ref = $2`, p.id, p.ref, truncate300(derr.Error()))
+				if err != nil || tag.RowsAffected() == 0 {
+					return err
+				}
+				return uploadEvent(ctx, tx, p.id, "PURGE_FAILED", p.ref, derr.Error(), ServiceActor, at)
+			}
+			tag, err := tx.Exec(ctx, `UPDATE payments.upload_object SET state = 'PURGED', purged_at = $3, version = version + 1
+				WHERE upload_id = $1 AND state = 'EXPIRING' AND quarantine_ref = $2`, p.id, p.ref, at)
+			if err != nil || tag.RowsAffected() == 0 {
+				return err // revived meanwhile: its new key is untouched
+			}
+			return uploadEvent(ctx, tx, p.id, "PURGED", p.ref, "", ServiceActor, at)
+		})
+		if err != nil {
+			return rep, err
 		}
-		rep.Purged++
+		if derr != nil {
+			rep.DeleteFailed++
+		} else {
+			rep.Purged++
+		}
 	}
 	return rep, nil
 }

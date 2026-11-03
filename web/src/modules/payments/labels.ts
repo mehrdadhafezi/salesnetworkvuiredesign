@@ -21,7 +21,7 @@ export const evidenceStateLabel: Record<string, string> = {
 export const evidenceStateTone: Record<string, Tone> = { PENDING_FINALISATION: 'amber', READY: 'green', NOT_RECOVERABLE: 'red' }
 
 export const uploadStateLabel: Record<string, string> = {
-  UNBOUND: 'بارگذاری شده؛ هنوز به پرداختی متصل نیست (سند محسوب نمی‌شود)', BOUND: 'متصل به یک پرداخت', PURGED: 'منقضی و پاک شد',
+  UNBOUND: 'بارگذاری شده؛ هنوز به پرداختی متصل نیست (سند محسوب نمی‌شود)', BOUND: 'متصل به یک پرداخت', EXPIRING: 'منقضی شده؛ در حال پاک‌سازی', PURGED: 'منقضی و پاک شد',
 }
 
 export const attemptStateLabel: Record<string, string> = { PENDING_REVIEW: 'در انتظار بررسی مالی (بررسی نشده)' }
