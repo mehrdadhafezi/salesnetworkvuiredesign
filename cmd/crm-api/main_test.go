@@ -78,3 +78,17 @@ func TestWritesSurfaceNeedsFlagStoreAndHolderRead(t *testing.T) {
 		}
 	}
 }
+
+func TestPaymentsSurfaceIsAllOrNone(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	for _, partial := range []map[string]string{
+		{"CRM_ENV": "test", EnvPaymentsWriteURL: "postgres://x@127.0.0.1:1/x"},
+		{"CRM_ENV": "test", EnvPaymentsObjectRoot: "/tmp"},
+		{"CRM_ENV": "test", EnvPaymentsWriteURL: "postgres://x@127.0.0.1:1/x", EnvPaymentsBillingURL: "postgres://x@127.0.0.1:1/x",
+			EnvPaymentsObjectRoot: "/tmp"},
+	} {
+		if err := run(context.Background(), env(partial), logger); !errors.Is(err, ErrPaymentsConfig) {
+			t.Fatalf("partial payments config %v: %v", partial, err)
+		}
+	}
+}

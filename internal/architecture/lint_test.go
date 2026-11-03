@@ -73,7 +73,7 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleReportingRead:      1,  // reporting SELECT FROM billing.invoice
 		RuleMetricFormula:      1,  // reporting count( outside the query spec
 		RuleExportEndpoint:     1,  // reporting /invoice-review/export
-		RuleFinanceRead:        1,  // finance SELECT FROM payments.payment_attempt
+		RuleFinanceRead:        2,  // finance SELECT FROM payments.payment_attempt; finance/review SELECT FROM payments.submitted_attempt
 		RuleFinanceReadWrite:   1,  // finance/http INSERT INTO finance.shadow_run
 		RuleFinanceRoute:       1,  // finance/http /ledger/{entry_id}/reverse
 		RuleFinanceFloat:       2,  // finance float64 parameter and result
@@ -92,6 +92,13 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleS11Bulk:            1,  // BulkReassign
 		RuleS11BlindRetry:      1,  // Apply outside apply()
 		RuleForbiddenCommand:   10, // ChargeWallet, ActivateSubscription, CompleteDot, WriteProjectMembership, RunCommission, AssignExpert, ShipOrder, UploadEvidence + two command routes
+		RuleS12Forbidden:       3,  // ApproveAttempt, IssueNextStage, an approve route literal
+		RuleS12GatewayWiring:   1,  // cmd/crm-api-s12 imports a gateway adapter
+		RuleS12Network:         2,  // http.Get in payments; net.Dial in a gateway adapter
+		RuleS12EvidencePath:    1,  // payments imports os
+		RuleS12Session:         2,  // AutoLogin in payments; NewSession in a gateway adapter
+		RuleS12TargetReview:    1,  // payments SQL sets a target attempt ACCEPTED
+		RuleS12ReviewPure:      2,  // review imports platform/db; SQL in the review gate
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -715,6 +722,22 @@ func TestSliceElevenRules(t *testing.T) {
 	for _, s := range []string{"/api/v1/cases/{case_id}/contact-outcomes", "/api/v1/hr/requests", "/api/v1/hr/requests/{request_id}/decisions",
 		"/api/v1/cases/{case_id}/history", "/api/v1/custody/cases/{case_id}"} {
 		if s11Route.MatchString(s) {
+			t.Errorf("%q wrongly flagged", s)
+		}
+	}
+}
+
+func TestSliceTwelveRoutes(t *testing.T) {
+	for _, s := range []string{"/api/v1/finance/review/attempts/{attempt_id}/decisions", "/api/v1/payments/attempts/{attempt_id}/approve",
+		"/api/v1/finance/ledger/postings", "/api/v1/payments/refunds", "/api/v1/billing/invoices/{invoice_id}/next-stage",
+		"/api/v1/payments/gateway/callback", "/api/v1/finance/review/bulk-approve", "/api/v1/payments/settlements"} {
+		if !s12Route.MatchString(s) {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	for _, s := range []string{"/api/v1/payments/uploads", "/api/v1/payments/invoices/{invoice_id}/submission", "/api/v1/payments/invoices/{invoice_id}/batches",
+		"/api/v1/payments/batches/{batch_id}", "/api/v1/payments/evidence", "/api/v1/finance/review/attempts", "/api/v1/finance/review/attempts/{attempt_id}"} {
+		if s12Route.MatchString(s) {
 			t.Errorf("%q wrongly flagged", s)
 		}
 	}

@@ -9,7 +9,7 @@ export interface NavItem {
   label: string
   dev?: boolean
   /** Shown only when the server session reports this feature enabled (navigation hint only). */
-  feature?: 'hr_read' | 'customers_identity' | 'sales_read' | 'billing_read' | 'reporting_read' | 'finance_shadow_read' | 'biawin_fulfillment_read' | 'hr_request_write' | 'writeback_read'
+  feature?: 'hr_read' | 'customers_identity' | 'sales_read' | 'billing_read' | 'reporting_read' | 'finance_shadow_read' | 'biawin_fulfillment_read' | 'hr_request_write' | 'writeback_read' | 'payment_submission' | 'finance_review_read'
 }
 
 /** AppShell (SN-207 §2, §5): skip link → header → nav → main#ws. */

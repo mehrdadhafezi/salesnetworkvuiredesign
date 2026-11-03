@@ -35,6 +35,9 @@ const (
 	TypeContactOutcome = "cases.contact_outcome"
 	TypeHRCreate       = "organization.hr_request_create"
 	TypeHRDecide       = "organization.hr_request_decide"
+	// TypePaymentAttempt is a Slice 12 manual payment attempt whose
+	// receipts are all READY.
+	TypePaymentAttempt = "payments.manual_payment"
 )
 
 // Intent is one target command as integration delivers it. Fields are
@@ -107,6 +110,8 @@ func Expected(in Intent) map[string]string {
 		keep("request_type", "subject_user_id", "target_parent_user_id", "status", "current_reviewer_user_id")
 	case TypeHRDecide:
 		keep("to_status", "next_reviewer_user_id")
+	case TypePaymentAttempt:
+		keep("amount", "unit", "stage_no", "status", "receipt_count")
 	}
 	return out
 }

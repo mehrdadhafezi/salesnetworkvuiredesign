@@ -123,9 +123,14 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closeWrites()
+	pay, closePayments, err := openPayments(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closePayments()
 	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill,
 		Reporting: rep, Finance: fin, Biawin: bw,
-		CaseWrite: writes.CaseWrite, HRRequest: writes.HRRequest, Writeback: writes.Writeback})
+		CaseWrite: writes.CaseWrite, HRRequest: writes.HRRequest, Writeback: writes.Writeback, Payments: pay})
 	if err != nil {
 		return err
 	}

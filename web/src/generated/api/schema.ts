@@ -1666,6 +1666,157 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stage one receipt file in quarantine evidence storage (not evidence until bound)
+         * @description Requires payments.upload.stage; flag payments.manual_write (only CONTROLLED_WRITEBACK accepts; SHADOW_COMPARE is BLOCKED for payments).
+         *     The body is the raw file (at most 5 MiB). The type is decided by content (jpeg, png, webp or pdf), never by a client name or type.
+         *     The bytes are durable BEFORE the upload is recorded; a storage failure records nothing (FAILED, safe to retry).
+         *     Re-sending the same bytes returns the caller's existing upload (existing=true). Unbound uploads expire after 7 days (D-44 safe default).
+         */
+        post: operations["stagePaymentUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/invoices/{invoice_id}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payment submission context of an invoice's current stage (read; allowed_actions from the command evaluator)
+         * @description Requires payments.submission.read (flag payments.manual_write). Read only. The eligibility shown is the SAME evaluation the command
+         *     re-runs at commit. blocked_actions lists legacy actions that exist but are unavailable, with the decisions blocking them.
+         */
+        get: operations["getPaymentSubmission"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/invoices/{invoice_id}/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the owning seller's manual payment batch (receipt mode) for the invoice's current stage
+         * @description Requires payments.batch.submit; flag payments.manual_write in CONTROLLED_WRITEBACK.
+         *     Idempotency-Key is required: same key + same body replays the stored result; same key + another body (or another actor) is 409 CONFLICT.
+         *     If-Match carries the collection_version from the submission context; a stale version is 409 CONFLICT.
+         *     All-or-nothing in ONE payments transaction (Architecture V1 §15.2): every item is reported with its own outcome; SUCCESS means every
+         *     item committed, anything else means nothing committed. Never PARTIAL. Unknown body fields are 400.
+         *     Row scope: the invoice's owning seller who issued it; hierarchy, Finance and administrators never substitute (OPD-10, OPD-08).
+         *     Amounts are exact integers in the stage unit (no conversion or rounding, OPD-06). Each item needs at least one READY-able receipt
+         *     (receipt mode); INFO mode is BLOCKED (D-43). Never reviews, approves, posts, changes the billing stage, custody, Biawin or commission.
+         */
+        post: operations["submitPaymentBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/batches/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One committed payment batch of the caller with its attempts and receipt states
+         * @description Requires payments.submission.read (flag payments.manual_write). Row scope: the submitter only; another user's batch is 404.
+         */
+        get: operations["getPaymentBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payment evidence diagnostics: receipt / upload states and reconciliation records
+         * @description Requires payments.evidence.read (flag payments.manual_write). Read only; no file is served and no fix action exists.
+         */
+        get: operations["getPaymentEvidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/review/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Finance review queue of target-submitted attempts with their decision gate (read only)
+         * @description Requires finance.review.read (flag finance.review_read). There is NO approve / reject command (D-41, OPD-08, OPD-09; D-43 gate shown).
+         */
+        get: operations["listFinanceReviewQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/review/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One attempt awaiting review with its D-43 and maker / checker gate (read only)
+         * @description Requires finance.review.read (flag finance.review_read). allowed_actions never allows a decision in Slice 12.
+         */
+        get: operations["getFinanceReviewAttempt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1826,6 +1977,10 @@ export interface components {
                 hr_request_write: boolean;
                 /** @description Slice 11 write-back diagnostics (flag integration.writeback_read). Read only. */
                 writeback_read: boolean;
+                /** @description Slice 12 manual payment submission family (flag payments.manual_write). Navigation hint only; every command is evaluated by the server. */
+                payment_submission: boolean;
+                /** @description Slice 12 read-only Finance review queue (flag finance.review_read). No approve / reject exists. */
+                finance_review_read: boolean;
             };
         };
         SessionEnvelope: {
@@ -4222,10 +4377,10 @@ export interface components {
             /** Format: uuid */
             command_id: string;
             /** @enum {string} */
-            source_module: "cases" | "organization";
+            source_module: "cases" | "organization" | "payments";
             command_type: string;
             /** @enum {string} */
-            subject_kind: "case" | "hr_request";
+            subject_kind: "case" | "hr_request" | "payment_attempt";
             /** Format: uuid */
             subject_id: string;
             /** @enum {string} */
@@ -4251,6 +4406,288 @@ export interface components {
             reasons: components["schemas"]["Reasons"];
             correlation_id: components["schemas"]["CorrelationID"];
             data?: components["schemas"]["WritebackCommand"];
+        };
+        /**
+         * @description UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), PURGED (unbound and expired; bytes deleted, row kept).
+         * @enum {string}
+         */
+        UploadState: "UNBOUND" | "BOUND" | "PURGED";
+        PaymentUploadResult: {
+            rollout_mode: components["schemas"]["RolloutMode"];
+            /** Format: uuid */
+            upload_id?: string | null;
+            content_sha256?: string | null;
+            size_bytes?: number | null;
+            /** @enum {string|null} */
+            media_type?: "image/jpeg" | "image/png" | "image/webp" | "application/pdf" | null;
+            state?: components["schemas"]["UploadState"];
+            /** Format: date-time */
+            expires_at?: string | null;
+            /** @description The same bytes were already staged by the caller; nothing was stored twice. */
+            existing: boolean;
+            blocked_by: string[];
+        };
+        PaymentUploadEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["PaymentUploadResult"];
+        };
+        /**
+         * @description Explicit money unit; never converted or rounded (OPD-06).
+         * @enum {string}
+         */
+        WriteUnit: "IRR" | "IRT";
+        /** @enum {string} */
+        EvidenceState: "PENDING_FINALISATION" | "READY" | "NOT_RECOVERABLE";
+        /**
+         * @description QUARANTINED (bound, bytes durable, not finalised), FINALIZING (finalisation claimed), READY (content-addressed copy verified),
+         *     STORAGE_ERROR (finalisation failed; quarantine kept; reconciliation open), NOT_RECOVERABLE (bytes missing or mismatched; Finance reconciliation).
+         * @enum {string}
+         */
+        EvidenceReceiptState: "QUARANTINED" | "FINALIZING" | "READY" | "STORAGE_ERROR" | "NOT_RECOVERABLE";
+        PaymentReceipt: {
+            /** Format: uuid */
+            receipt_id: string;
+            /** Format: uuid */
+            upload_id: string;
+            state: components["schemas"]["EvidenceReceiptState"];
+            media_type: string;
+            size_bytes: number;
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        /** @description A target-submitted manual payment attempt. PENDING_REVIEW / NOT_REVIEWED only: there is no target Finance review. */
+        SubmittedAttempt: {
+            /** Format: uuid */
+            attempt_id: string;
+            /** Format: uuid */
+            batch_id: string;
+            item_key: string;
+            /** Format: int64 */
+            amount: number;
+            unit: components["schemas"]["WriteUnit"];
+            /** @enum {string} */
+            state: "PENDING_REVIEW";
+            /** @enum {string} */
+            review_provenance: "NOT_REVIEWED";
+            evidence_state: components["schemas"]["EvidenceState"];
+            submitted_at: components["schemas"]["Timestamp"];
+            receipts: components["schemas"]["PaymentReceipt"][];
+        };
+        /**
+         * @description The current stage evidence and the SAME eligibility evaluation the command runs (owning seller, invoice / stage state, exact
+         *     amounts in one unit, pending + accepted attempts). Amounts are null when they cannot be evaluated exactly.
+         */
+        PaymentSubmissionContext: {
+            /** Format: uuid */
+            invoice_id: string;
+            stage_no?: number | null;
+            unit?: components["schemas"]["WriteUnit"];
+            /** Format: int64 */
+            due_amount?: number | null;
+            /** Format: int64 */
+            remaining_amount?: number | null;
+            /** Format: int64 */
+            pending_or_accepted_amount?: number | null;
+            /** Format: int64 */
+            available_amount?: number | null;
+            /**
+             * Format: int64
+             * @description Send as If-Match with SubmitPaymentBatch.
+             */
+            collection_version: number;
+            eligible: boolean;
+            evaluation_status: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            blocked_by: string[];
+            rollout_mode: components["schemas"]["RolloutMode"];
+            attempts: components["schemas"]["SubmittedAttempt"][];
+            blocked_actions: components["schemas"]["BlockedAction"][];
+        };
+        PaymentSubmissionEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["PaymentSubmissionContext"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        PaymentReceiptRef: {
+            /** Format: uuid */
+            upload_id: string;
+            /** @description Must equal the staged content hash (no evidence is attached to the wrong payment). */
+            content_sha256: string;
+        };
+        PaymentBatchItemRequest: {
+            /** @description Stable client item identity; never the position. */
+            item_key: string;
+            /** Format: int64 */
+            amount: number;
+            unit: components["schemas"]["WriteUnit"];
+            receipts: components["schemas"]["PaymentReceiptRef"][];
+        };
+        /** @description Field scope of SubmitPaymentBatch. entry_mode INFO (transfer details without a receipt) is accepted only to be refused as BLOCKED (D-43). */
+        PaymentBatchRequest: {
+            stage_no: number;
+            /** @enum {string} */
+            entry_mode: "RECEIPT" | "INFO";
+            items: components["schemas"]["PaymentBatchItemRequest"][];
+        };
+        PaymentReceiptOutcome: {
+            /** Format: uuid */
+            receipt_id: string;
+            /** Format: uuid */
+            upload_id: string;
+            state: components["schemas"]["EvidenceReceiptState"];
+        };
+        /** @description One item's own outcome. valid = the item passed its own checks; committed = the whole batch committed (all-or-nothing). */
+        PaymentBatchItemOutcome: {
+            item_key: string;
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            blocked_by: string[];
+            valid: boolean;
+            committed: boolean;
+            /** Format: uuid */
+            attempt_id?: string | null;
+            /** Format: int64 */
+            amount: number;
+            unit: components["schemas"]["WriteUnit"];
+            receipts: components["schemas"]["PaymentReceiptOutcome"][];
+        };
+        /** @description Batch outcome. SUCCESS = every item committed in one payments transaction; anything else = nothing committed. Never PARTIAL. */
+        PaymentBatchResult: {
+            rollout_mode: components["schemas"]["RolloutMode"];
+            applied: boolean;
+            /** Format: uuid */
+            batch_id?: string | null;
+            /** Format: uuid */
+            invoice_id: string;
+            stage_no: number;
+            /** Format: int64 */
+            collection_version?: number | null;
+            /** Format: int64 */
+            current_version?: number | null;
+            /** Format: int64 */
+            total_amount: number;
+            unit?: components["schemas"]["WriteUnit"];
+            items: components["schemas"]["PaymentBatchItemOutcome"][];
+            evidence_state?: components["schemas"]["EvidenceState"];
+            /** @enum {string} */
+            writeback_state: "AWAITING_EVIDENCE_FINALISATION" | "NOT_REQUESTED";
+            blocked_by: string[];
+            replayed?: boolean;
+        };
+        PaymentBatchEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["PaymentBatchResult"];
+        };
+        PaymentBatch: {
+            /** Format: uuid */
+            batch_id: string;
+            /** Format: uuid */
+            invoice_id: string;
+            stage_no: number;
+            item_count: number;
+            /** Format: int64 */
+            total_amount: number;
+            unit: components["schemas"]["WriteUnit"];
+            /** Format: int64 */
+            collection_version_before: number;
+            /** Format: int64 */
+            collection_version_after: number;
+            correlation_id: string;
+            created_at: components["schemas"]["Timestamp"];
+            attempts: components["schemas"]["SubmittedAttempt"][];
+        };
+        PaymentBatchReadEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["PaymentBatch"];
+        };
+        EvidenceReconciliation: {
+            /** Format: uuid */
+            reconciliation_id: string;
+            /** Format: uuid */
+            receipt_id: string;
+            /** Format: uuid */
+            attempt_id: string;
+            /** @enum {string} */
+            kind: "OPENED" | "RESOLVED";
+            /** @enum {string} */
+            reason: "STORAGE_ERROR" | "NOT_RECOVERABLE" | "RECOVERED";
+            /** @enum {string} */
+            domain_owner: "finance";
+            /** @enum {string} */
+            next_safe_action: "RETRY_FROM_QUARANTINE" | "DOMAIN_OWNER_REVIEW" | "NO_AUTOMATIC_ACTION";
+            receipt_state: components["schemas"]["EvidenceReceiptState"];
+            opened_at: components["schemas"]["Timestamp"];
+        };
+        /** @description Counts and reconciliation records only: no object key beyond ids, no bytes, no download. */
+        EvidenceDiagnostics: {
+            receipts_by_state: {
+                [key: string]: number;
+            };
+            uploads_by_state: {
+                [key: string]: number;
+            };
+            reconciliations: components["schemas"]["EvidenceReconciliation"][];
+        };
+        EvidenceDiagnosticsEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["EvidenceDiagnostics"];
+        };
+        /** @description Why a Finance decision is unavailable. Every applicable reason is listed; no decision is ever allowed in Slice 12. */
+        ReviewActionGate: {
+            /** @enum {string} */
+            action: "finance.attempt.approve" | "finance.attempt.reject";
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            blocked_by: string[];
+        };
+        ReviewAttempt: {
+            /** Format: uuid */
+            attempt_id: string;
+            /** Format: uuid */
+            batch_id: string;
+            /** Format: uuid */
+            invoice_id: string;
+            stage_no: number;
+            /** Format: int64 */
+            amount: number;
+            unit: components["schemas"]["WriteUnit"];
+            /** @enum {string} */
+            state: "PENDING_REVIEW";
+            /** @enum {string} */
+            review_provenance: "NOT_REVIEWED";
+            evidence_state: components["schemas"]["EvidenceState"];
+            /** @description D-43: at least one receipt and every receipt READY. */
+            evidence_ready: boolean;
+            /** @description Maker / checker: the submitter is never an independent reviewer. */
+            reviewer_is_submitter: boolean;
+            /** Format: uuid */
+            submitted_by_user_id: string;
+            submitted_at: components["schemas"]["Timestamp"];
+            receipts: components["schemas"]["PaymentReceipt"][];
+            gates: components["schemas"]["ReviewActionGate"][];
+        };
+        ReviewQueueEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["ReviewAttempt"][];
+            page?: components["schemas"]["PageInfo"];
+        };
+        ReviewAttemptEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            data?: components["schemas"]["ReviewAttempt"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
         };
     };
     responses: {
@@ -6907,6 +7344,218 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WritebackCommandEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    stagePaymentUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentUploadEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            413: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPaymentSubmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSubmissionEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    submitPaymentBatch: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Required on every future mutating command (Architecture V1 §23). Same key
+                 *     and same request replays the stored result; same key with a different
+                 *     request is CONFLICT.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT. */
+                "If-Match": components["parameters"]["IfMatch"];
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            /** @description CONFLICT (stale collection version, idempotency conflict or an upload already bound); per-item outcomes included. */
+            409: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchEnvelope"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPaymentBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentBatchReadEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPaymentEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceDiagnosticsEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listFinanceReviewQueue: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueueEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getFinanceReviewAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewAttemptEnvelope"];
                 };
             };
             400: components["responses"]["Problem"];

@@ -12,6 +12,8 @@ import {
   sumStateLabel, text, unitLabel,
 } from '../labels'
 import { Pager, useCursors } from '../pager'
+import { useSession } from '../../../shared/auth/currentSession'
+import { PaymentSubmissionPanel } from '../../payments/PaymentSubmissionPanel'
 
 /** Runs a read only when the server allows it; otherwise a settled null. */
 async function gated<T>(on: boolean, run: () => Promise<ReadState<T>>): Promise<ReadState<T | null>> {
@@ -27,6 +29,8 @@ async function gated<T>(on: boolean, run: () => Promise<ReadState<T>>): Promise<
 export function InvoicePage() {
   const { invoiceId = '' } = useParams()
   const api = useApi()
+  const session = useSession()
+  const paymentFeature = session.status === 'ready' && session.session.features?.payment_submission === true
   const path = { invoice_id: invoiceId }
   const detail = useRead(`i:${invoiceId}`, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}', { params: { path } }), e => e.data))
   const ic = useCursors()
@@ -53,6 +57,7 @@ export function InvoicePage() {
       </PageHeader>
       <p><Link to="/billing/invoices">بازگشت به فهرست فاکتورها</Link></p>
       <ReadOnlyNote />
+      {paymentFeature && <PaymentSubmissionPanel invoiceId={invoiceId} />}
       <div className="bi-sections">
         <Card title="فاکتور">
           <ReadStates state={detail} what="فاکتور" blockedDetail={blockedDetail} />

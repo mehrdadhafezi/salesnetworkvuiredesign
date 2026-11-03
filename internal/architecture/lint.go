@@ -201,6 +201,28 @@
 //   - phone-key also covers cases/command, organization/hrrequest and
 //     integration/writeback.
 //
+// Slice 12 rules (controlled financial writes; ADR-01 candidate, F01, D-25,
+// D-26, D-32, D-33, D-41, D-43, D-44, OPD-04/06/08/09/10 open):
+//
+//   - s12-forbidden-command: no Finance approve / reject, ledger posting,
+//     next stage, refund, settlement or bulk approval command (identifier or
+//     route literal) in payments, finance, billing, the API server or
+//     crm-api before the owning decision is approved.
+//   - s12-gateway-wiring: only internal/integration/gateway and tests import
+//     the gateway adapters (no production gateway is wired or called).
+//   - s12-network-call: payments, the gateway adapters, the legacy
+//     write-back connector and the Finance review gate open no network
+//     connection (no http client, request or dial).
+//   - s12-evidence-path: payments never touches the filesystem directly
+//     (no os / path/filepath import); evidence goes through the object store
+//     with server-generated keys only.
+//   - s12-session: payments and the gateway adapters never issue a session
+//     or log anyone in (D-26).
+//   - s12-target-review: payments SQL never stores a target attempt as
+//     accepted / rejected / approved (no target Finance review).
+//   - s12-review-pure: the Finance review gate holds no SQL and no database
+//     access (an evaluator over the payments published read).
+//
 // Test files are composition roots for module-boundary (as cmd/ is); every
 // other rule applies to them as before.
 package architecture
@@ -275,7 +297,43 @@ const (
 	RuleS11DomainConnector = "s11-domain-connector"
 	RuleS11Bulk            = "s11-unguarded-bulk"
 	RuleS11BlindRetry      = "s11-blind-retry"
+	RuleS12Forbidden       = "s12-forbidden-command"
+	RuleS12GatewayWiring   = "s12-gateway-wiring"
+	RuleS12Network         = "s12-network-call"
+	RuleS12EvidencePath    = "s12-evidence-path"
+	RuleS12Session         = "s12-session"
+	RuleS12TargetReview    = "s12-target-review"
+	RuleS12ReviewPure      = "s12-review-pure"
 )
+
+// Slice 12 trees.
+var (
+	s12Trees       = []string{"internal/payments", "internal/finance", "internal/billing", "internal/platform/apiserver", "cmd/crm-api"}
+	s12NetworkFree = []string{"internal/payments", "internal/integration/gateway", "internal/integration/legacy/writeback", "internal/finance/review"}
+	s12SessionFree = []string{"internal/payments", "internal/integration/gateway"}
+	s12Gateway     = "internal/integration/gateway"
+	s12Review      = "internal/finance/review"
+)
+
+// s12Command matches identifiers of financial commands Slice 12 must not
+// activate.
+var s12Command = regexp.MustCompile(`(?i)^(approveattempt|rejectattempt|approvepayment|rejectpayment|bulkapprove[a-z]*|postledger|postentry|` +
+	`createposting|postpayment|issuenextstage|nextstage|refundpayment|executerefund|confirmrefund|settle|settlement|settlepayment|` +
+	`postcommission|issueinvoice)$`)
+
+// s12Route matches a route literal of such a command.
+var s12Route = regexp.MustCompile(`(?i)/(review|payments|billing|finance|invoices)(/[a-z0-9_{}-]+)*/(approve|approvals|reject|rejections|decisions|` +
+	`postings|post|refund|refunds|settle|settlements|next-stage|next_stage|callback|callbacks|bulk-approve)\b`)
+
+// s12SessionIdent matches session issuance / login identifiers (D-26).
+var s12SessionIdent = regexp.MustCompile(`(?i)^(issuesession|newsession|createsession|startsession|setauthcookie|login|loginuser|autologin)$`)
+
+// s12NetworkSel are network-opening selectors.
+var s12NetworkSel = map[string]map[string]bool{
+	"http": {"Get": true, "Post": true, "PostForm": true, "Head": true, "NewRequest": true, "NewRequestWithContext": true, "DefaultClient": true,
+		"Client": true},
+	"net": {"Dial": true, "DialTimeout": true, "DialTCP": true, "DialUDP": true},
+}
 
 // Slice 11 trees.
 var (
@@ -442,7 +500,10 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 	case top == "finance" && other == "identity":
 		return rest == "api" && under(rel, "internal/finance/http")
 	case top == "finance" && (other == "billing" || other == "payments"):
-		return rest == "api" && (under(rel, "internal/finance/shadow") || under(rel, "internal/finance/domain"))
+		// Slice 12: the Finance review gate reads target attempts only
+		// through the payments published review read.
+		return rest == "api" && (under(rel, "internal/finance/shadow") || under(rel, "internal/finance/domain") ||
+			other == "payments" && (under(rel, "internal/finance/review") || under(rel, "internal/finance/http")))
 	case top == "commission" && other == "finance":
 		return false
 	case (top == "biawin" || top == "fulfillment") && other == "identity":
@@ -818,8 +879,71 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 	})
 	if !isTest {
 		out = append(out, checkSlice11File(f, fset, rel)...)
+		out = append(out, checkSlice12File(f, fset, rel, modulePath)...)
 	}
 	return out, nil
+}
+
+// checkSlice12File applies the Slice 12 rules to a non-test file.
+func checkSlice12File(f *ast.File, fset *token.FileSet, rel, modulePath string) []Violation {
+	var out []Violation
+	add := func(rule string, pos token.Pos, text string) {
+		out = append(out, Violation{Rule: rule, File: rel, Line: fset.Position(pos).Line, Text: text})
+	}
+	if under(rel, architectureDir) {
+		return nil
+	}
+	for _, imp := range f.Imports {
+		p, err := strconv.Unquote(imp.Path.Value)
+		if err != nil {
+			continue
+		}
+		if strings.HasPrefix(p, modulePath+"/"+s12Gateway) && !under(rel, s12Gateway) {
+			add(RuleS12GatewayWiring, imp.Pos(), "gateway adapter imported outside "+s12Gateway+" (no production gateway is wired)")
+		}
+		if under(rel, "internal/payments") && (p == "os" || p == "path/filepath") {
+			add(RuleS12EvidencePath, imp.Pos(), "payments imports "+p+"; evidence goes through the object store only")
+		}
+		if under(rel, s12Review) && strings.HasPrefix(p, modulePath+"/internal/platform/db") {
+			add(RuleS12ReviewPure, imp.Pos(), "the Finance review gate must not access the database")
+		}
+	}
+	ast.Inspect(f, func(n ast.Node) bool {
+		switch x := n.(type) {
+		case *ast.Ident:
+			if inAny(rel, s12Trees) && s12Command.MatchString(x.Name) {
+				add(RuleS12Forbidden, x.Pos(), "Slice 12 forbidden financial command identifier "+x.Name)
+			}
+			if inAny(rel, s12SessionFree) && s12SessionIdent.MatchString(x.Name) {
+				add(RuleS12Session, x.Pos(), "session / login identifier "+x.Name+" (D-26: a payment never logs anyone in)")
+			}
+		case *ast.SelectorExpr:
+			if id, ok := x.X.(*ast.Ident); ok && inAny(rel, s12NetworkFree) && s12NetworkSel[id.Name][x.Sel.Name] {
+				add(RuleS12Network, x.Pos(), "network call "+id.Name+"."+x.Sel.Name+" (synthetic adapters only; no production call)")
+			}
+		case *ast.BasicLit:
+			if x.Kind != token.STRING {
+				return true
+			}
+			v, err := strconv.Unquote(x.Value)
+			if err != nil {
+				return true
+			}
+			if inAny(rel, s12Trees) && s12Route.MatchString(v) {
+				add(RuleS12Forbidden, x.Pos(), "Slice 12 forbidden financial route literal: "+s12Route.FindString(v))
+			}
+			low := strings.ToLower(v)
+			if under(rel, "internal/payments") && writeSQL.MatchString(v) && strings.Contains(low, "submitted_attempt") &&
+				(strings.Contains(v, "'ACCEPTED'") || strings.Contains(v, "'REJECTED'") || strings.Contains(v, "'APPROVED'")) {
+				add(RuleS12TargetReview, x.Pos(), "payments SQL stores a reviewed target attempt (no target Finance review)")
+			}
+			if under(rel, s12Review) && sqlish.MatchString(v) {
+				add(RuleS12ReviewPure, x.Pos(), "SQL in the Finance review gate")
+			}
+		}
+		return true
+	})
+	return out
 }
 
 // checkSlice11File applies the file-level Slice 11 rules: an outbox append

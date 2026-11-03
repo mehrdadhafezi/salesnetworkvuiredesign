@@ -18,7 +18,7 @@ const someID = "0b9c2f5e-1111-4111-8111-111111111111"
 func concrete(path string) string {
 	return strings.NewReplacer("{user_id}", someID, "{person_id}", someID, "{customer_id}", someID, "{merge_case_id}", someID, "{case_id}", someID,
 		"{invoice_id}", someID, "{attempt_id}", someID, "{receipt_id}", someID, "{metric_id}", "cases.staged_total", "{run_id}", someID, "{account_id}", someID,
-		"{entry_id}", someID, "{subscription_id}", someID, "{request_id}", someID, "{command_id}", someID).Replace(path)
+		"{entry_id}", someID, "{subscription_id}", someID, "{request_id}", someID, "{command_id}", someID, "{batch_id}", someID).Replace(path)
 }
 
 // The query allowlist is exactly the contract's query parameters.
@@ -50,7 +50,7 @@ func TestQueryAllowlistMatchesContract(t *testing.T) {
 			t.Fatalf("%s: contract %v, allowlist %v", path, got, want)
 		}
 	}
-	if len(ContractQuery) != 74 {
+	if len(ContractQuery) != 81 {
 		t.Fatalf("allowlist covers %d paths", len(ContractQuery))
 	}
 }
@@ -157,6 +157,59 @@ func TestSlice11UnconfiguredCommandsBlocked(t *testing.T) {
 			"If-Match": "1", "Content-Type": "application/json"})
 		if rec.Code != 400 || !strings.Contains(rec.Body.String(), "field scope") {
 			t.Fatalf("POST %s with an out-of-scope field = %d %s", path, rec.Code, rec.Body.String())
+		}
+	}
+}
+
+// Slice 12: without a configured payments surface the upload and the batch
+// are BLOCKED with nothing applied; the batch's nested field scope is
+// enforced before any handler; only the upload path has a raised body limit.
+func TestSlice12UnconfiguredPaymentsBlocked(t *testing.T) {
+	h := handler(t, authstub.Development, true)
+	dev := map[string]string{authstub.Header: "dev-user-001", "Content-Type": "application/octet-stream"}
+	rec := doBody(h, http.MethodPost, "/api/v1/payments/uploads", "%PDF-1.4 synthetic", dev)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"outcome":"BLOCKED"`) || !strings.Contains(rec.Body.String(), "TARGET_WRITE_DISABLED") {
+		t.Fatalf("upload = %d %s", rec.Code, rec.Body.String())
+	}
+	// 2 MiB is above the 1 MiB server default but within the 5 MiB receipt limit.
+	if rec := doBody(h, http.MethodPost, "/api/v1/payments/uploads", strings.Repeat("x", 2<<20), dev); rec.Code != 200 {
+		t.Fatalf("2 MiB upload = %d", rec.Code)
+	}
+	if rec := doBody(h, http.MethodPost, "/api/v1/payments/uploads", strings.Repeat("x", 6<<20), dev); rec.Code != 413 {
+		t.Fatalf("6 MiB upload = %d", rec.Code)
+	}
+	// The raised limit applies to the upload path only.
+	if rec := doBody(h, http.MethodPost, concrete("/api/v1/hr/requests"), strings.Repeat("x", 2<<20), map[string]string{
+		"Content-Type": "application/json", "Idempotency-Key": "synthetic-key-0000000003"}); rec.Code != 413 {
+		t.Fatalf("2 MiB JSON command = %d", rec.Code)
+	}
+	path := concrete("/api/v1/payments/invoices/{invoice_id}/batches")
+	headers := map[string]string{authstub.Header: "dev-user-001", "Idempotency-Key": "synthetic-key-0000000004", "If-Match": "0",
+		"Content-Type": "application/json"}
+	good := `{"stage_no":1,"entry_mode":"RECEIPT","items":[{"item_key":"a","amount":100,"unit":"IRT","receipts":[{"upload_id":"` + someID +
+		`","content_sha256":"` + strings.Repeat("a", 64) + `"}]}]}`
+	if rec := doBody(h, http.MethodPost, path, good, headers); rec.Code != 200 || !strings.Contains(rec.Body.String(), `"outcome":"BLOCKED"`) ||
+		!strings.Contains(rec.Body.String(), `"applied":false`) {
+		t.Fatalf("batch = %d %s", rec.Code, rec.Body.String())
+	}
+	for _, bad := range []string{
+		`{"stage_no":1,"entry_mode":"RECEIPT","items":[{"item_key":"a","amount":100,"unit":"IRT","receipts":[],"seller_id":"9"}]}`,
+		`{"stage_no":1,"entry_mode":"RECEIPT","items":[{"item_key":"a","amount":100,"unit":"IRT","receipts":[{"upload_id":"` + someID +
+			`","content_sha256":"` + strings.Repeat("a", 64) + `","path":"../../etc/passwd"}]}]}`,
+		`{"stage_no":1,"entry_mode":"RECEIPT","items":{"item_key":"a"}}`,
+		`{"stage_no":1,"entry_mode":"RECEIPT","items":[],"approve":true}`,
+	} {
+		if rec := doBody(h, http.MethodPost, path, bad, headers); rec.Code != 400 || !strings.Contains(rec.Body.String(), "field scope") {
+			t.Fatalf("out-of-scope batch body %s = %d %s", bad, rec.Code, rec.Body.String())
+		}
+	}
+	// No review decision, posting, refund, next-stage, invoice-issue or
+	// gateway route exists.
+	for _, p := range []string{"/api/v1/finance/review/attempts/" + someID + "/decisions", "/api/v1/finance/review/attempts/" + someID + "/approve",
+		"/api/v1/finance/ledger/postings", "/api/v1/payments/refunds", "/api/v1/billing/invoices/" + someID + "/next-stage",
+		"/api/v1/billing/invoices", "/api/v1/payments/gateway/start", "/api/v1/payments/gateway/callback", "/api/v1/cases/" + someID + "/return"} {
+		if rec := doBody(h, http.MethodPost, p, `{}`, headers); rec.Code < 400 {
+			t.Fatalf("POST %s = %d", p, rec.Code)
 		}
 	}
 }

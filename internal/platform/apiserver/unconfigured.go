@@ -437,7 +437,7 @@ func (unconfiguredCaseWrite) GetCaseContactOutcomes(ctx context.Context, _ oapi.
 func blockedCommand(ctx context.Context) oapi.CommandEnvelope {
 	o, r, c := blocked(ctx)
 	return oapi.CommandEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Command: &oapi.CommandResult{RolloutMode: oapi.RolloutModeTARGETWRITEDISABLED,
-		WritebackState: oapi.NOTREQUESTED, BlockedBy: []string{}}}
+		WritebackState: oapi.CommandWritebackStateNOTREQUESTED, BlockedBy: []string{}}}
 }
 
 func (unconfiguredCaseWrite) RecordContactOutcome(ctx context.Context, _ oapi.RecordContactOutcomeRequestObject) (oapi.RecordContactOutcomeResponseObject, error) {
@@ -487,4 +487,52 @@ func (unconfiguredWriteback) ListWritebackCommands(ctx context.Context, _ oapi.L
 func (unconfiguredWriteback) GetWritebackCommand(ctx context.Context, _ oapi.GetWritebackCommandRequestObject) (oapi.GetWritebackCommandResponseObject, error) {
 	o, r, c := blocked(ctx)
 	return oapi.GetWritebackCommand200JSONResponse{Body: oapi.WritebackCommandEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+// unconfiguredPayments answers the Slice 12 payments surface when it is not
+// wired: every read is BLOCKED / FEATURE_DISABLED and every command is
+// BLOCKED with nothing applied.
+type unconfiguredPayments struct{}
+
+var _ PaymentsAPI = unconfiguredPayments{}
+
+func (unconfiguredPayments) PaymentSubmissionEnabled(context.Context) bool { return false }
+func (unconfiguredPayments) FinanceReviewEnabled(context.Context) bool     { return false }
+
+func (unconfiguredPayments) StagePaymentUpload(ctx context.Context, _ oapi.StagePaymentUploadRequestObject) (oapi.StagePaymentUploadResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.StagePaymentUpload200JSONResponse{Body: oapi.PaymentUploadEnvelope{Outcome: o, Reasons: r, CorrelationId: c,
+		Data: &oapi.PaymentUploadResult{RolloutMode: oapi.RolloutModeTARGETWRITEDISABLED, BlockedBy: []string{}}}}, nil
+}
+
+func (unconfiguredPayments) GetPaymentSubmission(ctx context.Context, _ oapi.GetPaymentSubmissionRequestObject) (oapi.GetPaymentSubmissionResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetPaymentSubmission200JSONResponse{Body: oapi.PaymentSubmissionEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredPayments) SubmitPaymentBatch(ctx context.Context, req oapi.SubmitPaymentBatchRequestObject) (oapi.SubmitPaymentBatchResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.SubmitPaymentBatch200JSONResponse{Body: oapi.PaymentBatchEnvelope{Outcome: o, Reasons: r, CorrelationId: c,
+		Data: &oapi.PaymentBatchResult{RolloutMode: oapi.RolloutModeTARGETWRITEDISABLED, InvoiceId: req.InvoiceId, Items: []oapi.PaymentBatchItemOutcome{},
+			WritebackState: oapi.PaymentBatchResultWritebackStateNOTREQUESTED, BlockedBy: []string{}}}}, nil
+}
+
+func (unconfiguredPayments) GetPaymentBatch(ctx context.Context, _ oapi.GetPaymentBatchRequestObject) (oapi.GetPaymentBatchResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetPaymentBatch200JSONResponse{Body: oapi.PaymentBatchReadEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredPayments) GetPaymentEvidence(ctx context.Context, _ oapi.GetPaymentEvidenceRequestObject) (oapi.GetPaymentEvidenceResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetPaymentEvidence200JSONResponse{Body: oapi.EvidenceDiagnosticsEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredPayments) ListFinanceReviewQueue(ctx context.Context, _ oapi.ListFinanceReviewQueueRequestObject) (oapi.ListFinanceReviewQueueResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListFinanceReviewQueue200JSONResponse{Body: oapi.ReviewQueueEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredPayments) GetFinanceReviewAttempt(ctx context.Context, _ oapi.GetFinanceReviewAttemptRequestObject) (oapi.GetFinanceReviewAttemptResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetFinanceReviewAttempt200JSONResponse{Body: oapi.ReviewAttemptEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
 }
