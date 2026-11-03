@@ -50,6 +50,8 @@ tags:
     description: Slice 11 legacy write-back diagnostics (read only; no fix action).
   - name: reporting
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
+  - name: payments
+    description: Slice 12 controlled financial writes — receipt upload, owning-seller manual payment batch, evidence diagnostics and the read-only Finance review queue (no review decision, posting, refund, gateway route or next stage).
   - name: billing
     description: Slice 7 billing + payments read shadow — invoices, lines, stages, attempts, receipt references (read only; no actions).
 paths:
@@ -2560,6 +2562,243 @@ paths:
           $ref: './components/responses.yaml#/Problem'
         '403':
           $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/payments/uploads:
+    post:
+      tags: [payments]
+      operationId: stagePaymentUpload
+      summary: "Stage one receipt file in quarantine evidence storage (not evidence until bound)"
+      description: |
+        Requires payments.upload.stage; flag payments.manual_write (only CONTROLLED_WRITEBACK accepts; SHADOW_COMPARE is BLOCKED for payments).
+        The body is the raw file (at most 5 MiB). The type is decided by content (jpeg, png, webp or pdf), never by a client name or type.
+        The bytes are durable BEFORE the upload is recorded; a storage failure records nothing (FAILED, safe to retry).
+        Re-sending the same bytes returns the caller's existing upload (existing=true). Unbound uploads expire after 7 days (D-44 safe default).
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/payments_writes.yaml#/PaymentUploadEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '413':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/payments/invoices/{invoice_id}/submission:
+    get:
+      tags: [payments]
+      operationId: getPaymentSubmission
+      summary: "Payment submission context of an invoice's current stage (read; allowed_actions from the command evaluator)"
+      description: |
+        Requires payments.submission.read (flag payments.manual_write). Read only. The eligibility shown is the SAME evaluation the command
+        re-runs at commit. blocked_actions lists legacy actions that exist but are unavailable, with the decisions blocking them.
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/payments_writes.yaml#/PaymentSubmissionEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/payments/invoices/{invoice_id}/batches:
+    post:
+      tags: [payments]
+      operationId: submitPaymentBatch
+      summary: "Submit the owning seller's manual payment batch (receipt mode) for the invoice's current stage"
+      description: |
+        Requires payments.batch.submit; flag payments.manual_write in CONTROLLED_WRITEBACK.
+        Idempotency-Key is required: same key + same body replays the stored result; same key + another body (or another actor) is 409 CONFLICT.
+        If-Match carries the collection_version from the submission context; a stale version is 409 CONFLICT.
+        All-or-nothing in ONE payments transaction (Architecture V1 §15.2): every item is reported with its own outcome; SUCCESS means every
+        item committed, anything else means nothing committed. Never PARTIAL. Unknown body fields are 400.
+        Row scope: the invoice's owning seller who issued it; hierarchy, Finance and administrators never substitute (OPD-10, OPD-08).
+        Amounts are exact integers in the stage unit (no conversion or rounding, OPD-06). Each item needs at least one READY-able receipt
+        (receipt mode); INFO mode is BLOCKED (D-43). Never reviews, approves, posts, changes the billing stage, custody, Biawin or commission.
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/IdempotencyKey'
+        - $ref: './components/parameters.yaml#/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './components/payments_writes.yaml#/PaymentBatchRequest'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/payments_writes.yaml#/PaymentBatchEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '409':
+          description: CONFLICT (stale collection version, idempotency conflict or an upload already bound); per-item outcomes included.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/payments_writes.yaml#/PaymentBatchEnvelope'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/payments/batches/{batch_id}:
+    get:
+      tags: [payments]
+      operationId: getPaymentBatch
+      summary: "One committed payment batch of the caller with its attempts and receipt states"
+      description: |
+        Requires payments.submission.read (flag payments.manual_write). Row scope: the submitter only; another user's batch is 404.
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/payments_writes.yaml#/PaymentBatchReadEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/payments/evidence:
+    get:
+      tags: [payments]
+      operationId: getPaymentEvidence
+      summary: "Payment evidence diagnostics: receipt / upload states and reconciliation records"
+      description: |
+        Requires payments.evidence.read (flag payments.manual_write). Read only; no file is served and no fix action exists.
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/payments_writes.yaml#/EvidenceDiagnosticsEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/review/attempts:
+    get:
+      tags: [payments]
+      operationId: listFinanceReviewQueue
+      summary: "Finance review queue of target-submitted attempts with their decision gate (read only)"
+      description: |
+        Requires finance.review.read (flag finance.review_read). There is NO approve / reject command (D-41, OPD-08, OPD-09; D-43 gate shown).
+      parameters:
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/payments_writes.yaml#/ReviewQueueEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/finance/review/attempts/{attempt_id}:
+    get:
+      tags: [payments]
+      operationId: getFinanceReviewAttempt
+      summary: "One attempt awaiting review with its D-43 and maker / checker gate (read only)"
+      description: |
+        Requires finance.review.read (flag finance.review_read). allowed_actions never allows a decision in Slice 12.
+      parameters:
+        - name: attempt_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/payments_writes.yaml#/ReviewAttemptEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
         default:
           $ref: './components/responses.yaml#/Problem'
 components:

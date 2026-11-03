@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -16,6 +17,7 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/result"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/timeutil"
 	orgapi "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/api"
+	paymentsapi "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/api"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/db"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/ids"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/inbox"
@@ -123,14 +125,46 @@ func decode(source owner.Module, typ string, payload []byte) (received, error) {
 		put(f, "notes", p.Notes)
 		return received{commandID: p.CommandID, key: p.IdempotencyKey, corr: p.CorrelationID, mode: p.RolloutMode, subjectKind: "hr_request",
 			subjectID: p.RequestID, eventType: TypeHRDecide, fields: f, dependsOnSubject: p.RequestID}, nil
+	case source == "payments" && typ == paymentsapi.EventAttemptEvidenceReady:
+		var p paymentsapi.AttemptEvidenceReady
+		if err := json.Unmarshal(payload, &p); err != nil {
+			return received{}, err
+		}
+		refs := make([]string, 0, len(p.Receipts))
+		for _, r := range p.Receipts {
+			refs = append(refs, r.EvidenceRef)
+		}
+		f := map[string]string{"attempt_id": p.AttemptID, "batch_id": p.BatchID, "invoice_id": p.InvoiceID, "invoice_source_system": p.InvoiceSystem,
+			"invoice_source_spec": p.InvoiceSpec, "invoice_source_key": p.InvoiceSourceKey, "stage_no": strconv.Itoa(p.StageNo),
+			"amount": strconv.FormatInt(p.Amount, 10), "unit": p.Unit, "actor_user_id": p.ActorUserID, "status": paymentsapi.AttemptPendingReview,
+			"receipt_count": strconv.Itoa(len(refs)), "evidence_refs": strings.Join(refs, ",")}
+		return received{commandID: p.CommandID, key: p.IdempotencyKey, corr: p.CorrelationID, mode: p.RolloutMode, subjectKind: "payment_attempt",
+			subjectID: p.AttemptID, eventType: TypePaymentAttempt, fields: f}, nil
+	case source == "payments" && typ == paymentsapi.EventBatchSubmitted:
+		// Audit-only event: the attempts are written back once their
+		// evidence is READY (payments.attempt_evidence_ready).
+		return received{}, errNotWrittenBack
 	}
 	return received{}, fmt.Errorf("%w: %s from %s", ErrUnknownEvent, typ, source)
 }
+
+// errNotWrittenBack marks a known source event that has no legacy
+// write-back; it is consumed (inbox) and dispatched without a command.
+var errNotWrittenBack = errors.New("writeback: event has no legacy write-back")
 
 // Receive records one source outbox event as a write-back command inside an
 // integration transaction. The inbox makes a redelivery a no-op.
 func (w *Worker) Receive(ctx context.Context, source owner.Module, rec outbox.Record) (inbox.Outcome, error) {
 	r, err := decode(source, rec.Type, rec.Payload)
+	if errors.Is(err, errNotWrittenBack) {
+		var out inbox.Outcome
+		err := w.runner.InTx(ctx, db.TxOptions{Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
+			var err error
+			out, err = inbox.Consume(ctx, tx, Consumer, rec.ID, w.clock.Now(), func(context.Context) error { return nil })
+			return err
+		})
+		return out, err
+	}
 	if err != nil {
 		return 0, err
 	}

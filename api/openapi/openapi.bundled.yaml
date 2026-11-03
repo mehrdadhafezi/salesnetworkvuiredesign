@@ -50,6 +50,8 @@ tags:
     description: Slice 11 legacy write-back diagnostics (read only; no fix action).
   - name: reporting
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
+  - name: payments
+    description: Slice 12 controlled financial writes — receipt upload, owning-seller manual payment batch, evidence diagnostics and the read-only Finance review queue (no review decision, posting, refund, gateway route or next stage).
   - name: billing
     description: Slice 7 billing + payments read shadow — invoices, lines, stages, attempts, receipt references (read only; no actions).
 paths:
@@ -2641,6 +2643,250 @@ paths:
           $ref: '#/components/responses/Problem'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/payments/uploads:
+    post:
+      tags:
+        - payments
+      operationId: stagePaymentUpload
+      summary: Stage one receipt file in quarantine evidence storage (not evidence until bound)
+      description: |
+        Requires payments.upload.stage; flag payments.manual_write (only CONTROLLED_WRITEBACK accepts; SHADOW_COMPARE is BLOCKED for payments).
+        The body is the raw file (at most 5 MiB). The type is decided by content (jpeg, png, webp or pdf), never by a client name or type.
+        The bytes are durable BEFORE the upload is recorded; a storage failure records nothing (FAILED, safe to retry).
+        Re-sending the same bytes returns the caller's existing upload (existing=true). Unbound uploads expire after 7 days (D-44 safe default).
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentUploadEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '413':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/payments/invoices/{invoice_id}/submission:
+    get:
+      tags:
+        - payments
+      operationId: getPaymentSubmission
+      summary: Payment submission context of an invoice's current stage (read; allowed_actions from the command evaluator)
+      description: |
+        Requires payments.submission.read (flag payments.manual_write). Read only. The eligibility shown is the SAME evaluation the command
+        re-runs at commit. blocked_actions lists legacy actions that exist but are unavailable, with the decisions blocking them.
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSubmissionEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/payments/invoices/{invoice_id}/batches:
+    post:
+      tags:
+        - payments
+      operationId: submitPaymentBatch
+      summary: Submit the owning seller's manual payment batch (receipt mode) for the invoice's current stage
+      description: |
+        Requires payments.batch.submit; flag payments.manual_write in CONTROLLED_WRITEBACK.
+        Idempotency-Key is required: same key + same body replays the stored result; same key + another body (or another actor) is 409 CONFLICT.
+        If-Match carries the collection_version from the submission context; a stale version is 409 CONFLICT.
+        All-or-nothing in ONE payments transaction (Architecture V1 §15.2): every item is reported with its own outcome; SUCCESS means every
+        item committed, anything else means nothing committed. Never PARTIAL. Unknown body fields are 400.
+        Row scope: the invoice's owning seller who issued it; hierarchy, Finance and administrators never substitute (OPD-10, OPD-08).
+        Amounts are exact integers in the stage unit (no conversion or rounding, OPD-06). Each item needs at least one READY-able receipt
+        (receipt mode); INFO mode is BLOCKED (D-43). Never reviews, approves, posts, changes the billing stage, custody, Biawin or commission.
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentBatchRequest'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBatchEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          description: CONFLICT (stale collection version, idempotency conflict or an upload already bound); per-item outcomes included.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBatchEnvelope'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/payments/batches/{batch_id}:
+    get:
+      tags:
+        - payments
+      operationId: getPaymentBatch
+      summary: One committed payment batch of the caller with its attempts and receipt states
+      description: |
+        Requires payments.submission.read (flag payments.manual_write). Row scope: the submitter only; another user's batch is 404.
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBatchReadEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/payments/evidence:
+    get:
+      tags:
+        - payments
+      operationId: getPaymentEvidence
+      summary: 'Payment evidence diagnostics: receipt / upload states and reconciliation records'
+      description: |
+        Requires payments.evidence.read (flag payments.manual_write). Read only; no file is served and no fix action exists.
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceDiagnosticsEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/finance/review/attempts:
+    get:
+      tags:
+        - payments
+      operationId: listFinanceReviewQueue
+      summary: Finance review queue of target-submitted attempts with their decision gate (read only)
+      description: |
+        Requires finance.review.read (flag finance.review_read). There is NO approve / reject command (D-41, OPD-08, OPD-09; D-43 gate shown).
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewQueueEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/finance/review/attempts/{attempt_id}:
+    get:
+      tags:
+        - payments
+      operationId: getFinanceReviewAttempt
+      summary: One attempt awaiting review with its D-43 and maker / checker gate (read only)
+      description: |
+        Requires finance.review.read (flag finance.review_read). allowed_actions never allows a decision in Slice 12.
+      parameters:
+        - name: attempt_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewAttemptEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
 components:
   parameters:
     CorrelationID:
@@ -3632,6 +3878,8 @@ components:
             - contact_outcome_write
             - hr_request_write
             - writeback_read
+            - payment_submission
+            - finance_review_read
           additionalProperties: false
           properties:
             hr_read:
@@ -3663,6 +3911,12 @@ components:
             writeback_read:
               type: boolean
               description: Slice 11 write-back diagnostics (flag integration.writeback_read). Read only.
+            payment_submission:
+              type: boolean
+              description: Slice 12 manual payment submission family (flag payments.manual_write). Navigation hint only; every command is evaluated by the server.
+            finance_review_read:
+              type: boolean
+              description: Slice 12 read-only Finance review queue (flag finance.review_read). No approve / reject exists.
     SessionEnvelope:
       type: object
       required:
@@ -10205,6 +10459,7 @@ components:
           enum:
             - cases
             - organization
+            - payments
         command_type:
           type: string
           maxLength: 80
@@ -10213,6 +10468,7 @@ components:
           enum:
             - case
             - hr_request
+            - payment_attempt
         subject_id:
           type: string
           format: uuid
@@ -10282,3 +10538,737 @@ components:
           $ref: '#/components/schemas/CorrelationID'
         data:
           $ref: '#/components/schemas/WritebackCommand'
+    UploadState:
+      type: string
+      description: |
+        UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), EXPIRING (unbound and expired; deletion claimed and retried until
+        done; can never be bound), PURGED (bytes deleted, row and history kept). Re-sending the same bytes renews or revives the same upload.
+      enum:
+        - UNBOUND
+        - BOUND
+        - EXPIRING
+        - PURGED
+    PaymentUploadResult:
+      type: object
+      required:
+        - rollout_mode
+        - existing
+        - blocked_by
+      additionalProperties: false
+      properties:
+        rollout_mode:
+          $ref: '#/components/schemas/RolloutMode'
+        upload_id:
+          type: string
+          format: uuid
+          nullable: true
+        content_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          nullable: true
+        size_bytes:
+          type: integer
+          nullable: true
+        media_type:
+          type: string
+          enum:
+            - image/jpeg
+            - image/png
+            - image/webp
+            - application/pdf
+          nullable: true
+        state:
+          $ref: '#/components/schemas/UploadState'
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        existing:
+          type: boolean
+          description: The same bytes were already staged by the caller; nothing was stored twice.
+        blocked_by:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 60
+    PaymentUploadEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/PaymentUploadResult'
+    WriteUnit:
+      type: string
+      description: Explicit money unit; never converted or rounded (OPD-06).
+      enum:
+        - IRR
+        - IRT
+    EvidenceState:
+      type: string
+      enum:
+        - PENDING_FINALISATION
+        - READY
+        - NOT_RECOVERABLE
+    EvidenceReceiptState:
+      type: string
+      description: |
+        QUARANTINED (bound, bytes durable, not finalised), FINALIZING (finalisation claimed), READY (content-addressed copy verified),
+        STORAGE_ERROR (finalisation failed; quarantine kept; reconciliation open), NOT_RECOVERABLE (bytes missing or mismatched; Finance reconciliation).
+      enum:
+        - QUARANTINED
+        - FINALIZING
+        - READY
+        - STORAGE_ERROR
+        - NOT_RECOVERABLE
+    PaymentReceipt:
+      type: object
+      required:
+        - receipt_id
+        - upload_id
+        - state
+        - media_type
+        - size_bytes
+        - updated_at
+      additionalProperties: false
+      properties:
+        receipt_id:
+          type: string
+          format: uuid
+        upload_id:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/EvidenceReceiptState'
+        media_type:
+          type: string
+          maxLength: 40
+        size_bytes:
+          type: integer
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    SubmittedAttempt:
+      type: object
+      description: 'A target-submitted manual payment attempt. PENDING_REVIEW / NOT_REVIEWED only: there is no target Finance review.'
+      required:
+        - attempt_id
+        - batch_id
+        - item_key
+        - amount
+        - unit
+        - state
+        - review_provenance
+        - evidence_state
+        - submitted_at
+        - receipts
+      additionalProperties: false
+      properties:
+        attempt_id:
+          type: string
+          format: uuid
+        batch_id:
+          type: string
+          format: uuid
+        item_key:
+          type: string
+          maxLength: 64
+        amount:
+          type: integer
+          format: int64
+        unit:
+          $ref: '#/components/schemas/WriteUnit'
+        state:
+          type: string
+          enum:
+            - PENDING_REVIEW
+        review_provenance:
+          type: string
+          enum:
+            - NOT_REVIEWED
+        evidence_state:
+          $ref: '#/components/schemas/EvidenceState'
+        submitted_at:
+          $ref: '#/components/schemas/Timestamp'
+        receipts:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/PaymentReceipt'
+    PaymentSubmissionContext:
+      type: object
+      description: |
+        The current stage evidence and the SAME eligibility evaluation the command runs (owning seller, invoice / stage state, exact
+        amounts in one unit, pending + accepted attempts). Amounts are null when they cannot be evaluated exactly.
+      required:
+        - invoice_id
+        - collection_version
+        - eligible
+        - evaluation_status
+        - reasons
+        - blocked_by
+        - attempts
+        - blocked_actions
+        - rollout_mode
+      additionalProperties: false
+      properties:
+        invoice_id:
+          type: string
+          format: uuid
+        stage_no:
+          type: integer
+          nullable: true
+        unit:
+          $ref: '#/components/schemas/WriteUnit'
+        due_amount:
+          type: integer
+          format: int64
+          nullable: true
+        remaining_amount:
+          type: integer
+          format: int64
+          nullable: true
+        pending_or_accepted_amount:
+          type: integer
+          format: int64
+          nullable: true
+        available_amount:
+          type: integer
+          format: int64
+          nullable: true
+        collection_version:
+          type: integer
+          format: int64
+          description: Send as If-Match with SubmitPaymentBatch.
+        eligible:
+          type: boolean
+        evaluation_status:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        blocked_by:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 60
+        rollout_mode:
+          $ref: '#/components/schemas/RolloutMode'
+        attempts:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/SubmittedAttempt'
+        blocked_actions:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/BlockedAction'
+    PaymentSubmissionEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/PaymentSubmissionContext'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    PaymentReceiptRef:
+      type: object
+      required:
+        - upload_id
+        - content_sha256
+      additionalProperties: false
+      properties:
+        upload_id:
+          type: string
+          format: uuid
+        content_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+          description: Must equal the staged content hash (no evidence is attached to the wrong payment).
+    PaymentBatchItemRequest:
+      type: object
+      required:
+        - item_key
+        - amount
+        - unit
+        - receipts
+      additionalProperties: false
+      properties:
+        item_key:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,64}$
+          description: Stable client item identity; never the position.
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+        unit:
+          $ref: '#/components/schemas/WriteUnit'
+        receipts:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/PaymentReceiptRef'
+    PaymentBatchRequest:
+      type: object
+      description: Field scope of SubmitPaymentBatch. entry_mode INFO (transfer details without a receipt) is accepted only to be refused as BLOCKED (D-43).
+      required:
+        - stage_no
+        - entry_mode
+        - items
+      additionalProperties: false
+      properties:
+        stage_no:
+          type: integer
+          minimum: 1
+        entry_mode:
+          type: string
+          enum:
+            - RECEIPT
+            - INFO
+        items:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/PaymentBatchItemRequest'
+    PaymentReceiptOutcome:
+      type: object
+      required:
+        - receipt_id
+        - upload_id
+        - state
+      additionalProperties: false
+      properties:
+        receipt_id:
+          type: string
+          format: uuid
+        upload_id:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/EvidenceReceiptState'
+    PaymentBatchItemOutcome:
+      type: object
+      description: One item's own outcome. valid = the item passed its own checks; committed = the whole batch committed (all-or-nothing).
+      required:
+        - item_key
+        - outcome
+        - reasons
+        - blocked_by
+        - valid
+        - committed
+        - amount
+        - unit
+        - receipts
+      additionalProperties: false
+      properties:
+        item_key:
+          type: string
+          maxLength: 64
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        blocked_by:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 60
+        valid:
+          type: boolean
+        committed:
+          type: boolean
+        attempt_id:
+          type: string
+          format: uuid
+          nullable: true
+        amount:
+          type: integer
+          format: int64
+        unit:
+          $ref: '#/components/schemas/WriteUnit'
+        receipts:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/PaymentReceiptOutcome'
+    PaymentBatchResult:
+      type: object
+      description: Batch outcome. SUCCESS = every item committed in one payments transaction; anything else = nothing committed. Never PARTIAL.
+      required:
+        - rollout_mode
+        - applied
+        - invoice_id
+        - stage_no
+        - total_amount
+        - items
+        - writeback_state
+        - blocked_by
+      additionalProperties: false
+      properties:
+        rollout_mode:
+          $ref: '#/components/schemas/RolloutMode'
+        applied:
+          type: boolean
+        batch_id:
+          type: string
+          format: uuid
+          nullable: true
+        invoice_id:
+          type: string
+          format: uuid
+        stage_no:
+          type: integer
+        collection_version:
+          type: integer
+          format: int64
+          nullable: true
+        current_version:
+          type: integer
+          format: int64
+          nullable: true
+        total_amount:
+          type: integer
+          format: int64
+        unit:
+          $ref: '#/components/schemas/WriteUnit'
+        items:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/PaymentBatchItemOutcome'
+        evidence_state:
+          $ref: '#/components/schemas/EvidenceState'
+        writeback_state:
+          type: string
+          enum:
+            - AWAITING_EVIDENCE_FINALISATION
+            - NOT_REQUESTED
+        blocked_by:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 60
+        replayed:
+          type: boolean
+    PaymentBatchEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/PaymentBatchResult'
+    PaymentBatch:
+      type: object
+      required:
+        - batch_id
+        - invoice_id
+        - stage_no
+        - item_count
+        - total_amount
+        - unit
+        - collection_version_before
+        - collection_version_after
+        - correlation_id
+        - created_at
+        - attempts
+      additionalProperties: false
+      properties:
+        batch_id:
+          type: string
+          format: uuid
+        invoice_id:
+          type: string
+          format: uuid
+        stage_no:
+          type: integer
+        item_count:
+          type: integer
+        total_amount:
+          type: integer
+          format: int64
+        unit:
+          $ref: '#/components/schemas/WriteUnit'
+        collection_version_before:
+          type: integer
+          format: int64
+        collection_version_after:
+          type: integer
+          format: int64
+        correlation_id:
+          type: string
+          maxLength: 128
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        attempts:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/SubmittedAttempt'
+    PaymentBatchReadEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/PaymentBatch'
+    EvidenceReconciliation:
+      type: object
+      required:
+        - reconciliation_id
+        - receipt_id
+        - attempt_id
+        - kind
+        - reason
+        - domain_owner
+        - next_safe_action
+        - receipt_state
+        - opened_at
+      additionalProperties: false
+      properties:
+        reconciliation_id:
+          type: string
+          format: uuid
+        receipt_id:
+          type: string
+          format: uuid
+        attempt_id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+            - OPENED
+            - RESOLVED
+        reason:
+          type: string
+          enum:
+            - STORAGE_ERROR
+            - NOT_RECOVERABLE
+            - RECOVERED
+        domain_owner:
+          type: string
+          enum:
+            - finance
+        next_safe_action:
+          type: string
+          enum:
+            - RETRY_FROM_QUARANTINE
+            - DOMAIN_OWNER_REVIEW
+            - NO_AUTOMATIC_ACTION
+        receipt_state:
+          $ref: '#/components/schemas/EvidenceReceiptState'
+        opened_at:
+          $ref: '#/components/schemas/Timestamp'
+    EvidenceDiagnostics:
+      type: object
+      description: 'Counts and reconciliation records only: no object key beyond ids, no bytes, no download.'
+      required:
+        - receipts_by_state
+        - uploads_by_state
+        - reconciliations
+      additionalProperties: false
+      properties:
+        receipts_by_state:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        uploads_by_state:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        reconciliations:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/EvidenceReconciliation'
+    EvidenceDiagnosticsEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/EvidenceDiagnostics'
+    ReviewActionGate:
+      type: object
+      description: Why a Finance decision is unavailable. Every applicable reason is listed; no decision is ever allowed in Slice 12.
+      required:
+        - action
+        - outcome
+        - reasons
+        - blocked_by
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          enum:
+            - finance.attempt.approve
+            - finance.attempt.reject
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        blocked_by:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 60
+    ReviewAttempt:
+      type: object
+      required:
+        - attempt_id
+        - batch_id
+        - invoice_id
+        - stage_no
+        - amount
+        - unit
+        - state
+        - review_provenance
+        - evidence_state
+        - evidence_ready
+        - reviewer_is_submitter
+        - submitted_by_user_id
+        - submitted_at
+        - receipts
+        - gates
+      additionalProperties: false
+      properties:
+        attempt_id:
+          type: string
+          format: uuid
+        batch_id:
+          type: string
+          format: uuid
+        invoice_id:
+          type: string
+          format: uuid
+        stage_no:
+          type: integer
+        amount:
+          type: integer
+          format: int64
+        unit:
+          $ref: '#/components/schemas/WriteUnit'
+        state:
+          type: string
+          enum:
+            - PENDING_REVIEW
+        review_provenance:
+          type: string
+          enum:
+            - NOT_REVIEWED
+        evidence_state:
+          $ref: '#/components/schemas/EvidenceState'
+        evidence_ready:
+          type: boolean
+          description: 'D-43: at least one receipt and every receipt READY.'
+        reviewer_is_submitter:
+          type: boolean
+          description: 'Maker / checker: the submitter is never an independent reviewer.'
+        submitted_by_user_id:
+          type: string
+          format: uuid
+        submitted_at:
+          $ref: '#/components/schemas/Timestamp'
+        receipts:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/PaymentReceipt'
+        gates:
+          type: array
+          maxItems: 2
+          items:
+            $ref: '#/components/schemas/ReviewActionGate'
+    ReviewQueueEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ReviewAttempt'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    ReviewAttemptEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        data:
+          $ref: '#/components/schemas/ReviewAttempt'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'

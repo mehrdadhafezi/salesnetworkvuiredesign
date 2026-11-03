@@ -1,0 +1,8 @@
+/* Slice 12 controlled financial writes. Layout only, SN-207 tokens. */
+.pay-items{display:grid;gap:10px}
+.pay-item{border:1px solid var(--border);border-radius:8px;padding:10px;display:grid;gap:8px}
+.pay-receipts{display:flex;flex-wrap:wrap;gap:8px}
+.pay-receipts label{display:inline-flex;gap:6px;align-items:center}
+.pay-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pay-amount{max-width:220px}
+@media (max-width:760px){.pay-amount{max-width:none}}

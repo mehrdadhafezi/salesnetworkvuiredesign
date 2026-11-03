@@ -68,6 +68,9 @@ type SyntheticLegacy struct {
 	nextHR   int
 	faults   map[string]Fault
 	Calls    map[string]int
+	// Invoices are the synthetic legacy invoices for payments write-back.
+	Invoices map[string]*SyntheticInvoice
+	nextPay  int
 }
 
 var _ lwb.Legacy = (*SyntheticLegacy)(nil)
@@ -75,7 +78,7 @@ var _ lwb.Legacy = (*SyntheticLegacy)(nil)
 // NewSyntheticLegacy returns an empty synthetic legacy store.
 func NewSyntheticLegacy() *SyntheticLegacy {
 	return &SyntheticLegacy{Leads: map[string]*SyntheticLead{}, events: map[string]flowEvent{}, Requests: map[int]*SyntheticHRRequest{},
-		faults: map[string]Fault{}, Calls: map[string]int{}, nextFlow: 500, nextHR: 9000}
+		faults: map[string]Fault{}, Calls: map[string]int{}, nextFlow: 500, nextHR: 9000, Invoices: map[string]*SyntheticInvoice{}, nextPay: 70000}
 }
 
 // Inject sets a fault for the next call of op ("lead", "lead_observe",

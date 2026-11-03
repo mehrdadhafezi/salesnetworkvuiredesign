@@ -1,0 +1,324 @@
+# Slice 12 controlled financial writes (commands + their reads).
+# Only the evidenced, safe subset exists: staging a receipt upload and the
+# owning seller's manual (receipt-mode) payment batch for one invoice's
+# current stage. Finance approve / reject, ledger posting, refunds, wallet
+# charges, settlement, commission, next stage, invoice issue, return, the
+# gateway route and the customer channel are unavailable (D-25, D-26, D-32,
+# D-33, D-41, D-43, OPD-04/06/08/09/10, ADR-01, F01). Legacy stays the
+# master. "applied" never means legacy accepted the payment and never means
+# Finance reviewed it.
+
+WriteUnit:
+  type: string
+  description: Explicit money unit; never converted or rounded (OPD-06).
+  enum: [IRR, IRT]
+
+EvidenceReceiptState:
+  type: string
+  description: |
+    QUARANTINED (bound, bytes durable, not finalised), FINALIZING (finalisation claimed), READY (content-addressed copy verified),
+    STORAGE_ERROR (finalisation failed; quarantine kept; reconciliation open), NOT_RECOVERABLE (bytes missing or mismatched; Finance reconciliation).
+  enum: [QUARANTINED, FINALIZING, READY, STORAGE_ERROR, NOT_RECOVERABLE]
+
+UploadState:
+  type: string
+  description: |
+    UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), EXPIRING (unbound and expired; deletion claimed and retried until
+    done; can never be bound), PURGED (bytes deleted, row and history kept). Re-sending the same bytes renews or revives the same upload.
+  enum: [UNBOUND, BOUND, EXPIRING, PURGED]
+
+EvidenceState:
+  type: string
+  enum: [PENDING_FINALISATION, READY, NOT_RECOVERABLE]
+
+PaymentUploadResult:
+  type: object
+  required: [rollout_mode, existing, blocked_by]
+  additionalProperties: false
+  properties:
+    rollout_mode: {$ref: './writes.yaml#/RolloutMode'}
+    upload_id: {type: string, format: uuid, nullable: true}
+    content_sha256: {type: string, pattern: '^[0-9a-f]{64}$', nullable: true}
+    size_bytes: {type: integer, nullable: true}
+    media_type: {type: string, enum: [image/jpeg, image/png, image/webp, application/pdf], nullable: true}
+    state: {$ref: '#/UploadState'}
+    expires_at: {type: string, format: date-time, nullable: true}
+    existing: {type: boolean, description: 'The same bytes were already staged by the caller; nothing was stored twice.'}
+    blocked_by: {type: array, maxItems: 10, items: {type: string, maxLength: 60}}
+
+PaymentUploadEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/PaymentUploadResult'}
+
+PaymentReceiptRef:
+  type: object
+  required: [upload_id, content_sha256]
+  additionalProperties: false
+  properties:
+    upload_id: {type: string, format: uuid}
+    content_sha256: {type: string, pattern: '^[0-9a-f]{64}$', description: 'Must equal the staged content hash (no evidence is attached to the wrong payment).'}
+
+PaymentBatchItemRequest:
+  type: object
+  required: [item_key, amount, unit, receipts]
+  additionalProperties: false
+  properties:
+    item_key: {type: string, pattern: '^[A-Za-z0-9_-]{1,64}$', description: 'Stable client item identity; never the position.'}
+    amount: {type: integer, format: int64, minimum: 1}
+    unit: {$ref: '#/WriteUnit'}
+    receipts: {type: array, maxItems: 10, items: {$ref: '#/PaymentReceiptRef'}}
+
+PaymentBatchRequest:
+  type: object
+  description: 'Field scope of SubmitPaymentBatch. entry_mode INFO (transfer details without a receipt) is accepted only to be refused as BLOCKED (D-43).'
+  required: [stage_no, entry_mode, items]
+  additionalProperties: false
+  properties:
+    stage_no: {type: integer, minimum: 1}
+    entry_mode: {type: string, enum: [RECEIPT, INFO]}
+    items: {type: array, minItems: 1, maxItems: 10, items: {$ref: '#/PaymentBatchItemRequest'}}
+
+PaymentReceiptOutcome:
+  type: object
+  required: [receipt_id, upload_id, state]
+  additionalProperties: false
+  properties:
+    receipt_id: {type: string, format: uuid}
+    upload_id: {type: string, format: uuid}
+    state: {$ref: '#/EvidenceReceiptState'}
+
+PaymentBatchItemOutcome:
+  type: object
+  description: 'One item''s own outcome. valid = the item passed its own checks; committed = the whole batch committed (all-or-nothing).'
+  required: [item_key, outcome, reasons, blocked_by, valid, committed, amount, unit, receipts]
+  additionalProperties: false
+  properties:
+    item_key: {type: string, maxLength: 64}
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    blocked_by: {type: array, maxItems: 10, items: {type: string, maxLength: 60}}
+    valid: {type: boolean}
+    committed: {type: boolean}
+    attempt_id: {type: string, format: uuid, nullable: true}
+    amount: {type: integer, format: int64}
+    unit: {$ref: '#/WriteUnit'}
+    receipts: {type: array, maxItems: 10, items: {$ref: '#/PaymentReceiptOutcome'}}
+
+PaymentBatchResult:
+  type: object
+  description: 'Batch outcome. SUCCESS = every item committed in one payments transaction; anything else = nothing committed. Never PARTIAL.'
+  required: [rollout_mode, applied, invoice_id, stage_no, total_amount, items, writeback_state, blocked_by]
+  additionalProperties: false
+  properties:
+    rollout_mode: {$ref: './writes.yaml#/RolloutMode'}
+    applied: {type: boolean}
+    batch_id: {type: string, format: uuid, nullable: true}
+    invoice_id: {type: string, format: uuid}
+    stage_no: {type: integer}
+    collection_version: {type: integer, format: int64, nullable: true}
+    current_version: {type: integer, format: int64, nullable: true}
+    total_amount: {type: integer, format: int64}
+    unit: {$ref: '#/WriteUnit'}
+    items: {type: array, maxItems: 10, items: {$ref: '#/PaymentBatchItemOutcome'}}
+    evidence_state: {$ref: '#/EvidenceState'}
+    writeback_state: {type: string, enum: [AWAITING_EVIDENCE_FINALISATION, NOT_REQUESTED]}
+    blocked_by: {type: array, maxItems: 20, items: {type: string, maxLength: 60}}
+    replayed: {type: boolean}
+
+PaymentBatchEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/PaymentBatchResult'}
+
+PaymentReceipt:
+  type: object
+  required: [receipt_id, upload_id, state, media_type, size_bytes, updated_at]
+  additionalProperties: false
+  properties:
+    receipt_id: {type: string, format: uuid}
+    upload_id: {type: string, format: uuid}
+    state: {$ref: '#/EvidenceReceiptState'}
+    media_type: {type: string, maxLength: 40}
+    size_bytes: {type: integer}
+    updated_at: {$ref: './schemas.yaml#/Timestamp'}
+
+SubmittedAttempt:
+  type: object
+  description: 'A target-submitted manual payment attempt. PENDING_REVIEW / NOT_REVIEWED only: there is no target Finance review.'
+  required: [attempt_id, batch_id, item_key, amount, unit, state, review_provenance, evidence_state, submitted_at, receipts]
+  additionalProperties: false
+  properties:
+    attempt_id: {type: string, format: uuid}
+    batch_id: {type: string, format: uuid}
+    item_key: {type: string, maxLength: 64}
+    amount: {type: integer, format: int64}
+    unit: {$ref: '#/WriteUnit'}
+    state: {type: string, enum: [PENDING_REVIEW]}
+    review_provenance: {type: string, enum: [NOT_REVIEWED]}
+    evidence_state: {$ref: '#/EvidenceState'}
+    submitted_at: {$ref: './schemas.yaml#/Timestamp'}
+    receipts: {type: array, maxItems: 10, items: {$ref: '#/PaymentReceipt'}}
+
+PaymentSubmissionContext:
+  type: object
+  description: |
+    The current stage evidence and the SAME eligibility evaluation the command runs (owning seller, invoice / stage state, exact
+    amounts in one unit, pending + accepted attempts). Amounts are null when they cannot be evaluated exactly.
+  required: [invoice_id, collection_version, eligible, evaluation_status, reasons, blocked_by, attempts, blocked_actions, rollout_mode]
+  additionalProperties: false
+  properties:
+    invoice_id: {type: string, format: uuid}
+    stage_no: {type: integer, nullable: true}
+    unit: {$ref: '#/WriteUnit'}
+    due_amount: {type: integer, format: int64, nullable: true}
+    remaining_amount: {type: integer, format: int64, nullable: true}
+    pending_or_accepted_amount: {type: integer, format: int64, nullable: true}
+    available_amount: {type: integer, format: int64, nullable: true}
+    collection_version: {type: integer, format: int64, description: 'Send as If-Match with SubmitPaymentBatch.'}
+    eligible: {type: boolean}
+    evaluation_status: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    blocked_by: {type: array, maxItems: 10, items: {type: string, maxLength: 60}}
+    rollout_mode: {$ref: './writes.yaml#/RolloutMode'}
+    attempts: {type: array, maxItems: 200, items: {$ref: '#/SubmittedAttempt'}}
+    blocked_actions: {type: array, maxItems: 20, items: {$ref: './writes.yaml#/BlockedAction'}}
+
+PaymentSubmissionEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/PaymentSubmissionContext'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+PaymentBatch:
+  type: object
+  required: [batch_id, invoice_id, stage_no, item_count, total_amount, unit, collection_version_before, collection_version_after,
+    correlation_id, created_at, attempts]
+  additionalProperties: false
+  properties:
+    batch_id: {type: string, format: uuid}
+    invoice_id: {type: string, format: uuid}
+    stage_no: {type: integer}
+    item_count: {type: integer}
+    total_amount: {type: integer, format: int64}
+    unit: {$ref: '#/WriteUnit'}
+    collection_version_before: {type: integer, format: int64}
+    collection_version_after: {type: integer, format: int64}
+    correlation_id: {type: string, maxLength: 128}
+    created_at: {$ref: './schemas.yaml#/Timestamp'}
+    attempts: {type: array, maxItems: 10, items: {$ref: '#/SubmittedAttempt'}}
+
+PaymentBatchReadEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/PaymentBatch'}
+
+EvidenceReconciliation:
+  type: object
+  required: [reconciliation_id, receipt_id, attempt_id, kind, reason, domain_owner, next_safe_action, receipt_state, opened_at]
+  additionalProperties: false
+  properties:
+    reconciliation_id: {type: string, format: uuid}
+    receipt_id: {type: string, format: uuid}
+    attempt_id: {type: string, format: uuid}
+    kind: {type: string, enum: [OPENED, RESOLVED]}
+    reason: {type: string, enum: [STORAGE_ERROR, NOT_RECOVERABLE, RECOVERED]}
+    domain_owner: {type: string, enum: [finance]}
+    next_safe_action: {type: string, enum: [RETRY_FROM_QUARANTINE, DOMAIN_OWNER_REVIEW, NO_AUTOMATIC_ACTION]}
+    receipt_state: {$ref: '#/EvidenceReceiptState'}
+    opened_at: {$ref: './schemas.yaml#/Timestamp'}
+
+EvidenceDiagnostics:
+  type: object
+  description: 'Counts and reconciliation records only: no object key beyond ids, no bytes, no download.'
+  required: [receipts_by_state, uploads_by_state, reconciliations]
+  additionalProperties: false
+  properties:
+    receipts_by_state: {type: object, additionalProperties: {type: integer, format: int64}}
+    uploads_by_state: {type: object, additionalProperties: {type: integer, format: int64}}
+    reconciliations: {type: array, maxItems: 200, items: {$ref: '#/EvidenceReconciliation'}}
+
+EvidenceDiagnosticsEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/EvidenceDiagnostics'}
+
+ReviewActionGate:
+  type: object
+  description: 'Why a Finance decision is unavailable. Every applicable reason is listed; no decision is ever allowed in Slice 12.'
+  required: [action, outcome, reasons, blocked_by]
+  additionalProperties: false
+  properties:
+    action: {type: string, enum: [finance.attempt.approve, finance.attempt.reject]}
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    blocked_by: {type: array, maxItems: 10, items: {type: string, maxLength: 60}}
+
+ReviewAttempt:
+  type: object
+  required: [attempt_id, batch_id, invoice_id, stage_no, amount, unit, state, review_provenance, evidence_state, evidence_ready,
+    reviewer_is_submitter, submitted_by_user_id, submitted_at, receipts, gates]
+  additionalProperties: false
+  properties:
+    attempt_id: {type: string, format: uuid}
+    batch_id: {type: string, format: uuid}
+    invoice_id: {type: string, format: uuid}
+    stage_no: {type: integer}
+    amount: {type: integer, format: int64}
+    unit: {$ref: '#/WriteUnit'}
+    state: {type: string, enum: [PENDING_REVIEW]}
+    review_provenance: {type: string, enum: [NOT_REVIEWED]}
+    evidence_state: {$ref: '#/EvidenceState'}
+    evidence_ready: {type: boolean, description: 'D-43: at least one receipt and every receipt READY.'}
+    reviewer_is_submitter: {type: boolean, description: 'Maker / checker: the submitter is never an independent reviewer.'}
+    submitted_by_user_id: {type: string, format: uuid}
+    submitted_at: {$ref: './schemas.yaml#/Timestamp'}
+    receipts: {type: array, maxItems: 10, items: {$ref: '#/PaymentReceipt'}}
+    gates: {type: array, maxItems: 2, items: {$ref: '#/ReviewActionGate'}}
+
+ReviewQueueEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {type: array, maxItems: 200, items: {$ref: '#/ReviewAttempt'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+
+ReviewAttemptEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    data: {$ref: '#/ReviewAttempt'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}

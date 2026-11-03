@@ -111,8 +111,17 @@ var ContractPaths = map[string][]string{
 	"/api/v1/writeback/summary":                  {http.MethodGet},
 	"/api/v1/writeback/commands":                 {http.MethodGet},
 	"/api/v1/writeback/commands/{command_id}":    {http.MethodGet},
-	"/api/v1/invoice-review":                     {http.MethodGet},
-	"/api/v1/invoice-review/{invoice_id}":        {http.MethodGet},
+	// Slice 12 controlled financial writes (payments) and the read-only
+	// Finance review queue.
+	"/api/v1/payments/uploads":                          {http.MethodPost},
+	"/api/v1/payments/invoices/{invoice_id}/submission": {http.MethodGet},
+	"/api/v1/payments/invoices/{invoice_id}/batches":    {http.MethodPost},
+	"/api/v1/payments/batches/{batch_id}":               {http.MethodGet},
+	"/api/v1/payments/evidence":                         {http.MethodGet},
+	"/api/v1/finance/review/attempts":                   {http.MethodGet},
+	"/api/v1/finance/review/attempts/{attempt_id}":      {http.MethodGet},
+	"/api/v1/invoice-review":                            {http.MethodGet},
+	"/api/v1/invoice-review/{invoice_id}":               {http.MethodGet},
 }
 
 // ContractQuery is the allowlist of query parameters per Slice 4 path. A
@@ -179,13 +188,20 @@ var ContractQuery = map[string][]string{
 	"/api/v1/finance/balances":                              {"run_id", "basis", "unit", "account_category", "state", "cursor", "limit"},
 	"/api/v1/finance/reconciliation":                        {"run_id", "basis", "unit", "state", "subject_type", "cursor", "limit"},
 	// Slice 11: commands take no query parameters; reads are bounded.
-	"/api/v1/cases/{case_id}/contact-outcomes":   {},
-	"/api/v1/hr/requests":                        {"cursor", "limit"},
-	"/api/v1/hr/requests/{request_id}":           {},
-	"/api/v1/hr/requests/{request_id}/decisions": {},
-	"/api/v1/writeback/summary":                  {},
-	"/api/v1/writeback/commands":                 {"state", "cursor", "limit"},
-	"/api/v1/writeback/commands/{command_id}":    {},
+	"/api/v1/cases/{case_id}/contact-outcomes":          {},
+	"/api/v1/hr/requests":                               {"cursor", "limit"},
+	"/api/v1/hr/requests/{request_id}":                  {},
+	"/api/v1/hr/requests/{request_id}/decisions":        {},
+	"/api/v1/writeback/summary":                         {},
+	"/api/v1/writeback/commands":                        {"state", "cursor", "limit"},
+	"/api/v1/writeback/commands/{command_id}":           {},
+	"/api/v1/payments/uploads":                          {},
+	"/api/v1/payments/invoices/{invoice_id}/submission": {},
+	"/api/v1/payments/invoices/{invoice_id}/batches":    {},
+	"/api/v1/payments/batches/{batch_id}":               {},
+	"/api/v1/payments/evidence":                         {},
+	"/api/v1/finance/review/attempts":                   {"cursor", "limit"},
+	"/api/v1/finance/review/attempts/{attempt_id}":      {},
 	// Slice 10: no phone (or any contact) parameter exists on any path.
 	"/api/v1/biawin/subscriptions":                         {"run_id", "state", "customer_link_state", "invoice_link_state", "activation_evidence", "product", "cursor", "limit"},
 	"/api/v1/biawin/subscriptions/{subscription_id}":       {"run_id"},
@@ -308,9 +324,38 @@ type BiawinAPI interface {
 // outside the list are refused (400) before any handler runs, so a field
 // outside the command's capability can never be smuggled in.
 var ContractBody = map[string][]string{
-	"/api/v1/cases/{case_id}/contact-outcomes":   {"outcome", "reason", "callback_at"},
-	"/api/v1/hr/requests":                        {"request_type", "subject_user_id", "target_parent_user_id", "reason"},
-	"/api/v1/hr/requests/{request_id}/decisions": {"decision", "notes"},
+	"/api/v1/cases/{case_id}/contact-outcomes":       {"outcome", "reason", "callback_at"},
+	"/api/v1/hr/requests":                            {"request_type", "subject_user_id", "target_parent_user_id", "reason"},
+	"/api/v1/hr/requests/{request_id}/decisions":     {"decision", "notes"},
+	"/api/v1/payments/invoices/{invoice_id}/batches": {"stage_no", "entry_mode", "items"},
+}
+
+// ContractBodyNested extends the field scope into arrays of objects: the
+// key is a dotted path of array fields, the value the allowed fields of each
+// element. A path present in the body must hold an array of objects.
+var ContractBodyNested = map[string]map[string][]string{
+	"/api/v1/payments/invoices/{invoice_id}/batches": {
+		"items":          {"item_key", "amount", "unit", "receipts"},
+		"items.receipts": {"upload_id", "content_sha256"},
+	},
+}
+
+// ContractBodyLimit raises the body limit of a raw-upload path above the
+// server default (a receipt is at most 5 MiB; Architecture V1 §15.1).
+var ContractBodyLimit = map[string]int64{"/api/v1/payments/uploads": 5<<20 + 1}
+
+// PaymentsAPI is the Slice 12 payments write surface and the read-only
+// Finance review queue.
+type PaymentsAPI interface {
+	StagePaymentUpload(ctx context.Context, request oapi.StagePaymentUploadRequestObject) (oapi.StagePaymentUploadResponseObject, error)
+	GetPaymentSubmission(ctx context.Context, request oapi.GetPaymentSubmissionRequestObject) (oapi.GetPaymentSubmissionResponseObject, error)
+	SubmitPaymentBatch(ctx context.Context, request oapi.SubmitPaymentBatchRequestObject) (oapi.SubmitPaymentBatchResponseObject, error)
+	GetPaymentBatch(ctx context.Context, request oapi.GetPaymentBatchRequestObject) (oapi.GetPaymentBatchResponseObject, error)
+	GetPaymentEvidence(ctx context.Context, request oapi.GetPaymentEvidenceRequestObject) (oapi.GetPaymentEvidenceResponseObject, error)
+	ListFinanceReviewQueue(ctx context.Context, request oapi.ListFinanceReviewQueueRequestObject) (oapi.ListFinanceReviewQueueResponseObject, error)
+	GetFinanceReviewAttempt(ctx context.Context, request oapi.GetFinanceReviewAttemptRequestObject) (oapi.GetFinanceReviewAttemptResponseObject, error)
+	PaymentSubmissionEnabled(ctx context.Context) bool
+	FinanceReviewEnabled(ctx context.Context) bool
 }
 
 // CasesWriteAPI is the Slice 11 contact outcome surface (cases module).
@@ -350,6 +395,7 @@ type Surfaces struct {
 	CaseWrite CasesWriteAPI
 	HRRequest HRRequestAPI
 	Writeback WritebackAPI
+	Payments  PaymentsAPI
 }
 
 // ReadAPI is the Slice 4 read surface (identity, organization,
@@ -385,6 +431,7 @@ type api struct {
 	CasesWriteAPI
 	HRRequestAPI
 	WritebackAPI
+	PaymentsAPI
 	clock   timeutil.Clock
 	devAuth bool
 }
@@ -435,9 +482,11 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 		BillingRead           bool `json:"billing_read"`
 		ContactOutcomeWrite   bool `json:"contact_outcome_write"`
 		CustomersIdentity     bool `json:"customers_identity"`
+		FinanceReviewRead     bool `json:"finance_review_read"`
 		FinanceShadowRead     bool `json:"finance_shadow_read"`
 		HrRead                bool `json:"hr_read"`
 		HrRequestWrite        bool `json:"hr_request_write"`
+		PaymentSubmission     bool `json:"payment_submission"`
 		ReportingRead         bool `json:"reporting_read"`
 		SalesRead             bool `json:"sales_read"`
 		WritebackRead         bool `json:"writeback_read"`
@@ -445,7 +494,8 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 		ReportingRead: a.ReportingAPI.ReportingEnabled(ctx), SalesRead: a.SalesAPI.SalesEnabled(ctx),
 		FinanceShadowRead: a.FinanceAPI.FinanceEnabled(ctx), BiawinFulfillmentRead: a.BiawinAPI.BiawinEnabled(ctx),
 		ContactOutcomeWrite: a.CasesWriteAPI.ContactOutcomeWriteEnabled(ctx), HrRequestWrite: a.HRRequestAPI.HRRequestWriteEnabled(ctx),
-		WritebackRead: a.WritebackAPI.WritebackEnabled(ctx)}
+		WritebackRead: a.WritebackAPI.WritebackEnabled(ctx), PaymentSubmission: a.PaymentsAPI.PaymentSubmissionEnabled(ctx),
+		FinanceReviewRead: a.PaymentsAPI.FinanceReviewEnabled(ctx)}
 	return oapi.GetSession200JSONResponse{Body: oapi.SessionEnvelope{
 		Outcome:       outcome,
 		Reasons:       []oapi.ReasonCode{},
@@ -470,7 +520,7 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 // NewHandlerWithSurfaces builds the full handler chain over every surface.
 func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logger, sf Surfaces) (http.Handler, error) {
 	read, customers, sales, billing, rep, fin, bw := sf.Read, sf.Customers, sf.Sales, sf.Billing, sf.Reporting, sf.Finance, sf.Biawin
-	cw, hrq, wbk := sf.CaseWrite, sf.HRRequest, sf.Writeback
+	cw, hrq, wbk, pay := sf.CaseWrite, sf.HRRequest, sf.Writeback, sf.Payments
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -507,9 +557,12 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	if wbk == nil {
 		wbk = unconfiguredWriteback{}
 	}
+	if pay == nil {
+		pay = unconfiguredPayments{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, CasesWriteAPI: cw, HRRequestAPI: hrq, WritebackAPI: wbk, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, CasesWriteAPI: cw, HRRequestAPI: hrq, WritebackAPI: wbk, PaymentsAPI: pay, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},
@@ -537,7 +590,7 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 			httpx.WriteProblem(w, r, p)
 		})(h)
 	}
-	h = httpx.LimitBody(cfg.MaxBodyBytes)(h)
+	h = limitBody(cfg.MaxBodyBytes)(h)
 	h = httpx.Recover(logger)(h)
 	h = httpx.Correlation(h)
 	return h, nil
@@ -631,12 +684,73 @@ func bodyAllowlist(next http.Handler) http.Handler {
 							return
 						}
 					}
+					if bad := nestedViolation(fields, ContractBodyNested[t]); bad != "" {
+						p := httpx.ProblemBadRequest
+						p.Detail = "Field " + strconv.Quote(bad) + " is outside this command's field scope."
+						httpx.WriteProblem(w, r, p)
+						return
+					}
 					r.Body = io.NopCloser(bytes.NewReader(raw))
 				}
 			}
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// nestedViolation checks the nested field scope of a body; it returns the
+// first offending dotted field, or "".
+func nestedViolation(fields map[string]json.RawMessage, nested map[string][]string) string {
+	var walk func(obj map[string]json.RawMessage, prefix string) string
+	walk = func(obj map[string]json.RawMessage, prefix string) string {
+		for k, raw := range obj {
+			path := k
+			if prefix != "" {
+				path = prefix + "." + k
+			}
+			allowed, ok := nested[path]
+			if !ok {
+				continue
+			}
+			var elems []map[string]json.RawMessage
+			if err := json.Unmarshal(raw, &elems); err != nil {
+				return path
+			}
+			for _, e := range elems {
+				if e == nil {
+					return path
+				}
+				for f := range e {
+					if !slices.Contains(allowed, f) {
+						return path + "." + f
+					}
+				}
+				if bad := walk(e, path); bad != "" {
+					return bad
+				}
+			}
+		}
+		return ""
+	}
+	return walk(fields, "")
+}
+
+// limitBody applies the server body limit, raised only for the raw-upload
+// paths listed in ContractBodyLimit.
+func limitBody(maxBytes int64) func(http.Handler) http.Handler {
+	def := httpx.LimitBody(maxBytes)
+	return func(next http.Handler) http.Handler {
+		limited := def(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if t, ok := template(r.URL.Path); ok && r.Method == http.MethodPost {
+				if n, raised := ContractBodyLimit[t]; raised && n > maxBytes {
+					httpx.LimitBody(n)(next).ServeHTTP(w, r)
+					return
+				}
+			}
+			limited.ServeHTTP(w, r)
+		})
+	}
 }
 
 // fallback answers every request no contract operation matched.

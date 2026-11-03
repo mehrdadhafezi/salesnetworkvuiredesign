@@ -81,6 +81,16 @@ const (
 	CapHRRequestReview      Capability = "org.hr_request.review"
 	CapHRRequestRead        Capability = "org.hr_request.read"
 	CapWritebackRead        Capability = "integration.writeback.read"
+	// Slice 12 controlled financial writes: the owning seller's receipt
+	// upload and manual payment batch, their reads, and the read-only Finance
+	// review queue. There is no Finance decision, posting, refund, wallet,
+	// settlement, commission, invoice-issue, next-stage or gateway
+	// capability. No role receives these (fail closed).
+	CapPaymentUploadStage    Capability = "payments.upload.stage"
+	CapPaymentBatchSubmit    Capability = "payments.batch.submit"
+	CapPaymentSubmissionRead Capability = "payments.submission.read"
+	CapPaymentEvidenceRead   Capability = "payments.evidence.read"
+	CapFinanceReviewRead     Capability = "finance.review.read"
 )
 
 // CapabilityDef is one vocabulary entry.
@@ -119,6 +129,11 @@ var vocabulary = []CapabilityDef{
 	{CapHRRequestReview, "Step-approve or reject an HR request as its current reviewer (no final apply)"},
 	{CapHRRequestRead, "Read HR requests the caller requested or currently reviews"},
 	{CapWritebackRead, "Read legacy write-back diagnostics (counts, states, attempts; no payloads)"},
+	{CapPaymentUploadStage, "Stage a receipt file in quarantine evidence storage (not evidence until bound)"},
+	{CapPaymentBatchSubmit, "Submit a manual payment batch for an owned invoice's current stage (no review, posting or stage change)"},
+	{CapPaymentSubmissionRead, "Read the payment submission context and own payment batches"},
+	{CapPaymentEvidenceRead, "Read payment evidence diagnostics and evidence reconciliation records"},
+	{CapFinanceReviewRead, "Read the Finance review queue and its decision gate (no approve / reject authority)"},
 }
 
 // HRReadCapabilities returns the Slice 4 HR read capabilities: the set the

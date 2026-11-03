@@ -22,6 +22,17 @@ func IfMatchVersion(v string) (int64, bool) {
 	return n, err == nil && n > 0 && !strings.ContainsAny(v, "+-")
 }
 
+// IfMatchCollectionVersion parses an If-Match version that may be 0 (an
+// aggregate created on first use, such as a payments collection account).
+func IfMatchCollectionVersion(v string) (int64, bool) {
+	v = strings.TrimSpace(v)
+	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		v = v[1 : len(v)-1]
+	}
+	n, err := strconv.ParseInt(v, 10, 64)
+	return n, err == nil && n >= 0 && v != "" && !strings.ContainsAny(v, "+-")
+}
+
 // CommandEnvelope builds the result envelope of one command.
 func CommandEnvelope(ctx context.Context, status result.Status, codes []reasoncodes.Code, cr *oapi.CommandResult) oapi.CommandEnvelope {
 	return oapi.CommandEnvelope{Outcome: Outcome(status), Reasons: Reasons(codes...), CorrelationId: httpx.CorrelationID(ctx), Command: cr}

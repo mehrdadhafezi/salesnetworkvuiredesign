@@ -252,9 +252,9 @@ WritebackCommand:
   additionalProperties: false
   properties:
     command_id: {type: string, format: uuid}
-    source_module: {type: string, enum: [cases, organization]}
+    source_module: {type: string, enum: [cases, organization, payments]}
     command_type: {type: string, maxLength: 80}
-    subject_kind: {type: string, enum: [case, hr_request]}
+    subject_kind: {type: string, enum: [case, hr_request, payment_attempt]}
     subject_id: {type: string, format: uuid}
     rollout_mode: {type: string, enum: [SHADOW_COMPARE, CONTROLLED_WRITEBACK]}
     state: {$ref: '#/WritebackState'}

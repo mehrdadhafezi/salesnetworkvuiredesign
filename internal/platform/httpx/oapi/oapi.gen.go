@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -434,16 +435,16 @@ func (e CaseReason) Valid() bool {
 
 // Defines values for CommandWritebackState.
 const (
-	LEGACYWRITEBACKPENDING CommandWritebackState = "LEGACY_WRITEBACK_PENDING"
-	NOTREQUESTED           CommandWritebackState = "NOT_REQUESTED"
+	CommandWritebackStateLEGACYWRITEBACKPENDING CommandWritebackState = "LEGACY_WRITEBACK_PENDING"
+	CommandWritebackStateNOTREQUESTED           CommandWritebackState = "NOT_REQUESTED"
 )
 
 // Valid indicates whether the value is a known member of the CommandWritebackState enum.
 func (e CommandWritebackState) Valid() bool {
 	switch e {
-	case LEGACYWRITEBACKPENDING:
+	case CommandWritebackStateLEGACYWRITEBACKPENDING:
 		return true
-	case NOTREQUESTED:
+	case CommandWritebackStateNOTREQUESTED:
 		return true
 	default:
 		return false
@@ -837,6 +838,129 @@ func (e EvidenceKind) Valid() bool {
 	case VERIFIEDDISTINCT:
 		return true
 	case VERIFIEDEQUALITY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EvidenceReceiptState.
+const (
+	EvidenceReceiptStateFINALIZING     EvidenceReceiptState = "FINALIZING"
+	EvidenceReceiptStateNOTRECOVERABLE EvidenceReceiptState = "NOT_RECOVERABLE"
+	EvidenceReceiptStateQUARANTINED    EvidenceReceiptState = "QUARANTINED"
+	EvidenceReceiptStateREADY          EvidenceReceiptState = "READY"
+	EvidenceReceiptStateSTORAGEERROR   EvidenceReceiptState = "STORAGE_ERROR"
+)
+
+// Valid indicates whether the value is a known member of the EvidenceReceiptState enum.
+func (e EvidenceReceiptState) Valid() bool {
+	switch e {
+	case EvidenceReceiptStateFINALIZING:
+		return true
+	case EvidenceReceiptStateNOTRECOVERABLE:
+		return true
+	case EvidenceReceiptStateQUARANTINED:
+		return true
+	case EvidenceReceiptStateREADY:
+		return true
+	case EvidenceReceiptStateSTORAGEERROR:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EvidenceReconciliationDomainOwner.
+const (
+	Finance EvidenceReconciliationDomainOwner = "finance"
+)
+
+// Valid indicates whether the value is a known member of the EvidenceReconciliationDomainOwner enum.
+func (e EvidenceReconciliationDomainOwner) Valid() bool {
+	switch e {
+	case Finance:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EvidenceReconciliationKind.
+const (
+	EvidenceReconciliationKindOPENED   EvidenceReconciliationKind = "OPENED"
+	EvidenceReconciliationKindRESOLVED EvidenceReconciliationKind = "RESOLVED"
+)
+
+// Valid indicates whether the value is a known member of the EvidenceReconciliationKind enum.
+func (e EvidenceReconciliationKind) Valid() bool {
+	switch e {
+	case EvidenceReconciliationKindOPENED:
+		return true
+	case EvidenceReconciliationKindRESOLVED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EvidenceReconciliationNextSafeAction.
+const (
+	EvidenceReconciliationNextSafeActionDOMAINOWNERREVIEW   EvidenceReconciliationNextSafeAction = "DOMAIN_OWNER_REVIEW"
+	EvidenceReconciliationNextSafeActionNOAUTOMATICACTION   EvidenceReconciliationNextSafeAction = "NO_AUTOMATIC_ACTION"
+	EvidenceReconciliationNextSafeActionRETRYFROMQUARANTINE EvidenceReconciliationNextSafeAction = "RETRY_FROM_QUARANTINE"
+)
+
+// Valid indicates whether the value is a known member of the EvidenceReconciliationNextSafeAction enum.
+func (e EvidenceReconciliationNextSafeAction) Valid() bool {
+	switch e {
+	case EvidenceReconciliationNextSafeActionDOMAINOWNERREVIEW:
+		return true
+	case EvidenceReconciliationNextSafeActionNOAUTOMATICACTION:
+		return true
+	case EvidenceReconciliationNextSafeActionRETRYFROMQUARANTINE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EvidenceReconciliationReason.
+const (
+	EvidenceReconciliationReasonNOTRECOVERABLE EvidenceReconciliationReason = "NOT_RECOVERABLE"
+	EvidenceReconciliationReasonRECOVERED      EvidenceReconciliationReason = "RECOVERED"
+	EvidenceReconciliationReasonSTORAGEERROR   EvidenceReconciliationReason = "STORAGE_ERROR"
+)
+
+// Valid indicates whether the value is a known member of the EvidenceReconciliationReason enum.
+func (e EvidenceReconciliationReason) Valid() bool {
+	switch e {
+	case EvidenceReconciliationReasonNOTRECOVERABLE:
+		return true
+	case EvidenceReconciliationReasonRECOVERED:
+		return true
+	case EvidenceReconciliationReasonSTORAGEERROR:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EvidenceState.
+const (
+	EvidenceStateNOTRECOVERABLE      EvidenceState = "NOT_RECOVERABLE"
+	EvidenceStatePENDINGFINALISATION EvidenceState = "PENDING_FINALISATION"
+	EvidenceStateREADY               EvidenceState = "READY"
+)
+
+// Valid indicates whether the value is a known member of the EvidenceState enum.
+func (e EvidenceState) Valid() bool {
+	switch e {
+	case EvidenceStateNOTRECOVERABLE:
+		return true
+	case EvidenceStatePENDINGFINALISATION:
+		return true
+	case EvidenceStateREADY:
 		return true
 	default:
 		return false
@@ -2103,6 +2227,42 @@ func (e PaymentAttemptState) Valid() bool {
 	}
 }
 
+// Defines values for PaymentBatchRequestEntryMode.
+const (
+	PaymentBatchRequestEntryModeINFO    PaymentBatchRequestEntryMode = "INFO"
+	PaymentBatchRequestEntryModeRECEIPT PaymentBatchRequestEntryMode = "RECEIPT"
+)
+
+// Valid indicates whether the value is a known member of the PaymentBatchRequestEntryMode enum.
+func (e PaymentBatchRequestEntryMode) Valid() bool {
+	switch e {
+	case PaymentBatchRequestEntryModeINFO:
+		return true
+	case PaymentBatchRequestEntryModeRECEIPT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PaymentBatchResultWritebackState.
+const (
+	PaymentBatchResultWritebackStateAWAITINGEVIDENCEFINALISATION PaymentBatchResultWritebackState = "AWAITING_EVIDENCE_FINALISATION"
+	PaymentBatchResultWritebackStateNOTREQUESTED                 PaymentBatchResultWritebackState = "NOT_REQUESTED"
+)
+
+// Valid indicates whether the value is a known member of the PaymentBatchResultWritebackState enum.
+func (e PaymentBatchResultWritebackState) Valid() bool {
+	switch e {
+	case PaymentBatchResultWritebackStateAWAITINGEVIDENCEFINALISATION:
+		return true
+	case PaymentBatchResultWritebackStateNOTREQUESTED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PaymentChannel.
 const (
 	PaymentChannelGATEWAY    PaymentChannel = "GATEWAY"
@@ -2166,6 +2326,30 @@ func (e PaymentStageState) Valid() bool {
 	case PaymentStageStatePENDING:
 		return true
 	case PaymentStageStateREJECTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PaymentUploadResultMediaType.
+const (
+	Applicationpdf PaymentUploadResultMediaType = "application/pdf"
+	Imagejpeg      PaymentUploadResultMediaType = "image/jpeg"
+	Imagepng       PaymentUploadResultMediaType = "image/png"
+	Imagewebp      PaymentUploadResultMediaType = "image/webp"
+)
+
+// Valid indicates whether the value is a known member of the PaymentUploadResultMediaType enum.
+func (e PaymentUploadResultMediaType) Valid() bool {
+	switch e {
+	case Applicationpdf:
+		return true
+	case Imagejpeg:
+		return true
+	case Imagepng:
+		return true
+	case Imagewebp:
 		return true
 	default:
 		return false
@@ -2547,6 +2731,54 @@ func (e ResolutionState) Valid() bool {
 	}
 }
 
+// Defines values for ReviewActionGateAction.
+const (
+	FinanceAttemptApprove ReviewActionGateAction = "finance.attempt.approve"
+	FinanceAttemptReject  ReviewActionGateAction = "finance.attempt.reject"
+)
+
+// Valid indicates whether the value is a known member of the ReviewActionGateAction enum.
+func (e ReviewActionGateAction) Valid() bool {
+	switch e {
+	case FinanceAttemptApprove:
+		return true
+	case FinanceAttemptReject:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReviewAttemptReviewProvenance.
+const (
+	ReviewAttemptReviewProvenanceNOTREVIEWED ReviewAttemptReviewProvenance = "NOT_REVIEWED"
+)
+
+// Valid indicates whether the value is a known member of the ReviewAttemptReviewProvenance enum.
+func (e ReviewAttemptReviewProvenance) Valid() bool {
+	switch e {
+	case ReviewAttemptReviewProvenanceNOTREVIEWED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReviewAttemptState.
+const (
+	ReviewAttemptStatePENDINGREVIEW ReviewAttemptState = "PENDING_REVIEW"
+)
+
+// Valid indicates whether the value is a known member of the ReviewAttemptState enum.
+func (e ReviewAttemptState) Valid() bool {
+	switch e {
+	case ReviewAttemptStatePENDINGREVIEW:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RolloutMode.
 const (
 	RolloutModeCONTROLLEDWRITEBACK RolloutMode = "CONTROLLED_WRITEBACK"
@@ -2733,6 +2965,36 @@ func (e Strength) Valid() bool {
 	}
 }
 
+// Defines values for SubmittedAttemptReviewProvenance.
+const (
+	SubmittedAttemptReviewProvenanceNOTREVIEWED SubmittedAttemptReviewProvenance = "NOT_REVIEWED"
+)
+
+// Valid indicates whether the value is a known member of the SubmittedAttemptReviewProvenance enum.
+func (e SubmittedAttemptReviewProvenance) Valid() bool {
+	switch e {
+	case SubmittedAttemptReviewProvenanceNOTREVIEWED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SubmittedAttemptState.
+const (
+	SubmittedAttemptStatePENDINGREVIEW SubmittedAttemptState = "PENDING_REVIEW"
+)
+
+// Valid indicates whether the value is a known member of the SubmittedAttemptState enum.
+func (e SubmittedAttemptState) Valid() bool {
+	switch e {
+	case SubmittedAttemptStatePENDINGREVIEW:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SubscriptionEventEventClass.
 const (
 	ITEMEVENT             SubscriptionEventEventClass = "ITEM_EVENT"
@@ -2901,6 +3163,30 @@ func (e UnitAmountUnit) Valid() bool {
 	}
 }
 
+// Defines values for UploadState.
+const (
+	BOUND    UploadState = "BOUND"
+	EXPIRING UploadState = "EXPIRING"
+	PURGED   UploadState = "PURGED"
+	UNBOUND  UploadState = "UNBOUND"
+)
+
+// Valid indicates whether the value is a known member of the UploadState enum.
+func (e UploadState) Valid() bool {
+	switch e {
+	case BOUND:
+		return true
+	case EXPIRING:
+		return true
+	case PURGED:
+		return true
+	case UNBOUND:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UserLinkState.
 const (
 	UserLinkStateLINKED          UserLinkState = "LINKED"
@@ -2973,6 +3259,24 @@ func (e WorkflowType) Valid() bool {
 	}
 }
 
+// Defines values for WriteUnit.
+const (
+	WriteUnitIRR WriteUnit = "IRR"
+	WriteUnitIRT WriteUnit = "IRT"
+)
+
+// Valid indicates whether the value is a known member of the WriteUnit enum.
+func (e WriteUnit) Valid() bool {
+	switch e {
+	case WriteUnitIRR:
+		return true
+	case WriteUnitIRT:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WritebackAttemptKind.
 const (
 	APPLY   WritebackAttemptKind = "APPLY"
@@ -3037,6 +3341,7 @@ func (e WritebackCommandRolloutMode) Valid() bool {
 const (
 	WritebackCommandSourceModuleCases        WritebackCommandSourceModule = "cases"
 	WritebackCommandSourceModuleOrganization WritebackCommandSourceModule = "organization"
+	WritebackCommandSourceModulePayments     WritebackCommandSourceModule = "payments"
 )
 
 // Valid indicates whether the value is a known member of the WritebackCommandSourceModule enum.
@@ -3046,6 +3351,8 @@ func (e WritebackCommandSourceModule) Valid() bool {
 		return true
 	case WritebackCommandSourceModuleOrganization:
 		return true
+	case WritebackCommandSourceModulePayments:
+		return true
 	default:
 		return false
 	}
@@ -3053,16 +3360,19 @@ func (e WritebackCommandSourceModule) Valid() bool {
 
 // Defines values for WritebackCommandSubjectKind.
 const (
-	Case      WritebackCommandSubjectKind = "case"
-	HrRequest WritebackCommandSubjectKind = "hr_request"
+	WritebackCommandSubjectKindCase           WritebackCommandSubjectKind = "case"
+	WritebackCommandSubjectKindHrRequest      WritebackCommandSubjectKind = "hr_request"
+	WritebackCommandSubjectKindPaymentAttempt WritebackCommandSubjectKind = "payment_attempt"
 )
 
 // Valid indicates whether the value is a known member of the WritebackCommandSubjectKind enum.
 func (e WritebackCommandSubjectKind) Valid() bool {
 	switch e {
-	case Case:
+	case WritebackCommandSubjectKindCase:
 		return true
-	case HrRequest:
+	case WritebackCommandSubjectKindHrRequest:
+		return true
+	case WritebackCommandSubjectKindPaymentAttempt:
 		return true
 	default:
 		return false
@@ -3071,19 +3381,19 @@ func (e WritebackCommandSubjectKind) Valid() bool {
 
 // Defines values for WritebackReconciliationNextSafeAction.
 const (
-	DOMAINOWNERREVIEW        WritebackReconciliationNextSafeAction = "DOMAIN_OWNER_REVIEW"
-	NOAUTOMATICACTION        WritebackReconciliationNextSafeAction = "NO_AUTOMATIC_ACTION"
-	OBSERVELEGACYBEFORERETRY WritebackReconciliationNextSafeAction = "OBSERVE_LEGACY_BEFORE_RETRY"
+	WritebackReconciliationNextSafeActionDOMAINOWNERREVIEW        WritebackReconciliationNextSafeAction = "DOMAIN_OWNER_REVIEW"
+	WritebackReconciliationNextSafeActionNOAUTOMATICACTION        WritebackReconciliationNextSafeAction = "NO_AUTOMATIC_ACTION"
+	WritebackReconciliationNextSafeActionOBSERVELEGACYBEFORERETRY WritebackReconciliationNextSafeAction = "OBSERVE_LEGACY_BEFORE_RETRY"
 )
 
 // Valid indicates whether the value is a known member of the WritebackReconciliationNextSafeAction enum.
 func (e WritebackReconciliationNextSafeAction) Valid() bool {
 	switch e {
-	case DOMAINOWNERREVIEW:
+	case WritebackReconciliationNextSafeActionDOMAINOWNERREVIEW:
 		return true
-	case NOAUTOMATICACTION:
+	case WritebackReconciliationNextSafeActionNOAUTOMATICACTION:
 		return true
-	case OBSERVELEGACYBEFORERETRY:
+	case WritebackReconciliationNextSafeActionOBSERVELEGACYBEFORERETRY:
 		return true
 	default:
 		return false
@@ -5633,6 +5943,28 @@ type EvidenceOrigin string
 // EvidencePolarity defines model for Evidence.Polarity.
 type EvidencePolarity string
 
+// EvidenceDiagnostics Counts and reconciliation records only: no object key beyond ids, no bytes, no download.
+type EvidenceDiagnostics struct {
+	ReceiptsByState map[string]int64         `json:"receipts_by_state"`
+	Reconciliations []EvidenceReconciliation `json:"reconciliations"`
+	UploadsByState  map[string]int64         `json:"uploads_by_state"`
+}
+
+// EvidenceDiagnosticsEnvelope defines model for EvidenceDiagnosticsEnvelope.
+type EvidenceDiagnosticsEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data Counts and reconciliation records only: no object key beyond ids, no bytes, no download.
+	Data *EvidenceDiagnostics `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
 // EvidenceKind defines model for EvidenceKind.
 type EvidenceKind string
 
@@ -5656,6 +5988,43 @@ type EvidenceListEnvelope struct {
 	Page    *PageInfo `json:"page,omitempty"`
 	Reasons Reasons   `json:"reasons"`
 }
+
+// EvidenceReceiptState QUARANTINED (bound, bytes durable, not finalised), FINALIZING (finalisation claimed), READY (content-addressed copy verified),
+// STORAGE_ERROR (finalisation failed; quarantine kept; reconciliation open), NOT_RECOVERABLE (bytes missing or mismatched; Finance reconciliation).
+type EvidenceReceiptState string
+
+// EvidenceReconciliation defines model for EvidenceReconciliation.
+type EvidenceReconciliation struct {
+	AttemptId      openapi_types.UUID                   `json:"attempt_id"`
+	DomainOwner    EvidenceReconciliationDomainOwner    `json:"domain_owner"`
+	Kind           EvidenceReconciliationKind           `json:"kind"`
+	NextSafeAction EvidenceReconciliationNextSafeAction `json:"next_safe_action"`
+
+	// OpenedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	OpenedAt  Timestamp                    `json:"opened_at"`
+	Reason    EvidenceReconciliationReason `json:"reason"`
+	ReceiptId openapi_types.UUID           `json:"receipt_id"`
+
+	// ReceiptState QUARANTINED (bound, bytes durable, not finalised), FINALIZING (finalisation claimed), READY (content-addressed copy verified),
+	// STORAGE_ERROR (finalisation failed; quarantine kept; reconciliation open), NOT_RECOVERABLE (bytes missing or mismatched; Finance reconciliation).
+	ReceiptState     EvidenceReceiptState `json:"receipt_state"`
+	ReconciliationId openapi_types.UUID   `json:"reconciliation_id"`
+}
+
+// EvidenceReconciliationDomainOwner defines model for EvidenceReconciliation.DomainOwner.
+type EvidenceReconciliationDomainOwner string
+
+// EvidenceReconciliationKind defines model for EvidenceReconciliation.Kind.
+type EvidenceReconciliationKind string
+
+// EvidenceReconciliationNextSafeAction defines model for EvidenceReconciliation.NextSafeAction.
+type EvidenceReconciliationNextSafeAction string
+
+// EvidenceReconciliationReason defines model for EvidenceReconciliation.Reason.
+type EvidenceReconciliationReason string
+
+// EvidenceState defines model for EvidenceState.
+type EvidenceState string
 
 // Facet Attribution facet (GATE-0 §4, Architecture V1 §7). Never collapsed with Current Custody or Next Actor.
 type Facet string
@@ -7231,6 +7600,120 @@ type PaymentAttemptListEnvelope struct {
 	Reasons Reasons   `json:"reasons"`
 }
 
+// PaymentBatch defines model for PaymentBatch.
+type PaymentBatch struct {
+	Attempts                []SubmittedAttempt `json:"attempts"`
+	BatchId                 openapi_types.UUID `json:"batch_id"`
+	CollectionVersionAfter  int64              `json:"collection_version_after"`
+	CollectionVersionBefore int64              `json:"collection_version_before"`
+	CorrelationId           string             `json:"correlation_id"`
+
+	// CreatedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	CreatedAt   Timestamp          `json:"created_at"`
+	InvoiceId   openapi_types.UUID `json:"invoice_id"`
+	ItemCount   int                `json:"item_count"`
+	StageNo     int                `json:"stage_no"`
+	TotalAmount int64              `json:"total_amount"`
+
+	// Unit Explicit money unit; never converted or rounded (OPD-06).
+	Unit WriteUnit `json:"unit"`
+}
+
+// PaymentBatchEnvelope defines model for PaymentBatchEnvelope.
+type PaymentBatchEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data Batch outcome. SUCCESS = every item committed in one payments transaction; anything else = nothing committed. Never PARTIAL.
+	Data *PaymentBatchResult `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// PaymentBatchItemOutcome One item's own outcome. valid = the item passed its own checks; committed = the whole batch committed (all-or-nothing).
+type PaymentBatchItemOutcome struct {
+	Amount    int64               `json:"amount"`
+	AttemptId *openapi_types.UUID `json:"attempt_id,omitempty"`
+	BlockedBy []string            `json:"blocked_by"`
+	Committed bool                `json:"committed"`
+	ItemKey   string              `json:"item_key"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome  Outcome                 `json:"outcome"`
+	Reasons  Reasons                 `json:"reasons"`
+	Receipts []PaymentReceiptOutcome `json:"receipts"`
+
+	// Unit Explicit money unit; never converted or rounded (OPD-06).
+	Unit  WriteUnit `json:"unit"`
+	Valid bool      `json:"valid"`
+}
+
+// PaymentBatchItemRequest defines model for PaymentBatchItemRequest.
+type PaymentBatchItemRequest struct {
+	Amount int64 `json:"amount"`
+
+	// ItemKey Stable client item identity; never the position.
+	ItemKey  string              `json:"item_key"`
+	Receipts []PaymentReceiptRef `json:"receipts"`
+
+	// Unit Explicit money unit; never converted or rounded (OPD-06).
+	Unit WriteUnit `json:"unit"`
+}
+
+// PaymentBatchReadEnvelope defines model for PaymentBatchReadEnvelope.
+type PaymentBatchReadEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Data          *PaymentBatch `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// PaymentBatchRequest Field scope of SubmitPaymentBatch. entry_mode INFO (transfer details without a receipt) is accepted only to be refused as BLOCKED (D-43).
+type PaymentBatchRequest struct {
+	EntryMode PaymentBatchRequestEntryMode `json:"entry_mode"`
+	Items     []PaymentBatchItemRequest    `json:"items"`
+	StageNo   int                          `json:"stage_no"`
+}
+
+// PaymentBatchRequestEntryMode defines model for PaymentBatchRequest.EntryMode.
+type PaymentBatchRequestEntryMode string
+
+// PaymentBatchResult Batch outcome. SUCCESS = every item committed in one payments transaction; anything else = nothing committed. Never PARTIAL.
+type PaymentBatchResult struct {
+	Applied           bool                      `json:"applied"`
+	BatchId           *openapi_types.UUID       `json:"batch_id,omitempty"`
+	BlockedBy         []string                  `json:"blocked_by"`
+	CollectionVersion *int64                    `json:"collection_version,omitempty"`
+	CurrentVersion    *int64                    `json:"current_version,omitempty"`
+	EvidenceState     *EvidenceState            `json:"evidence_state,omitempty"`
+	InvoiceId         openapi_types.UUID        `json:"invoice_id"`
+	Items             []PaymentBatchItemOutcome `json:"items"`
+	Replayed          *bool                     `json:"replayed,omitempty"`
+
+	// RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+	RolloutMode RolloutMode `json:"rollout_mode"`
+	StageNo     int         `json:"stage_no"`
+	TotalAmount int64       `json:"total_amount"`
+
+	// Unit Explicit money unit; never converted or rounded (OPD-06).
+	Unit           *WriteUnit                       `json:"unit,omitempty"`
+	WritebackState PaymentBatchResultWritebackState `json:"writeback_state"`
+}
+
+// PaymentBatchResultWritebackState defines model for PaymentBatchResult.WritebackState.
+type PaymentBatchResultWritebackState string
+
 // PaymentChannel defines model for PaymentChannel.
 type PaymentChannel string
 
@@ -7287,6 +7770,38 @@ type PaymentFactRow struct {
 
 // PaymentFactRowInvoiceLinkState defines model for PaymentFactRow.InvoiceLinkState.
 type PaymentFactRowInvoiceLinkState string
+
+// PaymentReceipt defines model for PaymentReceipt.
+type PaymentReceipt struct {
+	MediaType string             `json:"media_type"`
+	ReceiptId openapi_types.UUID `json:"receipt_id"`
+	SizeBytes int                `json:"size_bytes"`
+
+	// State QUARANTINED (bound, bytes durable, not finalised), FINALIZING (finalisation claimed), READY (content-addressed copy verified),
+	// STORAGE_ERROR (finalisation failed; quarantine kept; reconciliation open), NOT_RECOVERABLE (bytes missing or mismatched; Finance reconciliation).
+	State EvidenceReceiptState `json:"state"`
+
+	// UpdatedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	UpdatedAt Timestamp          `json:"updated_at"`
+	UploadId  openapi_types.UUID `json:"upload_id"`
+}
+
+// PaymentReceiptOutcome defines model for PaymentReceiptOutcome.
+type PaymentReceiptOutcome struct {
+	ReceiptId openapi_types.UUID `json:"receipt_id"`
+
+	// State QUARANTINED (bound, bytes durable, not finalised), FINALIZING (finalisation claimed), READY (content-addressed copy verified),
+	// STORAGE_ERROR (finalisation failed; quarantine kept; reconciliation open), NOT_RECOVERABLE (bytes missing or mismatched; Finance reconciliation).
+	State    EvidenceReceiptState `json:"state"`
+	UploadId openapi_types.UUID   `json:"upload_id"`
+}
+
+// PaymentReceiptRef defines model for PaymentReceiptRef.
+type PaymentReceiptRef struct {
+	// ContentSha256 Must equal the staged content hash (no evidence is attached to the wrong payment).
+	ContentSha256 string             `json:"content_sha256"`
+	UploadId      openapi_types.UUID `json:"upload_id"`
+}
 
 // PaymentReportEnvelope defines model for PaymentReportEnvelope.
 type PaymentReportEnvelope struct {
@@ -7383,6 +7898,92 @@ type PaymentStageListEnvelope struct {
 	Page    *PageInfo `json:"page,omitempty"`
 	Reasons Reasons   `json:"reasons"`
 }
+
+// PaymentSubmissionContext The current stage evidence and the SAME eligibility evaluation the command runs (owning seller, invoice / stage state, exact
+// amounts in one unit, pending + accepted attempts). Amounts are null when they cannot be evaluated exactly.
+type PaymentSubmissionContext struct {
+	Attempts        []SubmittedAttempt `json:"attempts"`
+	AvailableAmount *int64             `json:"available_amount,omitempty"`
+	BlockedActions  []BlockedAction    `json:"blocked_actions"`
+	BlockedBy       []string           `json:"blocked_by"`
+
+	// CollectionVersion Send as If-Match with SubmitPaymentBatch.
+	CollectionVersion int64  `json:"collection_version"`
+	DueAmount         *int64 `json:"due_amount,omitempty"`
+	Eligible          bool   `json:"eligible"`
+
+	// EvaluationStatus The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	EvaluationStatus        Outcome            `json:"evaluation_status"`
+	InvoiceId               openapi_types.UUID `json:"invoice_id"`
+	PendingOrAcceptedAmount *int64             `json:"pending_or_accepted_amount,omitempty"`
+	Reasons                 Reasons            `json:"reasons"`
+	RemainingAmount         *int64             `json:"remaining_amount,omitempty"`
+
+	// RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+	RolloutMode RolloutMode `json:"rollout_mode"`
+	StageNo     *int        `json:"stage_no,omitempty"`
+
+	// Unit Explicit money unit; never converted or rounded (OPD-06).
+	Unit *WriteUnit `json:"unit,omitempty"`
+}
+
+// PaymentSubmissionEnvelope defines model for PaymentSubmissionEnvelope.
+type PaymentSubmissionEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Data The current stage evidence and the SAME eligibility evaluation the command runs (owning seller, invoice / stage state, exact
+	// amounts in one unit, pending + accepted attempts). Amounts are null when they cannot be evaluated exactly.
+	Data *PaymentSubmissionContext `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// PaymentUploadEnvelope defines model for PaymentUploadEnvelope.
+type PaymentUploadEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID        `json:"correlation_id"`
+	Data          *PaymentUploadResult `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// PaymentUploadResult defines model for PaymentUploadResult.
+type PaymentUploadResult struct {
+	BlockedBy     []string `json:"blocked_by"`
+	ContentSha256 *string  `json:"content_sha256,omitempty"`
+
+	// Existing The same bytes were already staged by the caller; nothing was stored twice.
+	Existing  bool                          `json:"existing"`
+	ExpiresAt *time.Time                    `json:"expires_at,omitempty"`
+	MediaType *PaymentUploadResultMediaType `json:"media_type,omitempty"`
+
+	// RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+	RolloutMode RolloutMode `json:"rollout_mode"`
+	SizeBytes   *int        `json:"size_bytes,omitempty"`
+
+	// State UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), EXPIRING (unbound and expired; deletion claimed and retried until
+	// done; can never be bound), PURGED (bytes deleted, row and history kept). Re-sending the same bytes renews or revives the same upload.
+	State    *UploadState        `json:"state,omitempty"`
+	UploadId *openapi_types.UUID `json:"upload_id,omitempty"`
+}
+
+// PaymentUploadResultMediaType defines model for PaymentUploadResult.MediaType.
+type PaymentUploadResultMediaType string
 
 // PaymentsCoverage defines model for PaymentsCoverage.
 type PaymentsCoverage struct {
@@ -7814,6 +8415,88 @@ type ResultEnvelope struct {
 	Reasons []ReasonCode `json:"reasons"`
 }
 
+// ReviewActionGate Why a Finance decision is unavailable. Every applicable reason is listed; no decision is ever allowed in Slice 12.
+type ReviewActionGate struct {
+	Action    ReviewActionGateAction `json:"action"`
+	BlockedBy []string               `json:"blocked_by"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// ReviewActionGateAction defines model for ReviewActionGate.Action.
+type ReviewActionGateAction string
+
+// ReviewAttempt defines model for ReviewAttempt.
+type ReviewAttempt struct {
+	Amount    int64              `json:"amount"`
+	AttemptId openapi_types.UUID `json:"attempt_id"`
+	BatchId   openapi_types.UUID `json:"batch_id"`
+
+	// EvidenceReady D-43: at least one receipt and every receipt READY.
+	EvidenceReady    bool                          `json:"evidence_ready"`
+	EvidenceState    EvidenceState                 `json:"evidence_state"`
+	Gates            []ReviewActionGate            `json:"gates"`
+	InvoiceId        openapi_types.UUID            `json:"invoice_id"`
+	Receipts         []PaymentReceipt              `json:"receipts"`
+	ReviewProvenance ReviewAttemptReviewProvenance `json:"review_provenance"`
+
+	// ReviewerIsSubmitter Maker / checker: the submitter is never an independent reviewer.
+	ReviewerIsSubmitter bool               `json:"reviewer_is_submitter"`
+	StageNo             int                `json:"stage_no"`
+	State               ReviewAttemptState `json:"state"`
+
+	// SubmittedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	SubmittedAt       Timestamp          `json:"submitted_at"`
+	SubmittedByUserId openapi_types.UUID `json:"submitted_by_user_id"`
+
+	// Unit Explicit money unit; never converted or rounded (OPD-06).
+	Unit WriteUnit `json:"unit"`
+}
+
+// ReviewAttemptReviewProvenance defines model for ReviewAttempt.ReviewProvenance.
+type ReviewAttemptReviewProvenance string
+
+// ReviewAttemptState defines model for ReviewAttempt.State.
+type ReviewAttemptState string
+
+// ReviewAttemptEnvelope defines model for ReviewAttemptEnvelope.
+type ReviewAttemptEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID  `json:"correlation_id"`
+	Data          *ReviewAttempt `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// ReviewQueueEnvelope defines model for ReviewQueueEnvelope.
+type ReviewQueueEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID    `json:"correlation_id"`
+	Data          *[]ReviewAttempt `json:"data,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
 // RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
 type RolloutMode string
 
@@ -7902,12 +8585,18 @@ type SessionContext struct {
 		// CustomersIdentity Slice 5 customer identity shadow read (flag customers.identity_shadow_read).
 		CustomersIdentity bool `json:"customers_identity"`
 
+		// FinanceReviewRead Slice 12 read-only Finance review queue (flag finance.review_read). No approve / reject exists.
+		FinanceReviewRead bool `json:"finance_review_read"`
+
 		// FinanceShadowRead Slice 9 finance SHADOW ledger read (flag finance.shadow_ledger_read). Read only; never a financial system of record.
 		FinanceShadowRead bool `json:"finance_shadow_read"`
 		HrRead            bool `json:"hr_read"`
 
 		// HrRequestWrite Slice 11 HR change request family enabled (flag organization.hr_request_write). Navigation hint only.
 		HrRequestWrite bool `json:"hr_request_write"`
+
+		// PaymentSubmission Slice 12 manual payment submission family (flag payments.manual_write). Navigation hint only; every command is evaluated by the server.
+		PaymentSubmission bool `json:"payment_submission"`
 
 		// ReportingRead Slice 8 MIS / reporting read (flag reporting.read_shadow). Never shows an Invoice Review page.
 		ReportingRead bool `json:"reporting_read"`
@@ -8165,6 +8854,30 @@ type StateMapping string
 // Strength defines model for Strength.
 type Strength string
 
+// SubmittedAttempt A target-submitted manual payment attempt. PENDING_REVIEW / NOT_REVIEWED only: there is no target Finance review.
+type SubmittedAttempt struct {
+	Amount           int64                            `json:"amount"`
+	AttemptId        openapi_types.UUID               `json:"attempt_id"`
+	BatchId          openapi_types.UUID               `json:"batch_id"`
+	EvidenceState    EvidenceState                    `json:"evidence_state"`
+	ItemKey          string                           `json:"item_key"`
+	Receipts         []PaymentReceipt                 `json:"receipts"`
+	ReviewProvenance SubmittedAttemptReviewProvenance `json:"review_provenance"`
+	State            SubmittedAttemptState            `json:"state"`
+
+	// SubmittedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	SubmittedAt Timestamp `json:"submitted_at"`
+
+	// Unit Explicit money unit; never converted or rounded (OPD-06).
+	Unit WriteUnit `json:"unit"`
+}
+
+// SubmittedAttemptReviewProvenance defines model for SubmittedAttempt.ReviewProvenance.
+type SubmittedAttemptReviewProvenance string
+
+// SubmittedAttemptState defines model for SubmittedAttempt.State.
+type SubmittedAttemptState string
+
 // SubscriptionEnvelope defines model for SubscriptionEnvelope.
 type SubscriptionEnvelope struct {
 	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
@@ -8311,6 +9024,10 @@ type UnitRef struct {
 	Label *string     `json:"label"`
 }
 
+// UploadState UNBOUND (staged; not evidence), BOUND (bound to exactly one attempt), EXPIRING (unbound and expired; deletion claimed and retried until
+// done; can never be bound), PURGED (bytes deleted, row and history kept). Re-sending the same bytes renews or revives the same upload.
+type UploadState string
+
 // UserEnvelope defines model for UserEnvelope.
 type UserEnvelope struct {
 	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
@@ -8383,6 +9100,9 @@ type UserSummaryLoginEnabled bool
 
 // WorkflowType Source work unit a Case stands for (one staged legacy row each).
 type WorkflowType string
+
+// WriteUnit Explicit money unit; never converted or rounded (OPD-06).
+type WriteUnit string
 
 // WritebackAttempt defines model for WritebackAttempt.
 type WritebackAttempt struct {
@@ -8938,6 +9658,13 @@ type ListFinanceReconciliationParamsUnit string
 // ListFinanceReconciliationParamsSubjectType defines parameters for ListFinanceReconciliation.
 type ListFinanceReconciliationParamsSubjectType string
 
+// ListFinanceReviewQueueParams defines parameters for ListFinanceReviewQueue.
+type ListFinanceReviewQueueParams struct {
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // ListFinanceShadowRunsParams defines parameters for ListFinanceShadowRuns.
 type ListFinanceShadowRunsParams struct {
 	// Cursor Opaque cursor from PageInfo.next_cursor.
@@ -9191,6 +9918,17 @@ type ListPaymentAttemptHistoryParams struct {
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// SubmitPaymentBatchParams defines parameters for SubmitPaymentBatch.
+type SubmitPaymentBatchParams struct {
+	// IdempotencyKey Required on every future mutating command (Architecture V1 §23). Same key
+	// and same request replays the stored result; same key with a different
+	// request is CONFLICT.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+	IfMatch IfMatch `json:"If-Match"`
 }
 
 // GetReportingMetricParams defines parameters for GetReportingMetric.
@@ -9508,6 +10246,9 @@ type CreateHRRequestJSONRequestBody = HRRequestCreateRequest
 // DecideHRRequestJSONRequestBody defines body for DecideHRRequest for application/json ContentType.
 type DecideHRRequestJSONRequestBody = HRDecisionRequest
 
+// SubmitPaymentBatchJSONRequestBody defines body for SubmitPaymentBatch for application/json ContentType.
+type SubmitPaymentBatchJSONRequestBody = PaymentBatchRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetEffectiveAccess Effective access of the current principal
@@ -9591,6 +10332,12 @@ type ServerInterface interface {
 	// ListFinanceReconciliation Legacy vs shadow reconciliation (one run, per basis and unit)
 	// (GET /api/v1/finance/reconciliation)
 	ListFinanceReconciliation(w http.ResponseWriter, r *http.Request, params ListFinanceReconciliationParams)
+	// ListFinanceReviewQueue Finance review queue of target-submitted attempts with their decision gate (read only)
+	// (GET /api/v1/finance/review/attempts)
+	ListFinanceReviewQueue(w http.ResponseWriter, r *http.Request, params ListFinanceReviewQueueParams)
+	// GetFinanceReviewAttempt One attempt awaiting review with its D-43 and maker / checker gate (read only)
+	// (GET /api/v1/finance/review/attempts/{attempt_id})
+	GetFinanceReviewAttempt(w http.ResponseWriter, r *http.Request, attemptId openapi_types.UUID)
 	// ListFinanceShadowRuns Shadow derivation runs (newest first)
 	// (GET /api/v1/finance/shadow-runs)
 	ListFinanceShadowRuns(w http.ResponseWriter, r *http.Request, params ListFinanceShadowRunsParams)
@@ -9690,9 +10437,24 @@ type ServerInterface interface {
 	// ListPaymentAttemptHistory List an attempt's append-only observed state changes
 	// (GET /api/v1/payments/attempts/{attempt_id}/history)
 	ListPaymentAttemptHistory(w http.ResponseWriter, r *http.Request, attemptId AttemptID, params ListPaymentAttemptHistoryParams)
+	// GetPaymentBatch One committed payment batch of the caller with its attempts and receipt states
+	// (GET /api/v1/payments/batches/{batch_id})
+	GetPaymentBatch(w http.ResponseWriter, r *http.Request, batchId openapi_types.UUID)
+	// GetPaymentEvidence Payment evidence diagnostics: receipt / upload states and reconciliation records
+	// (GET /api/v1/payments/evidence)
+	GetPaymentEvidence(w http.ResponseWriter, r *http.Request)
+	// SubmitPaymentBatch Submit the owning seller's manual payment batch (receipt mode) for the invoice's current stage
+	// (POST /api/v1/payments/invoices/{invoice_id}/batches)
+	SubmitPaymentBatch(w http.ResponseWriter, r *http.Request, invoiceId openapi_types.UUID, params SubmitPaymentBatchParams)
+	// GetPaymentSubmission Payment submission context of an invoice's current stage (read; allowed_actions from the command evaluator)
+	// (GET /api/v1/payments/invoices/{invoice_id}/submission)
+	GetPaymentSubmission(w http.ResponseWriter, r *http.Request, invoiceId openapi_types.UUID)
 	// GetReceiptReference Get one receipt reference (metadata only)
 	// (GET /api/v1/payments/receipts/{receipt_id})
 	GetReceiptReference(w http.ResponseWriter, r *http.Request, receiptId ReceiptID)
+	// StagePaymentUpload Stage one receipt file in quarantine evidence storage (not evidence until bound)
+	// (POST /api/v1/payments/uploads)
+	StagePaymentUpload(w http.ResponseWriter, r *http.Request)
 	// ListReportingMetrics List metric contracts with their current values
 	// (GET /api/v1/reporting/metrics)
 	ListReportingMetrics(w http.ResponseWriter, r *http.Request)
@@ -11386,6 +12148,78 @@ func (siw *ServerInterfaceWrapper) ListFinanceReconciliation(w http.ResponseWrit
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListFinanceReconciliation(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFinanceReviewQueue operation middleware
+func (siw *ServerInterfaceWrapper) ListFinanceReviewQueue(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFinanceReviewQueueParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFinanceReviewQueue(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFinanceReviewAttempt operation middleware
+func (siw *ServerInterfaceWrapper) GetFinanceReviewAttempt(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "attempt_id" -------------
+	var attemptId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attempt_id", r.PathValue("attempt_id"), &attemptId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attempt_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFinanceReviewAttempt(w, r, attemptId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -13341,6 +14175,149 @@ func (siw *ServerInterfaceWrapper) ListPaymentAttemptHistory(w http.ResponseWrit
 	handler.ServeHTTP(w, r)
 }
 
+// GetPaymentBatch operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentBatch(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "batch_id" -------------
+	var batchId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batch_id", r.PathValue("batch_id"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "batch_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentBatch(w, r, batchId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentEvidence operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentEvidence(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentEvidence(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SubmitPaymentBatch operation middleware
+func (siw *ServerInterfaceWrapper) SubmitPaymentBatch(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "invoice_id" -------------
+	var invoiceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "invoice_id", r.PathValue("invoice_id"), &invoiceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invoice_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SubmitPaymentBatchParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch IfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitPaymentBatch(w, r, invoiceId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentSubmission operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentSubmission(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "invoice_id" -------------
+	var invoiceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "invoice_id", r.PathValue("invoice_id"), &invoiceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invoice_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentSubmission(w, r, invoiceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetReceiptReference operation middleware
 func (siw *ServerInterfaceWrapper) GetReceiptReference(w http.ResponseWriter, r *http.Request) {
 
@@ -13358,6 +14335,20 @@ func (siw *ServerInterfaceWrapper) GetReceiptReference(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetReceiptReference(w, r, receiptId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StagePaymentUpload operation middleware
+func (siw *ServerInterfaceWrapper) StagePaymentUpload(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StagePaymentUpload(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -15339,6 +16330,13 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/writeback/summary", wrapper.GetWritebackSummary)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/writeback/commands", wrapper.ListWritebackCommands)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/writeback/commands/{command_id}", wrapper.GetWritebackCommand)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/payments/uploads", wrapper.StagePaymentUpload)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/payments/invoices/{invoice_id}/submission", wrapper.GetPaymentSubmission)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/payments/invoices/{invoice_id}/batches", wrapper.SubmitPaymentBatch)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/payments/batches/{batch_id}", wrapper.GetPaymentBatch)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/payments/evidence", wrapper.GetPaymentEvidence)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/review/attempts", wrapper.ListFinanceReviewQueue)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/finance/review/attempts/{attempt_id}", wrapper.GetFinanceReviewAttempt)
 
 	return m
 }
@@ -18230,6 +19228,216 @@ type ListFinanceReconciliationdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response ListFinanceReconciliationdefaultApplicationProblemPlusJSONResponse) VisitListFinanceReconciliationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceReviewQueueRequestObject struct {
+	Params ListFinanceReviewQueueParams
+}
+
+type ListFinanceReviewQueueResponseObject interface {
+	VisitListFinanceReviewQueueResponse(w http.ResponseWriter) error
+}
+
+type ListFinanceReviewQueue200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceReviewQueue200JSONResponse struct {
+	Body    ReviewQueueEnvelope
+	Headers ListFinanceReviewQueue200ResponseHeaders
+}
+
+func (response ListFinanceReviewQueue200JSONResponse) VisitListFinanceReviewQueueResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceReviewQueue400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFinanceReviewQueue400ApplicationProblemPlusJSONResponse) VisitListFinanceReviewQueueResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceReviewQueue403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListFinanceReviewQueue403JSONResponse) VisitListFinanceReviewQueueResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFinanceReviewQueuedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFinanceReviewQueuedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListFinanceReviewQueuedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListFinanceReviewQueuedefaultApplicationProblemPlusJSONResponse) VisitListFinanceReviewQueueResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceReviewAttemptRequestObject struct {
+	AttemptId openapi_types.UUID `json:"attempt_id"`
+}
+
+type GetFinanceReviewAttemptResponseObject interface {
+	VisitGetFinanceReviewAttemptResponse(w http.ResponseWriter) error
+}
+
+type GetFinanceReviewAttempt200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceReviewAttempt200JSONResponse struct {
+	Body    ReviewAttemptEnvelope
+	Headers GetFinanceReviewAttempt200ResponseHeaders
+}
+
+func (response GetFinanceReviewAttempt200JSONResponse) VisitGetFinanceReviewAttemptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceReviewAttempt400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetFinanceReviewAttempt400ApplicationProblemPlusJSONResponse) VisitGetFinanceReviewAttemptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceReviewAttempt403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetFinanceReviewAttempt403JSONResponse) VisitGetFinanceReviewAttemptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceReviewAttempt404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceReviewAttempt404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetFinanceReviewAttempt404ResponseHeaders
+}
+
+func (response GetFinanceReviewAttempt404ApplicationProblemPlusJSONResponse) VisitGetFinanceReviewAttemptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFinanceReviewAttemptdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFinanceReviewAttemptdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetFinanceReviewAttemptdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetFinanceReviewAttemptdefaultApplicationProblemPlusJSONResponse) VisitGetFinanceReviewAttemptResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -21753,6 +22961,475 @@ func (response ListPaymentAttemptHistorydefaultApplicationProblemPlusJSONRespons
 	return err
 }
 
+type GetPaymentBatchRequestObject struct {
+	BatchId openapi_types.UUID `json:"batch_id"`
+}
+
+type GetPaymentBatchResponseObject interface {
+	VisitGetPaymentBatchResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentBatch200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentBatch200JSONResponse struct {
+	Body    PaymentBatchReadEnvelope
+	Headers GetPaymentBatch200ResponseHeaders
+}
+
+func (response GetPaymentBatch200JSONResponse) VisitGetPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentBatch400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetPaymentBatch400ApplicationProblemPlusJSONResponse) VisitGetPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentBatch403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetPaymentBatch403JSONResponse) VisitGetPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentBatch404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentBatch404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetPaymentBatch404ResponseHeaders
+}
+
+func (response GetPaymentBatch404ApplicationProblemPlusJSONResponse) VisitGetPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentBatchdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentBatchdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetPaymentBatchdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetPaymentBatchdefaultApplicationProblemPlusJSONResponse) VisitGetPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentEvidenceRequestObject struct {
+}
+
+type GetPaymentEvidenceResponseObject interface {
+	VisitGetPaymentEvidenceResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentEvidence200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentEvidence200JSONResponse struct {
+	Body    EvidenceDiagnosticsEnvelope
+	Headers GetPaymentEvidence200ResponseHeaders
+}
+
+func (response GetPaymentEvidence200JSONResponse) VisitGetPaymentEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentEvidence400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetPaymentEvidence400ApplicationProblemPlusJSONResponse) VisitGetPaymentEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentEvidence403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetPaymentEvidence403JSONResponse) VisitGetPaymentEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentEvidencedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentEvidencedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetPaymentEvidencedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetPaymentEvidencedefaultApplicationProblemPlusJSONResponse) VisitGetPaymentEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPaymentBatchRequestObject struct {
+	InvoiceId openapi_types.UUID `json:"invoice_id"`
+	Params    SubmitPaymentBatchParams
+	Body      *SubmitPaymentBatchJSONRequestBody
+}
+
+type SubmitPaymentBatchResponseObject interface {
+	VisitSubmitPaymentBatchResponse(w http.ResponseWriter) error
+}
+
+type SubmitPaymentBatch200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type SubmitPaymentBatch200JSONResponse struct {
+	Body    PaymentBatchEnvelope
+	Headers SubmitPaymentBatch200ResponseHeaders
+}
+
+func (response SubmitPaymentBatch200JSONResponse) VisitSubmitPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPaymentBatch400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SubmitPaymentBatch400ApplicationProblemPlusJSONResponse) VisitSubmitPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPaymentBatch403JSONResponse struct{ DeniedJSONResponse }
+
+func (response SubmitPaymentBatch403JSONResponse) VisitSubmitPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPaymentBatch404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type SubmitPaymentBatch404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers SubmitPaymentBatch404ResponseHeaders
+}
+
+func (response SubmitPaymentBatch404ApplicationProblemPlusJSONResponse) VisitSubmitPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPaymentBatch409ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type SubmitPaymentBatch409JSONResponse struct {
+	Body    PaymentBatchEnvelope
+	Headers SubmitPaymentBatch409ResponseHeaders
+}
+
+func (response SubmitPaymentBatch409JSONResponse) VisitSubmitPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPaymentBatchdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type SubmitPaymentBatchdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    SubmitPaymentBatchdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response SubmitPaymentBatchdefaultApplicationProblemPlusJSONResponse) VisitSubmitPaymentBatchResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentSubmissionRequestObject struct {
+	InvoiceId openapi_types.UUID `json:"invoice_id"`
+}
+
+type GetPaymentSubmissionResponseObject interface {
+	VisitGetPaymentSubmissionResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentSubmission200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentSubmission200JSONResponse struct {
+	Body    PaymentSubmissionEnvelope
+	Headers GetPaymentSubmission200ResponseHeaders
+}
+
+func (response GetPaymentSubmission200JSONResponse) VisitGetPaymentSubmissionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentSubmission400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetPaymentSubmission400ApplicationProblemPlusJSONResponse) VisitGetPaymentSubmissionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentSubmission403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetPaymentSubmission403JSONResponse) VisitGetPaymentSubmissionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentSubmission404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentSubmission404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetPaymentSubmission404ResponseHeaders
+}
+
+func (response GetPaymentSubmission404ApplicationProblemPlusJSONResponse) VisitGetPaymentSubmissionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentSubmissiondefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentSubmissiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetPaymentSubmissiondefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetPaymentSubmissiondefaultApplicationProblemPlusJSONResponse) VisitGetPaymentSubmissionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetReceiptReferenceRequestObject struct {
 	ReceiptId ReceiptID `json:"receipt_id"`
 }
@@ -21856,6 +23533,123 @@ type GetReceiptReferencedefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetReceiptReferencedefaultApplicationProblemPlusJSONResponse) VisitGetReceiptReferenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StagePaymentUploadRequestObject struct {
+	Body io.Reader
+}
+
+type StagePaymentUploadResponseObject interface {
+	VisitStagePaymentUploadResponse(w http.ResponseWriter) error
+}
+
+type StagePaymentUpload200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type StagePaymentUpload200JSONResponse struct {
+	Body    PaymentUploadEnvelope
+	Headers StagePaymentUpload200ResponseHeaders
+}
+
+func (response StagePaymentUpload200JSONResponse) VisitStagePaymentUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StagePaymentUpload400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StagePaymentUpload400ApplicationProblemPlusJSONResponse) VisitStagePaymentUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StagePaymentUpload403JSONResponse struct{ DeniedJSONResponse }
+
+func (response StagePaymentUpload403JSONResponse) VisitStagePaymentUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StagePaymentUpload413ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type StagePaymentUpload413ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers StagePaymentUpload413ResponseHeaders
+}
+
+func (response StagePaymentUpload413ApplicationProblemPlusJSONResponse) VisitStagePaymentUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StagePaymentUploaddefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type StagePaymentUploaddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    StagePaymentUploaddefaultResponseHeaders
+	StatusCode int
+}
+
+func (response StagePaymentUploaddefaultApplicationProblemPlusJSONResponse) VisitStagePaymentUploadResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -23696,6 +25490,12 @@ type StrictServerInterface interface {
 	// ListFinanceReconciliation Legacy vs shadow reconciliation (one run, per basis and unit)
 	// (GET /api/v1/finance/reconciliation)
 	ListFinanceReconciliation(ctx context.Context, request ListFinanceReconciliationRequestObject) (ListFinanceReconciliationResponseObject, error)
+	// ListFinanceReviewQueue Finance review queue of target-submitted attempts with their decision gate (read only)
+	// (GET /api/v1/finance/review/attempts)
+	ListFinanceReviewQueue(ctx context.Context, request ListFinanceReviewQueueRequestObject) (ListFinanceReviewQueueResponseObject, error)
+	// GetFinanceReviewAttempt One attempt awaiting review with its D-43 and maker / checker gate (read only)
+	// (GET /api/v1/finance/review/attempts/{attempt_id})
+	GetFinanceReviewAttempt(ctx context.Context, request GetFinanceReviewAttemptRequestObject) (GetFinanceReviewAttemptResponseObject, error)
 	// ListFinanceShadowRuns Shadow derivation runs (newest first)
 	// (GET /api/v1/finance/shadow-runs)
 	ListFinanceShadowRuns(ctx context.Context, request ListFinanceShadowRunsRequestObject) (ListFinanceShadowRunsResponseObject, error)
@@ -23795,9 +25595,24 @@ type StrictServerInterface interface {
 	// ListPaymentAttemptHistory List an attempt's append-only observed state changes
 	// (GET /api/v1/payments/attempts/{attempt_id}/history)
 	ListPaymentAttemptHistory(ctx context.Context, request ListPaymentAttemptHistoryRequestObject) (ListPaymentAttemptHistoryResponseObject, error)
+	// GetPaymentBatch One committed payment batch of the caller with its attempts and receipt states
+	// (GET /api/v1/payments/batches/{batch_id})
+	GetPaymentBatch(ctx context.Context, request GetPaymentBatchRequestObject) (GetPaymentBatchResponseObject, error)
+	// GetPaymentEvidence Payment evidence diagnostics: receipt / upload states and reconciliation records
+	// (GET /api/v1/payments/evidence)
+	GetPaymentEvidence(ctx context.Context, request GetPaymentEvidenceRequestObject) (GetPaymentEvidenceResponseObject, error)
+	// SubmitPaymentBatch Submit the owning seller's manual payment batch (receipt mode) for the invoice's current stage
+	// (POST /api/v1/payments/invoices/{invoice_id}/batches)
+	SubmitPaymentBatch(ctx context.Context, request SubmitPaymentBatchRequestObject) (SubmitPaymentBatchResponseObject, error)
+	// GetPaymentSubmission Payment submission context of an invoice's current stage (read; allowed_actions from the command evaluator)
+	// (GET /api/v1/payments/invoices/{invoice_id}/submission)
+	GetPaymentSubmission(ctx context.Context, request GetPaymentSubmissionRequestObject) (GetPaymentSubmissionResponseObject, error)
 	// GetReceiptReference Get one receipt reference (metadata only)
 	// (GET /api/v1/payments/receipts/{receipt_id})
 	GetReceiptReference(ctx context.Context, request GetReceiptReferenceRequestObject) (GetReceiptReferenceResponseObject, error)
+	// StagePaymentUpload Stage one receipt file in quarantine evidence storage (not evidence until bound)
+	// (POST /api/v1/payments/uploads)
+	StagePaymentUpload(ctx context.Context, request StagePaymentUploadRequestObject) (StagePaymentUploadResponseObject, error)
 	// ListReportingMetrics List metric contracts with their current values
 	// (GET /api/v1/reporting/metrics)
 	ListReportingMetrics(ctx context.Context, request ListReportingMetricsRequestObject) (ListReportingMetricsResponseObject, error)
@@ -24596,6 +26411,58 @@ func (sh *strictHandler) ListFinanceReconciliation(w http.ResponseWriter, r *htt
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListFinanceReconciliationResponseObject); ok {
 		if err := validResponse.VisitListFinanceReconciliationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFinanceReviewQueue operation middleware
+func (sh *strictHandler) ListFinanceReviewQueue(w http.ResponseWriter, r *http.Request, params ListFinanceReviewQueueParams) {
+	var request ListFinanceReviewQueueRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFinanceReviewQueue(ctx, request.(ListFinanceReviewQueueRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFinanceReviewQueue")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFinanceReviewQueueResponseObject); ok {
+		if err := validResponse.VisitListFinanceReviewQueueResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFinanceReviewAttempt operation middleware
+func (sh *strictHandler) GetFinanceReviewAttempt(w http.ResponseWriter, r *http.Request, attemptId openapi_types.UUID) {
+	var request GetFinanceReviewAttemptRequestObject
+
+	request.AttemptId = attemptId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFinanceReviewAttempt(ctx, request.(GetFinanceReviewAttemptRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFinanceReviewAttempt")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFinanceReviewAttemptResponseObject); ok {
+		if err := validResponse.VisitGetFinanceReviewAttemptResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -25479,6 +27346,116 @@ func (sh *strictHandler) ListPaymentAttemptHistory(w http.ResponseWriter, r *htt
 	}
 }
 
+// GetPaymentBatch operation middleware
+func (sh *strictHandler) GetPaymentBatch(w http.ResponseWriter, r *http.Request, batchId openapi_types.UUID) {
+	var request GetPaymentBatchRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentBatch(ctx, request.(GetPaymentBatchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentBatch")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentBatchResponseObject); ok {
+		if err := validResponse.VisitGetPaymentBatchResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentEvidence operation middleware
+func (sh *strictHandler) GetPaymentEvidence(w http.ResponseWriter, r *http.Request) {
+	var request GetPaymentEvidenceRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentEvidence(ctx, request.(GetPaymentEvidenceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentEvidence")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentEvidenceResponseObject); ok {
+		if err := validResponse.VisitGetPaymentEvidenceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SubmitPaymentBatch operation middleware
+func (sh *strictHandler) SubmitPaymentBatch(w http.ResponseWriter, r *http.Request, invoiceId openapi_types.UUID, params SubmitPaymentBatchParams) {
+	var request SubmitPaymentBatchRequestObject
+
+	request.InvoiceId = invoiceId
+	request.Params = params
+
+	var body SubmitPaymentBatchJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SubmitPaymentBatch(ctx, request.(SubmitPaymentBatchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SubmitPaymentBatch")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SubmitPaymentBatchResponseObject); ok {
+		if err := validResponse.VisitSubmitPaymentBatchResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentSubmission operation middleware
+func (sh *strictHandler) GetPaymentSubmission(w http.ResponseWriter, r *http.Request, invoiceId openapi_types.UUID) {
+	var request GetPaymentSubmissionRequestObject
+
+	request.InvoiceId = invoiceId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentSubmission(ctx, request.(GetPaymentSubmissionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentSubmission")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentSubmissionResponseObject); ok {
+		if err := validResponse.VisitGetPaymentSubmissionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetReceiptReference operation middleware
 func (sh *strictHandler) GetReceiptReference(w http.ResponseWriter, r *http.Request, receiptId ReceiptID) {
 	var request GetReceiptReferenceRequestObject
@@ -25498,6 +27475,32 @@ func (sh *strictHandler) GetReceiptReference(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetReceiptReferenceResponseObject); ok {
 		if err := validResponse.VisitGetReceiptReferenceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StagePaymentUpload operation middleware
+func (sh *strictHandler) StagePaymentUpload(w http.ResponseWriter, r *http.Request) {
+	var request StagePaymentUploadRequestObject
+
+	request.Body = r.Body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StagePaymentUpload(ctx, request.(StagePaymentUploadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StagePaymentUpload")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StagePaymentUploadResponseObject); ok {
+		if err := validResponse.VisitStagePaymentUploadResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

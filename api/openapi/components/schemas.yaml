@@ -273,7 +273,7 @@ SessionContext:
       description: |
         Server feature switches for navigation only (Slice 4 rollback is
         flag-off). Never authority: every read is evaluated by the server.
-      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read, finance_shadow_read, biawin_fulfillment_read, contact_outcome_write, hr_request_write, writeback_read]
+      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read, finance_shadow_read, biawin_fulfillment_read, contact_outcome_write, hr_request_write, writeback_read, payment_submission, finance_review_read]
       additionalProperties: false
       properties:
         hr_read:
@@ -305,6 +305,12 @@ SessionContext:
         writeback_read:
           type: boolean
           description: Slice 11 write-back diagnostics (flag integration.writeback_read). Read only.
+        payment_submission:
+          type: boolean
+          description: Slice 12 manual payment submission family (flag payments.manual_write). Navigation hint only; every command is evaluated by the server.
+        finance_review_read:
+          type: boolean
+          description: Slice 12 read-only Finance review queue (flag finance.review_read). No approve / reject exists.
 
 SessionEnvelope:
   type: object

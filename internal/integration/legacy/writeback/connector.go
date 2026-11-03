@@ -95,9 +95,10 @@ type Users interface {
 
 // Connector implements the integration write-back port over a legacy store.
 type Connector struct {
-	legacy Legacy
-	users  Users
-	tehran *time.Location
+	legacy   Legacy
+	payments PaymentsLegacy
+	users    Users
+	tehran   *time.Location
 }
 
 var _ wb.Connector = (*Connector)(nil)
@@ -275,6 +276,8 @@ func (c *Connector) Apply(ctx context.Context, in wb.Intent) (wb.Applied, error)
 			return wb.Applied{}, err
 		}
 		return applied(r), nil
+	case wb.TypePaymentAttempt:
+		return c.applyPayment(ctx, in)
 	}
 	return blocked("COMMAND_NOT_MAPPED"), nil
 }
@@ -371,6 +374,8 @@ func (c *Connector) Observe(ctx context.Context, in wb.Intent) (wb.Observed, err
 			}
 		}
 		return obs, nil
+	case wb.TypePaymentAttempt:
+		return c.observePayment(ctx, in)
 	}
 	return wb.Observed{Observation: wb.Unseen, Detail: "command not mapped"}, nil
 }

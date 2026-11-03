@@ -224,6 +224,11 @@ var slice11Commands = map[string]bool{
 	"/api/v1/cases/{case_id}/contact-outcomes":   true,
 	"/api/v1/hr/requests":                        true,
 	"/api/v1/hr/requests/{request_id}/decisions": true,
+	// Slice 12: receipt staging and the owning seller's manual payment batch
+	// only. No review decision, posting, refund, settlement, wallet,
+	// commission, gateway, next-stage, invoice-issue or return path.
+	"/api/v1/payments/uploads":                       true,
+	"/api/v1/payments/invoices/{invoice_id}/batches": true,
 }
 
 // TestNoBusinessOrMutatingEndpoints: Slice 2 exposes exactly the technical
@@ -235,7 +240,7 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		paths = append(paths, path)
 		for method := range item.Operations() {
 			if method != "GET" && !(method == "POST" && slice11Commands[path]) {
-				t.Fatalf("mutating operation %s %s is not allowed (only the Slice 11 evidenced commands mutate)", method, path)
+				t.Fatalf("mutating operation %s %s is not allowed (only the Slice 11 / 12 evidenced commands mutate)", method, path)
 			}
 		}
 		for _, op := range item.Operations() {
@@ -290,7 +295,13 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		"/api/v1/session",
 		// Slice 11 write-back diagnostics: read only, no fix / retry path.
 		"/api/v1/writeback/commands", "/api/v1/writeback/commands/{command_id}", "/api/v1/writeback/summary",
-		"/health/live", "/health/ready"}
+		"/health/live", "/health/ready",
+		// Slice 12 payments writes and the read-only Finance review queue
+		// (no decision path).
+		"/api/v1/payments/uploads", "/api/v1/payments/invoices/{invoice_id}/submission", "/api/v1/payments/invoices/{invoice_id}/batches",
+		"/api/v1/payments/batches/{batch_id}", "/api/v1/payments/evidence", "/api/v1/finance/review/attempts",
+		"/api/v1/finance/review/attempts/{attempt_id}"}
+	sort.Strings(want)
 	if strings.Join(paths, ",") != strings.Join(want, ",") {
 		t.Fatalf("paths = %v", paths)
 	}
