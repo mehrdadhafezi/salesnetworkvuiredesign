@@ -117,6 +117,11 @@ func TestCommissionShadowRun(t *testing.T) {
 	if n := e.count(t, `SELECT count(*) FROM commission.calculation WHERE source_key IN ('tx:103', 'tx:107')`); n != 0 {
 		t.Fatal("superseded credits are historical evidence, not separate calculations")
 	}
+	// The identity keeps the ORIGINAL recipient (5), not the re-credited one (6).
+	if n := e.count(t, `SELECT count(*) FROM commission.entitlement_identity WHERE entitlement_key = 'inv:2002|stage:1|purpose:assessment_fee|facet:seller|ctx:PURPOSE_MATRIX'
+		AND first_recipient_key = '5'`); n != 1 {
+		t.Fatal("entitlement identity must keep the original recipient")
+	}
 	if n := e.count(t, `SELECT count(*) FROM commission.reconciliation_finding WHERE kind = 'RECIPIENT_MISMATCH'`); n != 1 {
 		t.Fatalf("recipient change finding: %d", n)
 	}

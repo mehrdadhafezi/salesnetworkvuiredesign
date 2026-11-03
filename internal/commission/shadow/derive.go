@@ -271,9 +271,16 @@ func Derive(ev api.Evidence, rounding domain.Rounding) Derived {
 				Detail: "the same entitlement was credited to different recipients over time (a later credit used the then-current hierarchy); one entitlement kept"})
 		}
 		row := d.creditCalc(chosen, g.identity, rounding, observed, rules, rulePolicy, addPolicy, dup)
-		if f := g.credits[0].HolderKey; f != nil {
-			row.FirstRecipient = f
+		// The ORIGINAL recipient is the holder of the earliest credit of the
+		// entitlement (lowest legacy transaction id), never the selected live
+		// (possibly re-credited) one.
+		first := g.credits[0]
+		for _, c := range g.credits[1:] {
+			if keyLess(c.TxKey, first.TxKey) {
+				first = c
+			}
 		}
+		row.FirstRecipient = first.HolderKey
 		d.Calcs = append(d.Calcs, row)
 	}
 	for _, c := range keyless {
@@ -281,10 +288,19 @@ func Derive(ev api.Evidence, rounding domain.Rounding) Derived {
 	}
 
 	// E3 dry-run items: calculations per item; credits linked to items.
+	// The actual credit owner of each posted dry-run item (the wallet holder
+	// of the credit that names it), kept distinct from the item's seller.
+	postedHolder := map[string]*string{}
+	for _, c := range ev.Credits {
+		if c.Engine == string(domain.EngineDryRunPosting) && c.Direction == api.DirCredit && c.DryRunItemKey != nil {
+			postedHolder[*c.DryRunItemKey] = c.HolderKey
+		}
+	}
 	items := map[string]api.DryRunItem{}
 	for _, it := range ev.DryRunItems {
 		items[it.SourceKey] = it
-		d.Calcs = append(d.Calcs, itemCalc(it, rounding, rules, rulePolicy))
+		holder, posted := postedHolder[it.SourceKey]
+		d.Calcs = append(d.Calcs, itemCalc(it, rounding, rules, rulePolicy, holder, posted))
 		if it.NonInvoice {
 			d.Findings = append(d.Findings, Finding{Kind: "NON_INVOICE_BLOCKED", Severity: "INFO", SourceKey: "item:" + it.SourceKey,
 				Detail: "non-invoice dry-run entitlement (daily attendance): no approved key (OPD-09)"})
@@ -305,6 +321,10 @@ func Derive(ev api.Evidence, rounding domain.Rounding) Derived {
 		case !sameExact(exact(it.CalculatedRaw), exact(c.AmountRaw)):
 			d.Findings = append(d.Findings, Finding{Kind: "POSTING_LINK_MISMATCH", Severity: "WARNING", SourceKey: c.TxKey,
 				Detail: "posted credit amount differs from the dry-run item's calculated amount"})
+		}
+		if ok && (c.HolderKey == nil || it.SellerKey == nil || *c.HolderKey != *it.SellerKey) {
+			d.Findings = append(d.Findings, Finding{Kind: "RECIPIENT_MISMATCH", Severity: "WARNING", SourceKey: c.TxKey,
+				Detail: "posted credit holder differs from (or cannot be proven equal to) dry-run item " + it.SourceKey + " seller; original seller and credit owner kept distinct"})
 		}
 	}
 	for _, r := range ev.DryRuns {
@@ -456,7 +476,18 @@ func (d *Derived) creditCalc(c api.LegacyCredit, id domain.EntitlementIdentity, 
 	return row
 }
 
-func itemCalc(it api.DryRunItem, rounding domain.Rounding, rules map[string]api.Rule, rulePolicy map[string]PolicyObs) CalcRow {
+// keyLess orders legacy numeric keys (shorter first, then lexically).
+func keyLess(a, b string) bool {
+	if len(a) != len(b) {
+		return len(a) < len(b)
+	}
+	return a < b
+}
+
+// itemCalc derives one dry-run item. When the item was posted, the legacy
+// recipient compared is the ACTUAL credit owner (wallet holder of the posting
+// credit); the item's seller stays the attribution snapshot.
+func itemCalc(it api.DryRunItem, rounding domain.Rounding, rules map[string]api.Rule, rulePolicy map[string]PolicyObs, holder *string, posted bool) CalcRow {
 	runKey := deref(it.RunKey)
 	id := domain.EntitlementIdentity{Kind: domain.KindInvoice, InvoiceKey: deref(it.InvoiceKey), Purpose: purposeInvoiceRules, ShareFacet: "seller",
 		Context: "DRY_RUN:" + runKey}
@@ -471,6 +502,9 @@ func itemCalc(it api.DryRunItem, rounding domain.Rounding, rules map[string]api.
 		EventRef: "legacy.commission_dry_run_item.v1:" + it.SourceKey}
 	legacy := domain.Legacy{SourceKey: row.SourceKey, Engine: domain.EngineDryRunPosting, Amount: row.LegacyAmount, AmountRaw: it.CalculatedRaw,
 		RecipientKey: it.SellerKey, SnapshotKey: it.SellerKey, Base: in.Base, Comparable: true}
+	if posted {
+		legacy.RecipientKey = holder
+	}
 	switch {
 	case it.NonInvoice:
 		in.FunctionID = domain.FnDailyAttendance

@@ -273,7 +273,7 @@ func (c *Command) Run(ctx context.Context, src api.EvidenceSource, rounding doma
 			if _, err := tx.Exec(ctx, `INSERT INTO commission.entitlement_identity (entitlement_key, kind, invoice_key, stage, purpose, share_facet,
 				generation_context, first_run_id, first_recipient_key) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (entitlement_key) DO NOTHING`,
 				*cr.Output.EntitlementKey, string(id.Kind), id.InvoiceKey, id.Stage, id.Purpose, id.ShareFacet, id.Context, rep.RunID,
-				sp(cr.Output.Recipient.UserKey)); err != nil {
+				sp(firstRecipient(cr))); err != nil {
 				return err
 			}
 		}
@@ -390,6 +390,16 @@ func (c *Command) tables(runID string, ev api.Evidence, d Derived) ([]*table, er
 		find.add(ids.Stable("commission.finding", runID, f.Kind, f.SourceKey, fmt.Sprint(i)), f.Kind, f.Severity, f.SourceKey, sp(f.EntitlementKey), f.Detail)
 	}
 	return []*table{hist, runs, items, logs, calc, find}, nil
+}
+
+// firstRecipient is the original recipient evidence of an entitlement: the
+// holder of its earliest legacy credit when known, else the calculation's
+// own event-time recipient snapshot.
+func firstRecipient(cr CalcRow) *string {
+	if cr.FirstRecipient != nil {
+		return cr.FirstRecipient
+	}
+	return cr.Output.Recipient.UserKey
 }
 
 func insert(ctx context.Context, tx db.Tx, runID string, t *table) error {
