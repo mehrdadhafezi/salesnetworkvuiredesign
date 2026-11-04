@@ -20,6 +20,7 @@
 package providerops
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -27,6 +28,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"time"
 
@@ -79,6 +81,13 @@ var (
 	ErrPortDisabled = errors.New("providerops: provider port is disabled; nothing was sent")
 	// ErrSignature reports a callback whose signature does not verify.
 	ErrSignature = errors.New("providerops: callback signature invalid")
+	// ErrCallbackMalformed reports a verified body that is not a canonical
+	// callback envelope (unknown / missing / duplicate fields, trailing data,
+	// non-canonical encoding or an unsupported version).
+	ErrCallbackMalformed = errors.New("providerops: callback body is not a canonical envelope")
+	// ErrCallbackMismatch reports a transport-supplied field that disagrees
+	// with the authenticated envelope. Nothing is recorded or changed.
+	ErrCallbackMismatch = errors.New("providerops: callback field does not match the authenticated envelope")
 )
 
 func invalid(f string) error { return fmt.Errorf("%w: %s", ErrInvalid, f) }
@@ -485,15 +494,71 @@ func (s *Service) Resolve(ctx context.Context, r Resolution) (Operation, error) 
 	return s.Get(ctx, r.OperationID)
 }
 
-// Callback is one provider callback (authenticated by an HMAC over Body).
+// CallbackEnvelopeVersion is the only supported envelope version.
+//
+// The envelope is a SYNTHETIC contract owned by this ledger. 2.0.160 has no
+// Biawin callback at all (the legacy client only polls; see the Slice 14
+// audit), so this is not a Biawin protocol: a real connector must map its
+// authenticated provider payload onto this envelope inside the adapter, and
+// none is wired (no callback route exists).
+const CallbackEnvelopeVersion = 1
+
+// CallbackEnvelope is the authenticated content of a callback. Every field
+// that drives a transition, the dedupe identity or the recorded disposition
+// comes from here, never from transport metadata.
+type CallbackEnvelope struct {
+	Version     int    `json:"v"`
+	CallbackID  string `json:"callback_id"`
+	Provider    string `json:"provider"`
+	Reference   string `json:"reference"`
+	ExternalRef string `json:"external_ref"`
+	Status      string `json:"status"` // CONFIRMED / REJECTED
+}
+
+// EncodeCallback returns the canonical body for e: compact JSON with the
+// fields in declaration order. The signature is HMAC-SHA256 over exactly
+// these bytes.
+func EncodeCallback(e CallbackEnvelope) ([]byte, error) {
+	return json.Marshal(e)
+}
+
+// DecodeCallback parses an authenticated body strictly: one object, no
+// unknown fields, no trailing data, the supported version, and the exact
+// canonical encoding (so duplicate keys, reordered fields or whitespace
+// cannot make two parsers disagree about what was signed).
+func DecodeCallback(body []byte) (CallbackEnvelope, error) {
+	var e CallbackEnvelope
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&e); err != nil {
+		return CallbackEnvelope{}, fmt.Errorf("%w: %v", ErrCallbackMalformed, err)
+	}
+	if _, err := dec.Token(); err != io.EOF {
+		return CallbackEnvelope{}, fmt.Errorf("%w: trailing data", ErrCallbackMalformed)
+	}
+	if e.Version != CallbackEnvelopeVersion {
+		return CallbackEnvelope{}, fmt.Errorf("%w: version %d", ErrCallbackMalformed, e.Version)
+	}
+	canon, err := EncodeCallback(e)
+	if err != nil || !bytes.Equal(canon, body) {
+		return CallbackEnvelope{}, fmt.Errorf("%w: not canonical", ErrCallbackMalformed)
+	}
+	return e, nil
+}
+
+// Callback is one received callback: the signed body and its signature,
+// plus optional transport claims (headers, query parameters an adapter may
+// have parsed). Claims are never trusted: a non-empty claim must equal the
+// authenticated envelope or the callback is refused with nothing recorded.
 type Callback struct {
-	CallbackID  string
-	Provider    string
-	Reference   string
-	ExternalRef string
-	Status      string // CONFIRMED / REJECTED
-	Body        []byte
-	Signature   string // hex HMAC-SHA256(secret, Body)
+	Body      []byte // canonical CallbackEnvelope (EncodeCallback)
+	Signature string // hex HMAC-SHA256(secret, Body)
+
+	CallbackID  string // optional claim
+	Provider    string // optional claim
+	Reference   string // optional claim
+	ExternalRef string // optional claim
+	Status      string // optional claim
 }
 
 // Verify checks a callback signature in constant time.
@@ -507,29 +572,59 @@ func Verify(secret []byte, body []byte, signature string) bool {
 	return hmac.Equal([]byte(want), []byte(signature))
 }
 
-// HandleCallback verifies and records one callback. A duplicate callback id
-// is a no-op; a callback arriving before the dispatch answer is applied
+// authenticate verifies the signature, decodes the envelope and rejects any
+// transport claim that disagrees with it.
+func authenticate(secret []byte, cb Callback) (CallbackEnvelope, error) {
+	if !Verify(secret, cb.Body, cb.Signature) {
+		return CallbackEnvelope{}, ErrSignature
+	}
+	e, err := DecodeCallback(cb.Body)
+	if err != nil {
+		return CallbackEnvelope{}, err
+	}
+	for _, c := range []struct{ name, claim, signed string }{
+		{"callback_id", cb.CallbackID, e.CallbackID}, {"provider", cb.Provider, e.Provider}, {"reference", cb.Reference, e.Reference},
+		{"external_ref", cb.ExternalRef, e.ExternalRef}, {"status", cb.Status, e.Status},
+	} {
+		if c.claim != "" && c.claim != c.signed {
+			return CallbackEnvelope{}, fmt.Errorf("%w: %s", ErrCallbackMismatch, c.name)
+		}
+	}
+	if e.CallbackID == "" || len(e.CallbackID) > 128 || e.Provider != "BIAWIN" || (e.Status != "CONFIRMED" && e.Status != "REJECTED") ||
+		e.Reference == "" || len(e.Reference) > 191 || len(e.ExternalRef) > 191 || (e.Status == "CONFIRMED" && e.ExternalRef == "") {
+		return CallbackEnvelope{}, invalid("callback")
+	}
+	return e, nil
+}
+
+// HandleCallback verifies and records one callback. Only the authenticated
+// envelope decides anything: the dedupe identity, the matched operation,
+// the transition and the recorded disposition, all bound to the SHA-256 of
+// the signed body. A replay of the same signed body is DUPLICATE; the same
+// callback id with a different signed body is ID_CONFLICT and changes
+// nothing; a callback arriving before the dispatch answer is applied
 // (EARLY_APPLIED); a callback naming a different external reference than
 // the one recorded moves the operation to RECONCILIATION_REQUIRED.
-func (s *Service) HandleCallback(ctx context.Context, secret []byte, cb Callback) (string, error) {
-	if !Verify(secret, cb.Body, cb.Signature) {
-		return "", ErrSignature
+func (s *Service) HandleCallback(ctx context.Context, secret []byte, raw Callback) (string, error) {
+	cb, err := authenticate(secret, raw)
+	if err != nil {
+		return "", err
 	}
-	if cb.CallbackID == "" || len(cb.CallbackID) > 128 || cb.Provider != "BIAWIN" || (cb.Status != "CONFIRMED" && cb.Status != "REJECTED") ||
-		len(cb.ExternalRef) > 191 || (cb.Status == "CONFIRMED" && cb.ExternalRef == "") {
-		return "", invalid("callback")
-	}
-	body := sha256.Sum256(cb.Body)
+	body := sha256.Sum256(raw.Body)
 	var disposition string
-	err := s.runner.InTx(ctx, db.TxOptions{Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
+	err = s.runner.InTx(ctx, db.TxOptions{Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
 		at := s.clock.Now().Time().UTC()
-		var seen int
-		if err := tx.QueryRow(ctx, `SELECT count(*) FROM integration.provider_callback WHERE callback_id = $1`, cb.CallbackID).Scan(&seen); err != nil {
-			return err
-		}
-		if seen > 0 {
-			disposition = "DUPLICATE"
+		var seenSHA []byte
+		switch err := tx.QueryRow(ctx, `SELECT body_sha256 FROM integration.provider_callback WHERE callback_id = $1`, cb.CallbackID).Scan(&seenSHA); {
+		case err == nil:
+			if bytes.Equal(seenSHA, body[:]) {
+				disposition = "DUPLICATE"
+			} else {
+				disposition = "ID_CONFLICT" // the same id with different signed content: never applied
+			}
 			return nil
+		case !errors.Is(err, pgx.ErrNoRows):
+			return err
 		}
 		op, ok, err := load(ctx, tx, `reference = $1`, cb.Reference, true)
 		if err != nil {
@@ -540,6 +635,7 @@ func (s *Service) HandleCallback(ctx context.Context, secret []byte, cb Callback
 		if cb.ExternalRef != "" {
 			ext = cb.ExternalRef
 		}
+		evidence := map[string]string{"callback_id": cb.CallbackID, "body_sha256": hex.EncodeToString(body[:])}
 		switch {
 		case !ok:
 			disposition = "UNMATCHED"
@@ -555,7 +651,8 @@ func (s *Service) HandleCallback(ctx context.Context, secret []byte, cb Callback
 				if op.ExternalRef != nil && cb.ExternalRef != "" && *op.ExternalRef != cb.ExternalRef {
 					disposition = "CONFLICT"
 					if err := s.transition(ctx, tx, op, StateReconciliation, "REFERENCE_CONFLICT", nil,
-						map[string]string{"recorded": *op.ExternalRef, "callback": cb.ExternalRef}, "provider:callback", at, false); err != nil {
+						map[string]string{"recorded": *op.ExternalRef, "callback": cb.ExternalRef, "callback_id": cb.CallbackID, "body_sha256": evidence["body_sha256"]},
+						"provider:callback", at, false); err != nil {
 						return err
 					}
 					break
@@ -566,9 +663,9 @@ func (s *Service) HandleCallback(ctx context.Context, secret []byte, cb Callback
 				}
 				if cb.Status == "CONFIRMED" {
 					ref := cb.ExternalRef
-					err = s.transition(ctx, tx, op, StateConfirmed, "CALLBACK_CONFIRMED", &ref, map[string]string{"callback_id": cb.CallbackID}, "provider:callback", at, false)
+					err = s.transition(ctx, tx, op, StateConfirmed, "CALLBACK_CONFIRMED", &ref, evidence, "provider:callback", at, false)
 				} else {
-					err = s.transition(ctx, tx, op, StateRejected, "CALLBACK_REJECTED", nil, map[string]string{"callback_id": cb.CallbackID}, "provider:callback", at, false)
+					err = s.transition(ctx, tx, op, StateRejected, "CALLBACK_REJECTED", nil, evidence, "provider:callback", at, false)
 				}
 				if err != nil {
 					return err
@@ -576,7 +673,7 @@ func (s *Service) HandleCallback(ctx context.Context, secret []byte, cb Callback
 			}
 			if disposition == "CONFLICT" && op.State == StateConfirmed {
 				if err := s.event(ctx, tx, op.OperationID, &op.State, op.State, "REFERENCE_CONFLICT",
-					map[string]string{"callback": cb.ExternalRef}, "provider:callback", at); err != nil {
+					map[string]string{"callback": cb.ExternalRef, "callback_id": cb.CallbackID, "body_sha256": evidence["body_sha256"]}, "provider:callback", at); err != nil {
 					return err
 				}
 			}

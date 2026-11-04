@@ -182,10 +182,35 @@ PREPARED ─dispatch(write-ahead)─▶ DISPATCHING ─ack─▶ ACKNOWLEDGED �
 WALLET_CHARGE ─▶ BLOCKED (D-38, DB CHECK; never dispatched)
 ```
 
-Callbacks are HMAC-verified and recorded append-only with a disposition: `DUPLICATE`, `UNMATCHED`,
-`ALREADY_FINAL`, `CONFLICT` (conflicting external reference, test 20), `APPLIED`, or `EARLY_APPLIED` (callback
-before the dispatch answer, test 19). A late dispatch answer after a callback is recorded only. Every transition
-is an append-only `provider_operation_event`.
+**Callback integrity.** The HMAC-SHA256 signature covers only the body, so the body is the whole contract. It
+must be a canonical **synthetic envelope v1** (`providerops.CallbackEnvelope`):
+
+```
+{"v":1,"callback_id":…,"provider":"BIAWIN","reference":…,"external_ref":…,"status":"CONFIRMED"|"REJECTED"}
+```
+
+- The body must be compact JSON with its fields in that order. Unknown, missing or duplicate keys, trailing data,
+  re-ordering, whitespace and escape variants are refused (`ErrCallbackMalformed`).
+- Every business field comes from the verified envelope: the dedupe identity, the matched operation, the status,
+  the external reference and the recorded row.
+- Transport claims (`Callback.CallbackID / Provider / Reference / ExternalRef / Status`) are optional. A claim
+  that differs from the envelope is refused (`ErrCallbackMismatch`) and nothing is read or written. Tests:
+  `TestCallbackUnsignedFieldsCannotMutate`, `TestAuthenticateBindsClaimsToSignedContent`.
+- Identity is bound to content. Each callback row and transition event stores `body_sha256`. Re-sending the same
+  signed body is `DUPLICATE`. The same `callback_id` with a different signed body is `ID_CONFLICT`, which changes
+  nothing (`TestCallbackIdentityBoundToSignedBody`).
+- **This envelope is not a Biawin protocol.** 2.0.160 has no Biawin callback, so a real connector would map its
+  own authenticated payload onto the envelope inside the adapter. No callback route or production connector exists.
+
+Accepted callbacks are recorded append-only with a disposition:
+- `UNMATCHED`
+- `ALREADY_FINAL`
+- `CONFLICT` (conflicting external reference, test 20)
+- `APPLIED`
+- `EARLY_APPLIED` (callback before the dispatch answer, test 19)
+
+`DUPLICATE` and `ID_CONFLICT` are returned without writing a row. A late dispatch answer after a callback is
+recorded only. Every transition is an append-only `provider_operation_event`.
 
 ## 10. Financial boundary (Phase 10)
 

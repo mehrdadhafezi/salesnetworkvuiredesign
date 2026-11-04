@@ -226,6 +226,24 @@ func (e *env) cmd(t *testing.T, c work.Command) work.Result {
 
 func actor(u string) work.Actor { return work.Actor{Principal: "synthetic:" + u, UserID: u} }
 
+func hmacHex(secret, body []byte) string {
+	m := hmac.New(sha256.New, secret)
+	m.Write(body)
+	return hex.EncodeToString(m.Sum(nil))
+}
+
+// signedCallback builds a canonical synthetic envelope signed with secret
+// (no transport claims).
+func signedCallback(t *testing.T, secret []byte, env providerops.CallbackEnvelope) providerops.Callback {
+	t.Helper()
+	env.Version, env.Provider = providerops.CallbackEnvelopeVersion, "BIAWIN"
+	body, err := providerops.EncodeCallback(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return providerops.Callback{Body: body, Signature: hmacHex(secret, body)}
+}
+
 func shaOf(s string) string { h := sha256.Sum256([]byte(s)); return hex.EncodeToString(h[:]) }
 
 // 1 / 2 / 3 / 4 / 5 / 22 / 23 / 32: one, 12 and 31 services; replays;
@@ -537,14 +555,7 @@ func TestProviderOperations(t *testing.T) {
 	}
 	// 18: the same callback twice; 20: a conflicting external reference.
 	secret := []byte("synthetic-callback-secret")
-	sign := func(body string) string {
-		m := hmac.New(sha256.New, secret)
-		m.Write([]byte(body))
-		return hex.EncodeToString(m.Sum(nil))
-	}
-	body := `{"ref":"` + op.Reference + `"}`
-	cb := providerops.Callback{CallbackID: "cb-1", Provider: "BIAWIN", Reference: op.Reference, ExternalRef: *done.ExternalRef, Status: "CONFIRMED",
-		Body: []byte(body), Signature: sign(body)}
+	cb := signedCallback(t, secret, providerops.CallbackEnvelope{CallbackID: "cb-1", Reference: op.Reference, ExternalRef: *done.ExternalRef, Status: "CONFIRMED"})
 	if d, err := e.ops.HandleCallback(ctx, secret, cb); err != nil || d != "APPLIED" {
 		t.Fatalf("callback: %s %v", d, err)
 	}
@@ -552,12 +563,11 @@ func TestProviderOperations(t *testing.T) {
 		t.Fatalf("18: duplicate callback: %s", d)
 	}
 	bad := cb
-	bad.Signature = sign("tampered")
+	bad.Signature = hmacHex(secret, []byte("tampered"))
 	if _, err := e.ops.HandleCallback(ctx, secret, bad); !errors.Is(err, providerops.ErrSignature) {
 		t.Fatal("unauthenticated callback accepted")
 	}
-	conflict := cb
-	conflict.CallbackID, conflict.ExternalRef = "cb-2", "syn-order-OTHER"
+	conflict := signedCallback(t, secret, providerops.CallbackEnvelope{CallbackID: "cb-2", Reference: op.Reference, ExternalRef: "syn-order-OTHER", Status: "CONFIRMED"})
 	if d, _ := e.ops.HandleCallback(ctx, secret, conflict); d != "CONFLICT" {
 		t.Fatalf("20: conflicting reference: %s", d)
 	}
@@ -566,9 +576,8 @@ func TestProviderOperations(t *testing.T) {
 	}
 	// 19: callback before the dispatch answer.
 	op19, _, _ := e.ops.RequestOperation(ctx, req("early"))
-	early := `{"early":true}`
-	if d, err := e.ops.HandleCallback(ctx, secret, providerops.Callback{CallbackID: "cb-early", Provider: "BIAWIN", Reference: op19.Reference,
-		ExternalRef: "syn-order-early", Status: "CONFIRMED", Body: []byte(early), Signature: sign(early)}); err != nil || d != "EARLY_APPLIED" {
+	if d, err := e.ops.HandleCallback(ctx, secret, signedCallback(t, secret, providerops.CallbackEnvelope{CallbackID: "cb-early", Reference: op19.Reference,
+		ExternalRef: "syn-order-early", Status: "CONFIRMED"})); err != nil || d != "EARLY_APPLIED" {
 		t.Fatalf("19: %s %v", d, err)
 	}
 	if _, err := e.ops.Dispatch(ctx, port, op19.OperationID); !errors.Is(err, providerops.ErrState) || port.Calls(op19.Reference) != 0 {
@@ -656,12 +665,9 @@ func TestCompletionGuards(t *testing.T) {
 		t.Fatal(err)
 	}
 	secret := []byte("s")
-	b := `{}`
-	m := hmac.New(sha256.New, secret)
-	m.Write([]byte(b))
 	cur, _ := e.ops.Get(ctx, op.OperationID)
-	if _, err := e.ops.HandleCallback(ctx, secret, providerops.Callback{CallbackID: "cb", Provider: "BIAWIN", Reference: op.Reference, ExternalRef: *cur.ExternalRef,
-		Status: "CONFIRMED", Body: []byte(b), Signature: hex.EncodeToString(m.Sum(nil))}); err != nil {
+	if _, err := e.ops.HandleCallback(ctx, secret, signedCallback(t, secret, providerops.CallbackEnvelope{CallbackID: "cb", Reference: op.Reference,
+		ExternalRef: *cur.ExternalRef, Status: "CONFIRMED"})); err != nil {
 		t.Fatal(err)
 	}
 	if r := e.cmd(t, work.Command{Type: work.TypeComplete, CaseID: c, Outcome: "EXECUTED", ExpectedVersion: 2, Actor: actor(ex)}); r.Status != result.Success {
