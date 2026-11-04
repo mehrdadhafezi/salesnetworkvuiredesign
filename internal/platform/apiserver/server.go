@@ -97,6 +97,18 @@ var ContractPaths = map[string][]string{
 	"/api/v1/biawin/subscriptions/{subscription_id}":       {http.MethodGet},
 	"/api/v1/biawin/subscriptions/{subscription_id}/items": {http.MethodGet},
 	"/api/v1/biawin/parity":                                {http.MethodGet},
+	// Slice 14 controlled fulfillment and Biawin writes: per-service work
+	// cases and the evidenced, non-financial commands; SHADOW activation
+	// decisions; the provider operation ledger with human reconciliation.
+	"/api/v1/fulfillment/work-cases":                                    {http.MethodGet},
+	"/api/v1/fulfillment/work-cases/{case_id}":                          {http.MethodGet},
+	"/api/v1/fulfillment/work-cases/{case_id}/assignment":               {http.MethodPost},
+	"/api/v1/fulfillment/work-cases/{case_id}/operational-actions":      {http.MethodPost},
+	"/api/v1/fulfillment/work-cases/{case_id}/evidence-records":         {http.MethodPost},
+	"/api/v1/fulfillment/work-cases/{case_id}/outcome":                  {http.MethodPost},
+	"/api/v1/biawin/activation-decisions":                               {http.MethodGet},
+	"/api/v1/integration/provider-operations":                           {http.MethodGet},
+	"/api/v1/integration/provider-operations/{operation_id}/resolution": {http.MethodPost},
 	// Slice 13 commission controlled SHADOW read (GET only; no calculate,
 	// approve, post, credit, settle or reverse operation exists).
 	"/api/v1/commission/overview":                 {http.MethodGet},
@@ -212,22 +224,31 @@ var ContractQuery = map[string][]string{
 	"/api/v1/finance/review/attempts":                   {"cursor", "limit"},
 	"/api/v1/finance/review/attempts/{attempt_id}":      {},
 	// Slice 10: no phone (or any contact) parameter exists on any path.
-	"/api/v1/biawin/subscriptions":                         {"run_id", "state", "customer_link_state", "invoice_link_state", "activation_evidence", "product", "cursor", "limit"},
-	"/api/v1/biawin/subscriptions/{subscription_id}":       {"run_id"},
-	"/api/v1/biawin/subscriptions/{subscription_id}/items": {"run_id", "cursor", "limit"},
-	"/api/v1/biawin/parity":                                {"run_id", "check_id", "result", "cursor", "limit"},
-	"/api/v1/commission/overview":                          {"run_id"},
-	"/api/v1/commission/runs":                              {"limit"},
-	"/api/v1/commission/calculations":                      {"run_id", "parity_class", "engine", "cursor", "limit"},
-	"/api/v1/commission/findings":                          {"run_id", "kind", "cursor", "limit"},
-	"/api/v1/commission/policies":                          {"cursor", "limit"},
-	"/api/v1/commission/historical-runs":                   {"run_id"},
-	"/api/v1/commission/me/earnings":                       {"run_id", "cursor", "limit"},
-	"/api/v1/fulfillment/cases":                            {"run_id", "kind", "status", "subscription_id", "item_id", "assignee", "cursor", "limit"},
-	"/api/v1/fulfillment/cases/{case_id}":                  {"run_id"},
-	"/api/v1/fulfillment/cases/{case_id}/history":          {"run_id", "cursor", "limit"},
-	"/api/v1/invoice-review":                               {"presence", "customer_link_state", "case_link_state", "has_unknown_status", "total_class", "unit", "cursor", "limit"},
-	"/api/v1/invoice-review/{invoice_id}":                  {},
+	"/api/v1/biawin/subscriptions":                                      {"run_id", "state", "customer_link_state", "invoice_link_state", "activation_evidence", "product", "cursor", "limit"},
+	"/api/v1/biawin/subscriptions/{subscription_id}":                    {"run_id"},
+	"/api/v1/biawin/subscriptions/{subscription_id}/items":              {"run_id", "cursor", "limit"},
+	"/api/v1/biawin/parity":                                             {"run_id", "check_id", "result", "cursor", "limit"},
+	"/api/v1/commission/overview":                                       {"run_id"},
+	"/api/v1/fulfillment/work-cases":                                    {"service_key", "state", "subscription_id", "cursor", "limit"},
+	"/api/v1/fulfillment/work-cases/{case_id}":                          {},
+	"/api/v1/fulfillment/work-cases/{case_id}/assignment":               {},
+	"/api/v1/fulfillment/work-cases/{case_id}/operational-actions":      {},
+	"/api/v1/fulfillment/work-cases/{case_id}/evidence-records":         {},
+	"/api/v1/fulfillment/work-cases/{case_id}/outcome":                  {},
+	"/api/v1/biawin/activation-decisions":                               {"decision", "limit"},
+	"/api/v1/integration/provider-operations":                           {"state", "limit"},
+	"/api/v1/integration/provider-operations/{operation_id}/resolution": {},
+	"/api/v1/commission/runs":                                           {"limit"},
+	"/api/v1/commission/calculations":                                   {"run_id", "parity_class", "engine", "cursor", "limit"},
+	"/api/v1/commission/findings":                                       {"run_id", "kind", "cursor", "limit"},
+	"/api/v1/commission/policies":                                       {"cursor", "limit"},
+	"/api/v1/commission/historical-runs":                                {"run_id"},
+	"/api/v1/commission/me/earnings":                                    {"run_id", "cursor", "limit"},
+	"/api/v1/fulfillment/cases":                                         {"run_id", "kind", "status", "subscription_id", "item_id", "assignee", "cursor", "limit"},
+	"/api/v1/fulfillment/cases/{case_id}":                               {"run_id"},
+	"/api/v1/fulfillment/cases/{case_id}/history":                       {"run_id", "cursor", "limit"},
+	"/api/v1/invoice-review":                                            {"presence", "customer_link_state", "case_link_state", "has_unknown_status", "total_class", "unit", "cursor", "limit"},
+	"/api/v1/invoice-review/{invoice_id}":                               {},
 }
 
 // CustomersAPI is the Slice 5 customer identity read surface (customers
@@ -320,6 +341,23 @@ type FinanceAPI interface {
 	FinanceEnabled(ctx context.Context) bool
 }
 
+// OperationsAPI is the Slice 14 controlled fulfillment / Biawin surface
+// (fulfillment, biawin and integration modules, composed by cmd/crm-api).
+// Without one, every operation answers BLOCKED / FEATURE_DISABLED.
+type OperationsAPI interface {
+	ListFulfillmentWorkCases(ctx context.Context, request oapi.ListFulfillmentWorkCasesRequestObject) (oapi.ListFulfillmentWorkCasesResponseObject, error)
+	GetFulfillmentWorkCase(ctx context.Context, request oapi.GetFulfillmentWorkCaseRequestObject) (oapi.GetFulfillmentWorkCaseResponseObject, error)
+	AssignFulfillmentWorkCase(ctx context.Context, request oapi.AssignFulfillmentWorkCaseRequestObject) (oapi.AssignFulfillmentWorkCaseResponseObject, error)
+	RecordFulfillmentWorkAction(ctx context.Context, request oapi.RecordFulfillmentWorkActionRequestObject) (oapi.RecordFulfillmentWorkActionResponseObject, error)
+	AttachFulfillmentWorkEvidence(ctx context.Context, request oapi.AttachFulfillmentWorkEvidenceRequestObject) (oapi.AttachFulfillmentWorkEvidenceResponseObject, error)
+	CompleteFulfillmentWorkCase(ctx context.Context, request oapi.CompleteFulfillmentWorkCaseRequestObject) (oapi.CompleteFulfillmentWorkCaseResponseObject, error)
+	ListBiawinActivationDecisions(ctx context.Context, request oapi.ListBiawinActivationDecisionsRequestObject) (oapi.ListBiawinActivationDecisionsResponseObject, error)
+	ListProviderOperations(ctx context.Context, request oapi.ListProviderOperationsRequestObject) (oapi.ListProviderOperationsResponseObject, error)
+	ResolveProviderOperation(ctx context.Context, request oapi.ResolveProviderOperationRequestObject) (oapi.ResolveProviderOperationResponseObject, error)
+	// OperationsEnabled reports the Slice 14 read flag for the session navigation hint.
+	OperationsEnabled(ctx context.Context) bool
+}
+
 // CommissionAPI is the Slice 13 commission controlled SHADOW read surface
 // (commission module, composed by cmd/crm-api). GET only. Without one,
 // every operation answers BLOCKED / FEATURE_DISABLED.
@@ -355,10 +393,15 @@ type BiawinAPI interface {
 // outside the list are refused (400) before any handler runs, so a field
 // outside the command's capability can never be smuggled in.
 var ContractBody = map[string][]string{
-	"/api/v1/cases/{case_id}/contact-outcomes":       {"outcome", "reason", "callback_at"},
-	"/api/v1/hr/requests":                            {"request_type", "subject_user_id", "target_parent_user_id", "reason"},
-	"/api/v1/hr/requests/{request_id}/decisions":     {"decision", "notes"},
-	"/api/v1/payments/invoices/{invoice_id}/batches": {"stage_no", "entry_mode", "items"},
+	"/api/v1/cases/{case_id}/contact-outcomes":                          {"outcome", "reason", "callback_at"},
+	"/api/v1/hr/requests":                                               {"request_type", "subject_user_id", "target_parent_user_id", "reason"},
+	"/api/v1/hr/requests/{request_id}/decisions":                        {"decision", "notes"},
+	"/api/v1/payments/invoices/{invoice_id}/batches":                    {"stage_no", "entry_mode", "items"},
+	"/api/v1/fulfillment/work-cases/{case_id}/assignment":               {"assignee_user_id"},
+	"/api/v1/fulfillment/work-cases/{case_id}/operational-actions":      {"action", "follow_up_at", "note"},
+	"/api/v1/fulfillment/work-cases/{case_id}/evidence-records":         {"evidence_type", "content_sha256", "label"},
+	"/api/v1/fulfillment/work-cases/{case_id}/outcome":                  {"outcome", "reason"},
+	"/api/v1/integration/provider-operations/{operation_id}/resolution": {"present", "external_ref", "evidence_note"},
 }
 
 // ContractBodyNested extends the field scope into arrays of objects: the
@@ -424,6 +467,7 @@ type Surfaces struct {
 	Finance    FinanceAPI
 	Biawin     BiawinAPI
 	Commission CommissionAPI
+	Operations OperationsAPI
 	CaseWrite  CasesWriteAPI
 	HRRequest  HRRequestAPI
 	Writeback  WritebackAPI
@@ -461,6 +505,7 @@ type api struct {
 	FinanceAPI
 	BiawinAPI
 	CommissionAPI
+	OperationsAPI
 	CasesWriteAPI
 	HRRequestAPI
 	WritebackAPI
@@ -518,6 +563,7 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 		CustomersIdentity     bool `json:"customers_identity"`
 		FinanceReviewRead     bool `json:"finance_review_read"`
 		FinanceShadowRead     bool `json:"finance_shadow_read"`
+		FulfillmentWork       bool `json:"fulfillment_work"`
 		HrRead                bool `json:"hr_read"`
 		HrRequestWrite        bool `json:"hr_request_write"`
 		PaymentSubmission     bool `json:"payment_submission"`
@@ -529,7 +575,8 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 		FinanceShadowRead: a.FinanceAPI.FinanceEnabled(ctx), BiawinFulfillmentRead: a.BiawinAPI.BiawinEnabled(ctx),
 		ContactOutcomeWrite: a.CasesWriteAPI.ContactOutcomeWriteEnabled(ctx), HrRequestWrite: a.HRRequestAPI.HRRequestWriteEnabled(ctx),
 		WritebackRead: a.WritebackAPI.WritebackEnabled(ctx), PaymentSubmission: a.PaymentsAPI.PaymentSubmissionEnabled(ctx),
-		FinanceReviewRead: a.PaymentsAPI.FinanceReviewEnabled(ctx), CommissionRead: a.CommissionAPI.CommissionEnabled(ctx)}
+		FinanceReviewRead: a.PaymentsAPI.FinanceReviewEnabled(ctx), CommissionRead: a.CommissionAPI.CommissionEnabled(ctx),
+		FulfillmentWork: a.OperationsAPI.OperationsEnabled(ctx)}
 	return oapi.GetSession200JSONResponse{Body: oapi.SessionEnvelope{
 		Outcome:       outcome,
 		Reasons:       []oapi.ReasonCode{},
@@ -554,7 +601,7 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 // NewHandlerWithSurfaces builds the full handler chain over every surface.
 func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logger, sf Surfaces) (http.Handler, error) {
 	read, customers, sales, billing, rep, fin, bw := sf.Read, sf.Customers, sf.Sales, sf.Billing, sf.Reporting, sf.Finance, sf.Biawin
-	cw, hrq, wbk, pay, com := sf.CaseWrite, sf.HRRequest, sf.Writeback, sf.Payments, sf.Commission
+	cw, hrq, wbk, pay, com, ops := sf.CaseWrite, sf.HRRequest, sf.Writeback, sf.Payments, sf.Commission, sf.Operations
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -597,9 +644,12 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	if com == nil {
 		com = unconfiguredCommission{}
 	}
+	if ops == nil {
+		ops = unconfiguredOperations{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, CommissionAPI: com, CasesWriteAPI: cw, HRRequestAPI: hrq, WritebackAPI: wbk, PaymentsAPI: pay, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, CommissionAPI: com, OperationsAPI: ops, CasesWriteAPI: cw, HRRequestAPI: hrq, WritebackAPI: wbk, PaymentsAPI: pay, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},

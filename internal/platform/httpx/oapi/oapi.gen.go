@@ -37,6 +37,87 @@ func (e AccessDecisionScope) Valid() bool {
 	}
 }
 
+// Defines values for ActivationDecisionCustomerLinkState.
+const (
+	ActivationDecisionCustomerLinkStateCONFLICT ActivationDecisionCustomerLinkState = "CONFLICT"
+	ActivationDecisionCustomerLinkStateRESOLVED ActivationDecisionCustomerLinkState = "RESOLVED"
+	ActivationDecisionCustomerLinkStateUNKNOWN  ActivationDecisionCustomerLinkState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ActivationDecisionCustomerLinkState enum.
+func (e ActivationDecisionCustomerLinkState) Valid() bool {
+	switch e {
+	case ActivationDecisionCustomerLinkStateCONFLICT:
+		return true
+	case ActivationDecisionCustomerLinkStateRESOLVED:
+		return true
+	case ActivationDecisionCustomerLinkStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActivationDecisionDecision.
+const (
+	ActivationDecisionDecisionBLOCKED         ActivationDecisionDecision = "BLOCKED"
+	ActivationDecisionDecisionNOTAPPLICABLE   ActivationDecisionDecision = "NOT_APPLICABLE"
+	ActivationDecisionDecisionSHADOWACTIVATED ActivationDecisionDecision = "SHADOW_ACTIVATED"
+)
+
+// Valid indicates whether the value is a known member of the ActivationDecisionDecision enum.
+func (e ActivationDecisionDecision) Valid() bool {
+	switch e {
+	case ActivationDecisionDecisionBLOCKED:
+		return true
+	case ActivationDecisionDecisionNOTAPPLICABLE:
+		return true
+	case ActivationDecisionDecisionSHADOWACTIVATED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActivationDecisionRolloutMode.
+const (
+	ActivationDecisionRolloutModeSHADOWCOMPARE ActivationDecisionRolloutMode = "SHADOW_COMPARE"
+)
+
+// Valid indicates whether the value is a known member of the ActivationDecisionRolloutMode enum.
+func (e ActivationDecisionRolloutMode) Valid() bool {
+	switch e {
+	case ActivationDecisionRolloutModeSHADOWCOMPARE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActivationDecisionRoute.
+const (
+	ActivationDecisionRouteADDITIONALSERVICES  ActivationDecisionRoute = "ADDITIONAL_SERVICES"
+	ActivationDecisionRouteAFTERSALESCOMPLAINT ActivationDecisionRoute = "AFTER_SALES_COMPLAINT"
+	ActivationDecisionRouteARCHIVE             ActivationDecisionRoute = "ARCHIVE"
+	ActivationDecisionRouteUNKNOWN             ActivationDecisionRoute = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ActivationDecisionRoute enum.
+func (e ActivationDecisionRoute) Valid() bool {
+	switch e {
+	case ActivationDecisionRouteADDITIONALSERVICES:
+		return true
+	case ActivationDecisionRouteAFTERSALESCOMPLAINT:
+		return true
+	case ActivationDecisionRouteARCHIVE:
+		return true
+	case ActivationDecisionRouteUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ActivationEvidence.
 const (
 	ActivationEvidenceLEGACYACTIVATIONRECORDED ActivationEvidence = "LEGACY_ACTIVATION_RECORDED"
@@ -1938,28 +2019,28 @@ func (e IdentifierDerivation) Valid() bool {
 
 // Defines values for IdentifierScheme.
 const (
-	BIAWIN            IdentifierScheme = "BIAWIN"
-	CRMCODE           IdentifierScheme = "CRM_CODE"
-	LEGACYAGGREGATEV1 IdentifierScheme = "LEGACY_AGGREGATE_V1"
-	LEGACYMAPV2       IdentifierScheme = "LEGACY_MAP_V2"
-	LEGACYWPACCOUNT   IdentifierScheme = "LEGACY_WP_ACCOUNT"
-	WOOCUSTOMER       IdentifierScheme = "WOO_CUSTOMER"
+	IdentifierSchemeBIAWIN            IdentifierScheme = "BIAWIN"
+	IdentifierSchemeCRMCODE           IdentifierScheme = "CRM_CODE"
+	IdentifierSchemeLEGACYAGGREGATEV1 IdentifierScheme = "LEGACY_AGGREGATE_V1"
+	IdentifierSchemeLEGACYMAPV2       IdentifierScheme = "LEGACY_MAP_V2"
+	IdentifierSchemeLEGACYWPACCOUNT   IdentifierScheme = "LEGACY_WP_ACCOUNT"
+	IdentifierSchemeWOOCUSTOMER       IdentifierScheme = "WOO_CUSTOMER"
 )
 
 // Valid indicates whether the value is a known member of the IdentifierScheme enum.
 func (e IdentifierScheme) Valid() bool {
 	switch e {
-	case BIAWIN:
+	case IdentifierSchemeBIAWIN:
 		return true
-	case CRMCODE:
+	case IdentifierSchemeCRMCODE:
 		return true
-	case LEGACYAGGREGATEV1:
+	case IdentifierSchemeLEGACYAGGREGATEV1:
 		return true
-	case LEGACYMAPV2:
+	case IdentifierSchemeLEGACYMAPV2:
 		return true
-	case LEGACYWPACCOUNT:
+	case IdentifierSchemeLEGACYWPACCOUNT:
 		return true
-	case WOOCUSTOMER:
+	case IdentifierSchemeWOOCUSTOMER:
 		return true
 	default:
 		return false
@@ -2800,6 +2881,93 @@ func (e ProjectionRunOutcome) Valid() bool {
 	case ProjectionRunOutcomePARTIAL:
 		return true
 	case ProjectionRunOutcomeSUCCESS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ProviderOperationOpType.
+const (
+	SERVICEORDER ProviderOperationOpType = "SERVICE_ORDER"
+	WALLETCHARGE ProviderOperationOpType = "WALLET_CHARGE"
+)
+
+// Valid indicates whether the value is a known member of the ProviderOperationOpType enum.
+func (e ProviderOperationOpType) Valid() bool {
+	switch e {
+	case SERVICEORDER:
+		return true
+	case WALLETCHARGE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ProviderOperationProvider.
+const (
+	ProviderOperationProviderBIAWIN ProviderOperationProvider = "BIAWIN"
+)
+
+// Valid indicates whether the value is a known member of the ProviderOperationProvider enum.
+func (e ProviderOperationProvider) Valid() bool {
+	switch e {
+	case ProviderOperationProviderBIAWIN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ProviderOperationState.
+const (
+	ProviderOperationStateACKNOWLEDGED           ProviderOperationState = "ACKNOWLEDGED"
+	ProviderOperationStateBLOCKED                ProviderOperationState = "BLOCKED"
+	ProviderOperationStateCONFIRMED              ProviderOperationState = "CONFIRMED"
+	ProviderOperationStateCONFIRMEDABSENT        ProviderOperationState = "CONFIRMED_ABSENT"
+	ProviderOperationStateDISPATCHING            ProviderOperationState = "DISPATCHING"
+	ProviderOperationStatePREPARED               ProviderOperationState = "PREPARED"
+	ProviderOperationStateRECONCILIATIONREQUIRED ProviderOperationState = "RECONCILIATION_REQUIRED"
+	ProviderOperationStateREJECTED               ProviderOperationState = "REJECTED"
+	ProviderOperationStateUNKNOWN                ProviderOperationState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ProviderOperationState enum.
+func (e ProviderOperationState) Valid() bool {
+	switch e {
+	case ProviderOperationStateACKNOWLEDGED:
+		return true
+	case ProviderOperationStateBLOCKED:
+		return true
+	case ProviderOperationStateCONFIRMED:
+		return true
+	case ProviderOperationStateCONFIRMEDABSENT:
+		return true
+	case ProviderOperationStateDISPATCHING:
+		return true
+	case ProviderOperationStatePREPARED:
+		return true
+	case ProviderOperationStateRECONCILIATIONREQUIRED:
+		return true
+	case ProviderOperationStateREJECTED:
+		return true
+	case ProviderOperationStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ProviderOperationListEnvelopeConnector.
+const (
+	NOTCONFIGURED ProviderOperationListEnvelopeConnector = "NOT_CONFIGURED"
+)
+
+// Valid indicates whether the value is a known member of the ProviderOperationListEnvelopeConnector enum.
+func (e ProviderOperationListEnvelopeConnector) Valid() bool {
+	switch e {
+	case NOTCONFIGURED:
 		return true
 	default:
 		return false
@@ -3655,6 +3823,171 @@ func (e UserSummaryLoginEnabled) Valid() bool {
 	}
 }
 
+// Defines values for WorkActionRequestAction.
+const (
+	WorkActionRequestActionFOLLOWUP WorkActionRequestAction = "FOLLOW_UP"
+	WorkActionRequestActionNOANSWER WorkActionRequestAction = "NO_ANSWER"
+	WorkActionRequestActionNOTE     WorkActionRequestAction = "NOTE"
+)
+
+// Valid indicates whether the value is a known member of the WorkActionRequestAction enum.
+func (e WorkActionRequestAction) Valid() bool {
+	switch e {
+	case WorkActionRequestActionFOLLOWUP:
+		return true
+	case WorkActionRequestActionNOANSWER:
+		return true
+	case WorkActionRequestActionNOTE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkCaseCompletionOutcomes.
+const (
+	WorkCaseCompletionOutcomesEXECUTED    WorkCaseCompletionOutcomes = "EXECUTED"
+	WorkCaseCompletionOutcomesNOTEXECUTED WorkCaseCompletionOutcomes = "NOT_EXECUTED"
+)
+
+// Valid indicates whether the value is a known member of the WorkCaseCompletionOutcomes enum.
+func (e WorkCaseCompletionOutcomes) Valid() bool {
+	switch e {
+	case WorkCaseCompletionOutcomesEXECUTED:
+		return true
+	case WorkCaseCompletionOutcomesNOTEXECUTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkCaseFinancialBehaviour.
+const (
+	WorkCaseFinancialBehaviourCHARGESLEDGER  WorkCaseFinancialBehaviour = "CHARGES_LEDGER"
+	WorkCaseFinancialBehaviourCONSUMESCREDIT WorkCaseFinancialBehaviour = "CONSUMES_CREDIT"
+	WorkCaseFinancialBehaviourNONE           WorkCaseFinancialBehaviour = "NONE"
+)
+
+// Valid indicates whether the value is a known member of the WorkCaseFinancialBehaviour enum.
+func (e WorkCaseFinancialBehaviour) Valid() bool {
+	switch e {
+	case WorkCaseFinancialBehaviourCHARGESLEDGER:
+		return true
+	case WorkCaseFinancialBehaviourCONSUMESCREDIT:
+		return true
+	case WorkCaseFinancialBehaviourNONE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkCaseIntegrationProvider.
+const (
+	WorkCaseIntegrationProviderBIAWIN WorkCaseIntegrationProvider = "BIAWIN"
+	WorkCaseIntegrationProviderNONE   WorkCaseIntegrationProvider = "NONE"
+)
+
+// Valid indicates whether the value is a known member of the WorkCaseIntegrationProvider enum.
+func (e WorkCaseIntegrationProvider) Valid() bool {
+	switch e {
+	case WorkCaseIntegrationProviderBIAWIN:
+		return true
+	case WorkCaseIntegrationProviderNONE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkCaseOriginMode.
+const (
+	WorkCaseOriginModeSHADOWCOMPARE WorkCaseOriginMode = "SHADOW_COMPARE"
+)
+
+// Valid indicates whether the value is a known member of the WorkCaseOriginMode enum.
+func (e WorkCaseOriginMode) Valid() bool {
+	switch e {
+	case WorkCaseOriginModeSHADOWCOMPARE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkCaseState.
+const (
+	WorkCaseStateASSIGNED    WorkCaseState = "ASSIGNED"
+	WorkCaseStateCOMPLETED   WorkCaseState = "COMPLETED"
+	WorkCaseStateINPROGRESS  WorkCaseState = "IN_PROGRESS"
+	WorkCaseStateNOTEXECUTED WorkCaseState = "NOT_EXECUTED"
+	WorkCaseStateQUEUED      WorkCaseState = "QUEUED"
+)
+
+// Valid indicates whether the value is a known member of the WorkCaseState enum.
+func (e WorkCaseState) Valid() bool {
+	switch e {
+	case WorkCaseStateASSIGNED:
+		return true
+	case WorkCaseStateCOMPLETED:
+		return true
+	case WorkCaseStateINPROGRESS:
+		return true
+	case WorkCaseStateNOTEXECUTED:
+		return true
+	case WorkCaseStateQUEUED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkEventKind.
+const (
+	WorkEventKindACTIONRECORDED   WorkEventKind = "ACTION_RECORDED"
+	WorkEventKindASSIGNED         WorkEventKind = "ASSIGNED"
+	WorkEventKindCOMPLETED        WorkEventKind = "COMPLETED"
+	WorkEventKindCREATED          WorkEventKind = "CREATED"
+	WorkEventKindEVIDENCEATTACHED WorkEventKind = "EVIDENCE_ATTACHED"
+)
+
+// Valid indicates whether the value is a known member of the WorkEventKind enum.
+func (e WorkEventKind) Valid() bool {
+	switch e {
+	case WorkEventKindACTIONRECORDED:
+		return true
+	case WorkEventKindASSIGNED:
+		return true
+	case WorkEventKindCOMPLETED:
+		return true
+	case WorkEventKindCREATED:
+		return true
+	case WorkEventKindEVIDENCEATTACHED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkOutcomeRequestOutcome.
+const (
+	WorkOutcomeRequestOutcomeEXECUTED    WorkOutcomeRequestOutcome = "EXECUTED"
+	WorkOutcomeRequestOutcomeNOTEXECUTED WorkOutcomeRequestOutcome = "NOT_EXECUTED"
+)
+
+// Valid indicates whether the value is a known member of the WorkOutcomeRequestOutcome enum.
+func (e WorkOutcomeRequestOutcome) Valid() bool {
+	switch e {
+	case WorkOutcomeRequestOutcomeEXECUTED:
+		return true
+	case WorkOutcomeRequestOutcomeNOTEXECUTED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WorkflowType.
 const (
 	WorkflowTypeDISTRIBUTIONITEM WorkflowType = "DISTRIBUTION_ITEM"
@@ -3901,6 +4234,27 @@ func (e AccountCategory) Valid() bool {
 	}
 }
 
+// Defines values for ActivationDecisionFilter.
+const (
+	ActivationDecisionFilterBLOCKED         ActivationDecisionFilter = "BLOCKED"
+	ActivationDecisionFilterNOTAPPLICABLE   ActivationDecisionFilter = "NOT_APPLICABLE"
+	ActivationDecisionFilterSHADOWACTIVATED ActivationDecisionFilter = "SHADOW_ACTIVATED"
+)
+
+// Valid indicates whether the value is a known member of the ActivationDecisionFilter enum.
+func (e ActivationDecisionFilter) Valid() bool {
+	switch e {
+	case ActivationDecisionFilterBLOCKED:
+		return true
+	case ActivationDecisionFilterNOTAPPLICABLE:
+		return true
+	case ActivationDecisionFilterSHADOWACTIVATED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BalanceState.
 const (
 	BalanceStateCONFLICT       BalanceState = "CONFLICT"
@@ -4135,6 +4489,45 @@ func (e PersonSort) Valid() bool {
 	}
 }
 
+// Defines values for ProviderOperationStateFilter.
+const (
+	ProviderOperationStateFilterACKNOWLEDGED           ProviderOperationStateFilter = "ACKNOWLEDGED"
+	ProviderOperationStateFilterBLOCKED                ProviderOperationStateFilter = "BLOCKED"
+	ProviderOperationStateFilterCONFIRMED              ProviderOperationStateFilter = "CONFIRMED"
+	ProviderOperationStateFilterCONFIRMEDABSENT        ProviderOperationStateFilter = "CONFIRMED_ABSENT"
+	ProviderOperationStateFilterDISPATCHING            ProviderOperationStateFilter = "DISPATCHING"
+	ProviderOperationStateFilterPREPARED               ProviderOperationStateFilter = "PREPARED"
+	ProviderOperationStateFilterRECONCILIATIONREQUIRED ProviderOperationStateFilter = "RECONCILIATION_REQUIRED"
+	ProviderOperationStateFilterREJECTED               ProviderOperationStateFilter = "REJECTED"
+	ProviderOperationStateFilterUNKNOWN                ProviderOperationStateFilter = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ProviderOperationStateFilter enum.
+func (e ProviderOperationStateFilter) Valid() bool {
+	switch e {
+	case ProviderOperationStateFilterACKNOWLEDGED:
+		return true
+	case ProviderOperationStateFilterBLOCKED:
+		return true
+	case ProviderOperationStateFilterCONFIRMED:
+		return true
+	case ProviderOperationStateFilterCONFIRMEDABSENT:
+		return true
+	case ProviderOperationStateFilterDISPATCHING:
+		return true
+	case ProviderOperationStateFilterPREPARED:
+		return true
+	case ProviderOperationStateFilterRECONCILIATIONREQUIRED:
+		return true
+	case ProviderOperationStateFilterREJECTED:
+		return true
+	case ProviderOperationStateFilterUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ReconciliationUnit.
 const (
 	ReconciliationUnitIRR     ReconciliationUnit = "IRR"
@@ -4288,6 +4681,27 @@ func (e UserSort) Valid() bool {
 	case UserSortDisplayName:
 		return true
 	case UserSortMinusDisplayName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListBiawinActivationDecisionsParamsDecision.
+const (
+	ListBiawinActivationDecisionsParamsDecisionBLOCKED         ListBiawinActivationDecisionsParamsDecision = "BLOCKED"
+	ListBiawinActivationDecisionsParamsDecisionNOTAPPLICABLE   ListBiawinActivationDecisionsParamsDecision = "NOT_APPLICABLE"
+	ListBiawinActivationDecisionsParamsDecisionSHADOWACTIVATED ListBiawinActivationDecisionsParamsDecision = "SHADOW_ACTIVATED"
+)
+
+// Valid indicates whether the value is a known member of the ListBiawinActivationDecisionsParamsDecision enum.
+func (e ListBiawinActivationDecisionsParamsDecision) Valid() bool {
+	switch e {
+	case ListBiawinActivationDecisionsParamsDecisionBLOCKED:
+		return true
+	case ListBiawinActivationDecisionsParamsDecisionNOTAPPLICABLE:
+		return true
+	case ListBiawinActivationDecisionsParamsDecisionSHADOWACTIVATED:
 		return true
 	default:
 		return false
@@ -4549,6 +4963,45 @@ func (e ListIdentityUsersParamsSort) Valid() bool {
 	case ListIdentityUsersParamsSortDisplayName:
 		return true
 	case ListIdentityUsersParamsSortMinusDisplayName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListProviderOperationsParamsState.
+const (
+	ListProviderOperationsParamsStateACKNOWLEDGED           ListProviderOperationsParamsState = "ACKNOWLEDGED"
+	ListProviderOperationsParamsStateBLOCKED                ListProviderOperationsParamsState = "BLOCKED"
+	ListProviderOperationsParamsStateCONFIRMED              ListProviderOperationsParamsState = "CONFIRMED"
+	ListProviderOperationsParamsStateCONFIRMEDABSENT        ListProviderOperationsParamsState = "CONFIRMED_ABSENT"
+	ListProviderOperationsParamsStateDISPATCHING            ListProviderOperationsParamsState = "DISPATCHING"
+	ListProviderOperationsParamsStatePREPARED               ListProviderOperationsParamsState = "PREPARED"
+	ListProviderOperationsParamsStateRECONCILIATIONREQUIRED ListProviderOperationsParamsState = "RECONCILIATION_REQUIRED"
+	ListProviderOperationsParamsStateREJECTED               ListProviderOperationsParamsState = "REJECTED"
+	ListProviderOperationsParamsStateUNKNOWN                ListProviderOperationsParamsState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the ListProviderOperationsParamsState enum.
+func (e ListProviderOperationsParamsState) Valid() bool {
+	switch e {
+	case ListProviderOperationsParamsStateACKNOWLEDGED:
+		return true
+	case ListProviderOperationsParamsStateBLOCKED:
+		return true
+	case ListProviderOperationsParamsStateCONFIRMED:
+		return true
+	case ListProviderOperationsParamsStateCONFIRMEDABSENT:
+		return true
+	case ListProviderOperationsParamsStateDISPATCHING:
+		return true
+	case ListProviderOperationsParamsStatePREPARED:
+		return true
+	case ListProviderOperationsParamsStateRECONCILIATIONREQUIRED:
+		return true
+	case ListProviderOperationsParamsStateREJECTED:
+		return true
+	case ListProviderOperationsParamsStateUNKNOWN:
 		return true
 	default:
 		return false
@@ -5156,8 +5609,62 @@ type AccountListEnvelope struct {
 	Summary *[]GroupCount `json:"summary,omitempty"`
 }
 
+// ActivationDecision One Biawin-owned activation decision (SHADOW only while D-35 is open). BLOCKED rows carry their reconciliation context.
+type ActivationDecision struct {
+	ActivationId      openapi_types.UUID                  `json:"activation_id"`
+	BlockedBy         []string                            `json:"blocked_by"`
+	BusinessKey       string                              `json:"business_key"`
+	CorrelationId     string                              `json:"correlation_id"`
+	CustomerId        *openapi_types.UUID                 `json:"customer_id,omitempty"`
+	CustomerLinkState ActivationDecisionCustomerLinkState `json:"customer_link_state"`
+
+	// DecidedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	DecidedAt        Timestamp                     `json:"decided_at"`
+	Decision         ActivationDecisionDecision    `json:"decision"`
+	ExistingCustomer bool                          `json:"existing_customer"`
+	InvoiceId        openapi_types.UUID            `json:"invoice_id"`
+	InvoiceRef       *string                       `json:"invoice_ref,omitempty"`
+	ItemCount        int                           `json:"item_count"`
+	MessageId        openapi_types.UUID            `json:"message_id"`
+	ProductKey       string                        `json:"product_key"`
+	ProductVersion   int                           `json:"product_version"`
+	Reasons          Reasons                       `json:"reasons"`
+	RolloutMode      ActivationDecisionRolloutMode `json:"rollout_mode"`
+	Route            ActivationDecisionRoute       `json:"route"`
+	SubscriptionId   *openapi_types.UUID           `json:"subscription_id,omitempty"`
+}
+
+// ActivationDecisionCustomerLinkState defines model for ActivationDecision.CustomerLinkState.
+type ActivationDecisionCustomerLinkState string
+
+// ActivationDecisionDecision defines model for ActivationDecision.Decision.
+type ActivationDecisionDecision string
+
+// ActivationDecisionRolloutMode defines model for ActivationDecision.RolloutMode.
+type ActivationDecisionRolloutMode string
+
+// ActivationDecisionRoute defines model for ActivationDecision.Route.
+type ActivationDecisionRoute string
+
 // ActivationEvidence Whether legacy recorded an activation time. Import time is never activation time.
 type ActivationEvidence string
+
+// ActivationListEnvelope defines model for ActivationListEnvelope.
+type ActivationListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID         `json:"correlation_id"`
+	Items         *[]ActivationDecision `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
 
 // AllowedAction defines model for AllowedAction.
 type AllowedAction struct {
@@ -5582,6 +6089,12 @@ type BillingSum struct {
 type BlockedAction struct {
 	Action    string   `json:"action"`
 	BlockedBy []string `json:"blocked_by"`
+}
+
+// BlockedCommand defines model for BlockedCommand.
+type BlockedCommand struct {
+	BlockedBy []string `json:"blocked_by"`
+	Command   string   `json:"command"`
 }
 
 // Capability Slice 4 read capability vocabulary (<module>.<object>.<action>).
@@ -9033,6 +9546,79 @@ type Provenance struct {
 	SourceSystem string    `json:"source_system"`
 }
 
+// ProviderOperation One external provider operation. UNKNOWN / RECONCILIATION_REQUIRED are NOT delivered; ACKNOWLEDGED is not CONFIRMED.
+type ProviderOperation struct {
+	Attempts            int                       `json:"attempts"`
+	BlockedBy           *string                   `json:"blocked_by,omitempty"`
+	CorrelationId       string                    `json:"correlation_id"`
+	ExternalRef         *string                   `json:"external_ref,omitempty"`
+	OpType              ProviderOperationOpType   `json:"op_type"`
+	OperationId         openapi_types.UUID        `json:"operation_id"`
+	Provider            ProviderOperationProvider `json:"provider"`
+	ReconciliationOwner string                    `json:"reconciliation_owner"`
+	Reference           string                    `json:"reference"`
+	State               ProviderOperationState    `json:"state"`
+	SubjectCaseId       *openapi_types.UUID       `json:"subject_case_id,omitempty"`
+
+	// UpdatedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	UpdatedAt Timestamp `json:"updated_at"`
+	Version   int64     `json:"version"`
+}
+
+// ProviderOperationOpType defines model for ProviderOperation.OpType.
+type ProviderOperationOpType string
+
+// ProviderOperationProvider defines model for ProviderOperation.Provider.
+type ProviderOperationProvider string
+
+// ProviderOperationState defines model for ProviderOperation.State.
+type ProviderOperationState string
+
+// ProviderOperationEnvelope defines model for ProviderOperationEnvelope.
+type ProviderOperationEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Operation One external provider operation. UNKNOWN / RECONCILIATION_REQUIRED are NOT delivered; ACKNOWLEDGED is not CONFIRMED.
+	Operation *ProviderOperation `json:"operation,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// ProviderOperationListEnvelope defines model for ProviderOperationListEnvelope.
+type ProviderOperationListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// Connector No production Biawin connector exists; only a synthetic test adapter.
+	Connector *ProviderOperationListEnvelopeConnector `json:"connector,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID        `json:"correlation_id"`
+	Items         *[]ProviderOperation `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// ProviderOperationListEnvelopeConnector No production Biawin connector exists; only a synthetic test adapter.
+type ProviderOperationListEnvelopeConnector string
+
+// ProviderResolutionRequest Recorded human reconciliation evidence for an UNKNOWN / RECONCILIATION_REQUIRED operation.
+type ProviderResolutionRequest struct {
+	EvidenceNote string  `json:"evidence_note"`
+	ExternalRef  *string `json:"external_ref,omitempty"`
+	Present      bool    `json:"present"`
+}
+
 // RawText Raw legacy value kept verbatim as evidence (not interpreted).
 type RawText = string
 
@@ -9480,7 +10066,10 @@ type SessionContext struct {
 
 		// FinanceShadowRead Slice 9 finance SHADOW ledger read (flag finance.shadow_ledger_read). Read only; never a financial system of record.
 		FinanceShadowRead bool `json:"finance_shadow_read"`
-		HrRead            bool `json:"hr_read"`
+
+		// FulfillmentWork Slice 14 per-service operations queue (flag fulfillment.work_read). SHADOW work cases only; commands are separately flag-gated.
+		FulfillmentWork bool `json:"fulfillment_work"`
+		HrRead          bool `json:"hr_read"`
 
 		// HrRequestWrite Slice 11 HR change request family enabled (flag organization.hr_request_write). Navigation hint only.
 		HrRequestWrite bool `json:"hr_request_write"`
@@ -9988,6 +10577,193 @@ type UserSummaryAccountState string
 // UserSummaryLoginEnabled Always false; there is no production authentication in Slice 4.
 type UserSummaryLoginEnabled bool
 
+// WorkActionRequest defines model for WorkActionRequest.
+type WorkActionRequest struct {
+	Action WorkActionRequestAction `json:"action"`
+
+	// FollowUpAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	FollowUpAt *Timestamp `json:"follow_up_at,omitempty"`
+	Note       *string    `json:"note,omitempty"`
+}
+
+// WorkActionRequestAction defines model for WorkActionRequest.Action.
+type WorkActionRequestAction string
+
+// WorkAssignRequest defines model for WorkAssignRequest.
+type WorkAssignRequest struct {
+	AssigneeUserId openapi_types.UUID `json:"assignee_user_id"`
+}
+
+// WorkCase defines model for WorkCase.
+type WorkCase struct {
+	AssigneeUserId     *openapi_types.UUID           `json:"assignee_user_id,omitempty"`
+	CaseId             openapi_types.UUID            `json:"case_id"`
+	CompletionOutcomes *[]WorkCaseCompletionOutcomes `json:"completion_outcomes,omitempty"`
+
+	// CreatedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	CreatedAt            Timestamp            `json:"created_at"`
+	CurrentSupervisors   []openapi_types.UUID `json:"current_supervisors"`
+	CustomerId           openapi_types.UUID   `json:"customer_id"`
+	EvidenceRequirements *[]struct {
+		Required bool   `json:"required"`
+		Type     string `json:"type"`
+	} `json:"evidence_requirements,omitempty"`
+	FinancialBehaviour  WorkCaseFinancialBehaviour  `json:"financial_behaviour"`
+	IntegrationProvider WorkCaseIntegrationProvider `json:"integration_provider"`
+	ItemId              openapi_types.UUID          `json:"item_id"`
+	OriginMode          WorkCaseOriginMode          `json:"origin_mode"`
+
+	// Scope The caller's CURRENT scope on the case's service (catalog). Supervisors of one service see nothing of another service.
+	Scope          *WorkScope         `json:"scope,omitempty"`
+	ServiceKey     string             `json:"service_key"`
+	ServiceTitle   string             `json:"service_title"`
+	ServiceVersion int                `json:"service_version"`
+	State          WorkCaseState      `json:"state"`
+	SubscriptionId openapi_types.UUID `json:"subscription_id"`
+
+	// UpdatedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	UpdatedAt   Timestamp `json:"updated_at"`
+	Version     int64     `json:"version"`
+	WorkflowKey string    `json:"workflow_key"`
+}
+
+// WorkCaseCompletionOutcomes defines model for WorkCase.CompletionOutcomes.
+type WorkCaseCompletionOutcomes string
+
+// WorkCaseFinancialBehaviour defines model for WorkCase.FinancialBehaviour.
+type WorkCaseFinancialBehaviour string
+
+// WorkCaseIntegrationProvider defines model for WorkCase.IntegrationProvider.
+type WorkCaseIntegrationProvider string
+
+// WorkCaseOriginMode defines model for WorkCase.OriginMode.
+type WorkCaseOriginMode string
+
+// WorkCaseEnvelope defines model for WorkCaseEnvelope.
+type WorkCaseEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions  *AllowedActions   `json:"allowed_actions,omitempty"`
+	BlockedCommands *[]BlockedCommand `json:"blocked_commands,omitempty"`
+	Case            *WorkCase         `json:"case,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID   `json:"correlation_id"`
+	Evidence      *[]WorkEvidence `json:"evidence,omitempty"`
+	History       *[]WorkEvent    `json:"history,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// WorkCaseListEnvelope defines model for WorkCaseListEnvelope.
+type WorkCaseListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+	Items         *[]WorkCase   `json:"items,omitempty"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// WorkCaseState defines model for WorkCaseState.
+type WorkCaseState string
+
+// WorkCommandEnvelope defines model for WorkCommandEnvelope.
+type WorkCommandEnvelope struct {
+	Command *WorkCommandResult `json:"command,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// WorkCommandResult defines model for WorkCommandResult.
+type WorkCommandResult struct {
+	Applied        bool                `json:"applied"`
+	BlockedBy      []string            `json:"blocked_by"`
+	CommandId      *openapi_types.UUID `json:"command_id,omitempty"`
+	CurrentVersion *int64              `json:"current_version,omitempty"`
+	Replayed       bool                `json:"replayed"`
+
+	// RolloutMode TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+	RolloutMode RolloutMode `json:"rollout_mode"`
+	State       *string     `json:"state,omitempty"`
+	Version     *int64      `json:"version,omitempty"`
+}
+
+// WorkEvent Append-only history; supervisors are the supervisors AT THE TIME (never rewritten).
+type WorkEvent struct {
+	ActorUserId   *openapi_types.UUID    `json:"actor_user_id,omitempty"`
+	AfterVersion  int64                  `json:"after_version"`
+	BeforeVersion *int64                 `json:"before_version,omitempty"`
+	CommandId     *openapi_types.UUID    `json:"command_id,omitempty"`
+	CorrelationId string                 `json:"correlation_id"`
+	Detail        map[string]interface{} `json:"detail"`
+	EventId       openapi_types.UUID     `json:"event_id"`
+	Kind          WorkEventKind          `json:"kind"`
+
+	// OccurredAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	OccurredAt  Timestamp            `json:"occurred_at"`
+	Supervisors []openapi_types.UUID `json:"supervisors"`
+}
+
+// WorkEventKind defines model for WorkEvent.Kind.
+type WorkEventKind string
+
+// WorkEvidence Evidence METADATA only (type, SHA-256, label); no file, URL or path.
+type WorkEvidence struct {
+	ContentSha256 string             `json:"content_sha256"`
+	EvidenceId    openapi_types.UUID `json:"evidence_id"`
+	EvidenceType  string             `json:"evidence_type"`
+	Label         string             `json:"label"`
+
+	// OccurredAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	OccurredAt  Timestamp          `json:"occurred_at"`
+	SubmittedBy openapi_types.UUID `json:"submitted_by"`
+}
+
+// WorkEvidenceRequest defines model for WorkEvidenceRequest.
+type WorkEvidenceRequest struct {
+	ContentSha256 string `json:"content_sha256"`
+	EvidenceType  string `json:"evidence_type"`
+	Label         string `json:"label"`
+}
+
+// WorkOutcomeRequest defines model for WorkOutcomeRequest.
+type WorkOutcomeRequest struct {
+	Outcome WorkOutcomeRequestOutcome `json:"outcome"`
+	Reason  *string                   `json:"reason,omitempty"`
+}
+
+// WorkOutcomeRequestOutcome defines model for WorkOutcomeRequest.Outcome.
+type WorkOutcomeRequestOutcome string
+
+// WorkScope The caller's CURRENT scope on the case's service (catalog). Supervisors of one service see nothing of another service.
+type WorkScope struct {
+	Executor   bool `json:"executor"`
+	Supervisor bool `json:"supervisor"`
+}
+
 // WorkflowType Source work unit a Case stands for (one staged legacy row each).
 type WorkflowType string
 
@@ -10135,6 +10911,9 @@ type WritebackSummaryEnvelope struct {
 
 // AccountCategory defines model for AccountCategory.
 type AccountCategory string
+
+// ActivationDecisionFilter defines model for ActivationDecisionFilter.
+type ActivationDecisionFilter string
 
 // AsOf RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
 type AsOf = Timestamp
@@ -10294,6 +11073,9 @@ type PersonSort string
 // PositionID Target native identifier. Never a phone, e-mail, login or legacy key.
 type PositionID = NativeID
 
+// ProviderOperationStateFilter defines model for ProviderOperationStateFilter.
+type ProviderOperationStateFilter string
+
 // Query defines model for Query.
 type Query = string
 
@@ -10333,12 +11115,30 @@ type SubjectType string
 // UserSort defines model for UserSort.
 type UserSort string
 
+// WorkServiceFilter defines model for WorkServiceFilter.
+type WorkServiceFilter = string
+
+// WorkStateFilter defines model for WorkStateFilter.
+type WorkStateFilter = WorkCaseState
+
+// WorkSubscriptionFilter defines model for WorkSubscriptionFilter.
+type WorkSubscriptionFilter = openapi_types.UUID
+
 // WritebackStateFilter APPLIED only when legacy reported SUCCESS or observation proved the effect; UNKNOWN is reconciled before any retry; REJECTED keeps target history and opens reconciliation.
 type WritebackStateFilter = WritebackState
 
 // Denied Generic business result (Architecture V1 §23). Concrete envelopes add a
 // typed data property. An item-level mix aggregates to PARTIAL.
 type Denied = ResultEnvelope
+
+// ListBiawinActivationDecisionsParams defines parameters for ListBiawinActivationDecisions.
+type ListBiawinActivationDecisionsParams struct {
+	Decision *ListBiawinActivationDecisionsParamsDecision `form:"decision,omitempty" json:"decision,omitempty"`
+	Limit    *Limit                                       `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListBiawinActivationDecisionsParamsDecision defines parameters for ListBiawinActivationDecisions.
+type ListBiawinActivationDecisionsParamsDecision string
 
 // GetBiawinParityParams defines parameters for GetBiawinParity.
 type GetBiawinParityParams struct {
@@ -10667,6 +11467,61 @@ type ListFulfillmentCaseHistoryParams struct {
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ListFulfillmentWorkCasesParams defines parameters for ListFulfillmentWorkCases.
+type ListFulfillmentWorkCasesParams struct {
+	ServiceKey     *WorkServiceFilter      `form:"service_key,omitempty" json:"service_key,omitempty"`
+	State          *WorkStateFilter        `form:"state,omitempty" json:"state,omitempty"`
+	SubscriptionId *WorkSubscriptionFilter `form:"subscription_id,omitempty" json:"subscription_id,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// AssignFulfillmentWorkCaseParams defines parameters for AssignFulfillmentWorkCase.
+type AssignFulfillmentWorkCaseParams struct {
+	// IdempotencyKey Required on every future mutating command (Architecture V1 §23). Same key
+	// and same request replays the stored result; same key with a different
+	// request is CONFLICT.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+	IfMatch IfMatch `json:"If-Match"`
+}
+
+// AttachFulfillmentWorkEvidenceParams defines parameters for AttachFulfillmentWorkEvidence.
+type AttachFulfillmentWorkEvidenceParams struct {
+	// IdempotencyKey Required on every future mutating command (Architecture V1 §23). Same key
+	// and same request replays the stored result; same key with a different
+	// request is CONFLICT.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+	IfMatch IfMatch `json:"If-Match"`
+}
+
+// RecordFulfillmentWorkActionParams defines parameters for RecordFulfillmentWorkAction.
+type RecordFulfillmentWorkActionParams struct {
+	// IdempotencyKey Required on every future mutating command (Architecture V1 §23). Same key
+	// and same request replays the stored result; same key with a different
+	// request is CONFLICT.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+	IfMatch IfMatch `json:"If-Match"`
+}
+
+// CompleteFulfillmentWorkCaseParams defines parameters for CompleteFulfillmentWorkCase.
+type CompleteFulfillmentWorkCaseParams struct {
+	// IdempotencyKey Required on every future mutating command (Architecture V1 §23). Same key
+	// and same request replays the stored result; same key with a different
+	// request is CONFLICT.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+	IfMatch IfMatch `json:"If-Match"`
+}
+
 // ListHRRequestsParams defines parameters for ListHRRequests.
 type ListHRRequestsParams struct {
 	// Cursor Opaque cursor from PageInfo.next_cursor.
@@ -10709,6 +11564,26 @@ type ListIdentityUsersParams struct {
 
 // ListIdentityUsersParamsSort defines parameters for ListIdentityUsers.
 type ListIdentityUsersParamsSort string
+
+// ListProviderOperationsParams defines parameters for ListProviderOperations.
+type ListProviderOperationsParams struct {
+	State *ListProviderOperationsParamsState `form:"state,omitempty" json:"state,omitempty"`
+	Limit *Limit                             `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListProviderOperationsParamsState defines parameters for ListProviderOperations.
+type ListProviderOperationsParamsState string
+
+// ResolveProviderOperationParams defines parameters for ResolveProviderOperation.
+type ResolveProviderOperationParams struct {
+	// IdempotencyKey Required on every future mutating command (Architecture V1 §23). Same key
+	// and same request replays the stored result; same key with a different
+	// request is CONFLICT.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT.
+	IfMatch IfMatch `json:"If-Match"`
+}
 
 // ListInvoiceReviewParams defines parameters for ListInvoiceReview.
 type ListInvoiceReviewParams struct {
@@ -11202,11 +12077,26 @@ type ListWritebackCommandsParams struct {
 // RecordContactOutcomeJSONRequestBody defines body for RecordContactOutcome for application/json ContentType.
 type RecordContactOutcomeJSONRequestBody = ContactOutcomeRequest
 
+// AssignFulfillmentWorkCaseJSONRequestBody defines body for AssignFulfillmentWorkCase for application/json ContentType.
+type AssignFulfillmentWorkCaseJSONRequestBody = WorkAssignRequest
+
+// AttachFulfillmentWorkEvidenceJSONRequestBody defines body for AttachFulfillmentWorkEvidence for application/json ContentType.
+type AttachFulfillmentWorkEvidenceJSONRequestBody = WorkEvidenceRequest
+
+// RecordFulfillmentWorkActionJSONRequestBody defines body for RecordFulfillmentWorkAction for application/json ContentType.
+type RecordFulfillmentWorkActionJSONRequestBody = WorkActionRequest
+
+// CompleteFulfillmentWorkCaseJSONRequestBody defines body for CompleteFulfillmentWorkCase for application/json ContentType.
+type CompleteFulfillmentWorkCaseJSONRequestBody = WorkOutcomeRequest
+
 // CreateHRRequestJSONRequestBody defines body for CreateHRRequest for application/json ContentType.
 type CreateHRRequestJSONRequestBody = HRRequestCreateRequest
 
 // DecideHRRequestJSONRequestBody defines body for DecideHRRequest for application/json ContentType.
 type DecideHRRequestJSONRequestBody = HRDecisionRequest
+
+// ResolveProviderOperationJSONRequestBody defines body for ResolveProviderOperation for application/json ContentType.
+type ResolveProviderOperationJSONRequestBody = ProviderResolutionRequest
 
 // SubmitPaymentBatchJSONRequestBody defines body for SubmitPaymentBatch for application/json ContentType.
 type SubmitPaymentBatchJSONRequestBody = PaymentBatchRequest
@@ -11216,6 +12106,9 @@ type ServerInterface interface {
 	// GetEffectiveAccess Effective access of the current principal
 	// (GET /api/v1/authorization/effective-access)
 	GetEffectiveAccess(w http.ResponseWriter, r *http.Request)
+	// ListBiawinActivationDecisions SHADOW activation decisions with reconciliation context
+	// (GET /api/v1/biawin/activation-decisions)
+	ListBiawinActivationDecisions(w http.ResponseWriter, r *http.Request, params ListBiawinActivationDecisionsParams)
 	// GetBiawinParity Active subscription parity (legacy vs target) of one run
 	// (GET /api/v1/biawin/parity)
 	GetBiawinParity(w http.ResponseWriter, r *http.Request, params GetBiawinParityParams)
@@ -11336,6 +12229,24 @@ type ServerInterface interface {
 	// ListFulfillmentCaseHistory Append-only history of one fulfillment case
 	// (GET /api/v1/fulfillment/cases/{case_id}/history)
 	ListFulfillmentCaseHistory(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params ListFulfillmentCaseHistoryParams)
+	// ListFulfillmentWorkCases Per-service operations queue (only services the caller supervises or executes)
+	// (GET /api/v1/fulfillment/work-cases)
+	ListFulfillmentWorkCases(w http.ResponseWriter, r *http.Request, params ListFulfillmentWorkCasesParams)
+	// GetFulfillmentWorkCase One work case with history, evidence metadata and blocked commands
+	// (GET /api/v1/fulfillment/work-cases/{case_id})
+	GetFulfillmentWorkCase(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID)
+	// AssignFulfillmentWorkCase Assign the case to a current executor of the same service
+	// (POST /api/v1/fulfillment/work-cases/{case_id}/assignment)
+	AssignFulfillmentWorkCase(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params AssignFulfillmentWorkCaseParams)
+	// AttachFulfillmentWorkEvidence Attach evidence METADATA of a type the service version requires
+	// (POST /api/v1/fulfillment/work-cases/{case_id}/evidence-records)
+	AttachFulfillmentWorkEvidence(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params AttachFulfillmentWorkEvidenceParams)
+	// RecordFulfillmentWorkAction Record NO_ANSWER / FOLLOW_UP / NOTE on the case
+	// (POST /api/v1/fulfillment/work-cases/{case_id}/operational-actions)
+	RecordFulfillmentWorkAction(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params RecordFulfillmentWorkActionParams)
+	// CompleteFulfillmentWorkCase Record EXECUTED / NOT_EXECUTED for ONE service
+	// (POST /api/v1/fulfillment/work-cases/{case_id}/outcome)
+	CompleteFulfillmentWorkCase(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params CompleteFulfillmentWorkCaseParams)
 	// ListHRRequests HR change requests the caller requested or currently reviews
 	// (GET /api/v1/hr/requests)
 	ListHRRequests(w http.ResponseWriter, r *http.Request, params ListHRRequestsParams)
@@ -11354,6 +12265,12 @@ type ServerInterface interface {
 	// GetIdentityUser Get one shadow user account
 	// (GET /api/v1/identity/users/{user_id})
 	GetIdentityUser(w http.ResponseWriter, r *http.Request, userId NativeID)
+	// ListProviderOperations External provider operations (UNKNOWN is never shown as delivered)
+	// (GET /api/v1/integration/provider-operations)
+	ListProviderOperations(w http.ResponseWriter, r *http.Request, params ListProviderOperationsParams)
+	// ResolveProviderOperation Record human reconciliation evidence for an UNKNOWN operation
+	// (POST /api/v1/integration/provider-operations/{operation_id}/resolution)
+	ResolveProviderOperation(w http.ResponseWriter, r *http.Request, operationId openapi_types.UUID, params ResolveProviderOperationParams)
 	// ListInvoiceReview Invoice Review QUERY SURFACE (audited read; no export; no target UI)
 	// (GET /api/v1/invoice-review)
 	ListInvoiceReview(w http.ResponseWriter, r *http.Request, params ListInvoiceReviewParams)
@@ -11508,6 +12425,52 @@ func (siw *ServerInterfaceWrapper) GetEffectiveAccess(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetEffectiveAccess(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListBiawinActivationDecisions operation middleware
+func (siw *ServerInterfaceWrapper) ListBiawinActivationDecisions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListBiawinActivationDecisionsParams
+
+	// ------------- Optional query parameter "decision" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "decision", r.URL.Query(), &params.Decision, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "decision"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "decision", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBiawinActivationDecisions(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -13879,6 +14842,425 @@ func (siw *ServerInterfaceWrapper) ListFulfillmentCaseHistory(w http.ResponseWri
 	handler.ServeHTTP(w, r)
 }
 
+// ListFulfillmentWorkCases operation middleware
+func (siw *ServerInterfaceWrapper) ListFulfillmentWorkCases(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFulfillmentWorkCasesParams
+
+	// ------------- Optional query parameter "service_key" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "service_key", r.URL.Query(), &params.ServiceKey, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "service_key"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "service_key", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "subscription_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subscription_id", r.URL.Query(), &params.SubscriptionId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subscription_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscription_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFulfillmentWorkCases(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFulfillmentWorkCase operation middleware
+func (siw *ServerInterfaceWrapper) GetFulfillmentWorkCase(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFulfillmentWorkCase(w, r, caseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AssignFulfillmentWorkCase operation middleware
+func (siw *ServerInterfaceWrapper) AssignFulfillmentWorkCase(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AssignFulfillmentWorkCaseParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch IfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AssignFulfillmentWorkCase(w, r, caseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AttachFulfillmentWorkEvidence operation middleware
+func (siw *ServerInterfaceWrapper) AttachFulfillmentWorkEvidence(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AttachFulfillmentWorkEvidenceParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch IfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AttachFulfillmentWorkEvidence(w, r, caseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RecordFulfillmentWorkAction operation middleware
+func (siw *ServerInterfaceWrapper) RecordFulfillmentWorkAction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RecordFulfillmentWorkActionParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch IfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RecordFulfillmentWorkAction(w, r, caseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CompleteFulfillmentWorkCase operation middleware
+func (siw *ServerInterfaceWrapper) CompleteFulfillmentWorkCase(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "case_id" -------------
+	var caseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "case_id", r.PathValue("case_id"), &caseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CompleteFulfillmentWorkCaseParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch IfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompleteFulfillmentWorkCase(w, r, caseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListHRRequests operation middleware
 func (siw *ServerInterfaceWrapper) ListHRRequests(w http.ResponseWriter, r *http.Request) {
 
@@ -14175,6 +15557,129 @@ func (siw *ServerInterfaceWrapper) GetIdentityUser(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetIdentityUser(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListProviderOperations operation middleware
+func (siw *ServerInterfaceWrapper) ListProviderOperations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListProviderOperationsParams
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListProviderOperations(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResolveProviderOperation operation middleware
+func (siw *ServerInterfaceWrapper) ResolveProviderOperation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "operation_id" -------------
+	var operationId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "operation_id", r.PathValue("operation_id"), &operationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "operation_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ResolveProviderOperationParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "If-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-Match")]; found {
+		var IfMatch IfMatch
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-Match", valueList[0], &IfMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-Match", Err: err})
+			return
+		}
+
+		params.IfMatch = IfMatch
+
+	} else {
+		err := fmt.Errorf("Header parameter If-Match is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "If-Match", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolveProviderOperation(w, r, operationId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -17669,6 +19174,15 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/policies", wrapper.ListCommissionPolicies)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/historical-runs", wrapper.ListCommissionHistoricalRuns)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/me/earnings", wrapper.ListMyCommissionEarnings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/work-cases", wrapper.ListFulfillmentWorkCases)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/work-cases/{case_id}", wrapper.GetFulfillmentWorkCase)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/fulfillment/work-cases/{case_id}/assignment", wrapper.AssignFulfillmentWorkCase)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/fulfillment/work-cases/{case_id}/operational-actions", wrapper.RecordFulfillmentWorkAction)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/fulfillment/work-cases/{case_id}/evidence-records", wrapper.AttachFulfillmentWorkEvidence)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/fulfillment/work-cases/{case_id}/outcome", wrapper.CompleteFulfillmentWorkCase)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/biawin/activation-decisions", wrapper.ListBiawinActivationDecisions)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/integration/provider-operations", wrapper.ListProviderOperations)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/integration/provider-operations/{operation_id}/resolution", wrapper.ResolveProviderOperation)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases", wrapper.ListFulfillmentCases)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases/{case_id}", wrapper.GetFulfillmentCase)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases/{case_id}/history", wrapper.ListFulfillmentCaseHistory)
@@ -17771,6 +19285,123 @@ type GetEffectiveAccessdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetEffectiveAccessdefaultApplicationProblemPlusJSONResponse) VisitGetEffectiveAccessResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinActivationDecisionsRequestObject struct {
+	Params ListBiawinActivationDecisionsParams
+}
+
+type ListBiawinActivationDecisionsResponseObject interface {
+	VisitListBiawinActivationDecisionsResponse(w http.ResponseWriter) error
+}
+
+type ListBiawinActivationDecisions200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListBiawinActivationDecisions200JSONResponse struct {
+	Body    ActivationListEnvelope
+	Headers ListBiawinActivationDecisions200ResponseHeaders
+}
+
+func (response ListBiawinActivationDecisions200JSONResponse) VisitListBiawinActivationDecisionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinActivationDecisions400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListBiawinActivationDecisions400ApplicationProblemPlusJSONResponse) VisitListBiawinActivationDecisionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinActivationDecisions403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListBiawinActivationDecisions403JSONResponse) VisitListBiawinActivationDecisionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinActivationDecisions404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListBiawinActivationDecisions404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListBiawinActivationDecisions404ResponseHeaders
+}
+
+func (response ListBiawinActivationDecisions404ApplicationProblemPlusJSONResponse) VisitListBiawinActivationDecisionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBiawinActivationDecisionsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListBiawinActivationDecisionsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListBiawinActivationDecisionsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListBiawinActivationDecisionsdefaultApplicationProblemPlusJSONResponse) VisitListBiawinActivationDecisionsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -22161,6 +23792,812 @@ func (response ListFulfillmentCaseHistorydefaultApplicationProblemPlusJSONRespon
 	return err
 }
 
+type ListFulfillmentWorkCasesRequestObject struct {
+	Params ListFulfillmentWorkCasesParams
+}
+
+type ListFulfillmentWorkCasesResponseObject interface {
+	VisitListFulfillmentWorkCasesResponse(w http.ResponseWriter) error
+}
+
+type ListFulfillmentWorkCases200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFulfillmentWorkCases200JSONResponse struct {
+	Body    WorkCaseListEnvelope
+	Headers ListFulfillmentWorkCases200ResponseHeaders
+}
+
+func (response ListFulfillmentWorkCases200JSONResponse) VisitListFulfillmentWorkCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentWorkCases400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListFulfillmentWorkCases400ApplicationProblemPlusJSONResponse) VisitListFulfillmentWorkCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentWorkCases403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListFulfillmentWorkCases403JSONResponse) VisitListFulfillmentWorkCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentWorkCases404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFulfillmentWorkCases404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListFulfillmentWorkCases404ResponseHeaders
+}
+
+func (response ListFulfillmentWorkCases404ApplicationProblemPlusJSONResponse) VisitListFulfillmentWorkCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFulfillmentWorkCasesdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListFulfillmentWorkCasesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListFulfillmentWorkCasesdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListFulfillmentWorkCasesdefaultApplicationProblemPlusJSONResponse) VisitListFulfillmentWorkCasesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentWorkCaseRequestObject struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+}
+
+type GetFulfillmentWorkCaseResponseObject interface {
+	VisitGetFulfillmentWorkCaseResponse(w http.ResponseWriter) error
+}
+
+type GetFulfillmentWorkCase200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFulfillmentWorkCase200JSONResponse struct {
+	Body    WorkCaseEnvelope
+	Headers GetFulfillmentWorkCase200ResponseHeaders
+}
+
+func (response GetFulfillmentWorkCase200JSONResponse) VisitGetFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentWorkCase400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetFulfillmentWorkCase400ApplicationProblemPlusJSONResponse) VisitGetFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentWorkCase403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetFulfillmentWorkCase403JSONResponse) VisitGetFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentWorkCase404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFulfillmentWorkCase404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetFulfillmentWorkCase404ResponseHeaders
+}
+
+func (response GetFulfillmentWorkCase404ApplicationProblemPlusJSONResponse) VisitGetFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFulfillmentWorkCasedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetFulfillmentWorkCasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetFulfillmentWorkCasedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetFulfillmentWorkCasedefaultApplicationProblemPlusJSONResponse) VisitGetFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AssignFulfillmentWorkCaseRequestObject struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+	Params AssignFulfillmentWorkCaseParams
+	Body   *AssignFulfillmentWorkCaseJSONRequestBody
+}
+
+type AssignFulfillmentWorkCaseResponseObject interface {
+	VisitAssignFulfillmentWorkCaseResponse(w http.ResponseWriter) error
+}
+
+type AssignFulfillmentWorkCase200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type AssignFulfillmentWorkCase200JSONResponse struct {
+	Body    WorkCommandEnvelope
+	Headers AssignFulfillmentWorkCase200ResponseHeaders
+}
+
+func (response AssignFulfillmentWorkCase200JSONResponse) VisitAssignFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AssignFulfillmentWorkCase400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response AssignFulfillmentWorkCase400ApplicationProblemPlusJSONResponse) VisitAssignFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AssignFulfillmentWorkCase403JSONResponse struct{ DeniedJSONResponse }
+
+func (response AssignFulfillmentWorkCase403JSONResponse) VisitAssignFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AssignFulfillmentWorkCase404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type AssignFulfillmentWorkCase404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers AssignFulfillmentWorkCase404ResponseHeaders
+}
+
+func (response AssignFulfillmentWorkCase404ApplicationProblemPlusJSONResponse) VisitAssignFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AssignFulfillmentWorkCase409ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type AssignFulfillmentWorkCase409JSONResponse struct {
+	Body    WorkCommandEnvelope
+	Headers AssignFulfillmentWorkCase409ResponseHeaders
+}
+
+func (response AssignFulfillmentWorkCase409JSONResponse) VisitAssignFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AssignFulfillmentWorkCasedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type AssignFulfillmentWorkCasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    AssignFulfillmentWorkCasedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response AssignFulfillmentWorkCasedefaultApplicationProblemPlusJSONResponse) VisitAssignFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AttachFulfillmentWorkEvidenceRequestObject struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+	Params AttachFulfillmentWorkEvidenceParams
+	Body   *AttachFulfillmentWorkEvidenceJSONRequestBody
+}
+
+type AttachFulfillmentWorkEvidenceResponseObject interface {
+	VisitAttachFulfillmentWorkEvidenceResponse(w http.ResponseWriter) error
+}
+
+type AttachFulfillmentWorkEvidence200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type AttachFulfillmentWorkEvidence200JSONResponse struct {
+	Body    WorkCommandEnvelope
+	Headers AttachFulfillmentWorkEvidence200ResponseHeaders
+}
+
+func (response AttachFulfillmentWorkEvidence200JSONResponse) VisitAttachFulfillmentWorkEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AttachFulfillmentWorkEvidence400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response AttachFulfillmentWorkEvidence400ApplicationProblemPlusJSONResponse) VisitAttachFulfillmentWorkEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AttachFulfillmentWorkEvidence403JSONResponse struct{ DeniedJSONResponse }
+
+func (response AttachFulfillmentWorkEvidence403JSONResponse) VisitAttachFulfillmentWorkEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AttachFulfillmentWorkEvidence404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type AttachFulfillmentWorkEvidence404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers AttachFulfillmentWorkEvidence404ResponseHeaders
+}
+
+func (response AttachFulfillmentWorkEvidence404ApplicationProblemPlusJSONResponse) VisitAttachFulfillmentWorkEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AttachFulfillmentWorkEvidence409ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type AttachFulfillmentWorkEvidence409JSONResponse struct {
+	Body    WorkCommandEnvelope
+	Headers AttachFulfillmentWorkEvidence409ResponseHeaders
+}
+
+func (response AttachFulfillmentWorkEvidence409JSONResponse) VisitAttachFulfillmentWorkEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AttachFulfillmentWorkEvidencedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type AttachFulfillmentWorkEvidencedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    AttachFulfillmentWorkEvidencedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response AttachFulfillmentWorkEvidencedefaultApplicationProblemPlusJSONResponse) VisitAttachFulfillmentWorkEvidenceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordFulfillmentWorkActionRequestObject struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+	Params RecordFulfillmentWorkActionParams
+	Body   *RecordFulfillmentWorkActionJSONRequestBody
+}
+
+type RecordFulfillmentWorkActionResponseObject interface {
+	VisitRecordFulfillmentWorkActionResponse(w http.ResponseWriter) error
+}
+
+type RecordFulfillmentWorkAction200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type RecordFulfillmentWorkAction200JSONResponse struct {
+	Body    WorkCommandEnvelope
+	Headers RecordFulfillmentWorkAction200ResponseHeaders
+}
+
+func (response RecordFulfillmentWorkAction200JSONResponse) VisitRecordFulfillmentWorkActionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordFulfillmentWorkAction400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response RecordFulfillmentWorkAction400ApplicationProblemPlusJSONResponse) VisitRecordFulfillmentWorkActionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordFulfillmentWorkAction403JSONResponse struct{ DeniedJSONResponse }
+
+func (response RecordFulfillmentWorkAction403JSONResponse) VisitRecordFulfillmentWorkActionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordFulfillmentWorkAction404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type RecordFulfillmentWorkAction404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers RecordFulfillmentWorkAction404ResponseHeaders
+}
+
+func (response RecordFulfillmentWorkAction404ApplicationProblemPlusJSONResponse) VisitRecordFulfillmentWorkActionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordFulfillmentWorkAction409ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type RecordFulfillmentWorkAction409JSONResponse struct {
+	Body    WorkCommandEnvelope
+	Headers RecordFulfillmentWorkAction409ResponseHeaders
+}
+
+func (response RecordFulfillmentWorkAction409JSONResponse) VisitRecordFulfillmentWorkActionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordFulfillmentWorkActiondefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type RecordFulfillmentWorkActiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    RecordFulfillmentWorkActiondefaultResponseHeaders
+	StatusCode int
+}
+
+func (response RecordFulfillmentWorkActiondefaultApplicationProblemPlusJSONResponse) VisitRecordFulfillmentWorkActionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteFulfillmentWorkCaseRequestObject struct {
+	CaseId openapi_types.UUID `json:"case_id"`
+	Params CompleteFulfillmentWorkCaseParams
+	Body   *CompleteFulfillmentWorkCaseJSONRequestBody
+}
+
+type CompleteFulfillmentWorkCaseResponseObject interface {
+	VisitCompleteFulfillmentWorkCaseResponse(w http.ResponseWriter) error
+}
+
+type CompleteFulfillmentWorkCase200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type CompleteFulfillmentWorkCase200JSONResponse struct {
+	Body    WorkCommandEnvelope
+	Headers CompleteFulfillmentWorkCase200ResponseHeaders
+}
+
+func (response CompleteFulfillmentWorkCase200JSONResponse) VisitCompleteFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteFulfillmentWorkCase400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CompleteFulfillmentWorkCase400ApplicationProblemPlusJSONResponse) VisitCompleteFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteFulfillmentWorkCase403JSONResponse struct{ DeniedJSONResponse }
+
+func (response CompleteFulfillmentWorkCase403JSONResponse) VisitCompleteFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteFulfillmentWorkCase404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type CompleteFulfillmentWorkCase404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers CompleteFulfillmentWorkCase404ResponseHeaders
+}
+
+func (response CompleteFulfillmentWorkCase404ApplicationProblemPlusJSONResponse) VisitCompleteFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteFulfillmentWorkCase409ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type CompleteFulfillmentWorkCase409JSONResponse struct {
+	Body    WorkCommandEnvelope
+	Headers CompleteFulfillmentWorkCase409ResponseHeaders
+}
+
+func (response CompleteFulfillmentWorkCase409JSONResponse) VisitCompleteFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteFulfillmentWorkCasedefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type CompleteFulfillmentWorkCasedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    CompleteFulfillmentWorkCasedefaultResponseHeaders
+	StatusCode int
+}
+
+func (response CompleteFulfillmentWorkCasedefaultApplicationProblemPlusJSONResponse) VisitCompleteFulfillmentWorkCaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListHRRequestsRequestObject struct {
 	Params ListHRRequestsParams
 }
@@ -22828,6 +25265,266 @@ type GetIdentityUserdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetIdentityUserdefaultApplicationProblemPlusJSONResponse) VisitGetIdentityUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListProviderOperationsRequestObject struct {
+	Params ListProviderOperationsParams
+}
+
+type ListProviderOperationsResponseObject interface {
+	VisitListProviderOperationsResponse(w http.ResponseWriter) error
+}
+
+type ListProviderOperations200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListProviderOperations200JSONResponse struct {
+	Body    ProviderOperationListEnvelope
+	Headers ListProviderOperations200ResponseHeaders
+}
+
+func (response ListProviderOperations200JSONResponse) VisitListProviderOperationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListProviderOperations400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListProviderOperations400ApplicationProblemPlusJSONResponse) VisitListProviderOperationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListProviderOperations403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListProviderOperations403JSONResponse) VisitListProviderOperationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListProviderOperations404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListProviderOperations404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListProviderOperations404ResponseHeaders
+}
+
+func (response ListProviderOperations404ApplicationProblemPlusJSONResponse) VisitListProviderOperationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListProviderOperationsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListProviderOperationsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListProviderOperationsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListProviderOperationsdefaultApplicationProblemPlusJSONResponse) VisitListProviderOperationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveProviderOperationRequestObject struct {
+	OperationId openapi_types.UUID `json:"operation_id"`
+	Params      ResolveProviderOperationParams
+	Body        *ResolveProviderOperationJSONRequestBody
+}
+
+type ResolveProviderOperationResponseObject interface {
+	VisitResolveProviderOperationResponse(w http.ResponseWriter) error
+}
+
+type ResolveProviderOperation200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ResolveProviderOperation200JSONResponse struct {
+	Body    ProviderOperationEnvelope
+	Headers ResolveProviderOperation200ResponseHeaders
+}
+
+func (response ResolveProviderOperation200JSONResponse) VisitResolveProviderOperationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveProviderOperation400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ResolveProviderOperation400ApplicationProblemPlusJSONResponse) VisitResolveProviderOperationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveProviderOperation403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ResolveProviderOperation403JSONResponse) VisitResolveProviderOperationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveProviderOperation404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ResolveProviderOperation404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ResolveProviderOperation404ResponseHeaders
+}
+
+func (response ResolveProviderOperation404ApplicationProblemPlusJSONResponse) VisitResolveProviderOperationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveProviderOperation409ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ResolveProviderOperation409JSONResponse struct {
+	Body    ProviderOperationEnvelope
+	Headers ResolveProviderOperation409ResponseHeaders
+}
+
+func (response ResolveProviderOperation409JSONResponse) VisitResolveProviderOperationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResolveProviderOperationdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ResolveProviderOperationdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ResolveProviderOperationdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ResolveProviderOperationdefaultApplicationProblemPlusJSONResponse) VisitResolveProviderOperationResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -27582,6 +30279,9 @@ type StrictServerInterface interface {
 	// GetEffectiveAccess Effective access of the current principal
 	// (GET /api/v1/authorization/effective-access)
 	GetEffectiveAccess(ctx context.Context, request GetEffectiveAccessRequestObject) (GetEffectiveAccessResponseObject, error)
+	// ListBiawinActivationDecisions SHADOW activation decisions with reconciliation context
+	// (GET /api/v1/biawin/activation-decisions)
+	ListBiawinActivationDecisions(ctx context.Context, request ListBiawinActivationDecisionsRequestObject) (ListBiawinActivationDecisionsResponseObject, error)
 	// GetBiawinParity Active subscription parity (legacy vs target) of one run
 	// (GET /api/v1/biawin/parity)
 	GetBiawinParity(ctx context.Context, request GetBiawinParityRequestObject) (GetBiawinParityResponseObject, error)
@@ -27702,6 +30402,24 @@ type StrictServerInterface interface {
 	// ListFulfillmentCaseHistory Append-only history of one fulfillment case
 	// (GET /api/v1/fulfillment/cases/{case_id}/history)
 	ListFulfillmentCaseHistory(ctx context.Context, request ListFulfillmentCaseHistoryRequestObject) (ListFulfillmentCaseHistoryResponseObject, error)
+	// ListFulfillmentWorkCases Per-service operations queue (only services the caller supervises or executes)
+	// (GET /api/v1/fulfillment/work-cases)
+	ListFulfillmentWorkCases(ctx context.Context, request ListFulfillmentWorkCasesRequestObject) (ListFulfillmentWorkCasesResponseObject, error)
+	// GetFulfillmentWorkCase One work case with history, evidence metadata and blocked commands
+	// (GET /api/v1/fulfillment/work-cases/{case_id})
+	GetFulfillmentWorkCase(ctx context.Context, request GetFulfillmentWorkCaseRequestObject) (GetFulfillmentWorkCaseResponseObject, error)
+	// AssignFulfillmentWorkCase Assign the case to a current executor of the same service
+	// (POST /api/v1/fulfillment/work-cases/{case_id}/assignment)
+	AssignFulfillmentWorkCase(ctx context.Context, request AssignFulfillmentWorkCaseRequestObject) (AssignFulfillmentWorkCaseResponseObject, error)
+	// AttachFulfillmentWorkEvidence Attach evidence METADATA of a type the service version requires
+	// (POST /api/v1/fulfillment/work-cases/{case_id}/evidence-records)
+	AttachFulfillmentWorkEvidence(ctx context.Context, request AttachFulfillmentWorkEvidenceRequestObject) (AttachFulfillmentWorkEvidenceResponseObject, error)
+	// RecordFulfillmentWorkAction Record NO_ANSWER / FOLLOW_UP / NOTE on the case
+	// (POST /api/v1/fulfillment/work-cases/{case_id}/operational-actions)
+	RecordFulfillmentWorkAction(ctx context.Context, request RecordFulfillmentWorkActionRequestObject) (RecordFulfillmentWorkActionResponseObject, error)
+	// CompleteFulfillmentWorkCase Record EXECUTED / NOT_EXECUTED for ONE service
+	// (POST /api/v1/fulfillment/work-cases/{case_id}/outcome)
+	CompleteFulfillmentWorkCase(ctx context.Context, request CompleteFulfillmentWorkCaseRequestObject) (CompleteFulfillmentWorkCaseResponseObject, error)
 	// ListHRRequests HR change requests the caller requested or currently reviews
 	// (GET /api/v1/hr/requests)
 	ListHRRequests(ctx context.Context, request ListHRRequestsRequestObject) (ListHRRequestsResponseObject, error)
@@ -27720,6 +30438,12 @@ type StrictServerInterface interface {
 	// GetIdentityUser Get one shadow user account
 	// (GET /api/v1/identity/users/{user_id})
 	GetIdentityUser(ctx context.Context, request GetIdentityUserRequestObject) (GetIdentityUserResponseObject, error)
+	// ListProviderOperations External provider operations (UNKNOWN is never shown as delivered)
+	// (GET /api/v1/integration/provider-operations)
+	ListProviderOperations(ctx context.Context, request ListProviderOperationsRequestObject) (ListProviderOperationsResponseObject, error)
+	// ResolveProviderOperation Record human reconciliation evidence for an UNKNOWN operation
+	// (POST /api/v1/integration/provider-operations/{operation_id}/resolution)
+	ResolveProviderOperation(ctx context.Context, request ResolveProviderOperationRequestObject) (ResolveProviderOperationResponseObject, error)
 	// ListInvoiceReview Invoice Review QUERY SURFACE (audited read; no export; no target UI)
 	// (GET /api/v1/invoice-review)
 	ListInvoiceReview(ctx context.Context, request ListInvoiceReviewRequestObject) (ListInvoiceReviewResponseObject, error)
@@ -27916,6 +30640,32 @@ func (sh *strictHandler) GetEffectiveAccess(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetEffectiveAccessResponseObject); ok {
 		if err := validResponse.VisitGetEffectiveAccessResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListBiawinActivationDecisions operation middleware
+func (sh *strictHandler) ListBiawinActivationDecisions(w http.ResponseWriter, r *http.Request, params ListBiawinActivationDecisionsParams) {
+	var request ListBiawinActivationDecisionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListBiawinActivationDecisions(ctx, request.(ListBiawinActivationDecisionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListBiawinActivationDecisions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListBiawinActivationDecisionsResponseObject); ok {
+		if err := validResponse.VisitListBiawinActivationDecisionsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -28975,6 +31725,194 @@ func (sh *strictHandler) ListFulfillmentCaseHistory(w http.ResponseWriter, r *ht
 	}
 }
 
+// ListFulfillmentWorkCases operation middleware
+func (sh *strictHandler) ListFulfillmentWorkCases(w http.ResponseWriter, r *http.Request, params ListFulfillmentWorkCasesParams) {
+	var request ListFulfillmentWorkCasesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFulfillmentWorkCases(ctx, request.(ListFulfillmentWorkCasesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFulfillmentWorkCases")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFulfillmentWorkCasesResponseObject); ok {
+		if err := validResponse.VisitListFulfillmentWorkCasesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFulfillmentWorkCase operation middleware
+func (sh *strictHandler) GetFulfillmentWorkCase(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID) {
+	var request GetFulfillmentWorkCaseRequestObject
+
+	request.CaseId = caseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFulfillmentWorkCase(ctx, request.(GetFulfillmentWorkCaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFulfillmentWorkCase")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFulfillmentWorkCaseResponseObject); ok {
+		if err := validResponse.VisitGetFulfillmentWorkCaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AssignFulfillmentWorkCase operation middleware
+func (sh *strictHandler) AssignFulfillmentWorkCase(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params AssignFulfillmentWorkCaseParams) {
+	var request AssignFulfillmentWorkCaseRequestObject
+
+	request.CaseId = caseId
+	request.Params = params
+
+	var body AssignFulfillmentWorkCaseJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AssignFulfillmentWorkCase(ctx, request.(AssignFulfillmentWorkCaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AssignFulfillmentWorkCase")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AssignFulfillmentWorkCaseResponseObject); ok {
+		if err := validResponse.VisitAssignFulfillmentWorkCaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AttachFulfillmentWorkEvidence operation middleware
+func (sh *strictHandler) AttachFulfillmentWorkEvidence(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params AttachFulfillmentWorkEvidenceParams) {
+	var request AttachFulfillmentWorkEvidenceRequestObject
+
+	request.CaseId = caseId
+	request.Params = params
+
+	var body AttachFulfillmentWorkEvidenceJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AttachFulfillmentWorkEvidence(ctx, request.(AttachFulfillmentWorkEvidenceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AttachFulfillmentWorkEvidence")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AttachFulfillmentWorkEvidenceResponseObject); ok {
+		if err := validResponse.VisitAttachFulfillmentWorkEvidenceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RecordFulfillmentWorkAction operation middleware
+func (sh *strictHandler) RecordFulfillmentWorkAction(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params RecordFulfillmentWorkActionParams) {
+	var request RecordFulfillmentWorkActionRequestObject
+
+	request.CaseId = caseId
+	request.Params = params
+
+	var body RecordFulfillmentWorkActionJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RecordFulfillmentWorkAction(ctx, request.(RecordFulfillmentWorkActionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RecordFulfillmentWorkAction")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RecordFulfillmentWorkActionResponseObject); ok {
+		if err := validResponse.VisitRecordFulfillmentWorkActionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CompleteFulfillmentWorkCase operation middleware
+func (sh *strictHandler) CompleteFulfillmentWorkCase(w http.ResponseWriter, r *http.Request, caseId openapi_types.UUID, params CompleteFulfillmentWorkCaseParams) {
+	var request CompleteFulfillmentWorkCaseRequestObject
+
+	request.CaseId = caseId
+	request.Params = params
+
+	var body CompleteFulfillmentWorkCaseJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CompleteFulfillmentWorkCase(ctx, request.(CompleteFulfillmentWorkCaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CompleteFulfillmentWorkCase")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CompleteFulfillmentWorkCaseResponseObject); ok {
+		if err := validResponse.VisitCompleteFulfillmentWorkCaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListHRRequests operation middleware
 func (sh *strictHandler) ListHRRequests(w http.ResponseWriter, r *http.Request, params ListHRRequestsParams) {
 	var request ListHRRequestsRequestObject
@@ -29139,6 +32077,66 @@ func (sh *strictHandler) GetIdentityUser(w http.ResponseWriter, r *http.Request,
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetIdentityUserResponseObject); ok {
 		if err := validResponse.VisitGetIdentityUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListProviderOperations operation middleware
+func (sh *strictHandler) ListProviderOperations(w http.ResponseWriter, r *http.Request, params ListProviderOperationsParams) {
+	var request ListProviderOperationsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListProviderOperations(ctx, request.(ListProviderOperationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListProviderOperations")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListProviderOperationsResponseObject); ok {
+		if err := validResponse.VisitListProviderOperationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResolveProviderOperation operation middleware
+func (sh *strictHandler) ResolveProviderOperation(w http.ResponseWriter, r *http.Request, operationId openapi_types.UUID, params ResolveProviderOperationParams) {
+	var request ResolveProviderOperationRequestObject
+
+	request.OperationId = operationId
+	request.Params = params
+
+	var body ResolveProviderOperationJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResolveProviderOperation(ctx, request.(ResolveProviderOperationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResolveProviderOperation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResolveProviderOperationResponseObject); ok {
+		if err := validResponse.VisitResolveProviderOperationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

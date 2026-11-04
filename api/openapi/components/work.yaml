@@ -1,0 +1,267 @@
+# Slice 14 controlled fulfillment and Biawin writes. Work cases are target
+# SHADOW cases (one per SubscriptionItem) created only from a SHADOW
+# activation (D-35: no real activation exists). Commands are the evidenced,
+# non-financial subset; authority is per-service row scope (catalog), never
+# a role tier or the HR hierarchy. No command or read touches billing,
+# payments, finance, wallets or commission, and none calls a provider.
+# Unknown external results are never shown as delivered.
+
+WorkCaseState:
+  type: string
+  enum: [QUEUED, ASSIGNED, IN_PROGRESS, COMPLETED, NOT_EXECUTED]
+
+WorkScope:
+  type: object
+  description: 'The caller''s CURRENT scope on the case''s service (catalog). Supervisors of one service see nothing of another service.'
+  required: [supervisor, executor]
+  additionalProperties: false
+  properties:
+    supervisor: {type: boolean}
+    executor: {type: boolean}
+
+WorkCase:
+  type: object
+  required: [case_id, item_id, subscription_id, customer_id, service_key, service_version, service_title, workflow_key, origin_mode, state, version,
+    current_supervisors, financial_behaviour, integration_provider, created_at, updated_at]
+  additionalProperties: false
+  properties:
+    case_id: {type: string, format: uuid}
+    item_id: {type: string, format: uuid}
+    subscription_id: {type: string, format: uuid}
+    customer_id: {type: string, format: uuid}
+    service_key: {type: string, maxLength: 82}
+    service_version: {type: integer}
+    service_title: {type: string, maxLength: 200}
+    workflow_key: {type: string, maxLength: 40}
+    origin_mode: {type: string, enum: [SHADOW_COMPARE]}
+    state: {$ref: '#/WorkCaseState'}
+    assignee_user_id: {type: string, format: uuid, nullable: true}
+    version: {type: integer, format: int64}
+    current_supervisors: {type: array, maxItems: 50, items: {type: string, format: uuid}}
+    financial_behaviour: {type: string, enum: [NONE, CONSUMES_CREDIT, CHARGES_LEDGER]}
+    integration_provider: {type: string, enum: [NONE, BIAWIN]}
+    evidence_requirements:
+      type: array
+      maxItems: 20
+      items:
+        type: object
+        required: [type, required]
+        additionalProperties: false
+        properties:
+          type: {type: string, maxLength: 82}
+          required: {type: boolean}
+    completion_outcomes: {type: array, maxItems: 5, items: {type: string, enum: [EXECUTED, NOT_EXECUTED]}}
+    scope: {$ref: '#/WorkScope'}
+    created_at: {$ref: './schemas.yaml#/Timestamp'}
+    updated_at: {$ref: './schemas.yaml#/Timestamp'}
+
+WorkEvent:
+  type: object
+  description: 'Append-only history; supervisors are the supervisors AT THE TIME (never rewritten).'
+  required: [event_id, kind, detail, supervisors, after_version, correlation_id, occurred_at]
+  additionalProperties: false
+  properties:
+    event_id: {type: string, format: uuid}
+    command_id: {type: string, format: uuid, nullable: true}
+    kind: {type: string, enum: [CREATED, ASSIGNED, ACTION_RECORDED, EVIDENCE_ATTACHED, COMPLETED]}
+    detail: {type: object, additionalProperties: true}
+    actor_user_id: {type: string, format: uuid, nullable: true}
+    supervisors: {type: array, maxItems: 50, items: {type: string, format: uuid}}
+    before_version: {type: integer, format: int64, nullable: true}
+    after_version: {type: integer, format: int64}
+    correlation_id: {type: string, maxLength: 128}
+    occurred_at: {$ref: './schemas.yaml#/Timestamp'}
+
+WorkEvidence:
+  type: object
+  description: 'Evidence METADATA only (type, SHA-256, label); no file, URL or path.'
+  required: [evidence_id, evidence_type, content_sha256, label, submitted_by, occurred_at]
+  additionalProperties: false
+  properties:
+    evidence_id: {type: string, format: uuid}
+    evidence_type: {type: string, maxLength: 82}
+    content_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+    label: {type: string, maxLength: 200}
+    submitted_by: {type: string, format: uuid}
+    occurred_at: {$ref: './schemas.yaml#/Timestamp'}
+
+BlockedCommand:
+  type: object
+  required: [command, blocked_by]
+  additionalProperties: false
+  properties:
+    command: {type: string, maxLength: 60}
+    blocked_by: {type: array, maxItems: 5, items: {type: string, maxLength: 40}}
+
+WorkCaseListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/WorkCase'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+WorkCaseEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    case: {$ref: '#/WorkCase'}
+    history: {type: array, maxItems: 500, items: {$ref: '#/WorkEvent'}}
+    evidence: {type: array, maxItems: 200, items: {$ref: '#/WorkEvidence'}}
+    blocked_commands: {type: array, maxItems: 20, items: {$ref: '#/BlockedCommand'}}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+WorkAssignRequest:
+  type: object
+  required: [assignee_user_id]
+  additionalProperties: false
+  properties:
+    assignee_user_id: {type: string, format: uuid}
+
+WorkActionRequest:
+  type: object
+  required: [action]
+  additionalProperties: false
+  properties:
+    action: {type: string, enum: [NO_ANSWER, FOLLOW_UP, NOTE]}
+    follow_up_at: {$ref: './schemas.yaml#/Timestamp'}
+    note: {type: string, minLength: 1, maxLength: 2000}
+
+WorkEvidenceRequest:
+  type: object
+  required: [evidence_type, content_sha256, label]
+  additionalProperties: false
+  properties:
+    evidence_type: {type: string, pattern: '^[a-z][a-z0-9_.-]{1,80}$'}
+    content_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+    label: {type: string, minLength: 1, maxLength: 200}
+
+WorkOutcomeRequest:
+  type: object
+  required: [outcome]
+  additionalProperties: false
+  properties:
+    outcome: {type: string, enum: [EXECUTED, NOT_EXECUTED]}
+    reason: {type: string, minLength: 1, maxLength: 1000}
+
+WorkCommandResult:
+  type: object
+  required: [rollout_mode, applied, blocked_by, replayed]
+  additionalProperties: false
+  properties:
+    command_id: {type: string, format: uuid, nullable: true}
+    rollout_mode: {$ref: './writes.yaml#/RolloutMode'}
+    applied: {type: boolean}
+    blocked_by: {type: array, maxItems: 10, items: {type: string, maxLength: 60}}
+    version: {type: integer, format: int64, nullable: true}
+    current_version: {type: integer, format: int64, nullable: true}
+    state: {type: string, maxLength: 20, nullable: true}
+    replayed: {type: boolean}
+
+WorkCommandEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    command: {$ref: '#/WorkCommandResult'}
+
+ActivationDecision:
+  type: object
+  description: 'One Biawin-owned activation decision (SHADOW only while D-35 is open). BLOCKED rows carry their reconciliation context.'
+  required: [activation_id, business_key, invoice_id, customer_link_state, existing_customer, route, product_key, product_version, decision, reasons,
+    blocked_by, item_count, rollout_mode, correlation_id, message_id, decided_at]
+  additionalProperties: false
+  properties:
+    activation_id: {type: string, format: uuid}
+    business_key: {type: string, maxLength: 200}
+    invoice_id: {type: string, format: uuid}
+    invoice_ref: {type: string, maxLength: 60, nullable: true}
+    customer_link_state: {type: string, enum: [RESOLVED, UNKNOWN, CONFLICT]}
+    customer_id: {type: string, format: uuid, nullable: true}
+    existing_customer: {type: boolean}
+    route: {type: string, enum: [ADDITIONAL_SERVICES, AFTER_SALES_COMPLAINT, ARCHIVE, UNKNOWN]}
+    product_key: {type: string, maxLength: 82}
+    product_version: {type: integer}
+    decision: {type: string, enum: [SHADOW_ACTIVATED, BLOCKED, NOT_APPLICABLE]}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    blocked_by: {type: array, maxItems: 10, items: {type: string, maxLength: 60}}
+    subscription_id: {type: string, format: uuid, nullable: true}
+    item_count: {type: integer}
+    rollout_mode: {type: string, enum: [SHADOW_COMPARE]}
+    correlation_id: {type: string, maxLength: 128}
+    message_id: {type: string, format: uuid}
+    decided_at: {$ref: './schemas.yaml#/Timestamp'}
+
+ActivationListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/ActivationDecision'}}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+ProviderOperation:
+  type: object
+  description: 'One external provider operation. UNKNOWN / RECONCILIATION_REQUIRED are NOT delivered; ACKNOWLEDGED is not CONFIRMED.'
+  required: [operation_id, provider, op_type, reference, state, attempts, reconciliation_owner, version, correlation_id, updated_at]
+  additionalProperties: false
+  properties:
+    operation_id: {type: string, format: uuid}
+    provider: {type: string, enum: [BIAWIN]}
+    op_type: {type: string, enum: [SERVICE_ORDER, WALLET_CHARGE]}
+    subject_case_id: {type: string, format: uuid, nullable: true}
+    reference: {type: string, maxLength: 191}
+    state: {type: string, enum: [PREPARED, DISPATCHING, ACKNOWLEDGED, CONFIRMED, REJECTED, UNKNOWN, RECONCILIATION_REQUIRED, CONFIRMED_ABSENT, BLOCKED]}
+    blocked_by: {type: string, maxLength: 20, nullable: true}
+    attempts: {type: integer}
+    external_ref: {type: string, maxLength: 191, nullable: true}
+    reconciliation_owner: {type: string, maxLength: 60}
+    version: {type: integer, format: int64}
+    correlation_id: {type: string, maxLength: 128}
+    updated_at: {$ref: './schemas.yaml#/Timestamp'}
+
+ProviderOperationListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    connector: {type: string, enum: [NOT_CONFIGURED], description: 'No production Biawin connector exists; only a synthetic test adapter.'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/ProviderOperation'}}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+ProviderResolutionRequest:
+  type: object
+  description: 'Recorded human reconciliation evidence for an UNKNOWN / RECONCILIATION_REQUIRED operation.'
+  required: [present, evidence_note]
+  additionalProperties: false
+  properties:
+    present: {type: boolean}
+    external_ref: {type: string, minLength: 1, maxLength: 191}
+    evidence_note: {type: string, minLength: 3, maxLength: 1000}
+
+ProviderOperationEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    operation: {$ref: '#/ProviderOperation'}

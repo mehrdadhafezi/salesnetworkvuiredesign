@@ -99,6 +99,17 @@ const (
 	CapCommissionShadowRead Capability = "commission.shadow.read"
 	CapCommissionPolicyRead Capability = "commission.policy.read"
 	CapCommissionOwnRead    Capability = "commission.own.read"
+	// Slice 14 controlled fulfillment and Biawin writes. Every one is also
+	// row-scoped per service (catalog supervisor / executor scope); a
+	// capability alone never reaches a case. There is no activation,
+	// wallet-charge, settlement, refund, cancel, reopen or commission
+	// capability. No role receives them (fail closed).
+	CapWorkRead               Capability = "fulfillment.work.read"
+	CapWorkAssign             Capability = "fulfillment.work.assign"
+	CapWorkExecute            Capability = "fulfillment.work.execute"
+	CapActivationRead         Capability = "biawin.activation.read"
+	CapProviderOperationRead  Capability = "integration.provider_operation.read"
+	CapProviderOperationRecon Capability = "integration.provider_operation.reconcile"
 )
 
 // CapabilityDef is one vocabulary entry.
@@ -145,6 +156,12 @@ var vocabulary = []CapabilityDef{
 	{CapCommissionShadowRead, "Read commission SHADOW runs, stored calculations, parity, findings and legacy runs (no approve / post authority)"},
 	{CapCommissionPolicyRead, "Read observed commission policy versions (none approved)"},
 	{CapCommissionOwnRead, "Read the caller's own historical commission credits (own scope only)"},
+	{CapWorkRead, "Read work cases of services the caller currently supervises or executes"},
+	{CapWorkAssign, "Assign a work case of a service the caller currently supervises to a current executor of that service"},
+	{CapWorkExecute, "Record actions, evidence metadata and the outcome of a work case assigned to the caller"},
+	{CapActivationRead, "Read SHADOW Biawin activation decisions and their reconciliation context"},
+	{CapProviderOperationRead, "Read external provider operations and their reconciliation state"},
+	{CapProviderOperationRecon, "Record human reconciliation evidence for an UNKNOWN provider operation (never dispatches)"},
 }
 
 // HRReadCapabilities returns the Slice 4 HR read capabilities: the set the

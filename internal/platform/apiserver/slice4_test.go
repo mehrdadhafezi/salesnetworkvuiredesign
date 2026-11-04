@@ -50,7 +50,7 @@ func TestQueryAllowlistMatchesContract(t *testing.T) {
 			t.Fatalf("%s: contract %v, allowlist %v", path, got, want)
 		}
 	}
-	if len(ContractQuery) != 88 {
+	if len(ContractQuery) != 97 {
 		t.Fatalf("allowlist covers %d paths", len(ContractQuery))
 	}
 }

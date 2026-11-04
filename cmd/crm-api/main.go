@@ -46,6 +46,12 @@
 // commission.read_shadow (default off). GET only; the shadow run is the
 // offline crm-commission-shadow job; nothing is approved, posted or credited.
 //
+// Slice 14 controlled fulfillment / Biawin operations (optional, OFF by
+// default): CRM_OPS_{FULFILLMENT,BIAWIN,CATALOG,INTEGRATION}_DATABASE_URL plus
+// CRM_FEATUREFLAGS_DATABASE_URL, behind fulfillment.work_read,
+// fulfillment.work_write and integration.provider_reconcile. No provider is
+// called, no production activation (D-35), no wallet charge (D-38).
+//
 // Slice 11 controlled non-financial writes (optional, each OFF by default):
 // CRM_CASES_WRITE_DATABASE_URL + CRM_CUSTODY_HOLDER_DATABASE_URL (contact
 // outcome), CRM_ORGANIZATION_WRITE_DATABASE_URL (HR change requests) and
@@ -54,7 +60,7 @@
 // outbox; legacy write-back is integration's, never the API's.
 //
 // It never runs migrations and never imports legacy data; its only writes
-// are the Slice 11 commands above, each in its owning module's schema.
+// are the Slice 11 and Slice 14 commands above, each in its owning module's schema.
 package main
 
 import (
@@ -128,6 +134,11 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closeCommission()
+	ops, closeOperations, err := openOperations(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closeOperations()
 	writes, closeWrites, err := openWrites(ctx, getenv, cfg.DevAuth)
 	if err != nil {
 		return err
@@ -139,7 +150,7 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 	}
 	defer closePayments()
 	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill,
-		Reporting: rep, Finance: fin, Biawin: bw, Commission: com,
+		Reporting: rep, Finance: fin, Biawin: bw, Commission: com, Operations: ops,
 		CaseWrite: writes.CaseWrite, HRRequest: writes.HRRequest, Writeback: writes.Writeback, Payments: pay})
 	if err != nil {
 		return err

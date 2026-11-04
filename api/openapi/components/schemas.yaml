@@ -273,7 +273,7 @@ SessionContext:
       description: |
         Server feature switches for navigation only (Slice 4 rollback is
         flag-off). Never authority: every read is evaluated by the server.
-      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read, finance_shadow_read, biawin_fulfillment_read, contact_outcome_write, hr_request_write, writeback_read, payment_submission, finance_review_read, commission_read]
+      required: [hr_read, customers_identity, sales_read, billing_read, reporting_read, finance_shadow_read, biawin_fulfillment_read, contact_outcome_write, hr_request_write, writeback_read, payment_submission, finance_review_read, commission_read, fulfillment_work]
       additionalProperties: false
       properties:
         hr_read:
@@ -299,6 +299,9 @@ SessionContext:
         commission_read:
           type: boolean
           description: Slice 13 commission controlled SHADOW read (flag commission.read_shadow). Read only; no calculate, approve, post or credit action.
+        fulfillment_work:
+          type: boolean
+          description: Slice 14 per-service operations queue (flag fulfillment.work_read). SHADOW work cases only; commands are separately flag-gated.
         contact_outcome_write:
           type: boolean
           description: Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server.

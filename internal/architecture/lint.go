@@ -406,6 +406,23 @@ var providerWrite = regexp.MustCompile(`(?i)create_?order|charge_?wallet`)
 // biawinForeignSQL matches SQL naming a schema other than biawin / fulfillment.
 var biawinForeignSQL = regexp.MustCompile(`(?i)\b(from|join|into|update)\s+(identity|organization|customers|cases|custody|billing|payments|integration|audit|platform_featureflags|reporting|finance|commission)\.`)
 
+// s14Routes are the exact Slice 14 work-case command routes (evidenced,
+// target-native SHADOW cases only). forbiddenRoute still catches every
+// other assign / evidence / completion / charge / activation spelling.
+var s14Routes = map[string]bool{
+	"/api/v1/fulfillment/work-cases/{case_id}/assignment":       true,
+	"/api/v1/fulfillment/work-cases/{case_id}/evidence-records": true,
+	"/api/v1/fulfillment/work-cases/{case_id}/outcome":          true,
+}
+
+// s14MutableWrite reports the single mutable Slice 14 table: the work case
+// current state, updated (never deleted) only by internal/fulfillment/work
+// under optimistic concurrency, with append-only history beside it.
+func s14MutableWrite(rel, m string) bool {
+	f := strings.Fields(strings.ToLower(m))
+	return len(f) == 2 && f[0] == "update" && f[1] == "fulfillment.work_case" && under(rel, "internal/fulfillment/work")
+}
+
 // forbiddenCommand matches identifiers of Slice 10 forbidden commands.
 var forbiddenCommand = regexp.MustCompile(`(?i)^(activate|suspend|terminate|reactivate)(subscription|membership|item)?s?$|^cancel(subscription|membership|item)s?$|^complete(dot|dotcase|case|service|item|fulfillment)$|` +
 	`^(create|update|write|upsert|insert|save|sync)(project)?memberships?$|^(run|execute|calculate|process|pay)commissions?$|^(ship|dispatch|deliver)(order|case)?$|` +
@@ -464,7 +481,7 @@ var mergePath = regexp.MustCompile(`(?i)^(resolvemerge|mergecustomers?|applymerg
 // slice4Modules are the business modules of Slice 4.
 var slice4Modules = map[string]bool{"identity": true, "organization": true, "authorization": true, "customers": true,
 	"cases": true, "custody": true, "billing": true, "payments": true, "reporting": true, "finance": true, "commission": true,
-	"biawin": true, "fulfillment": true}
+	"biawin": true, "fulfillment": true, "catalog": true}
 
 // schemaOwners maps a module schema to the only tree allowed to write it.
 var schemaOwners = map[string]string{
@@ -479,12 +496,13 @@ var schemaOwners = map[string]string{
 	"finance":               "internal/finance",
 	"biawin":                "internal/biawin",
 	"fulfillment":           "internal/fulfillment",
+	"catalog":               "internal/catalog",
 	"integration":           "internal/integration",
 	"audit":                 "internal/platform/audit",
 	"platform_featureflags": "internal/platform/featureflags",
 }
 
-var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|billing|payments|reporting|finance|biawin|fulfillment|integration|audit|platform_featureflags)\.`)
+var foreignWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+(identity|organization|customers|cases|custody|billing|payments|reporting|finance|biawin|fulfillment|catalog|integration|audit|platform_featureflags)\.`)
 
 // readPathDirs never import an import command.
 var readPathDirs = []string{"internal/platform/apiserver", "cmd/crm-api"}
@@ -499,7 +517,9 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 	case top == "integration":
 		// The write-back diagnostics HTTP adapter (Slice 11) uses the shared
 		// authorization HTTP helpers like every module's http package.
-		return rest == "api" || other == "authorization" && (rest == "" || rest == "http" && under(rel, "internal/integration/writeback/http"))
+		// Slice 14: so does the provider-operation HTTP adapter.
+		return rest == "api" || other == "authorization" && (rest == "" || rest == "http" &&
+			(under(rel, "internal/integration/writeback/http") || under(rel, "internal/integration/providerops/http")))
 	case !slice4Modules[top] || !slice4Modules[other]:
 		return true
 	case top == "identity" && other == "organization":
@@ -533,6 +553,16 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 		return false
 	case top == "commission" && other == "identity":
 		return rest == "api" && under(rel, "internal/commission/http")
+	case top == "catalog":
+		// Slice 14: the catalog depends on no business module.
+		return false
+	case (top == "biawin" || top == "fulfillment") && other == "catalog":
+		// Slice 14: service definitions and per-service scopes are read
+		// only through the catalog published read.
+		return rest == "api"
+	case top == "fulfillment" && other == "biawin":
+		// Slice 14: work intake consumes the published item-activated event.
+		return rest == "api" && under(rel, "internal/fulfillment/work")
 	case (top == "biawin" || top == "fulfillment") && other == "identity":
 		return rest == "api" && under(rel, "internal/"+top+"/http")
 	case other == "authorization" && (rest == "" || rest == "http"):
@@ -684,7 +714,7 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 				add(RulePgtestImport, imp.Pos(), "test-only "+p+" imported from production code")
 			}
 		}
-		if full := internalTop + "/" + internalRest; hasPrefixPath(full, strings.TrimPrefix(legacyInteg, "internal/")) && !legacyImportAllowed(rel, full) {
+		if full := internalTop + "/" + internalRest; hasPrefixPath(full, strings.TrimPrefix(legacyInteg, "internal/")) && !legacyImportAllowed(rel, full) && !legacyMigrationsTestAllowed(rel, full, isTest) {
 			add(RuleLegacyImport, imp.Pos(), "imports the legacy connector "+p+" outside "+legacyInteg+" and the offline jobs (crm-legacy-import, crm-finance-shadow, crm-biawin-shadow)")
 		}
 		// Test files are composition roots (like cmd/) and may wire modules.
@@ -746,7 +776,7 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			}
 			if x.Kind == token.STRING && !under(rel, architectureDir) {
 				if s, err := strconv.Unquote(x.Value); err == nil {
-					if m := appendOnlyWrite.FindString(s); m != "" && !isTest {
+					if m := appendOnlyWrite.FindString(s); m != "" && !isTest && !s14MutableWrite(rel, m) {
 						add(RuleAppendOnlyWrite, x.Pos(), "mutates an append-only table: "+m)
 					}
 					reportingSQL := under(rel, "internal/reporting") && sqlish.MatchString(s)
@@ -805,7 +835,7 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 					if !isTest && !under(rel, providerPkg) && providerWrite.MatchString(s) {
 						add(RuleProviderCall, x.Pos(), "Biawin provider write literal "+providerWrite.FindString(s)+" outside "+providerPkg)
 					}
-					if !isTest && inAny(rel, slice10Trees) && forbiddenRoute.MatchString(s) {
+					if !isTest && inAny(rel, slice10Trees) && forbiddenRoute.MatchString(s) && !s14Routes[s] {
 						add(RuleForbiddenCommand, x.Pos(), "Slice 10 command route literal: "+forbiddenRoute.FindString(s))
 					}
 					if !under(rel, legacyInteg) && statusFallbackSQL.MatchString(s) {
@@ -1159,6 +1189,12 @@ func legacyImportAllowed(rel, full string) bool {
 		}
 	}
 	return under(rel, legacyMigrationsImporter) && full == legacyMigrationsPkg
+}
+
+// legacyMigrationsTestAllowed: Slice 14 provider-operation tests under the
+// provider package apply the integration migrations (schema only).
+func legacyMigrationsTestAllowed(rel, full string, isTest bool) bool {
+	return isTest && under(rel, providerPkg) && full == legacyMigrationsPkg
 }
 
 // checkText scans a non-Go text file (.sql, .tmpl) outside the legacy tree
