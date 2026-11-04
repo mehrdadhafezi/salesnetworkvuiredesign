@@ -34,7 +34,7 @@ authoritative artefact. Each one is an owner decision to record.
 ## Read-only evidence collector
 
 `scripts/cutover/readiness-evidence.sh` runs in two modes:
-- **`static`** checks the repository only.
+- **`static`** checks the repository only. An inspection that cannot run (git error, failed `go list`) is reported as UNKNOWN and the script exits 3. It never reports VERIFIED absence from a failed inspection.
 - **`db`** runs read-only queries. It refuses unless `CRM_CUTOVER_ENV=disposable`, the host is a loopback
   address and `CRM_ENV` is not production. It forces `default_transaction_read_only=on`.
 
