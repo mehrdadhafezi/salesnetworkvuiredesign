@@ -686,3 +686,42 @@ CommissionFindingKindFilter:
   schema:
     type: string
     enum: [DUPLICATE_RISK, REWRITTEN_IN_PLACE, REVERSAL_LINK_MISSING, ENGINE_ROUTING_UNKNOWN, POSTING_LINK_MISMATCH, RECIPIENT_MISMATCH, REJECTED_THEN_APPROVED, NON_INVOICE_BLOCKED, COMPONENT_ALLOCATION_BLOCKED]
+
+WorkServiceFilter:
+  name: service_key
+  in: query
+  required: false
+  schema:
+    type: string
+    pattern: '^[a-z][a-z0-9_.-]{1,80}$'
+
+WorkStateFilter:
+  name: state
+  in: query
+  required: false
+  schema:
+    $ref: './work.yaml#/WorkCaseState'
+
+WorkSubscriptionFilter:
+  name: subscription_id
+  in: query
+  required: false
+  schema:
+    type: string
+    format: uuid
+
+ActivationDecisionFilter:
+  name: decision
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [SHADOW_ACTIVATED, BLOCKED, NOT_APPLICABLE]
+
+ProviderOperationStateFilter:
+  name: state
+  in: query
+  required: false
+  schema:
+    type: string
+    enum: [PREPARED, DISPATCHING, ACKNOWLEDGED, CONFIRMED, REJECTED, UNKNOWN, RECONCILIATION_REQUIRED, CONFIRMED_ABSENT, BLOCKED]

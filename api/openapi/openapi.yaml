@@ -52,6 +52,8 @@ tags:
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: payments
     description: Slice 12 controlled financial writes — receipt upload, owning-seller manual payment batch, evidence diagnostics and the read-only Finance review queue (no review decision, posting, refund, gateway route or next stage).
+  - name: operations
+    description: Slice 14 controlled fulfillment and Biawin writes — per-service work cases (one per SubscriptionItem), evidenced non-financial commands, SHADOW activation decisions and the external provider operation ledger (no real activation, wallet charge, settlement or commission; no production Biawin connector).
   - name: commission
     description: Slice 13 commission controlled SHADOW read — overview, policy versions, stored shadow calculations with parity, reconciliation findings, legacy dry runs and own earnings (GET only; no calculate, approve, post, credit, settle or reverse operation).
   - name: billing
@@ -2348,6 +2350,384 @@ paths:
           $ref: './components/responses.yaml#/Problem'
         '403':
           $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/fulfillment/work-cases:
+    get:
+      tags: [operations]
+      operationId: listFulfillmentWorkCases
+      summary: "Per-service operations queue (only services the caller supervises or executes)"
+      description: |
+        Requires fulfillment.work.read. Row scope: cases of services where the caller CURRENTLY holds a supervisor or executor scope; never every service.
+        Read only: never activates, assigns, completes, dispatches or records anything.
+      parameters:
+        - $ref: './components/parameters.yaml#/WorkServiceFilter'
+        - $ref: './components/parameters.yaml#/WorkStateFilter'
+        - $ref: './components/parameters.yaml#/WorkSubscriptionFilter'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCaseListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}:
+    get:
+      tags: [operations]
+      operationId: getFulfillmentWorkCase
+      summary: "One work case with history, evidence metadata and blocked commands"
+      description: |
+        Requires fulfillment.work.read.
+        Read only: never activates, assigns, completes, dispatches or records anything.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCaseEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}/assignment:
+    post:
+      tags: [operations]
+      operationId: assignFulfillmentWorkCase
+      summary: "Assign the case to a current executor of the same service"
+      description: |
+        Requires fulfillment.work.assign; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        The actor must be a CURRENT supervisor of this service; the assignee a CURRENT executor of this service. Reassigning an IN_PROGRESS case is BLOCKED (OPD-05).
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/IdempotencyKey'
+        - $ref: './components/parameters.yaml#/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './components/work.yaml#/WorkAssignRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCommandEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCommandEnvelope'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}/operational-actions:
+    post:
+      tags: [operations]
+      operationId: recordFulfillmentWorkAction
+      summary: "Record NO_ANSWER / FOLLOW_UP / NOTE on the case"
+      description: |
+        Requires fulfillment.work.execute; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        The actor must be the case assignee holding the executor scope of this service; a supervisor never substitutes.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/IdempotencyKey'
+        - $ref: './components/parameters.yaml#/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './components/work.yaml#/WorkActionRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCommandEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCommandEnvelope'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}/evidence-records:
+    post:
+      tags: [operations]
+      operationId: attachFulfillmentWorkEvidence
+      summary: "Attach evidence METADATA of a type the service version requires"
+      description: |
+        Requires fulfillment.work.execute; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        Metadata only (type, SHA-256, label); no file upload. Unknown evidence types are BLOCKED.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/IdempotencyKey'
+        - $ref: './components/parameters.yaml#/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './components/work.yaml#/WorkEvidenceRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCommandEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCommandEnvelope'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}/outcome:
+    post:
+      tags: [operations]
+      operationId: completeFulfillmentWorkCase
+      summary: "Record EXECUTED / NOT_EXECUTED for ONE service"
+      description: |
+        Requires fulfillment.work.execute; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        Required evidence must exist for EXECUTED; NOT_EXECUTED needs a reason. A financial service is BLOCKED (D-35/D-38); a provider-integrated service needs a CONFIRMED provider operation. Never settles, refunds, credits or posts anything.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/IdempotencyKey'
+        - $ref: './components/parameters.yaml#/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './components/work.yaml#/WorkOutcomeRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCommandEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/WorkCommandEnvelope'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/biawin/activation-decisions:
+    get:
+      tags: [operations]
+      operationId: listBiawinActivationDecisions
+      summary: "SHADOW activation decisions with reconciliation context"
+      description: |
+        Requires biawin.activation.read. D-35: only SHADOW decisions exist; no real activation, Subscription+ membership or credit grant.
+        Read only: never activates, assigns, completes, dispatches or records anything.
+      parameters:
+        - $ref: './components/parameters.yaml#/ActivationDecisionFilter'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/ActivationListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/integration/provider-operations:
+    get:
+      tags: [operations]
+      operationId: listProviderOperations
+      summary: "External provider operations (UNKNOWN is never shown as delivered)"
+      description: |
+        Requires integration.provider_operation.read. connector is always NOT_CONFIGURED: no production Biawin connector exists.
+        Read only: never activates, assigns, completes, dispatches or records anything.
+      parameters:
+        - $ref: './components/parameters.yaml#/ProviderOperationStateFilter'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/ProviderOperationListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/integration/provider-operations/{operation_id}/resolution:
+    post:
+      tags: [operations]
+      operationId: resolveProviderOperation
+      summary: "Record human reconciliation evidence for an UNKNOWN operation"
+      description: |
+        Requires integration.provider_operation.reconcile; flag integration.provider_reconcile (off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        Only UNKNOWN / RECONCILIATION_REQUIRED operations; present needs the external reference observed at the provider. Never dispatches anything.
+      parameters:
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: './components/parameters.yaml#/IdempotencyKey'
+        - $ref: './components/parameters.yaml#/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './components/work.yaml#/ProviderResolutionRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/ProviderOperationEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/work.yaml#/ProviderOperationEnvelope'
         default:
           $ref: './components/responses.yaml#/Problem'
   /api/v1/fulfillment/cases:

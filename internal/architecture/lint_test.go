@@ -62,11 +62,11 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RulePgtestImport:       2,  // pgtest from platform/bad; legacytest from the import tool
 		RuleForeignStore:       3,  // sales imports billing/store; authorization imports organization/store; connector imports customers/store
 		RuleLegacyImport:       4,  // + cases/http imports the legacy write-back connector; sales, crm-api and crm-migrate (non-migrations) import the connector
-		RuleModuleBoundary:     20, // + cases/command→billing/api; + biawin→billing/query, fulfillment→biawin/query; + finance→billing/query, commission→finance/api; + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
-		RuleForeignWrite:       8,  // + biawin UPDATE finance.*, fulfillment INSERT INTO billing.*; connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*; finance UPDATE billing.*; commission INSERT INTO finance.*
+		RuleModuleBoundary:     23, // + catalog→biawin/api, fulfillment/work→biawin/activation, fulfillment/work→catalog/registry; + cases/command→billing/api; + biawin→billing/query, fulfillment→biawin/query; + finance→billing/query, commission→finance/api; + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
+		RuleForeignWrite:       9,  // + catalog UPDATE fulfillment.work_case; + biawin UPDATE finance.*, fulfillment INSERT INTO billing.*; connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*; finance UPDATE billing.*; commission INSERT INTO finance.*
 		RuleReadPathImport:     9,  // + commission/http imports the offline commission shadow job; + biawin/http and fulfillment/query import an import command; organization/http, customers/http, cases/http and crm-api import an import command; reporting/http imports the projection rebuild; finance/http imports the shadow rebuild
 		RuleMergePath:          2,  // customers MergeCustomers, canonicalizeByPhone
-		RuleAppendOnlyWrite:    7,  // + biawin UPDATE finance.ledger_entry, DELETE FROM biawin.subscription, fulfillment/query UPDATE fulfillment.*; custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact; finance DELETE FROM finance.ledger_entry
+		RuleAppendOnlyWrite:    10, // + catalog UPDATE fulfillment.work_case, fulfillment/work DELETE FROM work_case + UPDATE work_event; + biawin UPDATE finance.ledger_entry, DELETE FROM biawin.subscription, fulfillment/query UPDATE fulfillment.*; custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact; finance DELETE FROM finance.ledger_entry
 		RulePhoneKey:           10, // + cases/command byPhone; + biawin phone join literal, phoneJoin and byPhone identifiers; custody, payments and reporting customer_phone joins; finance phone key literal + byPhone and mobileKey identifiers
 		RuleStatusFallback:     2,  // billing COALESCE status chain and resolveMainStatus
 		RuleUnitConversion:     5,  // payments toRial and toman * 10; finance ratioOf, toRial and v * 10
@@ -91,7 +91,7 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleS11DomainConnector: 2,  // cases/command → integration/writeback; cases/http → legacy/writeback
 		RuleS11Bulk:            1,  // BulkReassign
 		RuleS11BlindRetry:      1,  // Apply outside apply()
-		RuleForbiddenCommand:   10, // ChargeWallet, ActivateSubscription, CompleteDot, WriteProjectMembership, RunCommission, AssignExpert, ShipOrder, UploadEvidence + two command routes
+		RuleForbiddenCommand:   11, // ChargeWallet, ActivateSubscription, CompleteDot, WriteProjectMembership, RunCommission, AssignExpert, ShipOrder, UploadEvidence + two command routes
 		RuleS12Forbidden:       3,  // ApproveAttempt, IssueNextStage, an approve route literal
 		RuleS12GatewayWiring:   1,  // cmd/crm-api-s12 imports a gateway adapter
 		RuleS12Network:         2,  // http.Get in payments; net.Dial in a gateway adapter
@@ -271,7 +271,10 @@ func TestAPIServerHasNoLegacyDependency(t *testing.T) {
 		t.Fatalf("go list: %v", err)
 	}
 	for _, p := range strings.Fields(string(out)) {
-		allowed := p == mod+"/internal/integration" || p == mod+"/internal/integration/writeback" || p == mod+"/internal/integration/writeback/http"
+		// Slice 14: the provider-operation ledger read + human reconciliation
+		// (no port, no provider, no legacy connector; checked transitively).
+		allowed := p == mod+"/internal/integration" || p == mod+"/internal/integration/writeback" || p == mod+"/internal/integration/writeback/http" ||
+			p == mod+"/internal/integration/providerops" || p == mod+"/internal/integration/providerops/http"
 		if hasPrefixPath(p, mod+"/internal/integration") && !allowed {
 			t.Errorf("crm-api depends on %s", p)
 		}
@@ -746,5 +749,51 @@ func TestSliceTwelveRoutes(t *testing.T) {
 		if s12Route.MatchString(s) {
 			t.Errorf("%q wrongly flagged", s)
 		}
+	}
+}
+
+// TestSliceFourteenRules proves the Slice 14 boundaries: the catalog
+// depends on nothing, work intake reads only published api packages, the
+// work case is the single mutable table (owner package only, never deleted)
+// and only the exact work-case command routes escape forbiddenRoute.
+func TestSliceFourteenRules(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct {
+		file, rule string
+		n          int
+	}{
+		{"internal/catalog/bad.go", RuleModuleBoundary, 1},
+		{"internal/catalog/bad.go", RuleForeignWrite, 1},
+		{"internal/catalog/bad.go", RuleAppendOnlyWrite, 1},
+		{"internal/fulfillment/work/s14.go", RuleModuleBoundary, 2},
+		{"internal/fulfillment/work/s14.go", RuleAppendOnlyWrite, 2},
+		{"internal/fulfillment/work/s14.go", RuleForbiddenCommand, 1},
+	}
+	for _, w := range want {
+		n := 0
+		for _, v := range vs {
+			if v.File == w.file && v.Rule == w.rule {
+				n++
+			}
+		}
+		if n != w.n {
+			t.Errorf("rule %s fired %d times in %s, want %d", w.rule, n, w.file, w.n)
+		}
+	}
+	for _, s := range []string{"/api/v1/fulfillment/work-cases/{case_id}/complete", "/api/v1/fulfillment/work-cases/{case_id}/assign",
+		"/api/v1/fulfillment/work-cases/{case_id}/cancel", "/api/v1/biawin/subscriptions/{subscription_id}/activate", "/api/v1/biawin/wallet/charge",
+		"/api/v1/fulfillment/work-cases/{case_id}/evidence/upload"} {
+		if !forbiddenRoute.MatchString(s) || s14Routes[s] {
+			t.Errorf("%q not detected", s)
+		}
+	}
+	if !s14MutableWrite("internal/fulfillment/work/work.go", "UPDATE fulfillment.work_case") ||
+		s14MutableWrite("internal/fulfillment/query/read.go", "UPDATE fulfillment.work_case") ||
+		s14MutableWrite("internal/fulfillment/work/work.go", "DELETE FROM fulfillment.work_case") ||
+		s14MutableWrite("internal/fulfillment/work/work.go", "UPDATE fulfillment.work_event") {
+		t.Error("s14MutableWrite admits more than the work case update from its owner")
 	}
 }

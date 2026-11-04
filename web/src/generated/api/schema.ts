@@ -1591,6 +1591,200 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fulfillment/work-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Per-service operations queue (only services the caller supervises or executes)
+         * @description Requires fulfillment.work.read. Row scope: cases of services where the caller CURRENTLY holds a supervisor or executor scope; never every service.
+         *     Read only: never activates, assigns, completes, dispatches or records anything.
+         */
+        get: operations["listFulfillmentWorkCases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfillment/work-cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One work case with history, evidence metadata and blocked commands
+         * @description Requires fulfillment.work.read.
+         *     Read only: never activates, assigns, completes, dispatches or records anything.
+         */
+        get: operations["getFulfillmentWorkCase"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfillment/work-cases/{case_id}/assignment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign the case to a current executor of the same service
+         * @description Requires fulfillment.work.assign; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+         *     Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+         *     The actor must be a CURRENT supervisor of this service; the assignee a CURRENT executor of this service. Reassigning an IN_PROGRESS case is BLOCKED (OPD-05).
+         */
+        post: operations["assignFulfillmentWorkCase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfillment/work-cases/{case_id}/operational-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record NO_ANSWER / FOLLOW_UP / NOTE on the case
+         * @description Requires fulfillment.work.execute; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+         *     Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+         *     The actor must be the case assignee holding the executor scope of this service; a supervisor never substitutes.
+         */
+        post: operations["recordFulfillmentWorkAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfillment/work-cases/{case_id}/evidence-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach evidence METADATA of a type the service version requires
+         * @description Requires fulfillment.work.execute; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+         *     Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+         *     Metadata only (type, SHA-256, label); no file upload. Unknown evidence types are BLOCKED.
+         */
+        post: operations["attachFulfillmentWorkEvidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fulfillment/work-cases/{case_id}/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record EXECUTED / NOT_EXECUTED for ONE service
+         * @description Requires fulfillment.work.execute; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+         *     Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+         *     Required evidence must exist for EXECUTED; NOT_EXECUTED needs a reason. A financial service is BLOCKED (D-35/D-38); a provider-integrated service needs a CONFIRMED provider operation. Never settles, refunds, credits or posts anything.
+         */
+        post: operations["completeFulfillmentWorkCase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/biawin/activation-decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * SHADOW activation decisions with reconciliation context
+         * @description Requires biawin.activation.read. D-35: only SHADOW decisions exist; no real activation, Subscription+ membership or credit grant.
+         *     Read only: never activates, assigns, completes, dispatches or records anything.
+         */
+        get: operations["listBiawinActivationDecisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integration/provider-operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * External provider operations (UNKNOWN is never shown as delivered)
+         * @description Requires integration.provider_operation.read. connector is always NOT_CONFIGURED: no production Biawin connector exists.
+         *     Read only: never activates, assigns, completes, dispatches or records anything.
+         */
+        get: operations["listProviderOperations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integration/provider-operations/{operation_id}/resolution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record human reconciliation evidence for an UNKNOWN operation
+         * @description Requires integration.provider_operation.reconcile; flag integration.provider_reconcile (off = BLOCKED / FEATURE_DISABLED).
+         *     Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+         *     Only UNKNOWN / RECONCILIATION_REQUIRED operations; present needs the external reference observed at the provider. Never dispatches anything.
+         */
+        post: operations["resolveProviderOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fulfillment/cases": {
         parameters: {
             query?: never;
@@ -2127,6 +2321,8 @@ export interface components {
                 biawin_fulfillment_read: boolean;
                 /** @description Slice 13 commission controlled SHADOW read (flag commission.read_shadow). Read only; no calculate, approve, post or credit action. */
                 commission_read: boolean;
+                /** @description Slice 14 per-service operations queue (flag fulfillment.work_read). SHADOW work cases only; commands are separately flag-gated. */
+                fulfillment_work: boolean;
                 /** @description Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server. */
                 contact_outcome_write: boolean;
                 /** @description Slice 11 HR change request family enabled (flag organization.hr_request_write). Navigation hint only. */
@@ -4459,6 +4655,229 @@ export interface components {
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
         /** @enum {string} */
+        WorkCaseState: "QUEUED" | "ASSIGNED" | "IN_PROGRESS" | "COMPLETED" | "NOT_EXECUTED";
+        /** @description The caller's CURRENT scope on the case's service (catalog). Supervisors of one service see nothing of another service. */
+        WorkScope: {
+            supervisor: boolean;
+            executor: boolean;
+        };
+        WorkCase: {
+            /** Format: uuid */
+            case_id: string;
+            /** Format: uuid */
+            item_id: string;
+            /** Format: uuid */
+            subscription_id: string;
+            /** Format: uuid */
+            customer_id: string;
+            service_key: string;
+            service_version: number;
+            service_title: string;
+            workflow_key: string;
+            /** @enum {string} */
+            origin_mode: "SHADOW_COMPARE";
+            state: components["schemas"]["WorkCaseState"];
+            /** Format: uuid */
+            assignee_user_id?: string | null;
+            /** Format: int64 */
+            version: number;
+            current_supervisors: string[];
+            /** @enum {string} */
+            financial_behaviour: "NONE" | "CONSUMES_CREDIT" | "CHARGES_LEDGER";
+            /** @enum {string} */
+            integration_provider: "NONE" | "BIAWIN";
+            evidence_requirements?: {
+                type: string;
+                required: boolean;
+            }[];
+            completion_outcomes?: ("EXECUTED" | "NOT_EXECUTED")[];
+            scope?: components["schemas"]["WorkScope"];
+            created_at: components["schemas"]["Timestamp"];
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        WorkCaseListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["WorkCase"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Append-only history; supervisors are the supervisors AT THE TIME (never rewritten). */
+        WorkEvent: {
+            /** Format: uuid */
+            event_id: string;
+            /** Format: uuid */
+            command_id?: string | null;
+            /** @enum {string} */
+            kind: "CREATED" | "ASSIGNED" | "ACTION_RECORDED" | "EVIDENCE_ATTACHED" | "COMPLETED";
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            actor_user_id?: string | null;
+            supervisors: string[];
+            /** Format: int64 */
+            before_version?: number | null;
+            /** Format: int64 */
+            after_version: number;
+            correlation_id: string;
+            occurred_at: components["schemas"]["Timestamp"];
+        };
+        /** @description Evidence METADATA only (type, SHA-256, label); no file, URL or path. */
+        WorkEvidence: {
+            /** Format: uuid */
+            evidence_id: string;
+            evidence_type: string;
+            content_sha256: string;
+            label: string;
+            /** Format: uuid */
+            submitted_by: string;
+            occurred_at: components["schemas"]["Timestamp"];
+        };
+        BlockedCommand: {
+            command: string;
+            blocked_by: string[];
+        };
+        WorkCaseEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            case?: components["schemas"]["WorkCase"];
+            history?: components["schemas"]["WorkEvent"][];
+            evidence?: components["schemas"]["WorkEvidence"][];
+            blocked_commands?: components["schemas"]["BlockedCommand"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        WorkAssignRequest: {
+            /** Format: uuid */
+            assignee_user_id: string;
+        };
+        /**
+         * @description TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+         * @enum {string}
+         */
+        RolloutMode: "TARGET_WRITE_DISABLED" | "SHADOW_COMPARE" | "CONTROLLED_WRITEBACK";
+        WorkCommandResult: {
+            /** Format: uuid */
+            command_id?: string | null;
+            rollout_mode: components["schemas"]["RolloutMode"];
+            applied: boolean;
+            blocked_by: string[];
+            /** Format: int64 */
+            version?: number | null;
+            /** Format: int64 */
+            current_version?: number | null;
+            state?: string | null;
+            replayed: boolean;
+        };
+        WorkCommandEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            command?: components["schemas"]["WorkCommandResult"];
+        };
+        WorkActionRequest: {
+            /** @enum {string} */
+            action: "NO_ANSWER" | "FOLLOW_UP" | "NOTE";
+            follow_up_at?: components["schemas"]["Timestamp"];
+            note?: string;
+        };
+        WorkEvidenceRequest: {
+            evidence_type: string;
+            content_sha256: string;
+            label: string;
+        };
+        WorkOutcomeRequest: {
+            /** @enum {string} */
+            outcome: "EXECUTED" | "NOT_EXECUTED";
+            reason?: string;
+        };
+        /** @description One Biawin-owned activation decision (SHADOW only while D-35 is open). BLOCKED rows carry their reconciliation context. */
+        ActivationDecision: {
+            /** Format: uuid */
+            activation_id: string;
+            business_key: string;
+            /** Format: uuid */
+            invoice_id: string;
+            invoice_ref?: string | null;
+            /** @enum {string} */
+            customer_link_state: "RESOLVED" | "UNKNOWN" | "CONFLICT";
+            /** Format: uuid */
+            customer_id?: string | null;
+            existing_customer: boolean;
+            /** @enum {string} */
+            route: "ADDITIONAL_SERVICES" | "AFTER_SALES_COMPLAINT" | "ARCHIVE" | "UNKNOWN";
+            product_key: string;
+            product_version: number;
+            /** @enum {string} */
+            decision: "SHADOW_ACTIVATED" | "BLOCKED" | "NOT_APPLICABLE";
+            reasons: components["schemas"]["Reasons"];
+            blocked_by: string[];
+            /** Format: uuid */
+            subscription_id?: string | null;
+            item_count: number;
+            /** @enum {string} */
+            rollout_mode: "SHADOW_COMPARE";
+            correlation_id: string;
+            /** Format: uuid */
+            message_id: string;
+            decided_at: components["schemas"]["Timestamp"];
+        };
+        ActivationListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            items?: components["schemas"]["ActivationDecision"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description One external provider operation. UNKNOWN / RECONCILIATION_REQUIRED are NOT delivered; ACKNOWLEDGED is not CONFIRMED. */
+        ProviderOperation: {
+            /** Format: uuid */
+            operation_id: string;
+            /** @enum {string} */
+            provider: "BIAWIN";
+            /** @enum {string} */
+            op_type: "SERVICE_ORDER" | "WALLET_CHARGE";
+            /** Format: uuid */
+            subject_case_id?: string | null;
+            reference: string;
+            /** @enum {string} */
+            state: "PREPARED" | "DISPATCHING" | "ACKNOWLEDGED" | "CONFIRMED" | "REJECTED" | "UNKNOWN" | "RECONCILIATION_REQUIRED" | "CONFIRMED_ABSENT" | "BLOCKED";
+            blocked_by?: string | null;
+            attempts: number;
+            external_ref?: string | null;
+            reconciliation_owner: string;
+            /** Format: int64 */
+            version: number;
+            correlation_id: string;
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        ProviderOperationListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            /**
+             * @description No production Biawin connector exists; only a synthetic test adapter.
+             * @enum {string}
+             */
+            connector?: "NOT_CONFIGURED";
+            items?: components["schemas"]["ProviderOperation"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description Recorded human reconciliation evidence for an UNKNOWN / RECONCILIATION_REQUIRED operation. */
+        ProviderResolutionRequest: {
+            present: boolean;
+            external_ref?: string;
+            evidence_note: string;
+        };
+        ProviderOperationEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            operation?: components["schemas"]["ProviderOperation"];
+        };
+        /** @enum {string} */
         FulfillmentKind: "SERVICE_FOLLOWUP" | "EXECUTION" | "UPGRADE_EXECUTION" | "SHIPPING";
         /**
          * @description Mapped from the preserved raw status of its namespace; any other raw value is UNKNOWN. COMPLETED / DELIVERED / OUTCOME_RECORDED
@@ -4576,11 +4995,6 @@ export interface components {
             page?: components["schemas"]["PageInfo"];
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
-        /**
-         * @description TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
-         * @enum {string}
-         */
-        RolloutMode: "TARGET_WRITE_DISABLED" | "SHADOW_COMPARE" | "CONTROLLED_WRITEBACK";
         ContactOutcomeCurrent: {
             /** @enum {string} */
             outcome: "NO_ANSWER" | "CALLBACK" | "NOT_PURCHASED";
@@ -5254,6 +5668,11 @@ export interface components {
         CommissionParityClassFilter: components["schemas"]["CommissionParityClass"];
         CommissionEngineFilter: components["schemas"]["CommissionEngine"];
         CommissionFindingKindFilter: "DUPLICATE_RISK" | "REWRITTEN_IN_PLACE" | "REVERSAL_LINK_MISSING" | "ENGINE_ROUTING_UNKNOWN" | "POSTING_LINK_MISMATCH" | "RECIPIENT_MISMATCH" | "REJECTED_THEN_APPROVED" | "NON_INVOICE_BLOCKED" | "COMPONENT_ALLOCATION_BLOCKED";
+        WorkServiceFilter: string;
+        WorkStateFilter: components["schemas"]["WorkCaseState"];
+        WorkSubscriptionFilter: string;
+        ActivationDecisionFilter: "SHADOW_ACTIVATED" | "BLOCKED" | "NOT_APPLICABLE";
+        ProviderOperationStateFilter: "PREPARED" | "DISPATCHING" | "ACKNOWLEDGED" | "CONFIRMED" | "REJECTED" | "UNKNOWN" | "RECONCILIATION_REQUIRED" | "CONFIRMED_ABSENT" | "BLOCKED";
         FulfillmentKindFilter: components["schemas"]["FulfillmentKind"];
         FulfillmentStatusFilter: components["schemas"]["FulfillmentStatus"];
         FulfillmentSubscriptionID: string;
@@ -7582,6 +8001,371 @@ export interface operations {
             400: components["responses"]["Problem"];
             403: components["responses"]["Denied"];
             404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listFulfillmentWorkCases: {
+        parameters: {
+            query?: {
+                service_key?: components["parameters"]["WorkServiceFilter"];
+                state?: components["parameters"]["WorkStateFilter"];
+                subscription_id?: components["parameters"]["WorkSubscriptionFilter"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCaseListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getFulfillmentWorkCase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCaseEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    assignFulfillmentWorkCase: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Required on every future mutating command (Architecture V1 §23). Same key
+                 *     and same request replays the stored result; same key with a different
+                 *     request is CONFLICT.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT. */
+                "If-Match": components["parameters"]["IfMatch"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkAssignRequest"];
+            };
+        };
+        responses: {
+            /** @description Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCommandEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            /** @description CONFLICT (stale version, concurrent change or idempotency key reuse). */
+            409: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCommandEnvelope"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    recordFulfillmentWorkAction: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Required on every future mutating command (Architecture V1 §23). Same key
+                 *     and same request replays the stored result; same key with a different
+                 *     request is CONFLICT.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT. */
+                "If-Match": components["parameters"]["IfMatch"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCommandEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            /** @description CONFLICT (stale version, concurrent change or idempotency key reuse). */
+            409: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCommandEnvelope"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    attachFulfillmentWorkEvidence: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Required on every future mutating command (Architecture V1 §23). Same key
+                 *     and same request replays the stored result; same key with a different
+                 *     request is CONFLICT.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT. */
+                "If-Match": components["parameters"]["IfMatch"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkEvidenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCommandEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            /** @description CONFLICT (stale version, concurrent change or idempotency key reuse). */
+            409: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCommandEnvelope"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    completeFulfillmentWorkCase: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Required on every future mutating command (Architecture V1 §23). Same key
+                 *     and same request replays the stored result; same key with a different
+                 *     request is CONFLICT.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT. */
+                "If-Match": components["parameters"]["IfMatch"];
+            };
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOutcomeRequest"];
+            };
+        };
+        responses: {
+            /** @description Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCommandEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            /** @description CONFLICT (stale version, concurrent change or idempotency key reuse). */
+            409: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkCommandEnvelope"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listBiawinActivationDecisions: {
+        parameters: {
+            query?: {
+                decision?: components["parameters"]["ActivationDecisionFilter"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivationListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listProviderOperations: {
+        parameters: {
+            query?: {
+                state?: components["parameters"]["ProviderOperationStateFilter"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderOperationListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    resolveProviderOperation: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Required on every future mutating command (Architecture V1 §23). Same key
+                 *     and same request replays the stored result; same key with a different
+                 *     request is CONFLICT.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Aggregate version (ETag) for optimistic concurrency on versioned mutations; mismatch is CONFLICT. */
+                "If-Match": components["parameters"]["IfMatch"];
+            };
+            path: {
+                operation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderResolutionRequest"];
+            };
+        };
+        responses: {
+            /** @description Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderOperationEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            /** @description CONFLICT (stale version, concurrent change or idempotency key reuse). */
+            409: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderOperationEnvelope"];
+                };
+            };
             default: components["responses"]["Problem"];
         };
     };

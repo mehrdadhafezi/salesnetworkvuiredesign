@@ -5,12 +5,12 @@
 // system (crm-api, crm-biawin-shadow) depends on this package
 // (architecture dependency test).
 //
-// The port is deliberately READ-only and has no write method: there is no
-// order creation (legacy create_order), no wallet charge (legacy
-// charge_wallet), no wallet balance mutation, no activation, suspension or
-// termination. Adding any such method is a new business capability and
-// needs an approved contract (Slice 10 forbids it). The wallet balance is
-// never modelled as finance truth.
+// The Slice 10 Provider below is READ-only. Slice 14 adds the write-side
+// BiawinPort (port.go) behind integration/providerops: a Disabled adapter
+// (the only one a production composition may use; it sends nothing) and a
+// deterministic Synthetic TEST adapter. There is still no wallet charge
+// (D-38), no wallet balance mutation, no activation, suspension or
+// termination call. The wallet balance is never modelled as finance truth.
 //
 // Two implementations exist: Disabled (the only one a production
 // composition could ever use: every call is BLOCKED, nothing is sent) and

@@ -43,6 +43,9 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { to: '/commission/calculations', label: 'محاسبات سایه پورسانت', feature: 'commission_read' },
     { to: '/commission/policies', label: 'نسخه‌های سیاست پورسانت', feature: 'commission_read' },
     { to: '/commission/me', label: 'پورسانت‌های من', feature: 'commission_read' },
+    { to: '/operations/work', label: 'صف کار اجرای خدمت', feature: 'fulfillment_work' },
+    { to: '/operations/activations', label: 'تصمیم‌های فعال‌سازی اشتراک', feature: 'fulfillment_work' },
+    { to: '/operations/provider-operations', label: 'عملیات ارائه‌دهنده خارجی', feature: 'fulfillment_work' },
     { to: '/hr/requests', label: 'درخواست‌های منابع انسانی', feature: 'hr_request_write' },
     { to: '/writeback', label: 'بازنویسی به سامانه قدیمی', feature: 'writeback_read' },
     { to: '/payments/evidence', label: 'شواهد پرداخت', feature: 'payment_submission' },
@@ -101,6 +104,11 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'commission/calculations', lazy: async () => ({ Component: (await import('../modules/commission/pages/CalculationsPage')).CalculationsPage }) },
     { path: 'commission/policies', lazy: async () => ({ Component: (await import('../modules/commission/pages/PoliciesPage')).PoliciesPage }) },
     { path: 'commission/me', lazy: async () => ({ Component: (await import('../modules/commission/pages/EarningsPage')).EarningsPage }) },
+    // Slice 14 controlled operations (SHADOW work cases; no activation, wallet charge or provider dispatch control).
+    { path: 'operations/work', lazy: async () => ({ Component: (await import('../modules/operations/pages/WorkQueuePage')).WorkQueuePage }) },
+    { path: 'operations/work/:caseId', lazy: async () => ({ Component: (await import('../modules/operations/pages/WorkCasePage')).WorkCasePage }) },
+    { path: 'operations/activations', lazy: async () => ({ Component: (await import('../modules/operations/pages/ActivationDecisionsPage')).ActivationDecisionsPage }) },
+    { path: 'operations/provider-operations', lazy: async () => ({ Component: (await import('../modules/operations/pages/ProviderOperationsPage')).ProviderOperationsPage }) },
   ]
   // import.meta.env.DEV is a build-time constant: production bundles drop this branch entirely.
   if (import.meta.env.DEV && config.devTools) {

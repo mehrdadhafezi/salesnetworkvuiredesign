@@ -230,6 +230,35 @@ jobs:
             echo "a Slice 13 blocked commission route appeared in the contract"; exit 1
           fi
 
+      - name: Slice 14 controlled fulfillment / Biawin gates (verbose; synthetic adapter only; fan-out, branches, D-35/D-38 blocks, per-service scope, write-ahead UNKNOWN, callbacks, relay faults, HTTP)
+        run: |
+          go test -count=1 -v ./internal/catalog/... ./internal/biawin/... ./internal/fulfillment/... ./internal/integration/biawin/ ./internal/integration/providerops/... ./internal/platform/relay/
+          go test -count=1 -v -run 'Operations' ./cmd/crm-api/
+          go test -count=1 -v -run 'SliceFourteen|ViolatingFixture|FixtureAllowed|RepositoryPasses|NoBusinessOrMutating|QueryAllowlist|APIServerHasNoLegacy|NoProviderInComposed' ./internal/architecture/ ./internal/platform/httpx/oapi/ ./internal/platform/apiserver/
+          go test -count=1 -race ./internal/catalog/... ./internal/biawin/... ./internal/fulfillment/... ./internal/integration/biawin/ ./internal/integration/providerops/... ./internal/platform/relay/
+
+      - name: Slice 14 boundary — no provider port, wallet charge or production activation on the API path
+        shell: bash
+        run: |
+          module="$(go list -m)"
+          # crm-api may reach the provider-operation ledger read + reconciliation, never a port or the provider package.
+          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/integration/(biawin|legacy|gateway)(/|$)" || true)"
+          if [ -n "$bad" ]; then echo "crm-api depends on a provider / connector package:"; echo "$bad"; exit 1; fi
+          # No command reaches the Biawin provider package (only tests use the synthetic adapter).
+          bad="$(go list -deps ./cmd/... | grep -E "^${module}/internal/integration/biawin$" || true)"
+          if [ -n "$bad" ]; then echo "a command depends on the Biawin provider package"; exit 1; fi
+          # The domains never reach finance, billing, payments, commission, organization (hierarchy) or integration.
+          bad="$(go list -deps ./internal/catalog/... ./internal/biawin/activation/ ./internal/fulfillment/work/ | grep -E "^${module}/internal/(integration|finance|billing|payments|commission|organization|cases|custody|reporting|customers)(/|$)" || true)"
+          if [ -n "$bad" ]; then echo "a Slice 14 domain depends on a forbidden package:"; echo "$bad"; exit 1; fi
+          # No activation / charge / dispatch / cancel / reopen / review route in the contract.
+          if grep -nE "^  /api/v1/(biawin|fulfillment|integration)/.*(activate|activation$|charge|wallet|dispatch|retry|cancel|reopen|review|ship|order)" api/openapi/openapi.yaml; then
+            echo "a Slice 14 blocked route appeared in the contract"; exit 1
+          fi
+          # Feature flags default OFF: no Slice 14 flag is seeded by a migration.
+          if grep -rnE "fulfillment\.work_(read|write|writeback)|integration\.provider_reconcile" --include='*.sql' internal/ ; then
+            echo "a Slice 14 feature flag is seeded by a migration (must default OFF)"; exit 1
+          fi
+
       - name: Slice 3 — no snapshot content tracked
         shell: bash
         run: |
@@ -345,14 +374,15 @@ jobs:
             00001_fulfillment.sql 00002_fulfillment_append_only_guards.sql; do
             grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
           done
-          for spec in "biawin 11 8" "fulfillment 9 6"; do
+          # Slice 14 adds biawin activation (4 append-only) and fulfillment work (5 append-only + work_case current state, never deleted).
+          for spec in "biawin 15 12" "fulfillment 15 11"; do
             set -- $spec
             n="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = '$1'")"
             test "$n" = "$2" || { echo "expected $2 $1 tables, got $n"; exit 1; }
             g="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_name LIKE '%_append_only' AND trigger_schema = '$1'")"
             test "$g" = "$3" || { echo "$1 append-only triggers missing: $g"; exit 1; }
-            bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = '$1' AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name NOT IN ('outbox_event', 'inbox_message', 'idempotency_record')))")"
-            test "$bad" = "0" || { echo "$1 shadow facts must be insert-only"; exit 1; }
+            bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = '$1' AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name NOT IN ('outbox_event', 'inbox_message', 'idempotency_record') AND NOT (table_schema = 'fulfillment' AND table_name = 'work_case')))")"
+            test "$bad" = "0" || { echo "$1 shadow facts must be insert-only (only fulfillment.work_case current state is updatable)"; exit 1; }
             foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = '$1' AND grantee NOT IN ('crm_owner_$1', current_user)")"
             test "$foreign" = "0" || { echo "foreign role granted on $1"; exit 1; }
             pii="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = '$1' AND (column_name ~* '(phone|mobile|address|postcode|national|email|url|path|token|secret|authority|card|balance)' OR data_type IN ('real', 'double precision', 'numeric', 'money'))")"
@@ -416,6 +446,35 @@ jobs:
           test "$granted" = "0" || { echo "Slice 13 capabilities must be granted to no role"; exit 1; }
           cmdcap="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.capability WHERE capability_key LIKE 'commission.%' AND capability_key !~ '\.read$'")"
           test "$cmdcap" = "0" || { echo "a commission command capability exists"; exit 1; }
+          # Slice 14 controlled fulfillment / Biawin (SHADOW activation only; versioned work case; provider write-ahead ledger; no role grant).
+          for f in 00001_catalog.sql 00002_catalog_append_only_guards.sql 00003_biawin_activation.sql 00003_fulfillment_work.sql \
+            00011_integration_provider_operations.sql 00011_identity_operations_capabilities.sql; do
+            grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
+          done
+          n="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'catalog'")"
+          test "$n" = "6" || { echo "expected 6 catalog tables, got $n"; exit 1; }
+          g="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_name LIKE '%_append_only' AND trigger_schema = 'catalog'")"
+          test "$g" = "3" || { echo "catalog append-only triggers missing: $g"; exit 1; }
+          bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'catalog' AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name NOT IN ('outbox_event', 'inbox_message', 'idempotency_record')))")"
+          test "$bad" = "0" || { echo "catalog versions and scope events must be insert-only"; exit 1; }
+          foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE (table_schema = 'catalog' AND grantee NOT IN ('crm_owner_catalog', current_user)) OR (grantee = 'crm_owner_catalog' AND table_schema <> 'catalog')")"
+          test "$foreign" = "0" || { echo "foreign role on catalog, or catalog owner granted outside its schema"; exit 1; }
+          pii="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'catalog' AND (column_name ~* '(phone|mobile|address|email|password|token|secret|balance|price|amount)' OR data_type IN ('real', 'double precision', 'numeric', 'money'))")"
+          test "$pii" = "0" || { echo "catalog carries a PII / money column"; exit 1; }
+          wd="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.triggers WHERE trigger_schema = 'fulfillment' AND event_object_table = 'work_case' AND trigger_name = 'work_case_no_delete'")"
+          test "$wd" -ge "1" || { echo "fulfillment.work_case must refuse DELETE"; exit 1; }
+          act="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'biawin' AND c.conrelid::regclass::text IN ('biawin.activation', 'biawin.target_subscription', 'biawin.target_item') AND pg_get_constraintdef(c.oid) ~ '(PRODUCTION|CONTROLLED_WRITEBACK|''ACTIVE'')'")"
+          test "$act" = "0" || { echo "a Biawin activation / target row can reach a production state (D-35)"; exit 1; }
+          pg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_schema = 'integration' AND event_object_table IN ('provider_operation_event', 'provider_callback') AND trigger_name LIKE '%append_only'")"
+          test "$pg" = "2" || { echo "provider operation history / callbacks must be append-only: $pg"; exit 1; }
+          pcols="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema IN ('biawin', 'fulfillment', 'integration') AND table_name IN ('activation', 'target_subscription', 'target_item', 'activation_event', 'work_intake', 'work_case', 'work_event', 'work_assignment', 'work_evidence', 'work_command_record', 'provider_operation', 'provider_operation_event', 'provider_callback') AND (column_name ~* '(phone|mobile|address|email|password|token|secret|balance|api_key|credential)' OR data_type IN ('real', 'double precision', 'numeric', 'money'))")"
+          test "$pcols" = "0" || { echo "Slice 14 tables carry a PII / credential / money / balance column"; exit 1; }
+          granted="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.role_capability WHERE capability_key IN ('fulfillment.work.read', 'fulfillment.work.assign', 'fulfillment.work.execute', 'biawin.activation.read', 'integration.provider_operation.read', 'integration.provider_operation.reconcile')")"
+          test "$granted" = "0" || { echo "Slice 14 capabilities must be granted to no role"; exit 1; }
+          wc="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_constraint WHERE conrelid = 'integration.provider_operation'::regclass AND pg_get_constraintdef(oid) ~ 'WALLET_CHARGE' AND pg_get_constraintdef(oid) ~ 'D-38'")"
+          test "$wc" = "1" || { echo "a wallet charge operation must be BLOCKED by D-38 at the database"; exit 1; }
+          walletcap="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.capability WHERE capability_key ~* '(wallet|charge|activate|dispatch|cancel|reopen)'")"
+          test "$walletcap" = "0" || { echo "a wallet / charge / activation / dispatch / cancel capability exists (D-35 / D-38 / OPD-04)"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

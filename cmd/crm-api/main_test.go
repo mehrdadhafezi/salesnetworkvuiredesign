@@ -75,6 +75,22 @@ func TestCommissionSurfaceNeedsFlagStore(t *testing.T) {
 	}
 }
 
+func TestOperationsSurfaceNeedsAllLoginsAndFlagStore(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	u := "postgres://x@127.0.0.1:1/x"
+	all := map[string]string{"CRM_ENV": "test", EnvOpsFulfillmentURL: u, EnvOpsBiawinURL: u, EnvOpsCatalogURL: u, EnvOpsIntegrationURL: u}
+	for _, partial := range []map[string]string{
+		{"CRM_ENV": "test", EnvOpsFulfillmentURL: u},
+		{"CRM_ENV": "test", EnvOpsIntegrationURL: u},
+		{"CRM_ENV": "test", EnvOpsFulfillmentURL: u, EnvOpsBiawinURL: u, EnvOpsCatalogURL: u},
+		all, // all four logins but no flag store
+	} {
+		if err := run(context.Background(), env(partial), logger); !errors.Is(err, ErrOperationsConfig) {
+			t.Fatalf("partial operations config %v: %v", partial, err)
+		}
+	}
+}
+
 func TestWritesSurfaceNeedsFlagStoreAndHolderRead(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	for _, partial := range []map[string]string{

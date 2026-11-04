@@ -229,6 +229,14 @@ var slice11Commands = map[string]bool{
 	// commission, gateway, next-stage, invoice-issue or return path.
 	"/api/v1/payments/uploads":                       true,
 	"/api/v1/payments/invoices/{invoice_id}/batches": true,
+	// Slice 14: target-native SHADOW work-case commands and human provider
+	// reconciliation only. No activation, wallet charge, cancel, reopen,
+	// review, provider dispatch or legacy write-back path.
+	"/api/v1/fulfillment/work-cases/{case_id}/assignment":               true,
+	"/api/v1/fulfillment/work-cases/{case_id}/operational-actions":      true,
+	"/api/v1/fulfillment/work-cases/{case_id}/evidence-records":         true,
+	"/api/v1/fulfillment/work-cases/{case_id}/outcome":                  true,
+	"/api/v1/integration/provider-operations/{operation_id}/resolution": true,
 }
 
 // TestNoBusinessOrMutatingEndpoints: Slice 2 exposes exactly the technical
@@ -240,7 +248,7 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		paths = append(paths, path)
 		for method := range item.Operations() {
 			if method != "GET" && !(method == "POST" && slice11Commands[path]) {
-				t.Fatalf("mutating operation %s %s is not allowed (only the Slice 11 / 12 evidenced commands mutate)", method, path)
+				t.Fatalf("mutating operation %s %s is not allowed (only the Slice 11 / 12 / 14 evidenced commands mutate)", method, path)
 			}
 		}
 		for _, op := range item.Operations() {
@@ -304,7 +312,11 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		// Slice 13 commission controlled SHADOW read: GET only, no calculate,
 		// approve, post, credit, settle or reverse path.
 		"/api/v1/commission/overview", "/api/v1/commission/runs", "/api/v1/commission/calculations", "/api/v1/commission/findings",
-		"/api/v1/commission/policies", "/api/v1/commission/historical-runs", "/api/v1/commission/me/earnings"}
+		"/api/v1/commission/policies", "/api/v1/commission/historical-runs", "/api/v1/commission/me/earnings",
+		"/api/v1/fulfillment/work-cases", "/api/v1/fulfillment/work-cases/{case_id}", "/api/v1/fulfillment/work-cases/{case_id}/assignment",
+		"/api/v1/fulfillment/work-cases/{case_id}/operational-actions", "/api/v1/fulfillment/work-cases/{case_id}/evidence-records",
+		"/api/v1/fulfillment/work-cases/{case_id}/outcome", "/api/v1/biawin/activation-decisions",
+		"/api/v1/integration/provider-operations", "/api/v1/integration/provider-operations/{operation_id}/resolution"}
 	sort.Strings(want)
 	if strings.Join(paths, ",") != strings.Join(want, ",") {
 		t.Fatalf("paths = %v", paths)

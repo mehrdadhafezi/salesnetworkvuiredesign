@@ -52,6 +52,8 @@ tags:
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: payments
     description: Slice 12 controlled financial writes — receipt upload, owning-seller manual payment batch, evidence diagnostics and the read-only Finance review queue (no review decision, posting, refund, gateway route or next stage).
+  - name: operations
+    description: Slice 14 controlled fulfillment and Biawin writes — per-service work cases (one per SubscriptionItem), evidenced non-financial commands, SHADOW activation decisions and the external provider operation ledger (no real activation, wallet charge, settlement or commission; no production Biawin connector).
   - name: commission
     description: Slice 13 commission controlled SHADOW read — overview, policy versions, stored shadow calculations with parity, reconciliation findings, legacy dry runs and own earnings (GET only; no calculate, approve, post, credit, settle or reverse operation).
   - name: billing
@@ -2424,6 +2426,393 @@ paths:
           $ref: '#/components/responses/Problem'
         default:
           $ref: '#/components/responses/Problem'
+  /api/v1/fulfillment/work-cases:
+    get:
+      tags:
+        - operations
+      operationId: listFulfillmentWorkCases
+      summary: Per-service operations queue (only services the caller supervises or executes)
+      description: |
+        Requires fulfillment.work.read. Row scope: cases of services where the caller CURRENTLY holds a supervisor or executor scope; never every service.
+        Read only: never activates, assigns, completes, dispatches or records anything.
+      parameters:
+        - $ref: '#/components/parameters/WorkServiceFilter'
+        - $ref: '#/components/parameters/WorkStateFilter'
+        - $ref: '#/components/parameters/WorkSubscriptionFilter'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCaseListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}:
+    get:
+      tags:
+        - operations
+      operationId: getFulfillmentWorkCase
+      summary: One work case with history, evidence metadata and blocked commands
+      description: |
+        Requires fulfillment.work.read.
+        Read only: never activates, assigns, completes, dispatches or records anything.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCaseEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}/assignment:
+    post:
+      tags:
+        - operations
+      operationId: assignFulfillmentWorkCase
+      summary: Assign the case to a current executor of the same service
+      description: |
+        Requires fulfillment.work.assign; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        The actor must be a CURRENT supervisor of this service; the assignee a CURRENT executor of this service. Reassigning an IN_PROGRESS case is BLOCKED (OPD-05).
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkAssignRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCommandEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCommandEnvelope'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}/operational-actions:
+    post:
+      tags:
+        - operations
+      operationId: recordFulfillmentWorkAction
+      summary: Record NO_ANSWER / FOLLOW_UP / NOTE on the case
+      description: |
+        Requires fulfillment.work.execute; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        The actor must be the case assignee holding the executor scope of this service; a supervisor never substitutes.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkActionRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCommandEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCommandEnvelope'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}/evidence-records:
+    post:
+      tags:
+        - operations
+      operationId: attachFulfillmentWorkEvidence
+      summary: Attach evidence METADATA of a type the service version requires
+      description: |
+        Requires fulfillment.work.execute; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        Metadata only (type, SHA-256, label); no file upload. Unknown evidence types are BLOCKED.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkEvidenceRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCommandEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCommandEnvelope'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/fulfillment/work-cases/{case_id}/outcome:
+    post:
+      tags:
+        - operations
+      operationId: completeFulfillmentWorkCase
+      summary: Record EXECUTED / NOT_EXECUTED for ONE service
+      description: |
+        Requires fulfillment.work.execute; flag fulfillment.work_write (rollout SHADOW_COMPARE or CONTROLLED_WRITEBACK; off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        Required evidence must exist for EXECUTED; NOT_EXECUTED needs a reason. A financial service is BLOCKED (D-35/D-38); a provider-integrated service needs a CONFIRMED provider operation. Never settles, refunds, credits or posts anything.
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOutcomeRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCommandEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkCommandEnvelope'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/biawin/activation-decisions:
+    get:
+      tags:
+        - operations
+      operationId: listBiawinActivationDecisions
+      summary: SHADOW activation decisions with reconciliation context
+      description: |
+        Requires biawin.activation.read. D-35: only SHADOW decisions exist; no real activation, Subscription+ membership or credit grant.
+        Read only: never activates, assigns, completes, dispatches or records anything.
+      parameters:
+        - $ref: '#/components/parameters/ActivationDecisionFilter'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivationListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/integration/provider-operations:
+    get:
+      tags:
+        - operations
+      operationId: listProviderOperations
+      summary: External provider operations (UNKNOWN is never shown as delivered)
+      description: |
+        Requires integration.provider_operation.read. connector is always NOT_CONFIGURED: no production Biawin connector exists.
+        Read only: never activates, assigns, completes, dispatches or records anything.
+      parameters:
+        - $ref: '#/components/parameters/ProviderOperationStateFilter'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Result envelope (BLOCKED with FEATURE_DISABLED when fulfillment.work_read is off).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderOperationListEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+  /api/v1/integration/provider-operations/{operation_id}/resolution:
+    post:
+      tags:
+        - operations
+      operationId: resolveProviderOperation
+      summary: Record human reconciliation evidence for an UNKNOWN operation
+      description: |
+        Requires integration.provider_operation.reconcile; flag integration.provider_reconcile (off = BLOCKED / FEATURE_DISABLED).
+        Idempotency-Key is required: same key + same body replays; same key + another body is 409 CONFLICT. Every check is re-evaluated at commit.
+        Only UNKNOWN / RECONCILIATION_REQUIRED operations; present needs the external reference observed at the provider. Never dispatches anything.
+      parameters:
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderResolutionRequest'
+      responses:
+        '200':
+          description: Command envelope (SUCCESS, BLOCKED with the blocking decision, UNKNOWN).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderOperationEnvelope'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Denied'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          description: CONFLICT (stale version, concurrent change or idempotency key reuse).
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderOperationEnvelope'
+        default:
+          $ref: '#/components/responses/Problem'
   /api/v1/fulfillment/cases:
     get:
       tags:
@@ -3735,6 +4124,52 @@ components:
           - REJECTED_THEN_APPROVED
           - NON_INVOICE_BLOCKED
           - COMPONENT_ALLOCATION_BLOCKED
+    WorkServiceFilter:
+      name: service_key
+      in: query
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-z][a-z0-9_.-]{1,80}$
+    WorkStateFilter:
+      name: state
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/WorkCaseState'
+    WorkSubscriptionFilter:
+      name: subscription_id
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+    ActivationDecisionFilter:
+      name: decision
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - SHADOW_ACTIVATED
+          - BLOCKED
+          - NOT_APPLICABLE
+    ProviderOperationStateFilter:
+      name: state
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - PREPARED
+          - DISPATCHING
+          - ACKNOWLEDGED
+          - CONFIRMED
+          - REJECTED
+          - UNKNOWN
+          - RECONCILIATION_REQUIRED
+          - CONFIRMED_ABSENT
+          - BLOCKED
     FulfillmentKindFilter:
       name: kind
       in: query
@@ -4139,6 +4574,7 @@ components:
             - payment_submission
             - finance_review_read
             - commission_read
+            - fulfillment_work
           additionalProperties: false
           properties:
             hr_read:
@@ -4164,6 +4600,9 @@ components:
             commission_read:
               type: boolean
               description: Slice 13 commission controlled SHADOW read (flag commission.read_shadow). Read only; no calculate, approve, post or credit action.
+            fulfillment_work:
+              type: boolean
+              description: Slice 14 per-service operations queue (flag fulfillment.work_read). SHADOW work cases only; commands are separately flag-gated.
             contact_outcome_write:
               type: boolean
               description: Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server.
@@ -10517,6 +10956,643 @@ components:
           $ref: '#/components/schemas/PageInfo'
         allowed_actions:
           $ref: '#/components/schemas/AllowedActions'
+    WorkCaseState:
+      type: string
+      enum:
+        - QUEUED
+        - ASSIGNED
+        - IN_PROGRESS
+        - COMPLETED
+        - NOT_EXECUTED
+    WorkScope:
+      type: object
+      description: The caller's CURRENT scope on the case's service (catalog). Supervisors of one service see nothing of another service.
+      required:
+        - supervisor
+        - executor
+      additionalProperties: false
+      properties:
+        supervisor:
+          type: boolean
+        executor:
+          type: boolean
+    WorkCase:
+      type: object
+      required:
+        - case_id
+        - item_id
+        - subscription_id
+        - customer_id
+        - service_key
+        - service_version
+        - service_title
+        - workflow_key
+        - origin_mode
+        - state
+        - version
+        - current_supervisors
+        - financial_behaviour
+        - integration_provider
+        - created_at
+        - updated_at
+      additionalProperties: false
+      properties:
+        case_id:
+          type: string
+          format: uuid
+        item_id:
+          type: string
+          format: uuid
+        subscription_id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+          format: uuid
+        service_key:
+          type: string
+          maxLength: 82
+        service_version:
+          type: integer
+        service_title:
+          type: string
+          maxLength: 200
+        workflow_key:
+          type: string
+          maxLength: 40
+        origin_mode:
+          type: string
+          enum:
+            - SHADOW_COMPARE
+        state:
+          $ref: '#/components/schemas/WorkCaseState'
+        assignee_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        version:
+          type: integer
+          format: int64
+        current_supervisors:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            format: uuid
+        financial_behaviour:
+          type: string
+          enum:
+            - NONE
+            - CONSUMES_CREDIT
+            - CHARGES_LEDGER
+        integration_provider:
+          type: string
+          enum:
+            - NONE
+            - BIAWIN
+        evidence_requirements:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required:
+              - type
+              - required
+            additionalProperties: false
+            properties:
+              type:
+                type: string
+                maxLength: 82
+              required:
+                type: boolean
+        completion_outcomes:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            enum:
+              - EXECUTED
+              - NOT_EXECUTED
+        scope:
+          $ref: '#/components/schemas/WorkScope'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    WorkCaseListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/WorkCase'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    WorkEvent:
+      type: object
+      description: Append-only history; supervisors are the supervisors AT THE TIME (never rewritten).
+      required:
+        - event_id
+        - kind
+        - detail
+        - supervisors
+        - after_version
+        - correlation_id
+        - occurred_at
+      additionalProperties: false
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        command_id:
+          type: string
+          format: uuid
+          nullable: true
+        kind:
+          type: string
+          enum:
+            - CREATED
+            - ASSIGNED
+            - ACTION_RECORDED
+            - EVIDENCE_ATTACHED
+            - COMPLETED
+        detail:
+          type: object
+          additionalProperties: true
+        actor_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        supervisors:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            format: uuid
+        before_version:
+          type: integer
+          format: int64
+          nullable: true
+        after_version:
+          type: integer
+          format: int64
+        correlation_id:
+          type: string
+          maxLength: 128
+        occurred_at:
+          $ref: '#/components/schemas/Timestamp'
+    WorkEvidence:
+      type: object
+      description: Evidence METADATA only (type, SHA-256, label); no file, URL or path.
+      required:
+        - evidence_id
+        - evidence_type
+        - content_sha256
+        - label
+        - submitted_by
+        - occurred_at
+      additionalProperties: false
+      properties:
+        evidence_id:
+          type: string
+          format: uuid
+        evidence_type:
+          type: string
+          maxLength: 82
+        content_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        label:
+          type: string
+          maxLength: 200
+        submitted_by:
+          type: string
+          format: uuid
+        occurred_at:
+          $ref: '#/components/schemas/Timestamp'
+    BlockedCommand:
+      type: object
+      required:
+        - command
+        - blocked_by
+      additionalProperties: false
+      properties:
+        command:
+          type: string
+          maxLength: 60
+        blocked_by:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            maxLength: 40
+    WorkCaseEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        case:
+          $ref: '#/components/schemas/WorkCase'
+        history:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/WorkEvent'
+        evidence:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/WorkEvidence'
+        blocked_commands:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/BlockedCommand'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    WorkAssignRequest:
+      type: object
+      required:
+        - assignee_user_id
+      additionalProperties: false
+      properties:
+        assignee_user_id:
+          type: string
+          format: uuid
+    RolloutMode:
+      type: string
+      description: TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
+      enum:
+        - TARGET_WRITE_DISABLED
+        - SHADOW_COMPARE
+        - CONTROLLED_WRITEBACK
+    WorkCommandResult:
+      type: object
+      required:
+        - rollout_mode
+        - applied
+        - blocked_by
+        - replayed
+      additionalProperties: false
+      properties:
+        command_id:
+          type: string
+          format: uuid
+          nullable: true
+        rollout_mode:
+          $ref: '#/components/schemas/RolloutMode'
+        applied:
+          type: boolean
+        blocked_by:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 60
+        version:
+          type: integer
+          format: int64
+          nullable: true
+        current_version:
+          type: integer
+          format: int64
+          nullable: true
+        state:
+          type: string
+          maxLength: 20
+          nullable: true
+        replayed:
+          type: boolean
+    WorkCommandEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        command:
+          $ref: '#/components/schemas/WorkCommandResult'
+    WorkActionRequest:
+      type: object
+      required:
+        - action
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          enum:
+            - NO_ANSWER
+            - FOLLOW_UP
+            - NOTE
+        follow_up_at:
+          $ref: '#/components/schemas/Timestamp'
+        note:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    WorkEvidenceRequest:
+      type: object
+      required:
+        - evidence_type
+        - content_sha256
+        - label
+      additionalProperties: false
+      properties:
+        evidence_type:
+          type: string
+          pattern: ^[a-z][a-z0-9_.-]{1,80}$
+        content_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        label:
+          type: string
+          minLength: 1
+          maxLength: 200
+    WorkOutcomeRequest:
+      type: object
+      required:
+        - outcome
+      additionalProperties: false
+      properties:
+        outcome:
+          type: string
+          enum:
+            - EXECUTED
+            - NOT_EXECUTED
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    ActivationDecision:
+      type: object
+      description: One Biawin-owned activation decision (SHADOW only while D-35 is open). BLOCKED rows carry their reconciliation context.
+      required:
+        - activation_id
+        - business_key
+        - invoice_id
+        - customer_link_state
+        - existing_customer
+        - route
+        - product_key
+        - product_version
+        - decision
+        - reasons
+        - blocked_by
+        - item_count
+        - rollout_mode
+        - correlation_id
+        - message_id
+        - decided_at
+      additionalProperties: false
+      properties:
+        activation_id:
+          type: string
+          format: uuid
+        business_key:
+          type: string
+          maxLength: 200
+        invoice_id:
+          type: string
+          format: uuid
+        invoice_ref:
+          type: string
+          maxLength: 60
+          nullable: true
+        customer_link_state:
+          type: string
+          enum:
+            - RESOLVED
+            - UNKNOWN
+            - CONFLICT
+        customer_id:
+          type: string
+          format: uuid
+          nullable: true
+        existing_customer:
+          type: boolean
+        route:
+          type: string
+          enum:
+            - ADDITIONAL_SERVICES
+            - AFTER_SALES_COMPLAINT
+            - ARCHIVE
+            - UNKNOWN
+        product_key:
+          type: string
+          maxLength: 82
+        product_version:
+          type: integer
+        decision:
+          type: string
+          enum:
+            - SHADOW_ACTIVATED
+            - BLOCKED
+            - NOT_APPLICABLE
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        blocked_by:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 60
+        subscription_id:
+          type: string
+          format: uuid
+          nullable: true
+        item_count:
+          type: integer
+        rollout_mode:
+          type: string
+          enum:
+            - SHADOW_COMPARE
+        correlation_id:
+          type: string
+          maxLength: 128
+        message_id:
+          type: string
+          format: uuid
+        decided_at:
+          $ref: '#/components/schemas/Timestamp'
+    ActivationListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ActivationDecision'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ProviderOperation:
+      type: object
+      description: One external provider operation. UNKNOWN / RECONCILIATION_REQUIRED are NOT delivered; ACKNOWLEDGED is not CONFIRMED.
+      required:
+        - operation_id
+        - provider
+        - op_type
+        - reference
+        - state
+        - attempts
+        - reconciliation_owner
+        - version
+        - correlation_id
+        - updated_at
+      additionalProperties: false
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+          enum:
+            - BIAWIN
+        op_type:
+          type: string
+          enum:
+            - SERVICE_ORDER
+            - WALLET_CHARGE
+        subject_case_id:
+          type: string
+          format: uuid
+          nullable: true
+        reference:
+          type: string
+          maxLength: 191
+        state:
+          type: string
+          enum:
+            - PREPARED
+            - DISPATCHING
+            - ACKNOWLEDGED
+            - CONFIRMED
+            - REJECTED
+            - UNKNOWN
+            - RECONCILIATION_REQUIRED
+            - CONFIRMED_ABSENT
+            - BLOCKED
+        blocked_by:
+          type: string
+          maxLength: 20
+          nullable: true
+        attempts:
+          type: integer
+        external_ref:
+          type: string
+          maxLength: 191
+          nullable: true
+        reconciliation_owner:
+          type: string
+          maxLength: 60
+        version:
+          type: integer
+          format: int64
+        correlation_id:
+          type: string
+          maxLength: 128
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    ProviderOperationListEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        connector:
+          type: string
+          enum:
+            - NOT_CONFIGURED
+          description: No production Biawin connector exists; only a synthetic test adapter.
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/ProviderOperation'
+        allowed_actions:
+          $ref: '#/components/schemas/AllowedActions'
+    ProviderResolutionRequest:
+      type: object
+      description: Recorded human reconciliation evidence for an UNKNOWN / RECONCILIATION_REQUIRED operation.
+      required:
+        - present
+        - evidence_note
+      additionalProperties: false
+      properties:
+        present:
+          type: boolean
+        external_ref:
+          type: string
+          minLength: 1
+          maxLength: 191
+        evidence_note:
+          type: string
+          minLength: 3
+          maxLength: 1000
+    ProviderOperationEnvelope:
+      type: object
+      required:
+        - outcome
+        - reasons
+        - correlation_id
+      additionalProperties: false
+      properties:
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        reasons:
+          $ref: '#/components/schemas/Reasons'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationID'
+        operation:
+          $ref: '#/components/schemas/ProviderOperation'
     FulfillmentKind:
       type: string
       enum:
@@ -10883,13 +11959,6 @@ components:
           $ref: '#/components/schemas/PageInfo'
         allowed_actions:
           $ref: '#/components/schemas/AllowedActions'
-    RolloutMode:
-      type: string
-      description: TARGET_WRITE_DISABLED (flag off), SHADOW_COMPARE (evaluated and recorded, nothing applied), CONTROLLED_WRITEBACK (target applied; legacy write-back follows).
-      enum:
-        - TARGET_WRITE_DISABLED
-        - SHADOW_COMPARE
-        - CONTROLLED_WRITEBACK
     ContactOutcomeCurrent:
       type: object
       required:

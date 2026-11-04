@@ -1,0 +1,19 @@
+/* Slice 14 controlled operations surfaces. Layout only, SN-207 tokens. */
+.op-sections{display:grid;gap:12px}
+.op-banner{border:2px dashed var(--border);border-radius:8px;padding:10px 12px;margin:0 0 12px;display:grid;gap:4px;background:var(--surface-2)}
+.op-ltr{direction:ltr;unicode-bidi:isolate}
+.op-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--gap);align-items:end}
+.op-table-wrap{overflow-x:auto}
+.op-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.op-table th,.op-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.op-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.op-dl{display:grid;grid-template-columns:minmax(140px,max-content) 1fr;gap:6px 12px;margin:0}
+.op-dl dt{color:var(--text-2)}
+.op-dl dd{margin:0}
+.op-list{margin:0;padding-inline-start:18px;display:grid;gap:4px}
+.op-form{display:grid;gap:var(--gap);max-width:560px}
+.op-confirm{border:1px solid var(--border);border-radius:8px;padding:12px;display:grid;gap:10px;background:var(--surface-2)}
+.op-actions{display:flex;gap:8px;flex-wrap:wrap}
+.op-result{display:grid;gap:4px}
+.op-pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+@media (max-width:760px){.op-filters{grid-template-columns:1fr}.op-dl{grid-template-columns:1fr}}

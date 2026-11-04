@@ -49,7 +49,9 @@ var devCapabilities = map[string][]identityapi.Capability{
 		identityapi.CapContactOutcomeRecord, identityapi.CapHRRequestCreate, identityapi.CapHRRequestReview, identityapi.CapHRRequestRead,
 		identityapi.CapWritebackRead, identityapi.CapPaymentUploadStage, identityapi.CapPaymentBatchSubmit, identityapi.CapPaymentSubmissionRead,
 		identityapi.CapPaymentEvidenceRead, identityapi.CapFinanceReviewRead,
-		identityapi.CapCommissionShadowRead, identityapi.CapCommissionPolicyRead, identityapi.CapCommissionOwnRead},
+		identityapi.CapCommissionShadowRead, identityapi.CapCommissionPolicyRead, identityapi.CapCommissionOwnRead,
+		identityapi.CapWorkRead, identityapi.CapWorkAssign, identityapi.CapWorkExecute, identityapi.CapActivationRead,
+		identityapi.CapProviderOperationRead, identityapi.CapProviderOperationRecon},
 }
 
 // DevGrantBasis marks synthetic dev/test grants.

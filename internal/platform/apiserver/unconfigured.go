@@ -581,3 +581,56 @@ func (unconfiguredCommission) ListMyCommissionEarnings(ctx context.Context, _ oa
 	o, r, c := blocked(ctx)
 	return oapi.ListMyCommissionEarnings200JSONResponse{Body: oapi.CommissionEarningListEnvelope{Outcome: o, Reasons: r, CorrelationId: c, Notice: commissionNotice}}, nil
 }
+
+// unconfiguredOperations is the Slice 14 surface without its module logins:
+// every operation answers BLOCKED / FEATURE_DISABLED and nothing runs.
+type unconfiguredOperations struct{}
+
+var _ OperationsAPI = unconfiguredOperations{}
+
+func (unconfiguredOperations) OperationsEnabled(context.Context) bool { return false }
+
+func (unconfiguredOperations) ListFulfillmentWorkCases(ctx context.Context, _ oapi.ListFulfillmentWorkCasesRequestObject) (oapi.ListFulfillmentWorkCasesResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListFulfillmentWorkCases200JSONResponse{Body: oapi.WorkCaseListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredOperations) GetFulfillmentWorkCase(ctx context.Context, _ oapi.GetFulfillmentWorkCaseRequestObject) (oapi.GetFulfillmentWorkCaseResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.GetFulfillmentWorkCase200JSONResponse{Body: oapi.WorkCaseEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredOperations) AssignFulfillmentWorkCase(ctx context.Context, _ oapi.AssignFulfillmentWorkCaseRequestObject) (oapi.AssignFulfillmentWorkCaseResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.AssignFulfillmentWorkCase200JSONResponse{Body: oapi.WorkCommandEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredOperations) RecordFulfillmentWorkAction(ctx context.Context, _ oapi.RecordFulfillmentWorkActionRequestObject) (oapi.RecordFulfillmentWorkActionResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.RecordFulfillmentWorkAction200JSONResponse{Body: oapi.WorkCommandEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredOperations) AttachFulfillmentWorkEvidence(ctx context.Context, _ oapi.AttachFulfillmentWorkEvidenceRequestObject) (oapi.AttachFulfillmentWorkEvidenceResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.AttachFulfillmentWorkEvidence200JSONResponse{Body: oapi.WorkCommandEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredOperations) CompleteFulfillmentWorkCase(ctx context.Context, _ oapi.CompleteFulfillmentWorkCaseRequestObject) (oapi.CompleteFulfillmentWorkCaseResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.CompleteFulfillmentWorkCase200JSONResponse{Body: oapi.WorkCommandEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredOperations) ListBiawinActivationDecisions(ctx context.Context, _ oapi.ListBiawinActivationDecisionsRequestObject) (oapi.ListBiawinActivationDecisionsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListBiawinActivationDecisions200JSONResponse{Body: oapi.ActivationListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredOperations) ListProviderOperations(ctx context.Context, _ oapi.ListProviderOperationsRequestObject) (oapi.ListProviderOperationsResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ListProviderOperations200JSONResponse{Body: oapi.ProviderOperationListEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
+
+func (unconfiguredOperations) ResolveProviderOperation(ctx context.Context, _ oapi.ResolveProviderOperationRequestObject) (oapi.ResolveProviderOperationResponseObject, error) {
+	o, r, c := blocked(ctx)
+	return oapi.ResolveProviderOperation200JSONResponse{Body: oapi.ProviderOperationEnvelope{Outcome: o, Reasons: r, CorrelationId: c}}, nil
+}
