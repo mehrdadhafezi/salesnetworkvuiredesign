@@ -181,6 +181,28 @@ func TestRenderedSliceTenMigration(t *testing.T) {
 	}
 }
 
+const slice13File = "sql/00010_integration_staging_commission.sql"
+
+// TestRenderedSliceThirteenMigration proves 00010 is exactly the generated DDL.
+func TestRenderedSliceThirteenMigration(t *testing.T) {
+	want := renderExtension(t, spec.V1Slice13(), "-- Integration raw staging, Slice 13 extension: purpose commission matrix,\n"+
+		"-- commission rules, dry runs, dry run items and posting logs for the\n"+
+		"-- commission READ / SHADOW parity (Architecture V1 §19, §24.3). Generated from\n"+
+		"-- the published Slice 13 specs; regenerate with the package -update flag.\n\n")
+	if *update {
+		if err := os.WriteFile(slice13File, []byte(want), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := os.ReadFile(slice13File)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Fatalf("%s is stale: regenerate with -update", slice13File)
+	}
+}
+
 // TestRenderedSliceSixMigration proves 00004 is exactly the generated DDL.
 func TestRenderedSliceSixMigration(t *testing.T) {
 	want := renderSlice6(t)
@@ -251,7 +273,7 @@ func TestSourceValidates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) != 9 || names[7] != "00008_integration_writeback.sql" || names[8] != "00009_integration_writeback_payments.sql" || names[0] != filepath.Base(renderedFile) || names[1] != "00002_integration_staging_guards.sql" ||
+	if len(names) != 10 || names[9] != filepath.Base(slice13File) || names[7] != "00008_integration_writeback.sql" || names[8] != "00009_integration_writeback_payments.sql" || names[0] != filepath.Base(renderedFile) || names[1] != "00002_integration_staging_guards.sql" ||
 		names[2] != filepath.Base(slice5File) || names[3] != filepath.Base(slice6File) || names[4] != filepath.Base(slice7File) ||
 		names[5] != filepath.Base(slice9File) || names[6] != filepath.Base(slice10File) {
 		t.Fatalf("migration files = %v", names)

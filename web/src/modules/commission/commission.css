@@ -1,0 +1,20 @@
+/* Commission controlled SHADOW read surfaces (Slice 13). Layout only, SN-207 tokens. */
+.cm-banner{border:2px dashed var(--border);border-radius:8px;padding:10px 12px;margin:0 0 12px;display:grid;gap:4px;background:var(--surface-2)}
+.cm-banner strong{letter-spacing:.08em}
+.cm-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}
+.cm-ltr{direction:ltr;unicode-bidi:isolate}
+.cm-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--gap);align-items:end}
+.cm-table-wrap{overflow-x:auto}
+.cm-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.cm-table th,.cm-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.cm-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.cm-sections{display:grid;gap:12px}
+.cm-counts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--gap)}
+.cm-count{border:1px solid var(--border);border-radius:8px;padding:10px;display:grid;gap:4px}
+.cm-count strong{font-size:var(--fs-lg,1.25rem)}
+.cm-dl{display:grid;grid-template-columns:minmax(140px,max-content) 1fr;gap:6px 12px;margin:0}
+.cm-dl dt{color:var(--text-2)}
+.cm-dl dd{margin:0}
+.cm-pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+@media (max-width:760px){.cm-filters{grid-template-columns:1fr}.cm-dl{grid-template-columns:1fr}}
+.cm-list{margin:0;padding-inline-start:18px;display:grid;gap:4px}

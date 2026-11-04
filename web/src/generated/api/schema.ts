@@ -1437,6 +1437,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/commission/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Commission shadow overview: run, parity summary, findings, blocked decisions
+         * @description Requires commission.shadow.read. posting_state is always BLOCKED_NOT_AUTHORIZED.
+         *     Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["getCommissionOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commission/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Commission shadow runs (newest first)
+         * @description Requires commission.shadow.read.
+         *     Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCommissionRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commission/calculations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stored shadow calculations with parity of one run
+         * @description Requires commission.shadow.read. Stored results only: nothing is (re)calculated by this read.
+         *     Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCommissionCalculations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commission/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reconciliation findings of one run
+         * @description Requires commission.shadow.read.
+         *     Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCommissionFindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commission/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Observed commission policy versions (none approved)
+         * @description Requires commission.policy.read.
+         *     Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCommissionPolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commission/historical-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legacy dry runs with approval / posting provenance
+         * @description Requires commission.shadow.read.
+         *     Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listCommissionHistoricalRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/commission/me/earnings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's own historical commission credits (own scope only)
+         * @description Requires commission.own.read. Own scope only: rows are filtered to the authenticated user; never another recipient, never broadened by hierarchy.
+         *     Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+         *     SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+         */
+        get: operations["listMyCommissionEarnings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fulfillment/cases": {
         parameters: {
             query?: never;
@@ -1971,6 +2125,8 @@ export interface components {
                 finance_shadow_read: boolean;
                 /** @description Slice 10 Biawin / fulfillment READ shadow (flag biawin_fulfillment.read_shadow). Read only; no portal, activation or workflow action. */
                 biawin_fulfillment_read: boolean;
+                /** @description Slice 13 commission controlled SHADOW read (flag commission.read_shadow). Read only; no calculate, approve, post or credit action. */
+                commission_read: boolean;
                 /** @description Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server. */
                 contact_outcome_write: boolean;
                 /** @description Slice 11 HR change request family enabled (flag organization.hr_request_write). Navigation hint only. */
@@ -4033,6 +4189,275 @@ export interface components {
             page?: components["schemas"]["PageInfo"];
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
+        /**
+         * @description Fixed SHADOW notice repeated on every commission answer.
+         * @enum {string}
+         */
+        CommissionNotice: "SHADOW only: no commission was calculated, approved, posted or credited by this read; legacy remains the system of record";
+        /** @enum {string} */
+        CommissionSourceStatus: "AVAILABLE" | "PARTIAL" | "MISSING";
+        CommissionRunSource: {
+            source: string;
+            status: components["schemas"]["CommissionSourceStatus"];
+            /** Format: int64 */
+            rows_read: number;
+        };
+        /** @description One offline shadow run. state is always CALCULATED (no approval / posting); outcome is technical. */
+        CommissionRun: {
+            record_kind: components["schemas"]["RecordKind"];
+            /** Format: uuid */
+            run_id: string;
+            /** Format: int64 */
+            run_seq: number;
+            /** @enum {string} */
+            state: "CALCULATED";
+            normalization_version: number;
+            /** @enum {string} */
+            rounding: "LEGACY_PHP_ROUND_HALF_AWAY_2DP" | "NONE";
+            snapshot_id: string;
+            source_cutoff: components["schemas"]["Timestamp"];
+            completed_at: components["schemas"]["Timestamp"];
+            /** @enum {string} */
+            outcome: "SUCCESS" | "PARTIAL";
+            reasons: components["schemas"]["Reasons"];
+            counts: {
+                [key: string]: number;
+            };
+            sources: components["schemas"]["CommissionRunSource"][];
+        };
+        /** @enum {string} */
+        CommissionCoverage: "FULL" | "PARTIAL" | "NONE";
+        /** @description Honest parity report: coverage counts only rows that were actually compared; totals per unit are exact decimal text; missing amounts are counted, never zero. */
+        CommissionParitySummary: {
+            cohort: string;
+            window_from_raw?: string | null;
+            window_to_raw?: string | null;
+            /** Format: int64 */
+            legacy_rows: number;
+            /** Format: int64 */
+            compared_rows: number;
+            coverage: components["schemas"]["CommissionCoverage"];
+            classes: {
+                [key: string]: number;
+            };
+            engines: {
+                [key: string]: number;
+            };
+            legacy_totals: {
+                [key: string]: string;
+            };
+            target_totals: {
+                [key: string]: string;
+            };
+            /** Format: int64 */
+            legacy_amount_missing: number;
+            /** Format: int64 */
+            target_amount_missing: number;
+            reasons: {
+                [key: string]: number;
+            };
+        };
+        CommissionDecision: {
+            id: string;
+            /** @enum {string} */
+            state: "APPROVED" | "SAFE_DEFAULT_AVAILABLE" | "IMPLEMENTATION_BLOCKED" | "REQUIRES_HUMAN_OWNER_DECISION" | "EVIDENCE_INCOMPLETE";
+            effect: string;
+        };
+        /**
+         * @description The only posting state Slice 13 can report (no posting command exists).
+         * @enum {string}
+         */
+        CommissionPostingState: "BLOCKED_NOT_AUTHORIZED";
+        CommissionOverview: {
+            run?: components["schemas"]["CommissionRun"];
+            parity?: components["schemas"]["CommissionParitySummary"];
+            findings: {
+                [key: string]: number;
+            };
+            decisions: components["schemas"]["CommissionDecision"][];
+            posting_state: components["schemas"]["CommissionPostingState"];
+        };
+        CommissionOverviewEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["CommissionNotice"];
+            overview?: components["schemas"]["CommissionOverview"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        CommissionRunListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["CommissionNotice"];
+            items?: components["schemas"]["CommissionRun"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @enum {string} */
+        CommissionParityClass: "MATCH" | "AMOUNT_MISMATCH" | "RECIPIENT_MISMATCH" | "POLICY_MISMATCH" | "ATTRIBUTION_UNKNOWN" | "DUPLICATE_RISK" | "ENGINE_ROUTING_UNKNOWN" | "SOURCE_INCOMPLETE" | "NOT_COMPARABLE";
+        /** @enum {string} */
+        CommissionEngine: "PURPOSE_MATRIX" | "RULES_AUTO" | "DRY_RUN_POSTING" | "PROJECT_CARD" | "ENGINE_ROUTING_UNKNOWN";
+        CommissionParityField: {
+            name: string;
+            legacy?: string | null;
+            target?: string | null;
+            equal?: boolean | null;
+        };
+        /** @description One STORED shadow calculation (never computed by this read) with its immutable input / attribution snapshot refs and parity. */
+        CommissionCalculation: {
+            /** Format: uuid */
+            calc_id: string;
+            source_key: string;
+            entitlement_key?: string | null;
+            engine: components["schemas"]["CommissionEngine"];
+            function_id: string;
+            policy_key?: string | null;
+            policy_version?: number | null;
+            event_ref: string;
+            input_sha256: string;
+            share_facet?: string | null;
+            /** @enum {string} */
+            recipient_state: "SNAPSHOT" | "UNKNOWN" | "CONFLICT";
+            recipient_key?: string | null;
+            /** Format: uuid */
+            recipient_user_id?: string | null;
+            base?: string | null;
+            rate_percent?: string | null;
+            amount?: string | null;
+            legacy_amount?: string | null;
+            /** @enum {string} */
+            unit: "IRR" | "IRT";
+            /** @enum {string} */
+            eligibility: "ELIGIBLE" | "INELIGIBLE" | "BLOCKED";
+            coverage: components["schemas"]["CommissionCoverage"];
+            blocks: string[];
+            parity_class: components["schemas"]["CommissionParityClass"];
+            parity_fields: components["schemas"]["CommissionParityField"][];
+            reasons: string[];
+        };
+        CommissionCalculationListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["CommissionNotice"];
+            run?: components["schemas"]["CommissionRun"];
+            items?: components["schemas"]["CommissionCalculation"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        CommissionFinding: {
+            /** Format: uuid */
+            finding_id: string;
+            kind: string;
+            /** @enum {string} */
+            severity: "INFO" | "WARNING" | "BLOCKING";
+            source_key: string;
+            entitlement_key?: string | null;
+            detail: string;
+        };
+        CommissionFindingListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["CommissionNotice"];
+            run?: components["schemas"]["CommissionRun"];
+            items?: components["schemas"]["CommissionFinding"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description One OBSERVED policy version. approval_state is always NOT_APPROVED in Slice 13. */
+        CommissionPolicyVersion: {
+            policy_key: string;
+            version: number;
+            purpose: string;
+            share_facet: string;
+            function_id: string;
+            rate_percent?: string | null;
+            fixed?: string | null;
+            /** @enum {string} */
+            unit: "IRR" | "IRT";
+            effective_from?: string | null;
+            effective_to?: string | null;
+            /** @enum {string} */
+            evidence: "OBSERVED_UNVERSIONED" | "EVENT_SNAPSHOT" | "INVALID";
+            /** @enum {string} */
+            approval_state: "NOT_APPROVED";
+            provenance: string;
+            source_ref: string;
+            /** Format: uuid */
+            first_run_id: string;
+        };
+        CommissionPolicyListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["CommissionNotice"];
+            items?: components["schemas"]["CommissionPolicyVersion"][];
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description One legacy dry run with its approval provenance (raw kept; rejected-then-approved preserved). */
+        CommissionHistoricalRun: {
+            source_key: string;
+            run_code?: string | null;
+            window_from_raw?: string | null;
+            window_to_raw?: string | null;
+            approval_raw?: string | null;
+            /** @enum {string} */
+            state: "GENERATED" | "APPROVED" | "REJECTED" | "UNKNOWN";
+            approved_by_key?: string | null;
+            approved_at_raw?: string | null;
+            rejected_by_key?: string | null;
+            rejected_at_raw?: string | null;
+            rejected_then_approved: boolean;
+            /** Format: int64 */
+            item_count: number;
+            /** Format: int64 */
+            posted_items: number;
+            /** Format: int64 */
+            failed_items: number;
+        };
+        CommissionHistoricalRunListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["CommissionNotice"];
+            run?: components["schemas"]["CommissionRun"];
+            items?: components["schemas"]["CommissionHistoricalRun"][];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
+        /** @description One historical legacy commission credit or reversal of the CALLER (own scope only). */
+        CommissionEarning: {
+            source_key: string;
+            engine: components["schemas"]["CommissionEngine"];
+            /** @enum {string} */
+            direction: "CREDIT" | "DEBIT" | "UNKNOWN";
+            type_raw: string;
+            /** Format: uuid */
+            invoice_id?: string | null;
+            stage_raw?: string | null;
+            purpose_raw?: string | null;
+            share_facet_raw?: string | null;
+            amount?: string | null;
+            /** @enum {string} */
+            unit: "IRR" | "IRT";
+            reversed: boolean;
+            occurred_at_raw?: string | null;
+            entitlement_key?: string | null;
+        };
+        CommissionEarningListEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["Reasons"];
+            correlation_id: components["schemas"]["CorrelationID"];
+            notice: components["schemas"]["CommissionNotice"];
+            run?: components["schemas"]["CommissionRun"];
+            items?: components["schemas"]["CommissionEarning"][];
+            totals?: {
+                [key: string]: string;
+            };
+            page?: components["schemas"]["PageInfo"];
+            allowed_actions?: components["schemas"]["AllowedActions"];
+        };
         /** @enum {string} */
         FulfillmentKind: "SERVICE_FOLLOWUP" | "EXECUTION" | "UPGRADE_EXECUTION" | "SHIPPING";
         /**
@@ -4824,6 +5249,11 @@ export interface components {
         /** @description A recorded parity check of the run. Omitted = the latest check of the run. */
         ParityCheckID: string;
         ParityResultFilter: components["schemas"]["ParityResult"];
+        /** @description Pin the commission shadow run. Omitted = the latest run; the answer names the run it used. */
+        CommissionRunID: string;
+        CommissionParityClassFilter: components["schemas"]["CommissionParityClass"];
+        CommissionEngineFilter: components["schemas"]["CommissionEngine"];
+        CommissionFindingKindFilter: "DUPLICATE_RISK" | "REWRITTEN_IN_PLACE" | "REVERSAL_LINK_MISSING" | "ENGINE_ROUTING_UNKNOWN" | "POSTING_LINK_MISMATCH" | "RECIPIENT_MISMATCH" | "REJECTED_THEN_APPROVED" | "NON_INVOICE_BLOCKED" | "COMPONENT_ALLOCATION_BLOCKED";
         FulfillmentKindFilter: components["schemas"]["FulfillmentKind"];
         FulfillmentStatusFilter: components["schemas"]["FulfillmentStatus"];
         FulfillmentSubscriptionID: string;
@@ -6939,6 +7369,214 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParityEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getCommissionOverview: {
+        parameters: {
+            query?: {
+                /** @description Pin the commission shadow run. Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["CommissionRunID"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionOverviewEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCommissionRuns: {
+        parameters: {
+            query?: {
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionRunListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCommissionCalculations: {
+        parameters: {
+            query?: {
+                /** @description Pin the commission shadow run. Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["CommissionRunID"];
+                parity_class?: components["parameters"]["CommissionParityClassFilter"];
+                engine?: components["parameters"]["CommissionEngineFilter"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionCalculationListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCommissionFindings: {
+        parameters: {
+            query?: {
+                /** @description Pin the commission shadow run. Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["CommissionRunID"];
+                kind?: components["parameters"]["CommissionFindingKindFilter"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionFindingListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCommissionPolicies: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionPolicyListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listCommissionHistoricalRuns: {
+        parameters: {
+            query?: {
+                /** @description Pin the commission shadow run. Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["CommissionRunID"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionHistoricalRunListEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMyCommissionEarnings: {
+        parameters: {
+            query?: {
+                /** @description Pin the commission shadow run. Omitted = the latest run; the answer names the run it used. */
+                run_id?: components["parameters"]["CommissionRunID"];
+                /** @description Opaque cursor from PageInfo.next_cursor. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommissionEarningListEnvelope"];
                 };
             };
             400: components["responses"]["Problem"];

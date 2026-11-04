@@ -1,0 +1,311 @@
+# Slice 13 commission controlled SHADOW read (GET only). Every answer is
+# pinned to one offline shadow run (snapshot + cutoff + normalization
+# version + rounding) and repeats the SHADOW notice. There is NO calculate,
+# approve, reject, post, credit, settle, reverse or recalculate operation:
+# approval and posting are decision-blocked (OPD-09, D-41) and posting_state
+# is always BLOCKED_NOT_AUTHORIZED. Amounts are exact decimal text with an
+# explicit unit; a missing amount is null, never zero.
+
+CommissionNotice:
+  type: string
+  description: Fixed SHADOW notice repeated on every commission answer.
+  enum: ['SHADOW only: no commission was calculated, approved, posted or credited by this read; legacy remains the system of record']
+
+CommissionPostingState:
+  type: string
+  description: The only posting state Slice 13 can report (no posting command exists).
+  enum: [BLOCKED_NOT_AUTHORIZED]
+
+CommissionEngine:
+  type: string
+  enum: [PURPOSE_MATRIX, RULES_AUTO, DRY_RUN_POSTING, PROJECT_CARD, ENGINE_ROUTING_UNKNOWN]
+
+CommissionParityClass:
+  type: string
+  enum: [MATCH, AMOUNT_MISMATCH, RECIPIENT_MISMATCH, POLICY_MISMATCH, ATTRIBUTION_UNKNOWN, DUPLICATE_RISK, ENGINE_ROUTING_UNKNOWN, SOURCE_INCOMPLETE, NOT_COMPARABLE]
+
+CommissionCoverage:
+  type: string
+  enum: [FULL, PARTIAL, NONE]
+
+CommissionSourceStatus:
+  type: string
+  enum: [AVAILABLE, PARTIAL, MISSING]
+
+CommissionRunSource:
+  type: object
+  required: [source, status, rows_read]
+  additionalProperties: false
+  properties:
+    source: {type: string, maxLength: 80}
+    status: {$ref: '#/CommissionSourceStatus'}
+    rows_read: {type: integer, format: int64}
+
+CommissionRun:
+  type: object
+  description: 'One offline shadow run. state is always CALCULATED (no approval / posting); outcome is technical.'
+  required: [record_kind, run_id, run_seq, state, normalization_version, rounding, snapshot_id, source_cutoff, completed_at, outcome, reasons, counts, sources]
+  additionalProperties: false
+  properties:
+    record_kind: {$ref: './finance.yaml#/RecordKind'}
+    run_id: {type: string, format: uuid}
+    run_seq: {type: integer, format: int64}
+    state: {type: string, enum: [CALCULATED]}
+    normalization_version: {type: integer}
+    rounding: {type: string, enum: [LEGACY_PHP_ROUND_HALF_AWAY_2DP, NONE]}
+    snapshot_id: {type: string, maxLength: 128}
+    source_cutoff: {$ref: './schemas.yaml#/Timestamp'}
+    completed_at: {$ref: './schemas.yaml#/Timestamp'}
+    outcome: {type: string, enum: [SUCCESS, PARTIAL]}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    counts: {type: object, additionalProperties: {type: integer, format: int64}}
+    sources: {type: array, maxItems: 20, items: {$ref: '#/CommissionRunSource'}}
+
+CommissionParitySummary:
+  type: object
+  description: 'Honest parity report: coverage counts only rows that were actually compared; totals per unit are exact decimal text; missing amounts are counted, never zero.'
+  required: [cohort, legacy_rows, compared_rows, coverage, classes, engines, legacy_totals, target_totals, legacy_amount_missing, target_amount_missing, reasons]
+  additionalProperties: false
+  properties:
+    cohort: {type: string, maxLength: 300}
+    window_from_raw: {type: string, nullable: true, maxLength: 40}
+    window_to_raw: {type: string, nullable: true, maxLength: 40}
+    legacy_rows: {type: integer, format: int64}
+    compared_rows: {type: integer, format: int64}
+    coverage: {$ref: '#/CommissionCoverage'}
+    classes: {type: object, additionalProperties: {type: integer, format: int64}}
+    engines: {type: object, additionalProperties: {type: integer, format: int64}}
+    legacy_totals: {type: object, additionalProperties: {type: string, maxLength: 40}}
+    target_totals: {type: object, additionalProperties: {type: string, maxLength: 40}}
+    legacy_amount_missing: {type: integer, format: int64}
+    target_amount_missing: {type: integer, format: int64}
+    reasons: {type: object, additionalProperties: {type: integer, format: int64}}
+
+CommissionDecision:
+  type: object
+  required: [id, state, effect]
+  additionalProperties: false
+  properties:
+    id: {type: string, maxLength: 40}
+    state: {type: string, enum: [APPROVED, SAFE_DEFAULT_AVAILABLE, IMPLEMENTATION_BLOCKED, REQUIRES_HUMAN_OWNER_DECISION, EVIDENCE_INCOMPLETE]}
+    effect: {type: string, maxLength: 300}
+
+CommissionOverview:
+  type: object
+  required: [decisions, posting_state, findings]
+  additionalProperties: false
+  properties:
+    run: {$ref: '#/CommissionRun'}
+    parity: {$ref: '#/CommissionParitySummary'}
+    findings: {type: object, additionalProperties: {type: integer, format: int64}}
+    decisions: {type: array, maxItems: 20, items: {$ref: '#/CommissionDecision'}}
+    posting_state: {$ref: '#/CommissionPostingState'}
+
+CommissionParityField:
+  type: object
+  required: [name]
+  additionalProperties: false
+  properties:
+    name: {type: string, maxLength: 40}
+    legacy: {type: string, nullable: true, maxLength: 200}
+    target: {type: string, nullable: true, maxLength: 200}
+    equal: {type: boolean, nullable: true}
+
+CommissionCalculation:
+  type: object
+  description: 'One STORED shadow calculation (never computed by this read) with its immutable input / attribution snapshot refs and parity.'
+  required: [calc_id, source_key, engine, function_id, event_ref, input_sha256, recipient_state, unit, eligibility, coverage, blocks, parity_class, parity_fields, reasons]
+  additionalProperties: false
+  properties:
+    calc_id: {type: string, format: uuid}
+    source_key: {type: string, maxLength: 120}
+    entitlement_key: {type: string, nullable: true, maxLength: 300}
+    engine: {$ref: '#/CommissionEngine'}
+    function_id: {type: string, maxLength: 80}
+    policy_key: {type: string, nullable: true, maxLength: 200}
+    policy_version: {type: integer, nullable: true}
+    event_ref: {type: string, maxLength: 200}
+    input_sha256: {type: string, maxLength: 64}
+    share_facet: {type: string, nullable: true, maxLength: 80}
+    recipient_state: {type: string, enum: [SNAPSHOT, UNKNOWN, CONFLICT]}
+    recipient_key: {type: string, nullable: true, maxLength: 40}
+    recipient_user_id: {type: string, format: uuid, nullable: true}
+    base: {type: string, nullable: true, maxLength: 40}
+    rate_percent: {type: string, nullable: true, maxLength: 40}
+    amount: {type: string, nullable: true, maxLength: 40}
+    legacy_amount: {type: string, nullable: true, maxLength: 40}
+    unit: {type: string, enum: [IRR, IRT]}
+    eligibility: {type: string, enum: [ELIGIBLE, INELIGIBLE, BLOCKED]}
+    coverage: {$ref: '#/CommissionCoverage'}
+    blocks: {type: array, maxItems: 20, items: {type: string, maxLength: 60}}
+    parity_class: {$ref: '#/CommissionParityClass'}
+    parity_fields: {type: array, maxItems: 20, items: {$ref: '#/CommissionParityField'}}
+    reasons: {type: array, maxItems: 40, items: {type: string, maxLength: 80}}
+
+CommissionFinding:
+  type: object
+  required: [finding_id, kind, severity, source_key, detail]
+  additionalProperties: false
+  properties:
+    finding_id: {type: string, format: uuid}
+    kind: {type: string, maxLength: 60}
+    severity: {type: string, enum: [INFO, WARNING, BLOCKING]}
+    source_key: {type: string, maxLength: 120}
+    entitlement_key: {type: string, nullable: true, maxLength: 300}
+    detail: {type: string, maxLength: 400}
+
+CommissionPolicyVersion:
+  type: object
+  description: 'One OBSERVED policy version. approval_state is always NOT_APPROVED in Slice 13.'
+  required: [policy_key, version, purpose, share_facet, function_id, unit, evidence, approval_state, provenance, source_ref, first_run_id]
+  additionalProperties: false
+  properties:
+    policy_key: {type: string, maxLength: 200}
+    version: {type: integer}
+    purpose: {type: string, maxLength: 80}
+    share_facet: {type: string, maxLength: 80}
+    function_id: {type: string, maxLength: 80}
+    rate_percent: {type: string, nullable: true, maxLength: 40}
+    fixed: {type: string, nullable: true, maxLength: 40}
+    unit: {type: string, enum: [IRR, IRT]}
+    effective_from: {type: string, nullable: true, maxLength: 10}
+    effective_to: {type: string, nullable: true, maxLength: 10}
+    evidence: {type: string, enum: [OBSERVED_UNVERSIONED, EVENT_SNAPSHOT, INVALID]}
+    approval_state: {type: string, enum: [NOT_APPROVED]}
+    provenance: {type: string, maxLength: 200}
+    source_ref: {type: string, maxLength: 60}
+    first_run_id: {type: string, format: uuid}
+
+CommissionHistoricalRun:
+  type: object
+  description: 'One legacy dry run with its approval provenance (raw kept; rejected-then-approved preserved).'
+  required: [source_key, state, rejected_then_approved, item_count, posted_items, failed_items]
+  additionalProperties: false
+  properties:
+    source_key: {type: string, maxLength: 40}
+    run_code: {type: string, nullable: true, maxLength: 100}
+    window_from_raw: {type: string, nullable: true, maxLength: 40}
+    window_to_raw: {type: string, nullable: true, maxLength: 40}
+    approval_raw: {type: string, nullable: true, maxLength: 40}
+    state: {type: string, enum: [GENERATED, APPROVED, REJECTED, UNKNOWN]}
+    approved_by_key: {type: string, nullable: true, maxLength: 40}
+    approved_at_raw: {type: string, nullable: true, maxLength: 40}
+    rejected_by_key: {type: string, nullable: true, maxLength: 40}
+    rejected_at_raw: {type: string, nullable: true, maxLength: 40}
+    rejected_then_approved: {type: boolean}
+    item_count: {type: integer, format: int64}
+    posted_items: {type: integer, format: int64}
+    failed_items: {type: integer, format: int64}
+
+CommissionEarning:
+  type: object
+  description: 'One historical legacy commission credit or reversal of the CALLER (own scope only).'
+  required: [source_key, engine, direction, type_raw, unit, reversed]
+  additionalProperties: false
+  properties:
+    source_key: {type: string, maxLength: 40}
+    engine: {$ref: '#/CommissionEngine'}
+    direction: {type: string, enum: [CREDIT, DEBIT, UNKNOWN]}
+    type_raw: {type: string, maxLength: 60}
+    invoice_id: {type: string, format: uuid, nullable: true}
+    stage_raw: {type: string, nullable: true, maxLength: 20}
+    purpose_raw: {type: string, nullable: true, maxLength: 60}
+    share_facet_raw: {type: string, nullable: true, maxLength: 80}
+    amount: {type: string, nullable: true, maxLength: 40}
+    unit: {type: string, enum: [IRR, IRT]}
+    reversed: {type: boolean}
+    occurred_at_raw: {type: string, nullable: true, maxLength: 40}
+    entitlement_key: {type: string, nullable: true, maxLength: 300}
+
+CommissionOverviewEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/CommissionNotice'}
+    overview: {$ref: '#/CommissionOverview'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CommissionRunListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/CommissionNotice'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/CommissionRun'}}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CommissionCalculationListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/CommissionNotice'}
+    run: {$ref: '#/CommissionRun'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/CommissionCalculation'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CommissionFindingListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/CommissionNotice'}
+    run: {$ref: '#/CommissionRun'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/CommissionFinding'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CommissionPolicyListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/CommissionNotice'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/CommissionPolicyVersion'}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CommissionHistoricalRunListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/CommissionNotice'}
+    run: {$ref: '#/CommissionRun'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/CommissionHistoricalRun'}}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}
+
+CommissionEarningListEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id, notice]
+  additionalProperties: false
+  properties:
+    outcome: {$ref: './schemas.yaml#/Outcome'}
+    reasons: {$ref: './hr.yaml#/Reasons'}
+    correlation_id: {$ref: './schemas.yaml#/CorrelationID'}
+    notice: {$ref: '#/CommissionNotice'}
+    run: {$ref: '#/CommissionRun'}
+    items: {type: array, maxItems: 200, items: {$ref: '#/CommissionEarning'}}
+    totals: {type: object, additionalProperties: {type: string, maxLength: 40}}
+    page: {$ref: './schemas.yaml#/PageInfo'}
+    allowed_actions: {$ref: './schemas.yaml#/AllowedActions'}

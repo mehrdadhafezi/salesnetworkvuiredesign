@@ -97,9 +97,18 @@ var ContractPaths = map[string][]string{
 	"/api/v1/biawin/subscriptions/{subscription_id}":       {http.MethodGet},
 	"/api/v1/biawin/subscriptions/{subscription_id}/items": {http.MethodGet},
 	"/api/v1/biawin/parity":                                {http.MethodGet},
-	"/api/v1/fulfillment/cases":                            {http.MethodGet},
-	"/api/v1/fulfillment/cases/{case_id}":                  {http.MethodGet},
-	"/api/v1/fulfillment/cases/{case_id}/history":          {http.MethodGet},
+	// Slice 13 commission controlled SHADOW read (GET only; no calculate,
+	// approve, post, credit, settle or reverse operation exists).
+	"/api/v1/commission/overview":                 {http.MethodGet},
+	"/api/v1/commission/runs":                     {http.MethodGet},
+	"/api/v1/commission/calculations":             {http.MethodGet},
+	"/api/v1/commission/findings":                 {http.MethodGet},
+	"/api/v1/commission/policies":                 {http.MethodGet},
+	"/api/v1/commission/historical-runs":          {http.MethodGet},
+	"/api/v1/commission/me/earnings":              {http.MethodGet},
+	"/api/v1/fulfillment/cases":                   {http.MethodGet},
+	"/api/v1/fulfillment/cases/{case_id}":         {http.MethodGet},
+	"/api/v1/fulfillment/cases/{case_id}/history": {http.MethodGet},
 	// Slice 11 controlled non-financial writes: only the evidenced safe
 	// commands accept POST; every other path stays GET only. There is no
 	// invoice-issue, return, release, reset, transfer, allocation, ready, HR
@@ -207,6 +216,13 @@ var ContractQuery = map[string][]string{
 	"/api/v1/biawin/subscriptions/{subscription_id}":       {"run_id"},
 	"/api/v1/biawin/subscriptions/{subscription_id}/items": {"run_id", "cursor", "limit"},
 	"/api/v1/biawin/parity":                                {"run_id", "check_id", "result", "cursor", "limit"},
+	"/api/v1/commission/overview":                          {"run_id"},
+	"/api/v1/commission/runs":                              {"limit"},
+	"/api/v1/commission/calculations":                      {"run_id", "parity_class", "engine", "cursor", "limit"},
+	"/api/v1/commission/findings":                          {"run_id", "kind", "cursor", "limit"},
+	"/api/v1/commission/policies":                          {"cursor", "limit"},
+	"/api/v1/commission/historical-runs":                   {"run_id"},
+	"/api/v1/commission/me/earnings":                       {"run_id", "cursor", "limit"},
 	"/api/v1/fulfillment/cases":                            {"run_id", "kind", "status", "subscription_id", "item_id", "assignee", "cursor", "limit"},
 	"/api/v1/fulfillment/cases/{case_id}":                  {"run_id"},
 	"/api/v1/fulfillment/cases/{case_id}/history":          {"run_id", "cursor", "limit"},
@@ -304,6 +320,21 @@ type FinanceAPI interface {
 	FinanceEnabled(ctx context.Context) bool
 }
 
+// CommissionAPI is the Slice 13 commission controlled SHADOW read surface
+// (commission module, composed by cmd/crm-api). GET only. Without one,
+// every operation answers BLOCKED / FEATURE_DISABLED.
+type CommissionAPI interface {
+	GetCommissionOverview(ctx context.Context, request oapi.GetCommissionOverviewRequestObject) (oapi.GetCommissionOverviewResponseObject, error)
+	ListCommissionRuns(ctx context.Context, request oapi.ListCommissionRunsRequestObject) (oapi.ListCommissionRunsResponseObject, error)
+	ListCommissionCalculations(ctx context.Context, request oapi.ListCommissionCalculationsRequestObject) (oapi.ListCommissionCalculationsResponseObject, error)
+	ListCommissionFindings(ctx context.Context, request oapi.ListCommissionFindingsRequestObject) (oapi.ListCommissionFindingsResponseObject, error)
+	ListCommissionPolicies(ctx context.Context, request oapi.ListCommissionPoliciesRequestObject) (oapi.ListCommissionPoliciesResponseObject, error)
+	ListCommissionHistoricalRuns(ctx context.Context, request oapi.ListCommissionHistoricalRunsRequestObject) (oapi.ListCommissionHistoricalRunsResponseObject, error)
+	ListMyCommissionEarnings(ctx context.Context, request oapi.ListMyCommissionEarningsRequestObject) (oapi.ListMyCommissionEarningsResponseObject, error)
+	// CommissionEnabled reports the Slice 13 flag for the session navigation hint.
+	CommissionEnabled(ctx context.Context) bool
+}
+
 // BiawinAPI is the Slice 10 Biawin / fulfillment READ shadow surface
 // (biawin and fulfillment modules, composed by cmd/crm-api). Without one,
 // every operation answers BLOCKED / FEATURE_DISABLED. It has no write,
@@ -385,17 +416,18 @@ type WritebackAPI interface {
 // Surfaces are the optional business read surfaces; nil ones answer
 // BLOCKED / FEATURE_DISABLED.
 type Surfaces struct {
-	Read      ReadAPI
-	Customers CustomersAPI
-	Sales     SalesAPI
-	Billing   BillingAPI
-	Reporting ReportingAPI
-	Finance   FinanceAPI
-	Biawin    BiawinAPI
-	CaseWrite CasesWriteAPI
-	HRRequest HRRequestAPI
-	Writeback WritebackAPI
-	Payments  PaymentsAPI
+	Read       ReadAPI
+	Customers  CustomersAPI
+	Sales      SalesAPI
+	Billing    BillingAPI
+	Reporting  ReportingAPI
+	Finance    FinanceAPI
+	Biawin     BiawinAPI
+	Commission CommissionAPI
+	CaseWrite  CasesWriteAPI
+	HRRequest  HRRequestAPI
+	Writeback  WritebackAPI
+	Payments   PaymentsAPI
 }
 
 // ReadAPI is the Slice 4 read surface (identity, organization,
@@ -428,6 +460,7 @@ type api struct {
 	ReportingAPI
 	FinanceAPI
 	BiawinAPI
+	CommissionAPI
 	CasesWriteAPI
 	HRRequestAPI
 	WritebackAPI
@@ -480,6 +513,7 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 	data.Features = &struct {
 		BiawinFulfillmentRead bool `json:"biawin_fulfillment_read"`
 		BillingRead           bool `json:"billing_read"`
+		CommissionRead        bool `json:"commission_read"`
 		ContactOutcomeWrite   bool `json:"contact_outcome_write"`
 		CustomersIdentity     bool `json:"customers_identity"`
 		FinanceReviewRead     bool `json:"finance_review_read"`
@@ -495,7 +529,7 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 		FinanceShadowRead: a.FinanceAPI.FinanceEnabled(ctx), BiawinFulfillmentRead: a.BiawinAPI.BiawinEnabled(ctx),
 		ContactOutcomeWrite: a.CasesWriteAPI.ContactOutcomeWriteEnabled(ctx), HrRequestWrite: a.HRRequestAPI.HRRequestWriteEnabled(ctx),
 		WritebackRead: a.WritebackAPI.WritebackEnabled(ctx), PaymentSubmission: a.PaymentsAPI.PaymentSubmissionEnabled(ctx),
-		FinanceReviewRead: a.PaymentsAPI.FinanceReviewEnabled(ctx)}
+		FinanceReviewRead: a.PaymentsAPI.FinanceReviewEnabled(ctx), CommissionRead: a.CommissionAPI.CommissionEnabled(ctx)}
 	return oapi.GetSession200JSONResponse{Body: oapi.SessionEnvelope{
 		Outcome:       outcome,
 		Reasons:       []oapi.ReasonCode{},
@@ -520,7 +554,7 @@ func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read 
 // NewHandlerWithSurfaces builds the full handler chain over every surface.
 func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logger, sf Surfaces) (http.Handler, error) {
 	read, customers, sales, billing, rep, fin, bw := sf.Read, sf.Customers, sf.Sales, sf.Billing, sf.Reporting, sf.Finance, sf.Biawin
-	cw, hrq, wbk, pay := sf.CaseWrite, sf.HRRequest, sf.Writeback, sf.Payments
+	cw, hrq, wbk, pay, com := sf.CaseWrite, sf.HRRequest, sf.Writeback, sf.Payments, sf.Commission
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -560,9 +594,12 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	if pay == nil {
 		pay = unconfiguredPayments{}
 	}
+	if com == nil {
+		com = unconfiguredCommission{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, CasesWriteAPI: cw, HRRequestAPI: hrq, WritebackAPI: wbk, PaymentsAPI: pay, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, CommissionAPI: com, CasesWriteAPI: cw, HRRequestAPI: hrq, WritebackAPI: wbk, PaymentsAPI: pay, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},

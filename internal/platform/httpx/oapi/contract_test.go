@@ -300,7 +300,11 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		// (no decision path).
 		"/api/v1/payments/uploads", "/api/v1/payments/invoices/{invoice_id}/submission", "/api/v1/payments/invoices/{invoice_id}/batches",
 		"/api/v1/payments/batches/{batch_id}", "/api/v1/payments/evidence", "/api/v1/finance/review/attempts",
-		"/api/v1/finance/review/attempts/{attempt_id}"}
+		"/api/v1/finance/review/attempts/{attempt_id}",
+		// Slice 13 commission controlled SHADOW read: GET only, no calculate,
+		// approve, post, credit, settle or reverse path.
+		"/api/v1/commission/overview", "/api/v1/commission/runs", "/api/v1/commission/calculations", "/api/v1/commission/findings",
+		"/api/v1/commission/policies", "/api/v1/commission/historical-runs", "/api/v1/commission/me/earnings"}
 	sort.Strings(want)
 	if strings.Join(paths, ",") != strings.Join(want, ",") {
 		t.Fatalf("paths = %v", paths)

@@ -451,6 +451,420 @@ func (e CommandWritebackState) Valid() bool {
 	}
 }
 
+// Defines values for CommissionCalculationEligibility.
+const (
+	CommissionCalculationEligibilityBLOCKED    CommissionCalculationEligibility = "BLOCKED"
+	CommissionCalculationEligibilityELIGIBLE   CommissionCalculationEligibility = "ELIGIBLE"
+	CommissionCalculationEligibilityINELIGIBLE CommissionCalculationEligibility = "INELIGIBLE"
+)
+
+// Valid indicates whether the value is a known member of the CommissionCalculationEligibility enum.
+func (e CommissionCalculationEligibility) Valid() bool {
+	switch e {
+	case CommissionCalculationEligibilityBLOCKED:
+		return true
+	case CommissionCalculationEligibilityELIGIBLE:
+		return true
+	case CommissionCalculationEligibilityINELIGIBLE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionCalculationRecipientState.
+const (
+	CommissionCalculationRecipientStateCONFLICT CommissionCalculationRecipientState = "CONFLICT"
+	CommissionCalculationRecipientStateSNAPSHOT CommissionCalculationRecipientState = "SNAPSHOT"
+	CommissionCalculationRecipientStateUNKNOWN  CommissionCalculationRecipientState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the CommissionCalculationRecipientState enum.
+func (e CommissionCalculationRecipientState) Valid() bool {
+	switch e {
+	case CommissionCalculationRecipientStateCONFLICT:
+		return true
+	case CommissionCalculationRecipientStateSNAPSHOT:
+		return true
+	case CommissionCalculationRecipientStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionCalculationUnit.
+const (
+	CommissionCalculationUnitIRR CommissionCalculationUnit = "IRR"
+	CommissionCalculationUnitIRT CommissionCalculationUnit = "IRT"
+)
+
+// Valid indicates whether the value is a known member of the CommissionCalculationUnit enum.
+func (e CommissionCalculationUnit) Valid() bool {
+	switch e {
+	case CommissionCalculationUnitIRR:
+		return true
+	case CommissionCalculationUnitIRT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionCoverage.
+const (
+	CommissionCoverageFULL    CommissionCoverage = "FULL"
+	CommissionCoverageNONE    CommissionCoverage = "NONE"
+	CommissionCoveragePARTIAL CommissionCoverage = "PARTIAL"
+)
+
+// Valid indicates whether the value is a known member of the CommissionCoverage enum.
+func (e CommissionCoverage) Valid() bool {
+	switch e {
+	case CommissionCoverageFULL:
+		return true
+	case CommissionCoverageNONE:
+		return true
+	case CommissionCoveragePARTIAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionDecisionState.
+const (
+	CommissionDecisionStateAPPROVED                   CommissionDecisionState = "APPROVED"
+	CommissionDecisionStateEVIDENCEINCOMPLETE         CommissionDecisionState = "EVIDENCE_INCOMPLETE"
+	CommissionDecisionStateIMPLEMENTATIONBLOCKED      CommissionDecisionState = "IMPLEMENTATION_BLOCKED"
+	CommissionDecisionStateREQUIRESHUMANOWNERDECISION CommissionDecisionState = "REQUIRES_HUMAN_OWNER_DECISION"
+	CommissionDecisionStateSAFEDEFAULTAVAILABLE       CommissionDecisionState = "SAFE_DEFAULT_AVAILABLE"
+)
+
+// Valid indicates whether the value is a known member of the CommissionDecisionState enum.
+func (e CommissionDecisionState) Valid() bool {
+	switch e {
+	case CommissionDecisionStateAPPROVED:
+		return true
+	case CommissionDecisionStateEVIDENCEINCOMPLETE:
+		return true
+	case CommissionDecisionStateIMPLEMENTATIONBLOCKED:
+		return true
+	case CommissionDecisionStateREQUIRESHUMANOWNERDECISION:
+		return true
+	case CommissionDecisionStateSAFEDEFAULTAVAILABLE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionEarningDirection.
+const (
+	CommissionEarningDirectionCREDIT  CommissionEarningDirection = "CREDIT"
+	CommissionEarningDirectionDEBIT   CommissionEarningDirection = "DEBIT"
+	CommissionEarningDirectionUNKNOWN CommissionEarningDirection = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the CommissionEarningDirection enum.
+func (e CommissionEarningDirection) Valid() bool {
+	switch e {
+	case CommissionEarningDirectionCREDIT:
+		return true
+	case CommissionEarningDirectionDEBIT:
+		return true
+	case CommissionEarningDirectionUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionEarningUnit.
+const (
+	CommissionEarningUnitIRR CommissionEarningUnit = "IRR"
+	CommissionEarningUnitIRT CommissionEarningUnit = "IRT"
+)
+
+// Valid indicates whether the value is a known member of the CommissionEarningUnit enum.
+func (e CommissionEarningUnit) Valid() bool {
+	switch e {
+	case CommissionEarningUnitIRR:
+		return true
+	case CommissionEarningUnitIRT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionEngine.
+const (
+	CommissionEngineDRYRUNPOSTING        CommissionEngine = "DRY_RUN_POSTING"
+	CommissionEngineENGINEROUTINGUNKNOWN CommissionEngine = "ENGINE_ROUTING_UNKNOWN"
+	CommissionEnginePROJECTCARD          CommissionEngine = "PROJECT_CARD"
+	CommissionEnginePURPOSEMATRIX        CommissionEngine = "PURPOSE_MATRIX"
+	CommissionEngineRULESAUTO            CommissionEngine = "RULES_AUTO"
+)
+
+// Valid indicates whether the value is a known member of the CommissionEngine enum.
+func (e CommissionEngine) Valid() bool {
+	switch e {
+	case CommissionEngineDRYRUNPOSTING:
+		return true
+	case CommissionEngineENGINEROUTINGUNKNOWN:
+		return true
+	case CommissionEnginePROJECTCARD:
+		return true
+	case CommissionEnginePURPOSEMATRIX:
+		return true
+	case CommissionEngineRULESAUTO:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionFindingSeverity.
+const (
+	CommissionFindingSeverityBLOCKING CommissionFindingSeverity = "BLOCKING"
+	CommissionFindingSeverityINFO     CommissionFindingSeverity = "INFO"
+	CommissionFindingSeverityWARNING  CommissionFindingSeverity = "WARNING"
+)
+
+// Valid indicates whether the value is a known member of the CommissionFindingSeverity enum.
+func (e CommissionFindingSeverity) Valid() bool {
+	switch e {
+	case CommissionFindingSeverityBLOCKING:
+		return true
+	case CommissionFindingSeverityINFO:
+		return true
+	case CommissionFindingSeverityWARNING:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionHistoricalRunState.
+const (
+	CommissionHistoricalRunStateAPPROVED  CommissionHistoricalRunState = "APPROVED"
+	CommissionHistoricalRunStateGENERATED CommissionHistoricalRunState = "GENERATED"
+	CommissionHistoricalRunStateREJECTED  CommissionHistoricalRunState = "REJECTED"
+	CommissionHistoricalRunStateUNKNOWN   CommissionHistoricalRunState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the CommissionHistoricalRunState enum.
+func (e CommissionHistoricalRunState) Valid() bool {
+	switch e {
+	case CommissionHistoricalRunStateAPPROVED:
+		return true
+	case CommissionHistoricalRunStateGENERATED:
+		return true
+	case CommissionHistoricalRunStateREJECTED:
+		return true
+	case CommissionHistoricalRunStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionNotice.
+const (
+	SHADOWOnlyNoCommissionWasCalculatedApprovedPostedOrCreditedByThisReadLegacyRemainsTheSystemOfRecord CommissionNotice = "SHADOW only: no commission was calculated, approved, posted or credited by this read; legacy remains the system of record"
+)
+
+// Valid indicates whether the value is a known member of the CommissionNotice enum.
+func (e CommissionNotice) Valid() bool {
+	switch e {
+	case SHADOWOnlyNoCommissionWasCalculatedApprovedPostedOrCreditedByThisReadLegacyRemainsTheSystemOfRecord:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionParityClass.
+const (
+	CommissionParityClassAMOUNTMISMATCH       CommissionParityClass = "AMOUNT_MISMATCH"
+	CommissionParityClassATTRIBUTIONUNKNOWN   CommissionParityClass = "ATTRIBUTION_UNKNOWN"
+	CommissionParityClassDUPLICATERISK        CommissionParityClass = "DUPLICATE_RISK"
+	CommissionParityClassENGINEROUTINGUNKNOWN CommissionParityClass = "ENGINE_ROUTING_UNKNOWN"
+	CommissionParityClassMATCH                CommissionParityClass = "MATCH"
+	CommissionParityClassNOTCOMPARABLE        CommissionParityClass = "NOT_COMPARABLE"
+	CommissionParityClassPOLICYMISMATCH       CommissionParityClass = "POLICY_MISMATCH"
+	CommissionParityClassRECIPIENTMISMATCH    CommissionParityClass = "RECIPIENT_MISMATCH"
+	CommissionParityClassSOURCEINCOMPLETE     CommissionParityClass = "SOURCE_INCOMPLETE"
+)
+
+// Valid indicates whether the value is a known member of the CommissionParityClass enum.
+func (e CommissionParityClass) Valid() bool {
+	switch e {
+	case CommissionParityClassAMOUNTMISMATCH:
+		return true
+	case CommissionParityClassATTRIBUTIONUNKNOWN:
+		return true
+	case CommissionParityClassDUPLICATERISK:
+		return true
+	case CommissionParityClassENGINEROUTINGUNKNOWN:
+		return true
+	case CommissionParityClassMATCH:
+		return true
+	case CommissionParityClassNOTCOMPARABLE:
+		return true
+	case CommissionParityClassPOLICYMISMATCH:
+		return true
+	case CommissionParityClassRECIPIENTMISMATCH:
+		return true
+	case CommissionParityClassSOURCEINCOMPLETE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionPolicyVersionApprovalState.
+const (
+	CommissionPolicyVersionApprovalStateNOTAPPROVED CommissionPolicyVersionApprovalState = "NOT_APPROVED"
+)
+
+// Valid indicates whether the value is a known member of the CommissionPolicyVersionApprovalState enum.
+func (e CommissionPolicyVersionApprovalState) Valid() bool {
+	switch e {
+	case CommissionPolicyVersionApprovalStateNOTAPPROVED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionPolicyVersionEvidence.
+const (
+	CommissionPolicyVersionEvidenceEVENTSNAPSHOT       CommissionPolicyVersionEvidence = "EVENT_SNAPSHOT"
+	CommissionPolicyVersionEvidenceINVALID             CommissionPolicyVersionEvidence = "INVALID"
+	CommissionPolicyVersionEvidenceOBSERVEDUNVERSIONED CommissionPolicyVersionEvidence = "OBSERVED_UNVERSIONED"
+)
+
+// Valid indicates whether the value is a known member of the CommissionPolicyVersionEvidence enum.
+func (e CommissionPolicyVersionEvidence) Valid() bool {
+	switch e {
+	case CommissionPolicyVersionEvidenceEVENTSNAPSHOT:
+		return true
+	case CommissionPolicyVersionEvidenceINVALID:
+		return true
+	case CommissionPolicyVersionEvidenceOBSERVEDUNVERSIONED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionPolicyVersionUnit.
+const (
+	CommissionPolicyVersionUnitIRR CommissionPolicyVersionUnit = "IRR"
+	CommissionPolicyVersionUnitIRT CommissionPolicyVersionUnit = "IRT"
+)
+
+// Valid indicates whether the value is a known member of the CommissionPolicyVersionUnit enum.
+func (e CommissionPolicyVersionUnit) Valid() bool {
+	switch e {
+	case CommissionPolicyVersionUnitIRR:
+		return true
+	case CommissionPolicyVersionUnitIRT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionPostingState.
+const (
+	BLOCKEDNOTAUTHORIZED CommissionPostingState = "BLOCKED_NOT_AUTHORIZED"
+)
+
+// Valid indicates whether the value is a known member of the CommissionPostingState enum.
+func (e CommissionPostingState) Valid() bool {
+	switch e {
+	case BLOCKEDNOTAUTHORIZED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionRunOutcome.
+const (
+	CommissionRunOutcomePARTIAL CommissionRunOutcome = "PARTIAL"
+	CommissionRunOutcomeSUCCESS CommissionRunOutcome = "SUCCESS"
+)
+
+// Valid indicates whether the value is a known member of the CommissionRunOutcome enum.
+func (e CommissionRunOutcome) Valid() bool {
+	switch e {
+	case CommissionRunOutcomePARTIAL:
+		return true
+	case CommissionRunOutcomeSUCCESS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionRunRounding.
+const (
+	CommissionRunRoundingLEGACYPHPROUNDHALFAWAY2DP CommissionRunRounding = "LEGACY_PHP_ROUND_HALF_AWAY_2DP"
+	CommissionRunRoundingNONE                      CommissionRunRounding = "NONE"
+)
+
+// Valid indicates whether the value is a known member of the CommissionRunRounding enum.
+func (e CommissionRunRounding) Valid() bool {
+	switch e {
+	case CommissionRunRoundingLEGACYPHPROUNDHALFAWAY2DP:
+		return true
+	case CommissionRunRoundingNONE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionRunState.
+const (
+	CALCULATED CommissionRunState = "CALCULATED"
+)
+
+// Valid indicates whether the value is a known member of the CommissionRunState enum.
+func (e CommissionRunState) Valid() bool {
+	switch e {
+	case CALCULATED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CommissionSourceStatus.
+const (
+	CommissionSourceStatusAVAILABLE CommissionSourceStatus = "AVAILABLE"
+	CommissionSourceStatusMISSING   CommissionSourceStatus = "MISSING"
+	CommissionSourceStatusPARTIAL   CommissionSourceStatus = "PARTIAL"
+)
+
+// Valid indicates whether the value is a known member of the CommissionSourceStatus enum.
+func (e CommissionSourceStatus) Valid() bool {
+	switch e {
+	case CommissionSourceStatusAVAILABLE:
+		return true
+	case CommissionSourceStatusMISSING:
+		return true
+	case CommissionSourceStatusPARTIAL:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ContactOutcomeCurrentOutcome.
 const (
 	ContactOutcomeCurrentOutcomeCALLBACK     ContactOutcomeCurrentOutcome = "CALLBACK"
@@ -3520,6 +3934,45 @@ func (e BalanceState) Valid() bool {
 	}
 }
 
+// Defines values for CommissionFindingKindFilter.
+const (
+	CommissionFindingKindFilterCOMPONENTALLOCATIONBLOCKED CommissionFindingKindFilter = "COMPONENT_ALLOCATION_BLOCKED"
+	CommissionFindingKindFilterDUPLICATERISK              CommissionFindingKindFilter = "DUPLICATE_RISK"
+	CommissionFindingKindFilterENGINEROUTINGUNKNOWN       CommissionFindingKindFilter = "ENGINE_ROUTING_UNKNOWN"
+	CommissionFindingKindFilterNONINVOICEBLOCKED          CommissionFindingKindFilter = "NON_INVOICE_BLOCKED"
+	CommissionFindingKindFilterPOSTINGLINKMISMATCH        CommissionFindingKindFilter = "POSTING_LINK_MISMATCH"
+	CommissionFindingKindFilterRECIPIENTMISMATCH          CommissionFindingKindFilter = "RECIPIENT_MISMATCH"
+	CommissionFindingKindFilterREJECTEDTHENAPPROVED       CommissionFindingKindFilter = "REJECTED_THEN_APPROVED"
+	CommissionFindingKindFilterREVERSALLINKMISSING        CommissionFindingKindFilter = "REVERSAL_LINK_MISSING"
+	CommissionFindingKindFilterREWRITTENINPLACE           CommissionFindingKindFilter = "REWRITTEN_IN_PLACE"
+)
+
+// Valid indicates whether the value is a known member of the CommissionFindingKindFilter enum.
+func (e CommissionFindingKindFilter) Valid() bool {
+	switch e {
+	case CommissionFindingKindFilterCOMPONENTALLOCATIONBLOCKED:
+		return true
+	case CommissionFindingKindFilterDUPLICATERISK:
+		return true
+	case CommissionFindingKindFilterENGINEROUTINGUNKNOWN:
+		return true
+	case CommissionFindingKindFilterNONINVOICEBLOCKED:
+		return true
+	case CommissionFindingKindFilterPOSTINGLINKMISMATCH:
+		return true
+	case CommissionFindingKindFilterRECIPIENTMISMATCH:
+		return true
+	case CommissionFindingKindFilterREJECTEDTHENAPPROVED:
+		return true
+	case CommissionFindingKindFilterREVERSALLINKMISSING:
+		return true
+	case CommissionFindingKindFilterREWRITTENINPLACE:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EntryState.
 const (
 	EntryStateCONFLICT             EntryState = "CONFLICT"
@@ -3835,6 +4288,45 @@ func (e UserSort) Valid() bool {
 	case UserSortDisplayName:
 		return true
 	case UserSortMinusDisplayName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListCommissionFindingsParamsKind.
+const (
+	ListCommissionFindingsParamsKindCOMPONENTALLOCATIONBLOCKED ListCommissionFindingsParamsKind = "COMPONENT_ALLOCATION_BLOCKED"
+	ListCommissionFindingsParamsKindDUPLICATERISK              ListCommissionFindingsParamsKind = "DUPLICATE_RISK"
+	ListCommissionFindingsParamsKindENGINEROUTINGUNKNOWN       ListCommissionFindingsParamsKind = "ENGINE_ROUTING_UNKNOWN"
+	ListCommissionFindingsParamsKindNONINVOICEBLOCKED          ListCommissionFindingsParamsKind = "NON_INVOICE_BLOCKED"
+	ListCommissionFindingsParamsKindPOSTINGLINKMISMATCH        ListCommissionFindingsParamsKind = "POSTING_LINK_MISMATCH"
+	ListCommissionFindingsParamsKindRECIPIENTMISMATCH          ListCommissionFindingsParamsKind = "RECIPIENT_MISMATCH"
+	ListCommissionFindingsParamsKindREJECTEDTHENAPPROVED       ListCommissionFindingsParamsKind = "REJECTED_THEN_APPROVED"
+	ListCommissionFindingsParamsKindREVERSALLINKMISSING        ListCommissionFindingsParamsKind = "REVERSAL_LINK_MISSING"
+	ListCommissionFindingsParamsKindREWRITTENINPLACE           ListCommissionFindingsParamsKind = "REWRITTEN_IN_PLACE"
+)
+
+// Valid indicates whether the value is a known member of the ListCommissionFindingsParamsKind enum.
+func (e ListCommissionFindingsParamsKind) Valid() bool {
+	switch e {
+	case ListCommissionFindingsParamsKindCOMPONENTALLOCATIONBLOCKED:
+		return true
+	case ListCommissionFindingsParamsKindDUPLICATERISK:
+		return true
+	case ListCommissionFindingsParamsKindENGINEROUTINGUNKNOWN:
+		return true
+	case ListCommissionFindingsParamsKindNONINVOICEBLOCKED:
+		return true
+	case ListCommissionFindingsParamsKindPOSTINGLINKMISMATCH:
+		return true
+	case ListCommissionFindingsParamsKindRECIPIENTMISMATCH:
+		return true
+	case ListCommissionFindingsParamsKindREJECTEDTHENAPPROVED:
+		return true
+	case ListCommissionFindingsParamsKindREVERSALLINKMISSING:
+		return true
+	case ListCommissionFindingsParamsKindREWRITTENINPLACE:
 		return true
 	default:
 		return false
@@ -5407,6 +5899,401 @@ type CommandResult struct {
 
 // CommandWritebackState Write-back state at commit time. The final legacy outcome is read from the write-back command (never assumed).
 type CommandWritebackState string
+
+// CommissionCalculation One STORED shadow calculation (never computed by this read) with its immutable input / attribution snapshot refs and parity.
+type CommissionCalculation struct {
+	Amount          *string                             `json:"amount,omitempty"`
+	Base            *string                             `json:"base,omitempty"`
+	Blocks          []string                            `json:"blocks"`
+	CalcId          openapi_types.UUID                  `json:"calc_id"`
+	Coverage        CommissionCoverage                  `json:"coverage"`
+	Eligibility     CommissionCalculationEligibility    `json:"eligibility"`
+	Engine          CommissionEngine                    `json:"engine"`
+	EntitlementKey  *string                             `json:"entitlement_key,omitempty"`
+	EventRef        string                              `json:"event_ref"`
+	FunctionId      string                              `json:"function_id"`
+	InputSha256     string                              `json:"input_sha256"`
+	LegacyAmount    *string                             `json:"legacy_amount,omitempty"`
+	ParityClass     CommissionParityClass               `json:"parity_class"`
+	ParityFields    []CommissionParityField             `json:"parity_fields"`
+	PolicyKey       *string                             `json:"policy_key,omitempty"`
+	PolicyVersion   *int                                `json:"policy_version,omitempty"`
+	RatePercent     *string                             `json:"rate_percent,omitempty"`
+	Reasons         []string                            `json:"reasons"`
+	RecipientKey    *string                             `json:"recipient_key,omitempty"`
+	RecipientState  CommissionCalculationRecipientState `json:"recipient_state"`
+	RecipientUserId *openapi_types.UUID                 `json:"recipient_user_id,omitempty"`
+	ShareFacet      *string                             `json:"share_facet,omitempty"`
+	SourceKey       string                              `json:"source_key"`
+	Unit            CommissionCalculationUnit           `json:"unit"`
+}
+
+// CommissionCalculationEligibility defines model for CommissionCalculation.Eligibility.
+type CommissionCalculationEligibility string
+
+// CommissionCalculationRecipientState defines model for CommissionCalculation.RecipientState.
+type CommissionCalculationRecipientState string
+
+// CommissionCalculationUnit defines model for CommissionCalculation.Unit.
+type CommissionCalculationUnit string
+
+// CommissionCalculationListEnvelope defines model for CommissionCalculationListEnvelope.
+type CommissionCalculationListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID            `json:"correlation_id"`
+	Items         *[]CommissionCalculation `json:"items,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every commission answer.
+	Notice CommissionNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+
+	// Run One offline shadow run. state is always CALCULATED (no approval / posting); outcome is technical.
+	Run *CommissionRun `json:"run,omitempty"`
+}
+
+// CommissionCoverage defines model for CommissionCoverage.
+type CommissionCoverage string
+
+// CommissionDecision defines model for CommissionDecision.
+type CommissionDecision struct {
+	Effect string                  `json:"effect"`
+	Id     string                  `json:"id"`
+	State  CommissionDecisionState `json:"state"`
+}
+
+// CommissionDecisionState defines model for CommissionDecision.State.
+type CommissionDecisionState string
+
+// CommissionEarning One historical legacy commission credit or reversal of the CALLER (own scope only).
+type CommissionEarning struct {
+	Amount         *string                    `json:"amount,omitempty"`
+	Direction      CommissionEarningDirection `json:"direction"`
+	Engine         CommissionEngine           `json:"engine"`
+	EntitlementKey *string                    `json:"entitlement_key,omitempty"`
+	InvoiceId      *openapi_types.UUID        `json:"invoice_id,omitempty"`
+	OccurredAtRaw  *string                    `json:"occurred_at_raw,omitempty"`
+	PurposeRaw     *string                    `json:"purpose_raw,omitempty"`
+	Reversed       bool                       `json:"reversed"`
+	ShareFacetRaw  *string                    `json:"share_facet_raw,omitempty"`
+	SourceKey      string                     `json:"source_key"`
+	StageRaw       *string                    `json:"stage_raw,omitempty"`
+	TypeRaw        string                     `json:"type_raw"`
+	Unit           CommissionEarningUnit      `json:"unit"`
+}
+
+// CommissionEarningDirection defines model for CommissionEarning.Direction.
+type CommissionEarningDirection string
+
+// CommissionEarningUnit defines model for CommissionEarning.Unit.
+type CommissionEarningUnit string
+
+// CommissionEarningListEnvelope defines model for CommissionEarningListEnvelope.
+type CommissionEarningListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID        `json:"correlation_id"`
+	Items         *[]CommissionEarning `json:"items,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every commission answer.
+	Notice CommissionNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+
+	// Run One offline shadow run. state is always CALCULATED (no approval / posting); outcome is technical.
+	Run    *CommissionRun     `json:"run,omitempty"`
+	Totals *map[string]string `json:"totals,omitempty"`
+}
+
+// CommissionEngine defines model for CommissionEngine.
+type CommissionEngine string
+
+// CommissionFinding defines model for CommissionFinding.
+type CommissionFinding struct {
+	Detail         string                    `json:"detail"`
+	EntitlementKey *string                   `json:"entitlement_key,omitempty"`
+	FindingId      openapi_types.UUID        `json:"finding_id"`
+	Kind           string                    `json:"kind"`
+	Severity       CommissionFindingSeverity `json:"severity"`
+	SourceKey      string                    `json:"source_key"`
+}
+
+// CommissionFindingSeverity defines model for CommissionFinding.Severity.
+type CommissionFindingSeverity string
+
+// CommissionFindingListEnvelope defines model for CommissionFindingListEnvelope.
+type CommissionFindingListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID        `json:"correlation_id"`
+	Items         *[]CommissionFinding `json:"items,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every commission answer.
+	Notice CommissionNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+
+	// Run One offline shadow run. state is always CALCULATED (no approval / posting); outcome is technical.
+	Run *CommissionRun `json:"run,omitempty"`
+}
+
+// CommissionHistoricalRun One legacy dry run with its approval provenance (raw kept; rejected-then-approved preserved).
+type CommissionHistoricalRun struct {
+	ApprovalRaw          *string                      `json:"approval_raw,omitempty"`
+	ApprovedAtRaw        *string                      `json:"approved_at_raw,omitempty"`
+	ApprovedByKey        *string                      `json:"approved_by_key,omitempty"`
+	FailedItems          int64                        `json:"failed_items"`
+	ItemCount            int64                        `json:"item_count"`
+	PostedItems          int64                        `json:"posted_items"`
+	RejectedAtRaw        *string                      `json:"rejected_at_raw,omitempty"`
+	RejectedByKey        *string                      `json:"rejected_by_key,omitempty"`
+	RejectedThenApproved bool                         `json:"rejected_then_approved"`
+	RunCode              *string                      `json:"run_code,omitempty"`
+	SourceKey            string                       `json:"source_key"`
+	State                CommissionHistoricalRunState `json:"state"`
+	WindowFromRaw        *string                      `json:"window_from_raw,omitempty"`
+	WindowToRaw          *string                      `json:"window_to_raw,omitempty"`
+}
+
+// CommissionHistoricalRunState defines model for CommissionHistoricalRun.State.
+type CommissionHistoricalRunState string
+
+// CommissionHistoricalRunListEnvelope defines model for CommissionHistoricalRunListEnvelope.
+type CommissionHistoricalRunListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID              `json:"correlation_id"`
+	Items         *[]CommissionHistoricalRun `json:"items,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every commission answer.
+	Notice CommissionNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+
+	// Run One offline shadow run. state is always CALCULATED (no approval / posting); outcome is technical.
+	Run *CommissionRun `json:"run,omitempty"`
+}
+
+// CommissionNotice Fixed SHADOW notice repeated on every commission answer.
+type CommissionNotice string
+
+// CommissionOverview defines model for CommissionOverview.
+type CommissionOverview struct {
+	Decisions []CommissionDecision `json:"decisions"`
+	Findings  map[string]int64     `json:"findings"`
+
+	// Parity Honest parity report: coverage counts only rows that were actually compared; totals per unit are exact decimal text; missing amounts are counted, never zero.
+	Parity *CommissionParitySummary `json:"parity,omitempty"`
+
+	// PostingState The only posting state Slice 13 can report (no posting command exists).
+	PostingState CommissionPostingState `json:"posting_state"`
+
+	// Run One offline shadow run. state is always CALCULATED (no approval / posting); outcome is technical.
+	Run *CommissionRun `json:"run,omitempty"`
+}
+
+// CommissionOverviewEnvelope defines model for CommissionOverviewEnvelope.
+type CommissionOverviewEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Notice Fixed SHADOW notice repeated on every commission answer.
+	Notice CommissionNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome  Outcome             `json:"outcome"`
+	Overview *CommissionOverview `json:"overview,omitempty"`
+	Reasons  Reasons             `json:"reasons"`
+}
+
+// CommissionParityClass defines model for CommissionParityClass.
+type CommissionParityClass string
+
+// CommissionParityField defines model for CommissionParityField.
+type CommissionParityField struct {
+	Equal  *bool   `json:"equal,omitempty"`
+	Legacy *string `json:"legacy,omitempty"`
+	Name   string  `json:"name"`
+	Target *string `json:"target,omitempty"`
+}
+
+// CommissionParitySummary Honest parity report: coverage counts only rows that were actually compared; totals per unit are exact decimal text; missing amounts are counted, never zero.
+type CommissionParitySummary struct {
+	Classes             map[string]int64   `json:"classes"`
+	Cohort              string             `json:"cohort"`
+	ComparedRows        int64              `json:"compared_rows"`
+	Coverage            CommissionCoverage `json:"coverage"`
+	Engines             map[string]int64   `json:"engines"`
+	LegacyAmountMissing int64              `json:"legacy_amount_missing"`
+	LegacyRows          int64              `json:"legacy_rows"`
+	LegacyTotals        map[string]string  `json:"legacy_totals"`
+	Reasons             map[string]int64   `json:"reasons"`
+	TargetAmountMissing int64              `json:"target_amount_missing"`
+	TargetTotals        map[string]string  `json:"target_totals"`
+	WindowFromRaw       *string            `json:"window_from_raw,omitempty"`
+	WindowToRaw         *string            `json:"window_to_raw,omitempty"`
+}
+
+// CommissionPolicyListEnvelope defines model for CommissionPolicyListEnvelope.
+type CommissionPolicyListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID              `json:"correlation_id"`
+	Items         *[]CommissionPolicyVersion `json:"items,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every commission answer.
+	Notice CommissionNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+
+	// Page Cursor pagination state. There is deliberately no total: a total is
+	// returned only when it is part of a metric contract.
+	Page    *PageInfo `json:"page,omitempty"`
+	Reasons Reasons   `json:"reasons"`
+}
+
+// CommissionPolicyVersion One OBSERVED policy version. approval_state is always NOT_APPROVED in Slice 13.
+type CommissionPolicyVersion struct {
+	ApprovalState CommissionPolicyVersionApprovalState `json:"approval_state"`
+	EffectiveFrom *string                              `json:"effective_from,omitempty"`
+	EffectiveTo   *string                              `json:"effective_to,omitempty"`
+	Evidence      CommissionPolicyVersionEvidence      `json:"evidence"`
+	FirstRunId    openapi_types.UUID                   `json:"first_run_id"`
+	Fixed         *string                              `json:"fixed,omitempty"`
+	FunctionId    string                               `json:"function_id"`
+	PolicyKey     string                               `json:"policy_key"`
+	Provenance    string                               `json:"provenance"`
+	Purpose       string                               `json:"purpose"`
+	RatePercent   *string                              `json:"rate_percent,omitempty"`
+	ShareFacet    string                               `json:"share_facet"`
+	SourceRef     string                               `json:"source_ref"`
+	Unit          CommissionPolicyVersionUnit          `json:"unit"`
+	Version       int                                  `json:"version"`
+}
+
+// CommissionPolicyVersionApprovalState defines model for CommissionPolicyVersion.ApprovalState.
+type CommissionPolicyVersionApprovalState string
+
+// CommissionPolicyVersionEvidence defines model for CommissionPolicyVersion.Evidence.
+type CommissionPolicyVersionEvidence string
+
+// CommissionPolicyVersionUnit defines model for CommissionPolicyVersion.Unit.
+type CommissionPolicyVersionUnit string
+
+// CommissionPostingState The only posting state Slice 13 can report (no posting command exists).
+type CommissionPostingState string
+
+// CommissionRun One offline shadow run. state is always CALCULATED (no approval / posting); outcome is technical.
+type CommissionRun struct {
+	// CompletedAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	CompletedAt          Timestamp             `json:"completed_at"`
+	Counts               map[string]int64      `json:"counts"`
+	NormalizationVersion int                   `json:"normalization_version"`
+	Outcome              CommissionRunOutcome  `json:"outcome"`
+	Reasons              Reasons               `json:"reasons"`
+	RecordKind           RecordKind            `json:"record_kind"`
+	Rounding             CommissionRunRounding `json:"rounding"`
+	RunId                openapi_types.UUID    `json:"run_id"`
+	RunSeq               int64                 `json:"run_seq"`
+	SnapshotId           string                `json:"snapshot_id"`
+
+	// SourceCutoff RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	SourceCutoff Timestamp             `json:"source_cutoff"`
+	Sources      []CommissionRunSource `json:"sources"`
+	State        CommissionRunState    `json:"state"`
+}
+
+// CommissionRunOutcome defines model for CommissionRun.Outcome.
+type CommissionRunOutcome string
+
+// CommissionRunRounding defines model for CommissionRun.Rounding.
+type CommissionRunRounding string
+
+// CommissionRunState defines model for CommissionRun.State.
+type CommissionRunState string
+
+// CommissionRunListEnvelope defines model for CommissionRunListEnvelope.
+type CommissionRunListEnvelope struct {
+	// AllowedActions Server-authoritative permission hints keyed by action name. Clients may
+	// render them; they never infer permission from roles, hierarchy or routes.
+	AllowedActions *AllowedActions `json:"allowed_actions,omitempty"`
+
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID    `json:"correlation_id"`
+	Items         *[]CommissionRun `json:"items,omitempty"`
+
+	// Notice Fixed SHADOW notice repeated on every commission answer.
+	Notice CommissionNotice `json:"notice"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome `json:"outcome"`
+	Reasons Reasons `json:"reasons"`
+}
+
+// CommissionRunSource defines model for CommissionRunSource.
+type CommissionRunSource struct {
+	RowsRead int64                  `json:"rows_read"`
+	Source   string                 `json:"source"`
+	Status   CommissionSourceStatus `json:"status"`
+}
+
+// CommissionSourceStatus defines model for CommissionSourceStatus.
+type CommissionSourceStatus string
 
 // ContactOutcomeCurrent defines model for ContactOutcomeCurrent.
 type ContactOutcomeCurrent struct {
@@ -8579,6 +9466,9 @@ type SessionContext struct {
 		// BillingRead Slice 7 billing + payments read shadow (flag billing_payments.read_shadow).
 		BillingRead bool `json:"billing_read"`
 
+		// CommissionRead Slice 13 commission controlled SHADOW read (flag commission.read_shadow). Read only; no calculate, approve, post or credit action.
+		CommissionRead bool `json:"commission_read"`
+
 		// ContactOutcomeWrite Slice 11 contact outcome command family enabled (flag cases.nonfinancial_write). Navigation hint only; every command is evaluated by the server.
 		ContactOutcomeWrite bool `json:"contact_outcome_write"`
 
@@ -9281,6 +10171,18 @@ type CaseID = NativeID
 // (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
 type CaseLinkState = ResolutionState
 
+// CommissionEngineFilter defines model for CommissionEngineFilter.
+type CommissionEngineFilter = CommissionEngine
+
+// CommissionFindingKindFilter defines model for CommissionFindingKindFilter.
+type CommissionFindingKindFilter string
+
+// CommissionParityClassFilter defines model for CommissionParityClassFilter.
+type CommissionParityClassFilter = CommissionParityClass
+
+// CommissionRunID defines model for CommissionRunID.
+type CommissionRunID = openapi_types.UUID
+
 // Cursor defines model for Cursor.
 type Cursor = string
 
@@ -9513,6 +10415,66 @@ type ListCaseHistoryParams struct {
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListCommissionCalculationsParams defines parameters for ListCommissionCalculations.
+type ListCommissionCalculationsParams struct {
+	// RunId Pin the commission shadow run. Omitted = the latest run; the answer names the run it used.
+	RunId       *CommissionRunID             `form:"run_id,omitempty" json:"run_id,omitempty"`
+	ParityClass *CommissionParityClassFilter `form:"parity_class,omitempty" json:"parity_class,omitempty"`
+	Engine      *CommissionEngineFilter      `form:"engine,omitempty" json:"engine,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListCommissionFindingsParams defines parameters for ListCommissionFindings.
+type ListCommissionFindingsParams struct {
+	// RunId Pin the commission shadow run. Omitted = the latest run; the answer names the run it used.
+	RunId *CommissionRunID                  `form:"run_id,omitempty" json:"run_id,omitempty"`
+	Kind  *ListCommissionFindingsParamsKind `form:"kind,omitempty" json:"kind,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListCommissionFindingsParamsKind defines parameters for ListCommissionFindings.
+type ListCommissionFindingsParamsKind string
+
+// ListCommissionHistoricalRunsParams defines parameters for ListCommissionHistoricalRuns.
+type ListCommissionHistoricalRunsParams struct {
+	// RunId Pin the commission shadow run. Omitted = the latest run; the answer names the run it used.
+	RunId *CommissionRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+}
+
+// ListMyCommissionEarningsParams defines parameters for ListMyCommissionEarnings.
+type ListMyCommissionEarningsParams struct {
+	// RunId Pin the commission shadow run. Omitted = the latest run; the answer names the run it used.
+	RunId *CommissionRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetCommissionOverviewParams defines parameters for GetCommissionOverview.
+type GetCommissionOverviewParams struct {
+	// RunId Pin the commission shadow run. Omitted = the latest run; the answer names the run it used.
+	RunId *CommissionRunID `form:"run_id,omitempty" json:"run_id,omitempty"`
+}
+
+// ListCommissionPoliciesParams defines parameters for ListCommissionPolicies.
+type ListCommissionPoliciesParams struct {
+	// Cursor Opaque cursor from PageInfo.next_cursor.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListCommissionRunsParams defines parameters for ListCommissionRuns.
+type ListCommissionRunsParams struct {
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ListCustodyAssignmentsParams defines parameters for ListCustodyAssignments.
@@ -10287,6 +11249,27 @@ type ServerInterface interface {
 	// ListCaseHistory List a case's append-only state history
 	// (GET /api/v1/cases/{case_id}/history)
 	ListCaseHistory(w http.ResponseWriter, r *http.Request, caseId CaseID, params ListCaseHistoryParams)
+	// ListCommissionCalculations Stored shadow calculations with parity of one run
+	// (GET /api/v1/commission/calculations)
+	ListCommissionCalculations(w http.ResponseWriter, r *http.Request, params ListCommissionCalculationsParams)
+	// ListCommissionFindings Reconciliation findings of one run
+	// (GET /api/v1/commission/findings)
+	ListCommissionFindings(w http.ResponseWriter, r *http.Request, params ListCommissionFindingsParams)
+	// ListCommissionHistoricalRuns Legacy dry runs with approval / posting provenance
+	// (GET /api/v1/commission/historical-runs)
+	ListCommissionHistoricalRuns(w http.ResponseWriter, r *http.Request, params ListCommissionHistoricalRunsParams)
+	// ListMyCommissionEarnings The caller's own historical commission credits (own scope only)
+	// (GET /api/v1/commission/me/earnings)
+	ListMyCommissionEarnings(w http.ResponseWriter, r *http.Request, params ListMyCommissionEarningsParams)
+	// GetCommissionOverview Commission shadow overview: run, parity summary, findings, blocked decisions
+	// (GET /api/v1/commission/overview)
+	GetCommissionOverview(w http.ResponseWriter, r *http.Request, params GetCommissionOverviewParams)
+	// ListCommissionPolicies Observed commission policy versions (none approved)
+	// (GET /api/v1/commission/policies)
+	ListCommissionPolicies(w http.ResponseWriter, r *http.Request, params ListCommissionPoliciesParams)
+	// ListCommissionRuns Commission shadow runs (newest first)
+	// (GET /api/v1/commission/runs)
+	ListCommissionRuns(w http.ResponseWriter, r *http.Request, params ListCommissionRunsParams)
 	// ListCustodyAssignments List derived custody projections
 	// (GET /api/v1/custody/assignments)
 	ListCustodyAssignments(w http.ResponseWriter, r *http.Request, params ListCustodyAssignmentsParams)
@@ -11166,6 +12149,367 @@ func (siw *ServerInterfaceWrapper) ListCaseHistory(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListCaseHistory(w, r, caseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCommissionCalculations operation middleware
+func (siw *ServerInterfaceWrapper) ListCommissionCalculations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCommissionCalculationsParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "parity_class" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "parity_class", r.URL.Query(), &params.ParityClass, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "parity_class"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "parity_class", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "engine" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "engine", r.URL.Query(), &params.Engine, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "engine"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "engine", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCommissionCalculations(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCommissionFindings operation middleware
+func (siw *ServerInterfaceWrapper) ListCommissionFindings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCommissionFindingsParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kind", r.URL.Query(), &params.Kind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCommissionFindings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCommissionHistoricalRuns operation middleware
+func (siw *ServerInterfaceWrapper) ListCommissionHistoricalRuns(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCommissionHistoricalRunsParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCommissionHistoricalRuns(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyCommissionEarnings operation middleware
+func (siw *ServerInterfaceWrapper) ListMyCommissionEarnings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMyCommissionEarningsParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyCommissionEarnings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCommissionOverview operation middleware
+func (siw *ServerInterfaceWrapper) GetCommissionOverview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCommissionOverviewParams
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCommissionOverview(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCommissionPolicies operation middleware
+func (siw *ServerInterfaceWrapper) ListCommissionPolicies(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCommissionPoliciesParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCommissionPolicies(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCommissionRuns operation middleware
+func (siw *ServerInterfaceWrapper) ListCommissionRuns(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCommissionRunsParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCommissionRuns(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -16318,6 +17662,13 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/biawin/subscriptions/{subscription_id}", wrapper.GetBiawinSubscription)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/biawin/subscriptions/{subscription_id}/items", wrapper.ListBiawinSubscriptionItems)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/biawin/parity", wrapper.GetBiawinParity)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/overview", wrapper.GetCommissionOverview)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/runs", wrapper.ListCommissionRuns)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/calculations", wrapper.ListCommissionCalculations)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/findings", wrapper.ListCommissionFindings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/policies", wrapper.ListCommissionPolicies)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/historical-runs", wrapper.ListCommissionHistoricalRuns)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/commission/me/earnings", wrapper.ListMyCommissionEarnings)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases", wrapper.ListFulfillmentCases)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases/{case_id}", wrapper.GetFulfillmentCase)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/fulfillment/cases/{case_id}/history", wrapper.ListFulfillmentCaseHistory)
@@ -17663,6 +19014,825 @@ type ListCaseHistorydefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response ListCaseHistorydefaultApplicationProblemPlusJSONResponse) VisitListCaseHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionCalculationsRequestObject struct {
+	Params ListCommissionCalculationsParams
+}
+
+type ListCommissionCalculationsResponseObject interface {
+	VisitListCommissionCalculationsResponse(w http.ResponseWriter) error
+}
+
+type ListCommissionCalculations200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionCalculations200JSONResponse struct {
+	Body    CommissionCalculationListEnvelope
+	Headers ListCommissionCalculations200ResponseHeaders
+}
+
+func (response ListCommissionCalculations200JSONResponse) VisitListCommissionCalculationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionCalculations400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListCommissionCalculations400ApplicationProblemPlusJSONResponse) VisitListCommissionCalculationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionCalculations403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListCommissionCalculations403JSONResponse) VisitListCommissionCalculationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionCalculations404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionCalculations404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListCommissionCalculations404ResponseHeaders
+}
+
+func (response ListCommissionCalculations404ApplicationProblemPlusJSONResponse) VisitListCommissionCalculationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionCalculationsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionCalculationsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListCommissionCalculationsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListCommissionCalculationsdefaultApplicationProblemPlusJSONResponse) VisitListCommissionCalculationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionFindingsRequestObject struct {
+	Params ListCommissionFindingsParams
+}
+
+type ListCommissionFindingsResponseObject interface {
+	VisitListCommissionFindingsResponse(w http.ResponseWriter) error
+}
+
+type ListCommissionFindings200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionFindings200JSONResponse struct {
+	Body    CommissionFindingListEnvelope
+	Headers ListCommissionFindings200ResponseHeaders
+}
+
+func (response ListCommissionFindings200JSONResponse) VisitListCommissionFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionFindings400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListCommissionFindings400ApplicationProblemPlusJSONResponse) VisitListCommissionFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionFindings403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListCommissionFindings403JSONResponse) VisitListCommissionFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionFindings404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionFindings404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListCommissionFindings404ResponseHeaders
+}
+
+func (response ListCommissionFindings404ApplicationProblemPlusJSONResponse) VisitListCommissionFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionFindingsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionFindingsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListCommissionFindingsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListCommissionFindingsdefaultApplicationProblemPlusJSONResponse) VisitListCommissionFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionHistoricalRunsRequestObject struct {
+	Params ListCommissionHistoricalRunsParams
+}
+
+type ListCommissionHistoricalRunsResponseObject interface {
+	VisitListCommissionHistoricalRunsResponse(w http.ResponseWriter) error
+}
+
+type ListCommissionHistoricalRuns200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionHistoricalRuns200JSONResponse struct {
+	Body    CommissionHistoricalRunListEnvelope
+	Headers ListCommissionHistoricalRuns200ResponseHeaders
+}
+
+func (response ListCommissionHistoricalRuns200JSONResponse) VisitListCommissionHistoricalRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionHistoricalRuns400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListCommissionHistoricalRuns400ApplicationProblemPlusJSONResponse) VisitListCommissionHistoricalRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionHistoricalRuns403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListCommissionHistoricalRuns403JSONResponse) VisitListCommissionHistoricalRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionHistoricalRuns404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionHistoricalRuns404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListCommissionHistoricalRuns404ResponseHeaders
+}
+
+func (response ListCommissionHistoricalRuns404ApplicationProblemPlusJSONResponse) VisitListCommissionHistoricalRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionHistoricalRunsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionHistoricalRunsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListCommissionHistoricalRunsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListCommissionHistoricalRunsdefaultApplicationProblemPlusJSONResponse) VisitListCommissionHistoricalRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyCommissionEarningsRequestObject struct {
+	Params ListMyCommissionEarningsParams
+}
+
+type ListMyCommissionEarningsResponseObject interface {
+	VisitListMyCommissionEarningsResponse(w http.ResponseWriter) error
+}
+
+type ListMyCommissionEarnings200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListMyCommissionEarnings200JSONResponse struct {
+	Body    CommissionEarningListEnvelope
+	Headers ListMyCommissionEarnings200ResponseHeaders
+}
+
+func (response ListMyCommissionEarnings200JSONResponse) VisitListMyCommissionEarningsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyCommissionEarnings400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListMyCommissionEarnings400ApplicationProblemPlusJSONResponse) VisitListMyCommissionEarningsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyCommissionEarnings403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListMyCommissionEarnings403JSONResponse) VisitListMyCommissionEarningsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyCommissionEarnings404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListMyCommissionEarnings404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListMyCommissionEarnings404ResponseHeaders
+}
+
+func (response ListMyCommissionEarnings404ApplicationProblemPlusJSONResponse) VisitListMyCommissionEarningsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyCommissionEarningsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListMyCommissionEarningsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListMyCommissionEarningsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListMyCommissionEarningsdefaultApplicationProblemPlusJSONResponse) VisitListMyCommissionEarningsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCommissionOverviewRequestObject struct {
+	Params GetCommissionOverviewParams
+}
+
+type GetCommissionOverviewResponseObject interface {
+	VisitGetCommissionOverviewResponse(w http.ResponseWriter) error
+}
+
+type GetCommissionOverview200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCommissionOverview200JSONResponse struct {
+	Body    CommissionOverviewEnvelope
+	Headers GetCommissionOverview200ResponseHeaders
+}
+
+func (response GetCommissionOverview200JSONResponse) VisitGetCommissionOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCommissionOverview400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetCommissionOverview400ApplicationProblemPlusJSONResponse) VisitGetCommissionOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCommissionOverview403JSONResponse struct{ DeniedJSONResponse }
+
+func (response GetCommissionOverview403JSONResponse) VisitGetCommissionOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCommissionOverview404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCommissionOverview404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetCommissionOverview404ResponseHeaders
+}
+
+func (response GetCommissionOverview404ApplicationProblemPlusJSONResponse) VisitGetCommissionOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCommissionOverviewdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCommissionOverviewdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    GetCommissionOverviewdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response GetCommissionOverviewdefaultApplicationProblemPlusJSONResponse) VisitGetCommissionOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionPoliciesRequestObject struct {
+	Params ListCommissionPoliciesParams
+}
+
+type ListCommissionPoliciesResponseObject interface {
+	VisitListCommissionPoliciesResponse(w http.ResponseWriter) error
+}
+
+type ListCommissionPolicies200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionPolicies200JSONResponse struct {
+	Body    CommissionPolicyListEnvelope
+	Headers ListCommissionPolicies200ResponseHeaders
+}
+
+func (response ListCommissionPolicies200JSONResponse) VisitListCommissionPoliciesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionPolicies400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListCommissionPolicies400ApplicationProblemPlusJSONResponse) VisitListCommissionPoliciesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionPolicies403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListCommissionPolicies403JSONResponse) VisitListCommissionPoliciesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionPolicies404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionPolicies404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListCommissionPolicies404ResponseHeaders
+}
+
+func (response ListCommissionPolicies404ApplicationProblemPlusJSONResponse) VisitListCommissionPoliciesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionPoliciesdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionPoliciesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListCommissionPoliciesdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListCommissionPoliciesdefaultApplicationProblemPlusJSONResponse) VisitListCommissionPoliciesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionRunsRequestObject struct {
+	Params ListCommissionRunsParams
+}
+
+type ListCommissionRunsResponseObject interface {
+	VisitListCommissionRunsResponse(w http.ResponseWriter) error
+}
+
+type ListCommissionRuns200ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionRuns200JSONResponse struct {
+	Body    CommissionRunListEnvelope
+	Headers ListCommissionRuns200ResponseHeaders
+}
+
+func (response ListCommissionRuns200JSONResponse) VisitListCommissionRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionRuns400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListCommissionRuns400ApplicationProblemPlusJSONResponse) VisitListCommissionRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionRuns403JSONResponse struct{ DeniedJSONResponse }
+
+func (response ListCommissionRuns403JSONResponse) VisitListCommissionRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionRuns404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionRuns404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers ListCommissionRuns404ResponseHeaders
+}
+
+func (response ListCommissionRuns404ApplicationProblemPlusJSONResponse) VisitListCommissionRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCommissionRunsdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type ListCommissionRunsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    ListCommissionRunsdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response ListCommissionRunsdefaultApplicationProblemPlusJSONResponse) VisitListCommissionRunsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -25445,6 +27615,27 @@ type StrictServerInterface interface {
 	// ListCaseHistory List a case's append-only state history
 	// (GET /api/v1/cases/{case_id}/history)
 	ListCaseHistory(ctx context.Context, request ListCaseHistoryRequestObject) (ListCaseHistoryResponseObject, error)
+	// ListCommissionCalculations Stored shadow calculations with parity of one run
+	// (GET /api/v1/commission/calculations)
+	ListCommissionCalculations(ctx context.Context, request ListCommissionCalculationsRequestObject) (ListCommissionCalculationsResponseObject, error)
+	// ListCommissionFindings Reconciliation findings of one run
+	// (GET /api/v1/commission/findings)
+	ListCommissionFindings(ctx context.Context, request ListCommissionFindingsRequestObject) (ListCommissionFindingsResponseObject, error)
+	// ListCommissionHistoricalRuns Legacy dry runs with approval / posting provenance
+	// (GET /api/v1/commission/historical-runs)
+	ListCommissionHistoricalRuns(ctx context.Context, request ListCommissionHistoricalRunsRequestObject) (ListCommissionHistoricalRunsResponseObject, error)
+	// ListMyCommissionEarnings The caller's own historical commission credits (own scope only)
+	// (GET /api/v1/commission/me/earnings)
+	ListMyCommissionEarnings(ctx context.Context, request ListMyCommissionEarningsRequestObject) (ListMyCommissionEarningsResponseObject, error)
+	// GetCommissionOverview Commission shadow overview: run, parity summary, findings, blocked decisions
+	// (GET /api/v1/commission/overview)
+	GetCommissionOverview(ctx context.Context, request GetCommissionOverviewRequestObject) (GetCommissionOverviewResponseObject, error)
+	// ListCommissionPolicies Observed commission policy versions (none approved)
+	// (GET /api/v1/commission/policies)
+	ListCommissionPolicies(ctx context.Context, request ListCommissionPoliciesRequestObject) (ListCommissionPoliciesResponseObject, error)
+	// ListCommissionRuns Commission shadow runs (newest first)
+	// (GET /api/v1/commission/runs)
+	ListCommissionRuns(ctx context.Context, request ListCommissionRunsRequestObject) (ListCommissionRunsResponseObject, error)
 	// ListCustodyAssignments List derived custody projections
 	// (GET /api/v1/custody/assignments)
 	ListCustodyAssignments(ctx context.Context, request ListCustodyAssignmentsRequestObject) (ListCustodyAssignmentsResponseObject, error)
@@ -26020,6 +28211,188 @@ func (sh *strictHandler) ListCaseHistory(w http.ResponseWriter, r *http.Request,
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListCaseHistoryResponseObject); ok {
 		if err := validResponse.VisitListCaseHistoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCommissionCalculations operation middleware
+func (sh *strictHandler) ListCommissionCalculations(w http.ResponseWriter, r *http.Request, params ListCommissionCalculationsParams) {
+	var request ListCommissionCalculationsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCommissionCalculations(ctx, request.(ListCommissionCalculationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCommissionCalculations")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCommissionCalculationsResponseObject); ok {
+		if err := validResponse.VisitListCommissionCalculationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCommissionFindings operation middleware
+func (sh *strictHandler) ListCommissionFindings(w http.ResponseWriter, r *http.Request, params ListCommissionFindingsParams) {
+	var request ListCommissionFindingsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCommissionFindings(ctx, request.(ListCommissionFindingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCommissionFindings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCommissionFindingsResponseObject); ok {
+		if err := validResponse.VisitListCommissionFindingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCommissionHistoricalRuns operation middleware
+func (sh *strictHandler) ListCommissionHistoricalRuns(w http.ResponseWriter, r *http.Request, params ListCommissionHistoricalRunsParams) {
+	var request ListCommissionHistoricalRunsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCommissionHistoricalRuns(ctx, request.(ListCommissionHistoricalRunsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCommissionHistoricalRuns")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCommissionHistoricalRunsResponseObject); ok {
+		if err := validResponse.VisitListCommissionHistoricalRunsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMyCommissionEarnings operation middleware
+func (sh *strictHandler) ListMyCommissionEarnings(w http.ResponseWriter, r *http.Request, params ListMyCommissionEarningsParams) {
+	var request ListMyCommissionEarningsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyCommissionEarnings(ctx, request.(ListMyCommissionEarningsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyCommissionEarnings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMyCommissionEarningsResponseObject); ok {
+		if err := validResponse.VisitListMyCommissionEarningsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCommissionOverview operation middleware
+func (sh *strictHandler) GetCommissionOverview(w http.ResponseWriter, r *http.Request, params GetCommissionOverviewParams) {
+	var request GetCommissionOverviewRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCommissionOverview(ctx, request.(GetCommissionOverviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCommissionOverview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCommissionOverviewResponseObject); ok {
+		if err := validResponse.VisitGetCommissionOverviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCommissionPolicies operation middleware
+func (sh *strictHandler) ListCommissionPolicies(w http.ResponseWriter, r *http.Request, params ListCommissionPoliciesParams) {
+	var request ListCommissionPoliciesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCommissionPolicies(ctx, request.(ListCommissionPoliciesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCommissionPolicies")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCommissionPoliciesResponseObject); ok {
+		if err := validResponse.VisitListCommissionPoliciesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCommissionRuns operation middleware
+func (sh *strictHandler) ListCommissionRuns(w http.ResponseWriter, r *http.Request, params ListCommissionRunsParams) {
+	var request ListCommissionRunsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCommissionRuns(ctx, request.(ListCommissionRunsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCommissionRuns")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCommissionRunsResponseObject); ok {
+		if err := validResponse.VisitListCommissionRunsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

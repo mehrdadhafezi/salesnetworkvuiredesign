@@ -208,6 +208,28 @@ jobs:
             echo "a Slice 12 blocked financial route appeared in the contract"; exit 1
           fi
 
+      - name: Slice 13 commission controlled SHADOW gates (verbose; synthetic legacy only; exact amounts, entitlement identity, lifecycle, parity, no posting)
+        run: |
+          go test -count=1 -v ./internal/commission/... ./cmd/crm-commission-shadow/ ./internal/integration/legacy/spec/ ./internal/integration/legacy/migrations/
+          go test -count=1 -v -run 'Commission' ./internal/integration/legacy/shadow/ ./cmd/crm-api/
+          go test -count=1 -v -run 'ViolatingFixture|FixtureAllowed|RepositoryPasses|NoBusinessOrMutating|QueryAllowlist' ./internal/architecture/ ./internal/platform/httpx/oapi/ ./internal/platform/apiserver/
+          go test -count=1 -race ./internal/commission/... ./cmd/crm-commission-shadow/
+          go test -count=1 -race -run 'Commission' ./internal/integration/legacy/shadow/
+
+      - name: Slice 13 boundary — no posting, finance write, connector or shadow job on the read path
+        shell: bash
+        run: |
+          module="$(go list -m)"
+          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/commission/shadow$" || true)"
+          if [ -n "$bad" ]; then echo "crm-api depends on the offline commission shadow job:"; echo "$bad"; exit 1; fi
+          # commission never reaches finance, wallet, billing, payments, organization (current hierarchy) or the legacy connector.
+          bad="$(go list -deps ./internal/commission/... | grep -E "^${module}/internal/(integration|finance|billing|payments|organization|cases|custody|biawin|fulfillment|reporting|customers)(/|$)" || true)"
+          if [ -n "$bad" ]; then echo "commission depends on a forbidden package:"; echo "$bad"; exit 1; fi
+          # No approve / post / credit / settle / reverse / recalculate commission route in the contract.
+          if grep -nE "^  /api/v1/commission/.*(approve|reject|post|postings|credit|settle|reverse|recalculate|calculate|backfill)" api/openapi/openapi.yaml; then
+            echo "a Slice 13 blocked commission route appeared in the contract"; exit 1
+          fi
+
       - name: Slice 3 — no snapshot content tracked
         shell: bash
         run: |
@@ -231,7 +253,7 @@ jobs:
           ! grep -q pending <<< "$status"
           grep -q 'applied  00001_integration_staging.sql' <<< "$status"
           stg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'integration' AND table_name LIKE 'stg\_%'")"
-          test "$stg" = "32" || { echo "expected 32 integration staging tables (Slice 3 + invoice issued-to + Slice 6 sales + Slice 7 billing + Slice 9 wallets + Slice 10 Biawin / fulfillment), got $stg"; exit 1; }
+          test "$stg" = "37" || { echo "expected 37 integration staging tables (Slice 3 + invoice issued-to + Slice 6 sales + Slice 7 billing + Slice 9 wallets + Slice 10 Biawin / fulfillment + Slice 13 commission), got $stg"; exit 1; }
           grep -q 'applied  00003_integration_staging_invoice_issued_to.sql' <<< "$status"
           grep -q 'applied  00004_integration_staging_sales.sql' <<< "$status"
           grep -q 'applied  00001_identity.sql' <<< "$status"
@@ -374,6 +396,26 @@ jobs:
           test "$granted" = "0" || { echo "Slice 12 capabilities must be granted to no role"; exit 1; }
           financecap="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.capability WHERE capability_key ~ '(approve|reject|post|refund|settle|next_stage|gateway)'")"
           test "$financecap" = "0" || { echo "a Finance decision / posting / refund / settlement / next-stage / gateway capability exists"; exit 1; }
+          # Slice 13 commission controlled SHADOW (insert-only; exact integers; no approval / posting state; no foreign role; no role grant).
+          for f in 00010_integration_staging_commission.sql 00010_identity_commission_capabilities.sql 00001_commission.sql 00002_commission_append_only_guards.sql; do
+            grep -q "applied  $f" <<< "$status" || { echo "$f not applied"; exit 1; }
+          done
+          n="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'commission'")"
+          test "$n" = "14" || { echo "expected 14 commission tables, got $n"; exit 1; }
+          g="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(DISTINCT event_object_table) FROM information_schema.triggers WHERE trigger_name LIKE '%_append_only' AND trigger_schema = 'commission'")"
+          test "$g" = "11" || { echo "commission append-only triggers missing: $g"; exit 1; }
+          bad="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'commission' AND grantee <> current_user AND (privilege_type IN ('DELETE', 'TRUNCATE') OR (privilege_type = 'UPDATE' AND table_name NOT IN ('outbox_event', 'inbox_message', 'idempotency_record')))")"
+          test "$bad" = "0" || { echo "commission shadow facts must be insert-only"; exit 1; }
+          foreign="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE (table_schema = 'commission' AND grantee NOT IN ('crm_owner_commission', current_user)) OR (grantee = 'crm_owner_commission' AND table_schema <> 'commission')")"
+          test "$foreign" = "0" || { echo "foreign role on commission, or commission owner granted outside its schema"; exit 1; }
+          money="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'commission' AND (data_type IN ('real', 'double precision', 'numeric', 'money') OR column_name ~* '(phone|mobile|address|email|password|token|secret|wallet_balance)')")"
+          test "$money" = "0" || { echo "commission carries a float / numeric / money or PII column"; exit 1; }
+          state="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_constraint WHERE conname IN ('shadow_run_state', 'policy_version_not_approved') AND pg_get_constraintdef(oid) ~ '(APPROVED''|POSTED|POSTING)' AND pg_get_constraintdef(oid) !~ 'NOT_APPROVED'")"
+          test "$state" = "0" || { echo "a commission run or policy can reach an approved / posted state"; exit 1; }
+          granted="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.role_capability WHERE capability_key LIKE 'commission.%'")"
+          test "$granted" = "0" || { echo "Slice 13 capabilities must be granted to no role"; exit 1; }
+          cmdcap="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.capability WHERE capability_key LIKE 'commission.%' AND capability_key !~ '\.read$'")"
+          test "$cmdcap" = "0" || { echo "a commission command capability exists"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

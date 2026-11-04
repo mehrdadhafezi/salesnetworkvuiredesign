@@ -91,6 +91,14 @@ const (
 	CapPaymentSubmissionRead Capability = "payments.submission.read"
 	CapPaymentEvidenceRead   Capability = "payments.evidence.read"
 	CapFinanceReviewRead     Capability = "finance.review.read"
+	// Slice 13 commission controlled SHADOW read. READ only: there is no
+	// calculate, approve, reject, post, credit, settle or reverse
+	// capability (OPD-09 / D-41 decision-blocked). The own-earnings read is
+	// row-filtered to the caller's own user, never broadened by hierarchy.
+	// No role receives them (fail closed).
+	CapCommissionShadowRead Capability = "commission.shadow.read"
+	CapCommissionPolicyRead Capability = "commission.policy.read"
+	CapCommissionOwnRead    Capability = "commission.own.read"
 )
 
 // CapabilityDef is one vocabulary entry.
@@ -134,6 +142,9 @@ var vocabulary = []CapabilityDef{
 	{CapPaymentSubmissionRead, "Read the payment submission context and own payment batches"},
 	{CapPaymentEvidenceRead, "Read payment evidence diagnostics and evidence reconciliation records"},
 	{CapFinanceReviewRead, "Read the Finance review queue and its decision gate (no approve / reject authority)"},
+	{CapCommissionShadowRead, "Read commission SHADOW runs, stored calculations, parity, findings and legacy runs (no approve / post authority)"},
+	{CapCommissionPolicyRead, "Read observed commission policy versions (none approved)"},
+	{CapCommissionOwnRead, "Read the caller's own historical commission credits (own scope only)"},
 }
 
 // HRReadCapabilities returns the Slice 4 HR read capabilities: the set the

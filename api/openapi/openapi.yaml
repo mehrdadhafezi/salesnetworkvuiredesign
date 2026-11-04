@@ -52,6 +52,8 @@ tags:
     description: Slice 8 MIS / reporting read — metric contracts, projections, Invoice Review query surface (read only; no export; no Invoice Review UI).
   - name: payments
     description: Slice 12 controlled financial writes — receipt upload, owning-seller manual payment batch, evidence diagnostics and the read-only Finance review queue (no review decision, posting, refund, gateway route or next stage).
+  - name: commission
+    description: Slice 13 commission controlled SHADOW read — overview, policy versions, stored shadow calculations with parity, reconciliation findings, legacy dry runs and own earnings (GET only; no calculate, approve, post, credit, settle or reverse operation).
   - name: billing
     description: Slice 7 billing + payments read shadow — invoices, lines, stages, attempts, receipt references (read only; no actions).
 paths:
@@ -2127,6 +2129,219 @@ paths:
             application/json:
               schema:
                 $ref: './components/biawin.yaml#/ParityEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/commission/overview:
+    get:
+      tags: [commission]
+      operationId: getCommissionOverview
+      summary: "Commission shadow overview: run, parity summary, findings, blocked decisions"
+      description: |
+        Requires commission.shadow.read. posting_state is always BLOCKED_NOT_AUTHORIZED.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CommissionRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/commission.yaml#/CommissionOverviewEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/commission/runs:
+    get:
+      tags: [commission]
+      operationId: listCommissionRuns
+      summary: "Commission shadow runs (newest first)"
+      description: |
+        Requires commission.shadow.read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/commission.yaml#/CommissionRunListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/commission/calculations:
+    get:
+      tags: [commission]
+      operationId: listCommissionCalculations
+      summary: "Stored shadow calculations with parity of one run"
+      description: |
+        Requires commission.shadow.read. Stored results only: nothing is (re)calculated by this read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CommissionRunID'
+        - $ref: './components/parameters.yaml#/CommissionParityClassFilter'
+        - $ref: './components/parameters.yaml#/CommissionEngineFilter'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/commission.yaml#/CommissionCalculationListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/commission/findings:
+    get:
+      tags: [commission]
+      operationId: listCommissionFindings
+      summary: "Reconciliation findings of one run"
+      description: |
+        Requires commission.shadow.read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CommissionRunID'
+        - $ref: './components/parameters.yaml#/CommissionFindingKindFilter'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/commission.yaml#/CommissionFindingListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/commission/policies:
+    get:
+      tags: [commission]
+      operationId: listCommissionPolicies
+      summary: "Observed commission policy versions (none approved)"
+      description: |
+        Requires commission.policy.read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/commission.yaml#/CommissionPolicyListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/commission/historical-runs:
+    get:
+      tags: [commission]
+      operationId: listCommissionHistoricalRuns
+      summary: "Legacy dry runs with approval / posting provenance"
+      description: |
+        Requires commission.shadow.read.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CommissionRunID'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/commission.yaml#/CommissionHistoricalRunListEnvelope'
+        '400':
+          $ref: './components/responses.yaml#/Problem'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
+        '403':
+          $ref: './components/responses.yaml#/Denied'
+        default:
+          $ref: './components/responses.yaml#/Problem'
+  /api/v1/commission/me/earnings:
+    get:
+      tags: [commission]
+      operationId: listMyCommissionEarnings
+      summary: "The caller's own historical commission credits (own scope only)"
+      description: |
+        Requires commission.own.read. Own scope only: rows are filtered to the authenticated user; never another recipient, never broadened by hierarchy.
+        Read-only (READ ONLY transaction pinned to one stored shadow run); never calculates, approves, posts, credits, imports or records anything.
+        SHADOW only. Unknown query parameters (including any phone parameter) are 400 CONTRACT_INVALID.
+      parameters:
+        - $ref: './components/parameters.yaml#/CommissionRunID'
+        - $ref: './components/parameters.yaml#/Cursor'
+        - $ref: './components/parameters.yaml#/Limit'
+      responses:
+        '200':
+          description: Result envelope (SUCCESS / PARTIAL / UNKNOWN when no run exists, or BLOCKED with FEATURE_DISABLED when commission.read_shadow is off).
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers.yaml#/CorrelationID'
+          content:
+            application/json:
+              schema:
+                $ref: './components/commission.yaml#/CommissionEarningListEnvelope'
         '400':
           $ref: './components/responses.yaml#/Problem'
         '404':

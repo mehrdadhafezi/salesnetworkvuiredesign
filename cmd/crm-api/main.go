@@ -41,6 +41,11 @@
 // (default off). GET only; the import is the offline crm-biawin-shadow job
 // and no provider is ever called.
 //
+// Slice 13 commission controlled SHADOW read surface (optional):
+// CRM_COMMISSION_READ_DATABASE_URL plus CRM_FEATUREFLAGS_DATABASE_URL, behind
+// commission.read_shadow (default off). GET only; the shadow run is the
+// offline crm-commission-shadow job; nothing is approved, posted or credited.
+//
 // Slice 11 controlled non-financial writes (optional, each OFF by default):
 // CRM_CASES_WRITE_DATABASE_URL + CRM_CUSTODY_HOLDER_DATABASE_URL (contact
 // outcome), CRM_ORGANIZATION_WRITE_DATABASE_URL (HR change requests) and
@@ -118,6 +123,11 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closeBiawin()
+	com, closeCommission, err := openCommission(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closeCommission()
 	writes, closeWrites, err := openWrites(ctx, getenv, cfg.DevAuth)
 	if err != nil {
 		return err
@@ -129,7 +139,7 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 	}
 	defer closePayments()
 	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill,
-		Reporting: rep, Finance: fin, Biawin: bw,
+		Reporting: rep, Finance: fin, Biawin: bw, Commission: com,
 		CaseWrite: writes.CaseWrite, HRRequest: writes.HRRequest, Writeback: writes.Writeback, Payments: pay})
 	if err != nil {
 		return err

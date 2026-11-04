@@ -39,6 +39,10 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { to: '/biawin/subscriptions', label: 'اشتراک‌های بیاوین', feature: 'biawin_fulfillment_read' },
     { to: '/biawin/parity', label: 'تطبیق اشتراک‌های فعال', feature: 'biawin_fulfillment_read' },
     { to: '/fulfillment/cases', label: 'پرونده‌های اجرای خدمت', feature: 'biawin_fulfillment_read' },
+    { to: '/commission', label: 'پورسانت · نمای سایه', feature: 'commission_read' },
+    { to: '/commission/calculations', label: 'محاسبات سایه پورسانت', feature: 'commission_read' },
+    { to: '/commission/policies', label: 'نسخه‌های سیاست پورسانت', feature: 'commission_read' },
+    { to: '/commission/me', label: 'پورسانت‌های من', feature: 'commission_read' },
     { to: '/hr/requests', label: 'درخواست‌های منابع انسانی', feature: 'hr_request_write' },
     { to: '/writeback', label: 'بازنویسی به سامانه قدیمی', feature: 'writeback_read' },
     { to: '/payments/evidence', label: 'شواهد پرداخت', feature: 'payment_submission' },
@@ -92,6 +96,11 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'biawin/parity', lazy: async () => ({ Component: (await import('../modules/biawin/pages/ParityPage')).ParityPage }) },
     { path: 'fulfillment/cases', lazy: async () => ({ Component: (await import('../modules/biawin/pages/CasesPage')).CasesPage }) },
     { path: 'fulfillment/cases/:caseId', lazy: async () => ({ Component: (await import('../modules/biawin/pages/CasePage')).CasePage }) },
+    // Slice 13 commission controlled SHADOW read (no calculate, approve, post, credit or settle control).
+    { path: 'commission', lazy: async () => ({ Component: (await import('../modules/commission/pages/OverviewPage')).OverviewPage }) },
+    { path: 'commission/calculations', lazy: async () => ({ Component: (await import('../modules/commission/pages/CalculationsPage')).CalculationsPage }) },
+    { path: 'commission/policies', lazy: async () => ({ Component: (await import('../modules/commission/pages/PoliciesPage')).PoliciesPage }) },
+    { path: 'commission/me', lazy: async () => ({ Component: (await import('../modules/commission/pages/EarningsPage')).EarningsPage }) },
   ]
   // import.meta.env.DEV is a build-time constant: production bundles drop this branch entirely.
   if (import.meta.env.DEV && config.devTools) {
