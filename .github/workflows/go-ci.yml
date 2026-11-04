@@ -176,8 +176,9 @@ jobs:
         shell: bash
         run: |
           module="$(go list -m)"
-          # Slice 11: crm-api may read the integration-owned write-back diagnostics only.
-          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/integration(/|$)" | grep -vE "^${module}/internal/integration(/writeback(/http)?)?$" || true)"
+          # Slice 11: crm-api may read the integration-owned write-back diagnostics; Slice 14 adds the
+          # provider-operation ledger read + human reconciliation (no port, no provider, no connector).
+          bad="$(go list -deps ./cmd/crm-api | grep -E "^${module}/internal/integration(/|$)" | grep -vE "^${module}/internal/integration(/writeback(/http)?|/providerops(/http)?)?$" || true)"
           if [ -n "$bad" ]; then echo "crm-api depends on the integration/legacy connector:"; echo "$bad"; exit 1; fi
           # Domains never import the write-back worker, the legacy connector or a financial module.
           bad="$(go list -deps ./internal/cases/... ./internal/custody/... ./internal/organization/... | grep -E "^${module}/internal/(integration/|billing|payments|finance|commission|biawin|fulfillment)" || true)"
