@@ -310,6 +310,10 @@ const (
 	RuleS13Float           = "s13-float"
 	RuleS13DomainPure      = "s13-domain-pure"
 	RuleS13ReadWrite       = "s13-read-write"
+	// R1: no production code writes a credential. Enrolment, initial
+	// password, reset and recovery are open decisions (D-34); the
+	// application role has SELECT only, and this rule keeps code honest.
+	RuleR1CredentialWrite = "r1-credential-write"
 )
 
 // Slice 13 commission trees.
@@ -422,6 +426,9 @@ func s14MutableWrite(rel, m string) bool {
 	f := strings.Fields(strings.ToLower(m))
 	return len(f) == 2 && f[0] == "update" && f[1] == "fulfillment.work_case" && under(rel, "internal/fulfillment/work")
 }
+
+// r1CredentialWrite matches SQL that writes a credential row.
+var r1CredentialWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+identity\.credential\b`)
 
 // forbiddenCommand matches identifiers of Slice 10 forbidden commands.
 var forbiddenCommand = regexp.MustCompile(`(?i)^(activate|suspend|terminate|reactivate)(subscription|membership|item)?s?$|^cancel(subscription|membership|item)s?$|^complete(dot|dotcase|case|service|item|fulfillment)$|` +
@@ -776,6 +783,9 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			}
 			if x.Kind == token.STRING && !under(rel, architectureDir) {
 				if s, err := strconv.Unquote(x.Value); err == nil {
+					if !isTest && r1CredentialWrite.MatchString(s) {
+						add(RuleR1CredentialWrite, x.Pos(), "writes identity.credential: enrolment / password set / reset is BLOCKED (D-34)")
+					}
 					if m := appendOnlyWrite.FindString(s); m != "" && !isTest && !s14MutableWrite(rel, m) {
 						add(RuleAppendOnlyWrite, x.Pos(), "mutates an append-only table: "+m)
 					}

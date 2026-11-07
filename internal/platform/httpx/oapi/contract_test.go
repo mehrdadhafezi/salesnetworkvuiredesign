@@ -237,6 +237,11 @@ var slice11Commands = map[string]bool{
 	"/api/v1/fulfillment/work-cases/{case_id}/evidence-records":         true,
 	"/api/v1/fulfillment/work-cases/{case_id}/outcome":                  true,
 	"/api/v1/integration/provider-operations/{operation_id}/resolution": true,
+	// R1 authentication: server-side session lifecycle only. No enrolment,
+	// password set / reset, recovery, MFA, OTP or customer login path.
+	"/api/v1/auth/login":      true,
+	"/api/v1/auth/logout":     true,
+	"/api/v1/auth/logout-all": true,
 }
 
 // TestNoBusinessOrMutatingEndpoints: Slice 2 exposes exactly the technical
@@ -248,7 +253,7 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		paths = append(paths, path)
 		for method := range item.Operations() {
 			if method != "GET" && !(method == "POST" && slice11Commands[path]) {
-				t.Fatalf("mutating operation %s %s is not allowed (only the Slice 11 / 12 / 14 evidenced commands mutate)", method, path)
+				t.Fatalf("mutating operation %s %s is not allowed (only the Slice 11 / 12 / 14 evidenced commands and R1 session lifecycle mutate)", method, path)
 			}
 		}
 		for _, op := range item.Operations() {
@@ -300,7 +305,7 @@ func TestNoBusinessOrMutatingEndpoints(t *testing.T) {
 		"/api/v1/reporting/metrics", "/api/v1/reporting/metrics/{metric_id}", "/api/v1/reports/cases", "/api/v1/reports/cases/{case_id}",
 		"/api/v1/reports/custody", "/api/v1/reports/custody/{case_id}", "/api/v1/reports/invoices", "/api/v1/reports/invoices/{invoice_id}",
 		"/api/v1/reports/payments", "/api/v1/reports/payments/{attempt_id}", "/api/v1/sales/coverage-report", "/api/v1/sales/custody-parity",
-		"/api/v1/session",
+		"/api/v1/session", "/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/logout-all",
 		// Slice 11 write-back diagnostics: read only, no fix / retry path.
 		"/api/v1/writeback/commands", "/api/v1/writeback/commands/{command_id}", "/api/v1/writeback/summary",
 		"/health/live", "/health/ready",

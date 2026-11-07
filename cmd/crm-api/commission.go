@@ -33,10 +33,7 @@ func NewCommissionAPI(commissionRunner, flags *db.Runner, devAuth bool) (apiserv
 	if commissionRunner.Module() != commission.Module || flags.Module() != owner.FeatureFlags {
 		return nil, errors.New("crm-api: commission runners bound to the wrong modules")
 	}
-	var subjects authorization.SubjectResolver = authorization.Anonymous{}
-	if devAuth {
-		subjects = authorization.DevSubjects{}
-	}
+	subjects := subjects(devAuth)
 	guard, err := authorization.NewGuard(flagFunc(flags, CommissionFlag), subjects)
 	if err != nil {
 		return nil, err
