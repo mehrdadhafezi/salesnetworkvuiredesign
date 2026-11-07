@@ -260,6 +260,29 @@ jobs:
             echo "a Slice 14 feature flag is seeded by a migration (must default OFF)"; exit 1
           fi
 
+      - name: R1 production authentication and session gates (verbose; synthetic accounts only; lifecycle, cookies, CSRF, fixation, throttle, revocation, authorization boundaries)
+        run: |
+          go test -count=1 -v ./internal/identity/password/ ./internal/identity/session/ ./internal/identity/http/ ./internal/authorization/ ./internal/platform/websession/
+          go test -count=1 -v -run 'TestSessionAuthorizationBoundaries' ./internal/integration/biawin/
+          go test -count=1 -v -run 'TestAuthSurfaceConfig|TestRunRefusesDevAuthInProduction' ./cmd/crm-api/
+          go test -count=1 -v -run 'TestR1CredentialWrite|RepositoryPasses' ./internal/architecture/
+          go test -count=1 -race ./internal/identity/session/ ./internal/identity/http/ ./internal/authorization/
+
+      - name: R1 boundary — no dev principal in production, no credential write, no legacy password reuse
+        shell: bash
+        run: |
+          # The dev stub is used only by the apiserver (behind the production lockout), DevSubjects and the dev-only audit label.
+          bad="$(grep -rln 'authstub\.\(New\|FromContext\)' --include='*.go' internal cmd | grep -v '_test.go' | grep -vE '^internal/(platform/(apiserver|authstub)|authorization|reporting/http)/' || true)"
+          if [ -n "$bad" ]; then echo "dev auth stub used outside the apiserver / authorization:"; echo "$bad"; exit 1; fi
+          # Only argon2id verifies: no WordPress / phpass / bcrypt / md5 verifier in the target.
+          if grep -rnE 'phpass|\$P\$|bcrypt\.Compare|md5\.Sum\(' --include='*.go' internal/identity cmd | grep -v '_test.go'; then
+            echo "a legacy password verifier appeared in the target"; exit 1
+          fi
+          # No enrolment, reset, recovery, OTP or MFA route in the contract.
+          if grep -nE "^  /api/v1/auth/.*(register|signup|enrol|password|reset|recover|forgot|otp|mfa|magic)" api/openapi/openapi.yaml; then
+            echo "a policy-dependent authentication route appeared in the contract (D-34 / D-26)"; exit 1
+          fi
+
       - name: Slice 3 — no snapshot content tracked
         shell: bash
         run: |
@@ -289,9 +312,25 @@ jobs:
           grep -q 'applied  00001_identity.sql' <<< "$status"
           grep -q 'applied  00001_organization.sql' <<< "$status"
           s4="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('identity', 'organization')")"
-          test "$s4" = "25" || { echo "expected 25 identity/organization tables (incl. per-module outbox/inbox/idempotency and the Slice 11 HR request tables), got $s4"; exit 1; }
-          creds="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'identity' AND table_name IN ('credential', 'session')")"
-          test "$creds" = "0" || { echo "Slice 4 must not create credential/session tables"; exit 1; }
+          test "$s4" = "28" || { echo "expected 28 identity/organization tables (incl. per-module outbox/inbox/idempotency, the Slice 11 HR request tables and the R1 credential / session / auth_event tables), got $s4"; exit 1; }
+          # R1: identity owns credential / session / auth_event (Architecture §5-§7), least privilege, no secret in clear.
+          grep -q 'applied  00012_identity_authentication.sql' <<< "$status"
+          creds="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'identity' AND table_name IN ('credential', 'session', 'auth_event')")"
+          test "$creds" = "3" || { echo "R1 identity credential / session / auth_event tables missing: $creds"; exit 1; }
+          seeded="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT (SELECT count(*) FROM identity.credential) + (SELECT count(*) FROM identity.session) + (SELECT count(*) FROM platform_featureflags.feature_flag WHERE flag_key = 'identity.session_auth')")"
+          test "$seeded" = "0" || { echo "R1 must seed no credential, session or enabled auth flag"; exit 1; }
+          credw="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'identity' AND table_name = 'credential' AND grantee <> current_user AND privilege_type <> 'SELECT'")"
+          test "$credw" = "0" || { echo "the application role must not write identity.credential (enrolment is D-34)"; exit 1; }
+          sdel="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.role_table_grants WHERE table_schema = 'identity' AND table_name IN ('session', 'auth_event') AND grantee <> current_user AND privilege_type IN ('DELETE', 'TRUNCATE')")"
+          test "$sdel" = "0" || { echo "sessions / auth events must never be deleted"; exit 1; }
+          supd="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT string_agg(column_name, ',' ORDER BY column_name) FROM information_schema.column_privileges WHERE table_schema = 'identity' AND table_name = 'session' AND grantee = 'crm_owner_identity' AND privilege_type = 'UPDATE'")"
+          test "$supd" = "idle_expires_at,last_seen_at,revoke_reason,revoked_at" || { echo "identity.session UPDATE must be limited to expiry / revocation columns, got $supd"; exit 1; }
+          aev="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.triggers WHERE trigger_schema = 'identity' AND event_object_table = 'auth_event' AND trigger_name = 'auth_event_append_only'")"
+          test "$aev" -ge "1" || { echo "identity.auth_event must be append-only"; exit 1; }
+          clear="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'identity' AND table_name IN ('credential', 'session', 'auth_event') AND column_name ~* '(password|token|csrf|secret|phone|mobile|ip_addr|user_agent|login_name_raw)' AND column_name NOT IN ('token_sha256', 'secret_hash')")"
+          test "$clear" = "0" || { echo "R1 tables carry a clear-text secret / PII column"; exit 1; }
+          s4locks="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM pg_constraint WHERE conname IN ('user_account_no_login', 'user_account_state', 'role_grant_shadow_only')")"
+          test "$s4locks" = "3" || { echo "R1 must keep the Slice 4 no-login / shadow-only grant constraints (no account activation, no ACTIVE grant)"; exit 1; }
           # Slice 5 customer identity (shadow).
           grep -q 'applied  00002_identity_customer_capabilities.sql' <<< "$status"
           grep -q 'applied  00001_customers.sql' <<< "$status"

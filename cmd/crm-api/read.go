@@ -91,10 +91,7 @@ func NewReadAPI(identityRunner, organizationRunner, flags *db.Runner, devAuth bo
 		})
 		return on, err
 	}
-	var subjects authorization.SubjectResolver = authorization.Anonymous{}
-	if devAuth {
-		subjects = authorization.DevSubjects{}
-	}
+	subjects := subjects(devAuth)
 	guard, err := authorization.NewGuard(enabled, subjects)
 	if err != nil {
 		return nil, err
@@ -135,10 +132,7 @@ func NewCustomersAPI(customersRunner, flags *db.Runner, devAuth bool) (apiserver
 	if customersRunner.Module() != customers.Module || flags.Module() != owner.FeatureFlags {
 		return nil, errors.New("crm-api: customers runners bound to the wrong modules")
 	}
-	var subjects authorization.SubjectResolver = authorization.Anonymous{}
-	if devAuth {
-		subjects = authorization.DevSubjects{}
-	}
+	subjects := subjects(devAuth)
 	guard, err := authorization.NewGuard(flagFunc(flags, CustomersFlag), subjects)
 	if err != nil {
 		return nil, err
@@ -213,10 +207,7 @@ func NewSalesAPI(casesRunner, custodyRunner, flags *db.Runner, devAuth bool) (ap
 	if casesRunner.Module() != cases.Module || custodyRunner.Module() != custody.Module || flags.Module() != owner.FeatureFlags {
 		return nil, errors.New("crm-api: sales runners bound to the wrong modules")
 	}
-	var subjects authorization.SubjectResolver = authorization.Anonymous{}
-	if devAuth {
-		subjects = authorization.DevSubjects{}
-	}
+	subjects := subjects(devAuth)
 	guard, err := authorization.NewGuard(flagFunc(flags, SalesFlag), subjects)
 	if err != nil {
 		return nil, err
@@ -293,10 +284,7 @@ func NewBillingAPI(billingRunner, paymentsRunner, flags *db.Runner, devAuth bool
 	if billingRunner.Module() != billing.Module || paymentsRunner.Module() != payments.Module || flags.Module() != owner.FeatureFlags {
 		return nil, errors.New("crm-api: billing runners bound to the wrong modules")
 	}
-	var subjects authorization.SubjectResolver = authorization.Anonymous{}
-	if devAuth {
-		subjects = authorization.DevSubjects{}
-	}
+	subjects := subjects(devAuth)
 	guard, err := authorization.NewGuard(flagFunc(flags, BillingFlag), subjects)
 	if err != nil {
 		return nil, err
@@ -374,10 +362,7 @@ func NewReportingAPI(reportingRunner, flags, auditRunner *db.Runner, devAuth boo
 	if reportingRunner.Module() != reporting.Module || flags.Module() != owner.FeatureFlags || (auditRunner != nil && auditRunner.Module() != owner.Audit) {
 		return nil, errors.New("crm-api: reporting runners bound to the wrong modules")
 	}
-	var subjects authorization.SubjectResolver = authorization.Anonymous{}
-	if devAuth {
-		subjects = authorization.DevSubjects{}
-	}
+	subjects := subjects(devAuth)
 	guard, err := authorization.NewGuard(flagFunc(flags, ReportingFlag), subjects)
 	if err != nil {
 		return nil, err

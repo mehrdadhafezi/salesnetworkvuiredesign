@@ -116,6 +116,14 @@ session*
 credentials*
 secrets*
 auth.json
+# R1: Go source of the server-side session implementation (code, never
+# session data). Narrow re-includes only; the patterns above still keep
+# every runtime session / credential / secret artifact out of git.
+!internal/authorization/session.go
+!internal/authorization/session_test.go
+!internal/identity/session/
+!internal/identity/session/*.go
+!internal/integration/biawin/session_authz_e2e_test.go
 
 # Previous local Git metadata backup
 .git-old-backup/

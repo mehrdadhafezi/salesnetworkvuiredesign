@@ -42,6 +42,15 @@ var (
 	// OUTCOME_UNKNOWN (reconcile before any retry), never a guessed failure.
 	ProblemInternal = Problem{Status: http.StatusInternalServerError, Slug: "internal", Title: "Internal server error",
 		Reason: reasoncodes.OutcomeUnknown, Detail: "The request could not be completed; its outcome is unknown."}
+	// ProblemCrossSite: an unsafe request failed the R1 cross-site checks
+	// (foreign Origin, Sec-Fetch-Site cross-site, or a missing / wrong
+	// session-bound CSRF token). Nothing was executed.
+	ProblemCrossSite = Problem{Status: http.StatusForbidden, Slug: "cross-site-request-rejected", Title: "Cross-site request rejected",
+		Reason: reasoncodes.ActionDenied, Detail: "The request did not prove it came from this application."}
+	// ProblemThrottled: too many failed logins for this login name; the
+	// window slides (no lockout). No credential was evaluated.
+	ProblemThrottled = Problem{Status: http.StatusTooManyRequests, Slug: "too-many-attempts", Title: "Too many attempts",
+		Reason: reasoncodes.ActionDenied, Detail: "Too many failed attempts. Try again later."}
 	// ProblemNoRecord: a contract path whose identified record does not exist.
 	ProblemNoRecord = Problem{Status: http.StatusNotFound, Slug: "not-found", Title: "Resource not found",
 		Reason: reasoncodes.ContractInvalid, Detail: "No record with this id."}

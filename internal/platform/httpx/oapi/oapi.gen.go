@@ -3408,16 +3408,19 @@ func (e ServiceEvidenceOutcomeMapped) Valid() bool {
 
 // Defines values for SessionContextAuthMode.
 const (
-	DevStub SessionContextAuthMode = "dev_stub"
-	None    SessionContextAuthMode = "none"
+	SessionContextAuthModeDevStub SessionContextAuthMode = "dev_stub"
+	SessionContextAuthModeNone    SessionContextAuthMode = "none"
+	SessionContextAuthModeSession SessionContextAuthMode = "session"
 )
 
 // Valid indicates whether the value is a known member of the SessionContextAuthMode enum.
 func (e SessionContextAuthMode) Valid() bool {
 	switch e {
-	case DevStub:
+	case SessionContextAuthModeDevStub:
 		return true
-	case None:
+	case SessionContextAuthModeNone:
+		return true
+	case SessionContextAuthModeSession:
 		return true
 	default:
 		return false
@@ -3448,6 +3451,27 @@ const (
 func (e SessionContextPrincipalSynthetic) Valid() bool {
 	switch e {
 	case True:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SessionContextSessionState.
+const (
+	SessionContextSessionStateActive  SessionContextSessionState = "active"
+	SessionContextSessionStateInvalid SessionContextSessionState = "invalid"
+	SessionContextSessionStateNone    SessionContextSessionState = "none"
+)
+
+// Valid indicates whether the value is a known member of the SessionContextSessionState enum.
+func (e SessionContextSessionState) Valid() bool {
+	switch e {
+	case SessionContextSessionStateActive:
+		return true
+	case SessionContextSessionStateInvalid:
+		return true
+	case SessionContextSessionStateNone:
 		return true
 	default:
 		return false
@@ -5844,6 +5868,36 @@ type AttributionSnapshot struct {
 
 	// Subject A legacy user reference and, when the identity module resolved it, the target user id (absent object = no reference).
 	Subject *UserRef `json:"subject,omitempty"`
+}
+
+// AuthEnvelope defines model for AuthEnvelope.
+type AuthEnvelope struct {
+	// CorrelationId Opaque request correlation identifier.
+	CorrelationId CorrelationID `json:"correlation_id"`
+
+	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never
+	// FAILED; PARTIAL is never SUCCESS; CONFLICT is not FAILED; UNAUTHORIZED is
+	// distinct from BLOCKED.
+	Outcome Outcome      `json:"outcome"`
+	Reasons []ReasonCode `json:"reasons"`
+
+	// Session The authenticated session. Identity only, never authority.
+	Session *AuthSession `json:"session,omitempty"`
+}
+
+// AuthSession The authenticated session. Identity only, never authority.
+type AuthSession struct {
+	// AbsoluteExpiresAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	AbsoluteExpiresAt Timestamp `json:"absolute_expires_at"`
+
+	// CsrfToken Session-bound CSRF token (HMAC of the session token, never stored).
+	// Send it in X-CSRF-Token on every unsafe request.
+	CsrfToken   string `json:"csrf_token"`
+	DisplayName string `json:"display_name"`
+
+	// IdleExpiresAt RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
+	IdleExpiresAt Timestamp          `json:"idle_expires_at"`
+	UserId        openapi_types.UUID `json:"user_id"`
 }
 
 // BalanceListEnvelope defines model for BalanceListEnvelope.
@@ -8489,6 +8543,13 @@ type LegacyKey = string
 // LinkState defines model for LinkState.
 type LinkState string
 
+// LoginRequest defines model for LoginRequest.
+type LoginRequest struct {
+	// Login Login name (case-insensitive). Never a phone number.
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
 // Lookup A position or a level (legacy lookup). Position is never a role.
 type Lookup struct {
 	Description *string `json:"description"`
@@ -10033,7 +10094,9 @@ type ServiceEvidenceOutcomeMapped string
 
 // SessionContext defines model for SessionContext.
 type SessionContext struct {
-	// AuthMode dev_stub only in development/test; none in production (Slice 2 has no production auth).
+	// AuthMode dev_stub only in development/test (synthetic principals); session when
+	// R1 server-side sessions are configured; none when no authentication
+	// source is configured. dev_stub and session are never both active.
 	AuthMode      SessionContextAuthMode `json:"auth_mode"`
 	Authenticated bool                   `json:"authenticated"`
 
@@ -10086,7 +10149,10 @@ type SessionContext struct {
 		// WritebackRead Slice 11 write-back diagnostics (flag integration.writeback_read). Read only.
 		WritebackRead bool `json:"writeback_read"`
 	} `json:"features,omitempty"`
-	Principal *struct {
+
+	// LoginEnabled R1 password login available (flag identity.session_auth). Navigation hint only.
+	LoginEnabled *bool `json:"login_enabled,omitempty"`
+	Principal    *struct {
 		DisplayName string                           `json:"display_name"`
 		PrincipalId string                           `json:"principal_id"`
 		Synthetic   SessionContextPrincipalSynthetic `json:"synthetic"`
@@ -10094,9 +10160,19 @@ type SessionContext struct {
 
 	// ServerTime RFC 3339 instant in UTC (suffix Z). Jalali is presentation only.
 	ServerTime Timestamp `json:"server_time"`
+
+	// Session The authenticated session. Identity only, never authority.
+	Session *AuthSession `json:"session,omitempty"`
+
+	// SessionState R1: what the server concluded about the presented session cookie.
+	// invalid covers malformed, unknown, expired and revoked alike (not
+	// distinguished, by design).
+	SessionState *SessionContextSessionState `json:"session_state,omitempty"`
 }
 
-// SessionContextAuthMode dev_stub only in development/test; none in production (Slice 2 has no production auth).
+// SessionContextAuthMode dev_stub only in development/test (synthetic principals); session when
+// R1 server-side sessions are configured; none when no authentication
+// source is configured. dev_stub and session are never both active.
 type SessionContextAuthMode string
 
 // SessionContextDisplayZone Presentation default zone (IANA). Not storage truth.
@@ -10104,6 +10180,11 @@ type SessionContextDisplayZone string
 
 // SessionContextPrincipalSynthetic defines model for SessionContext.Principal.Synthetic.
 type SessionContextPrincipalSynthetic bool
+
+// SessionContextSessionState R1: what the server concluded about the presented session cookie.
+// invalid covers malformed, unknown, expired and revoked alike (not
+// distinguished, by design).
+type SessionContextSessionState string
 
 // SessionEnvelope defines model for SessionEnvelope.
 type SessionEnvelope struct {
@@ -12074,6 +12155,9 @@ type ListWritebackCommandsParams struct {
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// LoginWithPasswordJSONRequestBody defines body for LoginWithPassword for application/json ContentType.
+type LoginWithPasswordJSONRequestBody = LoginRequest
+
 // RecordContactOutcomeJSONRequestBody defines body for RecordContactOutcome for application/json ContentType.
 type RecordContactOutcomeJSONRequestBody = ContactOutcomeRequest
 
@@ -12103,6 +12187,15 @@ type SubmitPaymentBatchJSONRequestBody = PaymentBatchRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// LoginWithPassword Log in with a password credential
+	// (POST /api/v1/auth/login)
+	LoginWithPassword(w http.ResponseWriter, r *http.Request)
+	// Logout Log out (revoke the current session)
+	// (POST /api/v1/auth/logout)
+	Logout(w http.ResponseWriter, r *http.Request)
+	// LogoutAll Revoke every session of the current user
+	// (POST /api/v1/auth/logout-all)
+	LogoutAll(w http.ResponseWriter, r *http.Request)
 	// GetEffectiveAccess Effective access of the current principal
 	// (GET /api/v1/authorization/effective-access)
 	GetEffectiveAccess(w http.ResponseWriter, r *http.Request)
@@ -12419,6 +12512,48 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// LoginWithPassword operation middleware
+func (siw *ServerInterfaceWrapper) LoginWithPassword(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.LoginWithPassword(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// Logout operation middleware
+func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Logout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// LogoutAll operation middleware
+func (siw *ServerInterfaceWrapper) LogoutAll(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.LogoutAll(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetEffectiveAccess operation middleware
 func (siw *ServerInterfaceWrapper) GetEffectiveAccess(w http.ResponseWriter, r *http.Request) {
@@ -19103,6 +19238,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/health/live", wrapper.GetHealthLive)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/health/ready", wrapper.GetHealthReady)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/session", wrapper.GetSession)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/login", wrapper.LoginWithPassword)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/logout", wrapper.Logout)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/logout-all", wrapper.LogoutAll)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/identity/users", wrapper.ListIdentityUsers)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/identity/users/{user_id}", wrapper.GetIdentityUser)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/organization/persons", wrapper.ListOrganizationPersons)
@@ -19222,6 +19360,340 @@ type ProblemApplicationProblemPlusJSONResponse struct {
 	Body Problem
 
 	Headers ProblemResponseHeaders
+}
+
+type LoginWithPasswordRequestObject struct {
+	Body *LoginWithPasswordJSONRequestBody
+}
+
+type LoginWithPasswordResponseObject interface {
+	VisitLoginWithPasswordResponse(w http.ResponseWriter) error
+}
+
+type LoginWithPassword200ResponseHeaders struct {
+	SetCookie      *string
+	XCorrelationID *CorrelationID
+}
+
+type LoginWithPassword200JSONResponse struct {
+	Body    AuthEnvelope
+	Headers LoginWithPassword200ResponseHeaders
+}
+
+func (response LoginWithPassword200JSONResponse) VisitLoginWithPasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LoginWithPassword400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response LoginWithPassword400ApplicationProblemPlusJSONResponse) VisitLoginWithPasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LoginWithPassword401ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type LoginWithPassword401JSONResponse struct {
+	Body    AuthEnvelope
+	Headers LoginWithPassword401ResponseHeaders
+}
+
+func (response LoginWithPassword401JSONResponse) VisitLoginWithPasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LoginWithPassword403ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type LoginWithPassword403ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers LoginWithPassword403ResponseHeaders
+}
+
+func (response LoginWithPassword403ApplicationProblemPlusJSONResponse) VisitLoginWithPasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LoginWithPassword429ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type LoginWithPassword429ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers LoginWithPassword429ResponseHeaders
+}
+
+func (response LoginWithPassword429ApplicationProblemPlusJSONResponse) VisitLoginWithPasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LoginWithPassworddefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type LoginWithPassworddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    LoginWithPassworddefaultResponseHeaders
+	StatusCode int
+}
+
+func (response LoginWithPassworddefaultApplicationProblemPlusJSONResponse) VisitLoginWithPasswordResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogoutRequestObject struct {
+}
+
+type LogoutResponseObject interface {
+	VisitLogoutResponse(w http.ResponseWriter) error
+}
+
+type Logout200ResponseHeaders struct {
+	SetCookie      *string
+	XCorrelationID *CorrelationID
+}
+
+type Logout200JSONResponse struct {
+	Body    AuthEnvelope
+	Headers Logout200ResponseHeaders
+}
+
+func (response Logout200JSONResponse) VisitLogoutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Logout403ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response Logout403ApplicationProblemPlusJSONResponse) VisitLogoutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogoutdefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type LogoutdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    LogoutdefaultResponseHeaders
+	StatusCode int
+}
+
+func (response LogoutdefaultApplicationProblemPlusJSONResponse) VisitLogoutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogoutAllRequestObject struct {
+}
+
+type LogoutAllResponseObject interface {
+	VisitLogoutAllResponse(w http.ResponseWriter) error
+}
+
+type LogoutAll200ResponseHeaders struct {
+	SetCookie      *string
+	XCorrelationID *CorrelationID
+}
+
+type LogoutAll200JSONResponse struct {
+	Body    AuthEnvelope
+	Headers LogoutAll200ResponseHeaders
+}
+
+func (response LogoutAll200JSONResponse) VisitLogoutAllResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogoutAll401ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type LogoutAll401JSONResponse struct {
+	Body    AuthEnvelope
+	Headers LogoutAll401ResponseHeaders
+}
+
+func (response LogoutAll401JSONResponse) VisitLogoutAllResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogoutAll403ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response LogoutAll403ApplicationProblemPlusJSONResponse) VisitLogoutAllResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogoutAlldefaultResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type LogoutAlldefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	Headers    LogoutAlldefaultResponseHeaders
+	StatusCode int
+}
+
+func (response LogoutAlldefaultApplicationProblemPlusJSONResponse) VisitLogoutAllResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type GetEffectiveAccessRequestObject struct {
@@ -30276,6 +30748,15 @@ func (response GetHealthReadydefaultApplicationProblemPlusJSONResponse) VisitGet
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// LoginWithPassword Log in with a password credential
+	// (POST /api/v1/auth/login)
+	LoginWithPassword(ctx context.Context, request LoginWithPasswordRequestObject) (LoginWithPasswordResponseObject, error)
+	// Logout Log out (revoke the current session)
+	// (POST /api/v1/auth/logout)
+	Logout(ctx context.Context, request LogoutRequestObject) (LogoutResponseObject, error)
+	// LogoutAll Revoke every session of the current user
+	// (POST /api/v1/auth/logout-all)
+	LogoutAll(ctx context.Context, request LogoutAllRequestObject) (LogoutAllResponseObject, error)
 	// GetEffectiveAccess Effective access of the current principal
 	// (GET /api/v1/authorization/effective-access)
 	GetEffectiveAccess(ctx context.Context, request GetEffectiveAccessRequestObject) (GetEffectiveAccessResponseObject, error)
@@ -30621,6 +31102,85 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// LoginWithPassword operation middleware
+func (sh *strictHandler) LoginWithPassword(w http.ResponseWriter, r *http.Request) {
+	var request LoginWithPasswordRequestObject
+
+	var body LoginWithPasswordJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.LoginWithPassword(ctx, request.(LoginWithPasswordRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "LoginWithPassword")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(LoginWithPasswordResponseObject); ok {
+		if err := validResponse.VisitLoginWithPasswordResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// Logout operation middleware
+func (sh *strictHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	var request LogoutRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Logout(ctx, request.(LogoutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Logout")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(LogoutResponseObject); ok {
+		if err := validResponse.VisitLogoutResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// LogoutAll operation middleware
+func (sh *strictHandler) LogoutAll(w http.ResponseWriter, r *http.Request) {
+	var request LogoutAllRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.LogoutAll(ctx, request.(LogoutAllRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "LogoutAll")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(LogoutAllResponseObject); ok {
+		if err := validResponse.VisitLogoutAllResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetEffectiveAccess operation middleware

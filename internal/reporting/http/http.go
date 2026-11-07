@@ -30,6 +30,7 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/authstub"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/httpx"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/httpx/oapi"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/websession"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/reporting/domain"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/reporting/query"
 )
@@ -924,7 +925,13 @@ func (h *Handlers) auditRead(ctx context.Context, subject refs.NativeRef, meta m
 		return ErrAuditUnavailable
 	}
 	if p, ok := authstub.FromContext(ctx); ok {
-		meta["principal"] = p.ID
+		meta["principal"] = p.ID // DEV/TEST synthetic principal only
+	}
+	// R1: the authenticated actor of a real session (identifiers only; no
+	// token or CSRF value is ever recorded).
+	if p, ok := websession.FromContext(ctx); ok {
+		meta["user_id"] = p.UserID
+		meta["session_id"] = p.SessionID
 	}
 	c := corr(ctx)
 	e := audit.Event{ID: id, Subject: subject, Action: "reporting.invoice_review.read", OccurredAt: h.clock.Now(), Metadata: meta}

@@ -69,11 +69,20 @@ func flagReader(flags *db.Runner) rollout.Flag {
 	}
 }
 
+// sessionSubjects is the production subject resolver. Without R1 sessions
+// configured no request ever carries a session principal, so it resolves
+// every request to the anonymous subject (as Anonymous did); with sessions,
+// openAuth sets its grant loader to identity's ACTIVE grants.
+var sessionSubjects = authorization.SessionSubjects{}
+
+// subjects returns the request subject resolver. The DEV/TEST stub and
+// R1 sessions are mutually exclusive (apiserver refuses both): dev auth
+// never falls back to, or coexists with, a production principal.
 func subjects(devAuth bool) authorization.SubjectResolver {
 	if devAuth {
 		return authorization.DevSubjects{}
 	}
-	return authorization.Anonymous{}
+	return sessionSubjects
 }
 
 // Writes are the composed Slice 11 surfaces (nil when not configured).

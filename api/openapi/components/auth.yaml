@@ -1,0 +1,61 @@
+# R1 production authentication and server-side sessions.
+# Password login against identity credentials only (no enrolment, reset,
+# recovery, MFA, OTP or customer login exists: D-34, D-26, D-42). The
+# session token travels only in the __Host-crm_session cookie (Secure,
+# HttpOnly, SameSite=Strict); it never appears in a response body.
+
+LoginRequest:
+  type: object
+  required: [login, password]
+  additionalProperties: false
+  properties:
+    login:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Login name (case-insensitive). Never a phone number.
+    password:
+      type: string
+      format: password
+      minLength: 1
+      maxLength: 1024
+
+AuthSession:
+  type: object
+  description: The authenticated session. Identity only, never authority.
+  required: [user_id, display_name, csrf_token, idle_expires_at, absolute_expires_at]
+  additionalProperties: false
+  properties:
+    user_id:
+      type: string
+      format: uuid
+    display_name:
+      type: string
+      maxLength: 200
+    csrf_token:
+      type: string
+      description: |
+        Session-bound CSRF token (HMAC of the session token, never stored).
+        Send it in X-CSRF-Token on every unsafe request.
+      pattern: '^[A-Za-z0-9_-]{43}$'
+    idle_expires_at:
+      $ref: './schemas.yaml#/Timestamp'
+    absolute_expires_at:
+      $ref: './schemas.yaml#/Timestamp'
+
+AuthEnvelope:
+  type: object
+  required: [outcome, reasons, correlation_id]
+  additionalProperties: false
+  properties:
+    outcome:
+      $ref: './schemas.yaml#/Outcome'
+    reasons:
+      type: array
+      maxItems: 15
+      items:
+        $ref: './schemas.yaml#/ReasonCode'
+    correlation_id:
+      $ref: './schemas.yaml#/CorrelationID'
+    session:
+      $ref: '#/AuthSession'

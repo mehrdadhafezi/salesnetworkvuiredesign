@@ -239,8 +239,23 @@ SessionContext:
       type: boolean
     auth_mode:
       type: string
-      description: dev_stub only in development/test; none in production (Slice 2 has no production auth).
-      enum: [dev_stub, none]
+      description: |
+        dev_stub only in development/test (synthetic principals); session when
+        R1 server-side sessions are configured; none when no authentication
+        source is configured. dev_stub and session are never both active.
+      enum: [dev_stub, session, none]
+    session_state:
+      type: string
+      description: |
+        R1: what the server concluded about the presented session cookie.
+        invalid covers malformed, unknown, expired and revoked alike (not
+        distinguished, by design).
+      enum: [none, active, invalid]
+    session:
+      $ref: './auth.yaml#/AuthSession'
+    login_enabled:
+      type: boolean
+      description: R1 password login available (flag identity.session_auth). Navigation hint only.
     principal:
       type: object
       required: [principal_id, display_name, synthetic]

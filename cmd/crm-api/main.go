@@ -46,6 +46,14 @@
 // commission.read_shadow (default off). GET only; the shadow run is the
 // offline crm-commission-shadow job; nothing is approved, posted or credited.
 //
+// R1 production authentication (optional, OFF by default):
+// CRM_IDENTITY_AUTH_DATABASE_URL plus CRM_FEATUREFLAGS_DATABASE_URL, behind
+// identity.session_auth. Server-side sessions in the __Host-crm_session
+// cookie; CRM_AUTH_ALLOWED_ORIGINS (https) is required in production. A
+// session proves identity only: authority is the user's ACTIVE role grants
+// (none exist). No enrolment, reset, recovery, MFA, OTP or customer login.
+// Never combined with CRM_DEV_AUTH.
+//
 // Slice 14 controlled fulfillment / Biawin operations (optional, OFF by
 // default): CRM_OPS_{FULFILLMENT,BIAWIN,CATALOG,INTEGRATION}_DATABASE_URL plus
 // CRM_FEATUREFLAGS_DATABASE_URL, behind fulfillment.work_read,
@@ -94,6 +102,12 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 	if err != nil {
 		return err
 	}
+	// R1 first: it sets the production subject resolver every surface uses.
+	auth, closeAuth, err := openAuth(ctx, getenv, cfg.DevAuth)
+	if err != nil {
+		return err
+	}
+	defer closeAuth()
 	read, closeRead, err := openRead(ctx, getenv, cfg.DevAuth)
 	if err != nil {
 		return err
@@ -151,11 +165,11 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 	defer closePayments()
 	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill,
 		Reporting: rep, Finance: fin, Biawin: bw, Commission: com, Operations: ops,
-		CaseWrite: writes.CaseWrite, HRRequest: writes.HRRequest, Writeback: writes.Writeback, Payments: pay})
+		CaseWrite: writes.CaseWrite, HRRequest: writes.HRRequest, Writeback: writes.Writeback, Payments: pay, Auth: auth})
 	if err != nil {
 		return err
 	}
-	logger.Info("crm-api listening", "addr", cfg.Addr, "environment", string(cfg.Environment), "dev_auth", cfg.DevAuth)
+	logger.Info("crm-api listening", "addr", cfg.Addr, "environment", string(cfg.Environment), "dev_auth", cfg.DevAuth, "session_auth", auth != nil)
 	return apiserver.Serve(ctx, srv, cfg, logger)
 }
 

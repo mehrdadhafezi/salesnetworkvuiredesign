@@ -110,3 +110,8 @@ svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-widt
   .nav a{height:40px}
   .kv{grid-template-columns:1fr}
 }
+
+/* R1 login (layout only, SN-207 tokens). */
+.login-form{display:grid;gap:var(--gap);max-width:420px}
+.login-error{margin:0;color:var(--red-fg)}
+.who .btn{margin-inline-start:8px}
