@@ -48,10 +48,7 @@ func NewBiawinAPI(biawinRunner, fulfillmentRunner, flags *db.Runner, devAuth boo
 	if biawinRunner.Module() != biawin.Module || fulfillmentRunner.Module() != fulfillment.Module || flags.Module() != owner.FeatureFlags {
 		return nil, errors.New("crm-api: biawin runners bound to the wrong modules")
 	}
-	var subjects authorization.SubjectResolver = authorization.Anonymous{}
-	if devAuth {
-		subjects = authorization.DevSubjects{}
-	}
+	subjects := subjects(devAuth)
 	guard, err := authorization.NewGuard(flagFunc(flags, BiawinFlag), subjects)
 	if err != nil {
 		return nil, err

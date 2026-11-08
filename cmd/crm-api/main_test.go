@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"testing"
 	"time"
+
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/apiserver"
 )
 
 func env(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
@@ -114,5 +116,30 @@ func TestPaymentsSurfaceIsAllOrNone(t *testing.T) {
 		if err := run(context.Background(), env(partial), logger); !errors.Is(err, ErrPaymentsConfig) {
 			t.Fatalf("partial payments config %v: %v", partial, err)
 		}
+	}
+}
+
+// R1: session auth needs the flag store, can never coexist with the dev
+// stub, and refuses out-of-bounds session parameters.
+func TestAuthSurfaceConfig(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	u := "postgres://x@127.0.0.1:1/x"
+	if err := run(context.Background(), env(map[string]string{"CRM_ENV": "test", EnvIdentityAuthURL: u}), logger); !errors.Is(err, ErrAuthConfig) {
+		t.Fatalf("auth without flag store: %v", err)
+	}
+	if err := run(context.Background(), env(map[string]string{"CRM_ENV": "development", "CRM_DEV_AUTH": "1", EnvIdentityAuthURL: u, EnvFeatureFlagsURL: u}), logger); !errors.Is(err, apiserver.ErrAuthConflict) {
+		t.Fatalf("dev stub + sessions: %v", err)
+	}
+	for k, v := range map[string]string{EnvSessionIdle: "10s", EnvSessionAbsolute: "720h", EnvLoginMaxFailures: "0", EnvLoginFailureWindow: "nonsense"} {
+		if _, err := SessionConfigFromEnv(env(map[string]string{k: v})); err == nil {
+			t.Fatalf("%s=%s accepted", k, v)
+		}
+	}
+	cfg, err := SessionConfigFromEnv(env(map[string]string{EnvSessionIdle: "15m", EnvLoginMaxFailures: "10"}))
+	if err != nil || cfg.IdleTimeout.Minutes() != 15 || cfg.MaxFailures != 10 {
+		t.Fatalf("overrides: %+v %v", cfg, err)
+	}
+	if err := run(context.Background(), env(map[string]string{"CRM_ENV": "production", apiserver.EnvAllowedOrigins: "http://crm.example.test"}), logger); err == nil {
+		t.Fatal("plain-http allowed origin accepted in production")
 	}
 }

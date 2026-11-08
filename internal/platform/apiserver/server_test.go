@@ -270,3 +270,31 @@ func doBody(h http.Handler, method, path, body string, headers map[string]string
 	h.ServeHTTP(rec, req)
 	return rec
 }
+
+// R1 security review P2: session and authentication responses must never be
+// cached, whether or not sessions are configured, success or error.
+func TestSessionSensitiveResponsesAreNoStore(t *testing.T) {
+	for _, env := range []authstub.Environment{authstub.Production, authstub.Development} {
+		h := handler(t, env, false)
+		for _, rec := range []*httptest.ResponseRecorder{
+			do(h, http.MethodGet, "/api/v1/session", nil),
+			do(h, http.MethodGet, "/api/v1/authorization/effective-access", nil),
+			do(h, http.MethodGet, "/api/v1/identity/users", nil),
+			do(h, http.MethodGet, "/api/v1/identity/users/not-a-uuid", nil),
+			doBody(h, http.MethodPost, "/api/v1/auth/login", `{"login":"x","password":"y"}`, map[string]string{"Content-Type": "application/json"}),
+			doBody(h, http.MethodPost, "/api/v1/auth/login", `{"unexpected":1}`, map[string]string{"Content-Type": "application/json"}),
+			doBody(h, http.MethodPost, "/api/v1/auth/logout", ``, nil),
+			doBody(h, http.MethodPost, "/api/v1/auth/logout-all", ``, nil),
+			do(h, http.MethodGet, "/api/v1/auth/unknown", nil),
+		} {
+			if got := rec.Header().Get("Cache-Control"); got != "no-store" || rec.Header().Get("Pragma") != "no-cache" {
+				t.Fatalf("%s: status %d Cache-Control %q Pragma %q", env, rec.Code, got, rec.Header().Get("Pragma"))
+			}
+		}
+	}
+	for _, p := range []string{"/api/v1/sessionx", "/api/v1/authx", "/api/v1/identityx"} {
+		if sessionSensitive(p) {
+			t.Fatalf("%s matched by prefix only", p)
+		}
+	}
+}

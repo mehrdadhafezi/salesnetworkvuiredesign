@@ -152,6 +152,17 @@ func (s *Service) Grants(ctx context.Context) ([]api.Grant, error) {
 	return out, err
 }
 
+// ActiveGrants returns the runtime grants of one user (R1 session subjects).
+func (s *Service) ActiveGrants(ctx context.Context, userID string) ([]api.Grant, error) {
+	var out []api.Grant
+	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
+		var err error
+		out, err = store.ActiveGrants(ctx, tx, userID)
+		return err
+	})
+	return out, err
+}
+
 // Counts returns reconciliation counts.
 func (s *Service) Counts(ctx context.Context) (map[string]int64, error) {
 	var out map[string]int64

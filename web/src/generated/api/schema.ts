@@ -54,14 +54,85 @@ export interface paths {
         };
         /**
          * Current session context
-         * @description Who the caller is, for shell display only. In Slice 2 the only
-         *     authentication source is the DEV/TEST stub; in production mode the
-         *     stub cannot be enabled and the session is always unauthenticated.
-         *     Capabilities here are synthetic display hints, never authority.
+         * @description Who the caller is, for shell display only. DEV/TEST: the synthetic
+         *     stub (never in production). R1: the server-side session (identity
+         *     only, never authority), with its CSRF token. Capabilities here are
+         *     synthetic display hints, never authority.
          */
         get: operations["getSession"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in with a password credential
+         * @description Flag identity.session_auth (default OFF → BLOCKED / FEATURE_DISABLED).
+         *     Verifies an identity credential (Argon2id) and issues a NEW
+         *     server-side session in the __Host-crm_session cookie (Secure,
+         *     HttpOnly, SameSite=Strict). A session already held is revoked
+         *     (fixation defence). Wrong password, unknown login, disabled
+         *     credential and absent account all answer the same 401.
+         *     Repeated failures for one login are throttled (429). Cross-site
+         *     requests are refused before this runs (403). The session proves
+         *     identity only: authority comes from ACTIVE role grants.
+         */
+        post: operations["loginWithPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log out (revoke the current session)
+         * @description Revokes the presented session server-side and clears the cookie.
+         *     Idempotent: without an active session it still clears the cookie.
+         *     Requires X-CSRF-Token when a session is presented.
+         */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke every session of the current user
+         * @description Revokes every active session of the authenticated user (all devices)
+         *     and clears the cookie. Requires an active session and X-CSRF-Token.
+         */
+        post: operations["logoutAll"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2283,10 +2354,22 @@ export interface components {
         SessionContext: {
             authenticated: boolean;
             /**
-             * @description dev_stub only in development/test; none in production (Slice 2 has no production auth).
+             * @description dev_stub only in development/test (synthetic principals); session when
+             *     R1 server-side sessions are configured; none when no authentication
+             *     source is configured. dev_stub and session are never both active.
              * @enum {string}
              */
-            auth_mode: "dev_stub" | "none";
+            auth_mode: "dev_stub" | "session" | "none";
+            /**
+             * @description R1: what the server concluded about the presented session cookie.
+             *     invalid covers malformed, unknown, expired and revoked alike (not
+             *     distinguished, by design).
+             * @enum {string}
+             */
+            session_state?: "none" | "active" | "invalid";
+            session?: components["schemas"]["AuthSession"];
+            /** @description R1 password login available (flag identity.session_auth). Navigation hint only. */
+            login_enabled?: boolean;
             principal?: {
                 principal_id: string;
                 display_name: string;
@@ -2340,6 +2423,31 @@ export interface components {
             reasons: components["schemas"]["ReasonCode"][];
             correlation_id: components["schemas"]["CorrelationID"];
             data: components["schemas"]["SessionContext"];
+        };
+        /** @description The authenticated session. Identity only, never authority. */
+        AuthSession: {
+            /** Format: uuid */
+            user_id: string;
+            display_name: string;
+            /**
+             * @description Session-bound CSRF token (HMAC of the session token, never stored).
+             *     Send it in X-CSRF-Token on every unsafe request.
+             */
+            csrf_token: string;
+            idle_expires_at: components["schemas"]["Timestamp"];
+            absolute_expires_at: components["schemas"]["Timestamp"];
+        };
+        LoginRequest: {
+            /** @description Login name (case-insensitive). Never a phone number. */
+            login: string;
+            /** Format: password */
+            password: string;
+        };
+        AuthEnvelope: {
+            outcome: components["schemas"]["Outcome"];
+            reasons: components["schemas"]["ReasonCode"][];
+            correlation_id: components["schemas"]["CorrelationID"];
+            session?: components["schemas"]["AuthSession"];
         };
         /**
          * @description Whether the row is in the latest COMPLETE import (absent rows are kept, never deleted).
@@ -5766,6 +5874,107 @@ export interface operations {
                 };
             };
             400: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    loginWithPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description SUCCESS with a new session, or BLOCKED / FEATURE_DISABLED (no cookie). */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    /** @description The session cookie (only on SUCCESS). */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthEnvelope"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            /** @description UNAUTHORIZED / ACTION_DENIED (uniform for every credential failure). */
+            401: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthEnvelope"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SUCCESS; the cookie is cleared. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    /** @description Clears the session cookie. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthEnvelope"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    logoutAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SUCCESS; the cookie is cleared. */
+            200: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    /** @description Clears the session cookie. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthEnvelope"];
+                };
+            };
+            /** @description UNAUTHORIZED (no active session). */
+            401: {
+                headers: {
+                    "X-Correlation-ID": components["headers"]["CorrelationID"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthEnvelope"];
+                };
+            };
+            403: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

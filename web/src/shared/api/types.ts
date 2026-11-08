@@ -19,6 +19,8 @@ export type HealthLive = Schemas['HealthLive']
 export type HealthReady = Schemas['HealthReady']
 export type SessionContext = Schemas['SessionContext']
 export type SessionEnvelope = Schemas['SessionEnvelope']
+export type AuthSession = Schemas['AuthSession']
+export type AuthEnvelope = Schemas['AuthEnvelope']
 
 // Slice 4 read-only identity / organization / authorization contract types.
 export type UserSummary = Schemas['UserSummary']

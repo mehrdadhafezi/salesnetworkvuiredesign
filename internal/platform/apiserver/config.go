@@ -34,6 +34,9 @@ type Config struct {
 	ShutdownTimeout   time.Duration
 	MaxHeaderBytes    int
 	MaxBodyBytes      int64
+	// AllowedOrigins are the exact browser origins allowed to send unsafe
+	// requests when R1 sessions are configured (CRM_AUTH_ALLOWED_ORIGINS).
+	AllowedOrigins []string
 }
 
 // DefaultConfig returns safe defaults: loopback, production, no dev auth.
@@ -71,6 +74,11 @@ func ConfigFromEnv(getenv func(string) string) (Config, error) {
 	default:
 		return Config{}, fmt.Errorf("%w: %s must be empty or 1", ErrInvalidConfig, EnvDevAuth)
 	}
+	origins, err := ParseAllowedOrigins(getenv(EnvAllowedOrigins), cfg.Environment)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.AllowedOrigins = origins
 	return cfg, cfg.Validate()
 }
 

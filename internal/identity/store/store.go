@@ -389,6 +389,39 @@ func Grants(ctx context.Context, tx db.Tx) ([]api.Grant, error) {
 	return out, rows.Err()
 }
 
+// ActiveGrants lists the ACTIVE, PRESENT role grants of one user: the only
+// runtime authority of an authenticated session (R1). Imported legacy
+// evidence is SHADOW (role_grant_shadow_only) and never returned here, so
+// today every authenticated user has no authority until an approved grant
+// command exists (D-42). Direct capability sets are never read from data.
+func ActiveGrants(ctx context.Context, tx db.Tx, userID string) ([]api.Grant, error) {
+	if err := ReadTx(tx); err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query(ctx, `SELECT user_id::text, role_key, legacy_role_value, status, basis
+		FROM identity.role_grant WHERE user_id = $1 AND status = 'ACTIVE' AND presence = 'PRESENT' ORDER BY evidence_key`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []api.Grant
+	for rows.Next() {
+		var g api.Grant
+		var role *string
+		var status string
+		if err := rows.Scan(&g.UserID, &role, &g.LegacyValue, &status, &g.Basis); err != nil {
+			return nil, err
+		}
+		if role != nil {
+			r := api.Role(*role)
+			g.RoleKey = &r
+		}
+		g.Status = api.GrantStatus(status)
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
+
 // Counts returns reconciliation counts of the stored model.
 func Counts(ctx context.Context, tx db.Tx) (map[string]int64, error) {
 	if err := ReadTx(tx); err != nil {

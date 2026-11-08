@@ -105,6 +105,7 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleS13Float:           1,  // commission float64
 		RuleS13DomainPure:      2,  // domain imports platform/db; domain reads time.Now
 		RuleS13ReadWrite:       1,  // commission/http INSERT INTO commission.*
+		RuleR1CredentialWrite:  2,  // identity INSERT INTO / UPDATE identity.credential
 	}
 	for rule, n := range want {
 		if hits[rule] != n {
@@ -795,5 +796,27 @@ func TestSliceFourteenRules(t *testing.T) {
 		s14MutableWrite("internal/fulfillment/work/work.go", "DELETE FROM fulfillment.work_case") ||
 		s14MutableWrite("internal/fulfillment/work/work.go", "UPDATE fulfillment.work_event") {
 		t.Error("s14MutableWrite admits more than the work case update from its owner")
+	}
+}
+
+// TestR1CredentialWrite proves no production code may write a credential.
+func TestR1CredentialWrite(t *testing.T) {
+	vs, err := Check(filepath.Join("testdata", "violating"), "example.test/mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, v := range vs {
+		if v.File == "internal/identity/r1.go" && v.Rule == RuleR1CredentialWrite {
+			n++
+		}
+	}
+	if n != 2 {
+		t.Fatalf("r1-credential-write fired %d times, want 2", n)
+	}
+	for _, s := range []string{"SELECT * FROM identity.credential", "INSERT INTO identity.session (x) VALUES (1)", "UPDATE identity.credentialx SET a = 1"} {
+		if r1CredentialWrite.MatchString(s) {
+			t.Fatalf("%q wrongly flagged", s)
+		}
 	}
 }

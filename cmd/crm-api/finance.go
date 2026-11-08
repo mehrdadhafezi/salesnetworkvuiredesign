@@ -34,10 +34,7 @@ func NewFinanceAPI(financeRunner, flags *db.Runner, devAuth bool) (apiserver.Fin
 	if financeRunner.Module() != finance.Module || flags.Module() != owner.FeatureFlags {
 		return nil, errors.New("crm-api: finance runners bound to the wrong modules")
 	}
-	var subjects authorization.SubjectResolver = authorization.Anonymous{}
-	if devAuth {
-		subjects = authorization.DevSubjects{}
-	}
+	subjects := subjects(devAuth)
 	guard, err := authorization.NewGuard(flagFunc(flags, FinanceFlag), subjects)
 	if err != nil {
 		return nil, err

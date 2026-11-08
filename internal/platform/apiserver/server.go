@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,20 +14,27 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/result"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/timeutil"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/authstub"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/httpx"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/httpx/oapi"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/websession"
 )
 
 // ContractPaths are the paths of the OpenAPI contract with their methods.
 // They drive the central 404/405 problem handling; TestRoutesMatchContract
 // fails if they drift from the bundled contract.
 var ContractPaths = map[string][]string{
-	"/health/live":                             {http.MethodGet},
-	"/health/ready":                            {http.MethodGet},
-	"/api/v1/session":                          {http.MethodGet},
+	"/health/live":    {http.MethodGet},
+	"/health/ready":   {http.MethodGet},
+	"/api/v1/session": {http.MethodGet},
+	// R1 production authentication (server-side sessions).
+	"/api/v1/auth/login":                       {http.MethodPost},
+	"/api/v1/auth/logout":                      {http.MethodPost},
+	"/api/v1/auth/logout-all":                  {http.MethodPost},
 	"/api/v1/identity/users":                   {http.MethodGet},
 	"/api/v1/identity/users/{user_id}":         {http.MethodGet},
 	"/api/v1/organization/persons":             {http.MethodGet},
@@ -150,6 +158,9 @@ var ContractPaths = map[string][]string{
 // ignored (Architecture V1 §23). TestQueryAllowlistMatchesContract keeps it
 // equal to the contract.
 var ContractQuery = map[string][]string{
+	"/api/v1/auth/login":                                    {},
+	"/api/v1/auth/logout":                                   {},
+	"/api/v1/auth/logout-all":                               {},
 	"/api/v1/identity/users":                                {"q", "presence", "sort", "cursor", "limit"},
 	"/api/v1/identity/users/{user_id}":                      {},
 	"/api/v1/organization/persons":                          {"q", "employment_status", "position_id", "level_id", "org_unit_id", "is_active", "has_findings", "sort", "cursor", "limit"},
@@ -393,6 +404,7 @@ type BiawinAPI interface {
 // outside the list are refused (400) before any handler runs, so a field
 // outside the command's capability can never be smuggled in.
 var ContractBody = map[string][]string{
+	"/api/v1/auth/login":                                                {"login", "password"},
 	"/api/v1/cases/{case_id}/contact-outcomes":                          {"outcome", "reason", "callback_at"},
 	"/api/v1/hr/requests":                                               {"request_type", "subject_user_id", "target_parent_user_id", "reason"},
 	"/api/v1/hr/requests/{request_id}/decisions":                        {"decision", "notes"},
@@ -468,10 +480,12 @@ type Surfaces struct {
 	Biawin     BiawinAPI
 	Commission CommissionAPI
 	Operations OperationsAPI
-	CaseWrite  CasesWriteAPI
-	HRRequest  HRRequestAPI
-	Writeback  WritebackAPI
-	Payments   PaymentsAPI
+	// Auth is the R1 session authentication surface (nil: anonymous only).
+	Auth      AuthAPI
+	CaseWrite CasesWriteAPI
+	HRRequest HRRequestAPI
+	Writeback WritebackAPI
+	Payments  PaymentsAPI
 }
 
 // ReadAPI is the Slice 4 read surface (identity, organization,
@@ -510,8 +524,10 @@ type api struct {
 	HRRequestAPI
 	WritebackAPI
 	PaymentsAPI
-	clock   timeutil.Clock
-	devAuth bool
+	AuthAPI
+	clock    timeutil.Clock
+	devAuth  bool
+	sessions bool
 }
 
 var _ oapi.StrictServerInterface = (*api)(nil)
@@ -541,6 +557,22 @@ func (a *api) GetSession(ctx context.Context, _ oapi.GetSessionRequestObject) (o
 		AuthMode:      "none",
 		DisplayZone:   displayZone,
 		ServerTime:    a.clock.Now().Time(),
+	}
+	state := oapi.SessionContextSessionState(websession.StateFrom(ctx))
+	data.SessionState = &state
+	if a.sessions {
+		data.AuthMode = "session"
+		enabled := a.AuthAPI.LoginEnabled(ctx)
+		data.LoginEnabled = &enabled
+		if p, ok := websession.FromContext(ctx); ok {
+			uid, err := uuid.Parse(p.UserID)
+			if err != nil {
+				return nil, err
+			}
+			data.Authenticated = true
+			data.Session = &oapi.AuthSession{UserId: uid, DisplayName: p.DisplayName, CsrfToken: p.CSRF,
+				IdleExpiresAt: p.IdleExpiresAt.UTC(), AbsoluteExpiresAt: p.AbsoluteExpiresAt.UTC()}
+		}
 	}
 	if a.devAuth {
 		data.AuthMode = "dev_stub"
@@ -605,6 +637,17 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
+	auth := sf.Auth
+	if auth != nil && cfg.DevAuth {
+		return nil, ErrAuthConflict
+	}
+	if auth != nil && cfg.Environment == authstub.Production && len(cfg.AllowedOrigins) == 0 {
+		return nil, fmt.Errorf("%w: %s is required for R1 sessions in production", ErrInvalidConfig, EnvAllowedOrigins)
+	}
+	sessions := auth != nil
+	if auth == nil {
+		auth = unconfiguredAuth{}
+	}
 	if clock == nil || logger == nil {
 		return nil, ErrInvalidConfig
 	}
@@ -649,7 +692,7 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", fallback)
-	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, CommissionAPI: com, OperationsAPI: ops, CasesWriteAPI: cw, HRRequestAPI: hrq, WritebackAPI: wbk, PaymentsAPI: pay, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
+	strict := oapi.NewStrictHandlerWithOptions(&api{ReadAPI: read, CustomersAPI: customers, SalesAPI: sales, BillingAPI: billing, ReportingAPI: rep, FinanceAPI: fin, BiawinAPI: bw, CommissionAPI: com, OperationsAPI: ops, AuthAPI: auth, sessions: sessions, CasesWriteAPI: cw, HRRequestAPI: hrq, WritebackAPI: wbk, PaymentsAPI: pay, clock: clock, devAuth: cfg.DevAuth}, nil, oapi.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteProblem(w, r, httpx.ProblemBadRequest)
 		},
@@ -677,7 +720,12 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 			httpx.WriteProblem(w, r, p)
 		})(h)
 	}
+	if sessions {
+		h = crossSiteGuard(cfg.AllowedOrigins, auth, logger)(h)
+		h = sessionAuth(auth, logger)(h)
+	}
 	h = limitBody(cfg.MaxBodyBytes)(h)
+	h = noStore(h)
 	h = httpx.Recover(logger)(h)
 	h = httpx.Correlation(h)
 	return h, nil

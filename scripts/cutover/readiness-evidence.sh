@@ -73,7 +73,12 @@ static_checks() {
   # Production authentication.
   case "$(gg -E "authorization.Anonymous\{\}" -- cmd/crm-api)" in
     match) bad "crm-api resolves every non-dev request as authorization.Anonymous: no production authentication exists" ;;
-    none) note "crm-api does not use authorization.Anonymous (re-check how production subjects are resolved)" ;;
+    none)
+      case "$(gg -F "authorization.SessionSubjects" -- cmd/crm-api)" in
+        match) note "R1 server-side sessions present (flag identity.session_auth, default OFF); no credential can be provisioned yet (D-34), so no production login is possible" ;;
+        none) bad "crm-api has neither the anonymous nor the session subject resolver: re-check production subject resolution" ;;
+        *) unk "could not inspect crm-api subject resolution" ;;
+      esac ;;
     *) unk "could not inspect crm-api subject resolution" ;;
   esac
   case "$(gg "ErrProductionLockout" -- internal/platform/authstub)" in

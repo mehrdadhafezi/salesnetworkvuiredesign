@@ -1,8 +1,9 @@
-import { Suspense, useState } from 'react'
+import { Suspense, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import { useSession } from '../shared/auth/currentSession'
+import { useSession, useSessionActions } from '../shared/auth/currentSession'
+import { LoginPage } from '../shared/auth/LoginPage'
 import { Icon } from '../shared/ui/icons'
-import { StateBlock } from '../shared/ui/primitives'
+import { Button, StateBlock } from '../shared/ui/primitives'
 
 export interface NavItem {
   to: string
@@ -48,19 +49,53 @@ export function Shell({ nav }: { nav: NavItem[] }) {
         ))}
       </nav>
       <main id="ws" className="ws" tabIndex={-1}>
-        <Suspense fallback={<StateBlock kind="loading" title="در حال بارگذاری…" />}>
-          <Outlet />
-        </Suspense>
+        <Gate>
+          <Suspense fallback={<StateBlock kind="loading" title="در حال بارگذاری…" />}>
+            <Outlet />
+          </Suspense>
+        </Gate>
       </main>
     </>
   )
 }
 
+/**
+ * R1 protected routes: in session mode every page needs an authenticated
+ * session; otherwise the login page is shown (with an expiry notice when
+ * the server reported the presented session invalid). The server still
+ * authorises every request; this only avoids rendering pages that would
+ * be denied.
+ */
+function Gate({ children }: { children: ReactNode }) {
+  const state = useSession()
+  const { refresh } = useSessionActions()
+  if (state.status === 'loading') return <StateBlock kind="loading" title="در حال بررسی نشست…" />
+  if (state.status === 'failed') {
+    return <StateBlock kind="error" title="وضعیت نشست مشخص نشد" detail="ارتباط با سرور برقرار نشد."
+      action={<Button onClick={refresh}>تلاش دوباره</Button>} />
+  }
+  const s = state.session
+  if (s.auth_mode === 'session' && !s.authenticated) {
+    return <LoginPage expired={s.session_state === 'invalid'} enabled={s.login_enabled === true} />
+  }
+  return <>{children}</>
+}
+
 function Identity() {
   const state = useSession()
+  const { logout } = useSessionActions()
   if (state.status === 'loading') return <span className="who muted">…</span>
   if (state.status === 'failed') return <span className="who muted">نشست نامشخص</span>
   const s = state.session
+  if (s.auth_mode === 'session') {
+    if (!s.authenticated || !s.session) return <span className="who muted">وارد نشده‌اید</span>
+    return (
+      <span className="who">
+        <span className="name">{s.session.display_name || 'کاربر'}</span>
+        <Button small onClick={() => { void logout() }}>خروج</Button>
+      </span>
+    )
+  }
   if (s.authenticated && s.principal) {
     return (
       <span className="who">
