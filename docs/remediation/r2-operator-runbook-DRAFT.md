@@ -47,7 +47,7 @@ DSNs are never logged or printed. `check` lists only the owner names.
 
 - **Start:** `./crm-worker run`. Every job starts **paused** until its switch `worker.job.<job>` is set to true.
 - **Switch a job on or off:** set or clear `worker.job.<job>`. The change takes effect on the next pass. A paused job leaves its work queued and visible.
-- **Stop:** send SIGTERM or SIGINT. In-flight passes get `CRM_WORKER_GRACE` to finish, then they are cancelled. All claims live in PostgreSQL, so any interrupted pass is redone safely.
+- **Stop:** send SIGTERM or SIGINT. In-flight passes get `CRM_WORKER_GRACE` to finish, then they are cancelled. Passes that ignore cancellation are abandoned after a further hard stop of 45 s, so shutdown is bounded. All claims live in PostgreSQL, so any interrupted pass is redone safely.
 - **One pass:** `./crm-worker once <job>`. Exit 0 means the pass succeeded; non-zero means paused, blocked or failed.
 
 ## 5. Monitor

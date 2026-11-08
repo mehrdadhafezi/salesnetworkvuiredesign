@@ -95,6 +95,14 @@ func envelope(req request, outcome string, extra map[string]any) string {
 
 func setup(t *testing.T, reply func(request) (int, string, bool)) (*Client, *fake, *memRecorder) {
 	t.Helper()
+	rec := &memRecorder{}
+	c, f := setupWith(t, reply, rec, 0)
+	return c, f, rec
+}
+
+// setupWith builds a client over any recorder with a record deadline.
+func setupWith(t *testing.T, reply func(request) (int, string, bool), rec Recorder, recordTO time.Duration) (*Client, *fake) {
+	t.Helper()
 	f := &fake{reply: reply, applied: map[string]string{}}
 	srv := httptest.NewTLSServer(f.handler(t))
 	t.Cleanup(srv.Close)
@@ -102,13 +110,12 @@ func setup(t *testing.T, reply func(request) (int, string, bool)) (*Client, *fak
 	if err != nil {
 		t.Fatal(err)
 	}
-	rec := &memRecorder{}
-	c, err := newClient(Config{Endpoint: srv.URL + "/sn-crm/compat", Timeout: 300 * time.Millisecond, Credentials: creds, Recorder: rec,
-		Clock: timeutil.FixedClock{At: mustInstant()}, Transport: srv.Client().Transport})
+	c, err := newClient(Config{Endpoint: srv.URL + "/sn-crm/compat", Timeout: 300 * time.Millisecond, RecordTimeout: recordTO, Credentials: creds,
+		Recorder: rec, Clock: timeutil.FixedClock{At: mustInstant()}, Transport: srv.Client().Transport})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return c, f, rec
+	return c, f
 }
 
 func mustInstant() timeutil.Instant {

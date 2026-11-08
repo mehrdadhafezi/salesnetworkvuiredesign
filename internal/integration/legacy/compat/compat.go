@@ -76,6 +76,12 @@ const (
 	MaxBodyBytes   = 16 << 10
 	MaxTimeout     = 30 * time.Second
 	DefaultTimeout = 10 * time.Second
+	// DefaultRecordTimeout bounds the evidence write of one exchange. The
+	// write is detached from the request's cancellation (evidence of a
+	// request that may have reached legacy must still be kept), but never
+	// from a deadline: a stalled evidence store cannot outlive it.
+	DefaultRecordTimeout = 5 * time.Second
+	MaxRecordTimeout     = 30 * time.Second
 )
 
 // Errors.
@@ -131,11 +137,13 @@ type Recorder interface {
 
 // Config configures the client.
 type Config struct {
-	Endpoint    string
-	Timeout     time.Duration
-	Credentials Credentials
-	Recorder    Recorder
-	Clock       timeutil.Clock
+	Endpoint string
+	Timeout  time.Duration
+	// RecordTimeout bounds each evidence write (0: DefaultRecordTimeout).
+	RecordTimeout time.Duration
+	Credentials   Credentials
+	Recorder      Recorder
+	Clock         timeutil.Clock
 	// Transport is the HTTP round tripper (nil: a dedicated transport).
 	Transport http.RoundTripper
 }
@@ -149,6 +157,7 @@ type Approval struct {
 type Client struct {
 	endpoint *url.URL
 	timeout  time.Duration
+	recordTO time.Duration
 	creds    Credentials
 	rec      Recorder
 	clock    timeutil.Clock
@@ -181,13 +190,20 @@ func newClient(cfg Config) (*Client, error) {
 	if t < 0 || t > MaxTimeout {
 		return nil, fmt.Errorf("%w: timeout", ErrConfig)
 	}
+	rt0 := cfg.RecordTimeout
+	if rt0 == 0 {
+		rt0 = DefaultRecordTimeout
+	}
+	if rt0 < 0 || rt0 > MaxRecordTimeout {
+		return nil, fmt.Errorf("%w: record timeout", ErrConfig)
+	}
 	rt := cfg.Transport
 	if rt == nil {
 		rt = &http.Transport{Proxy: nil, MaxIdleConns: 4, IdleConnTimeout: 30 * time.Second, TLSHandshakeTimeout: 5 * time.Second,
 			ResponseHeaderTimeout: t, ForceAttemptHTTP2: true}
 	}
 	hc := &http.Client{Transport: rt, Timeout: t, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	return &Client{endpoint: u, timeout: t, creds: cfg.Credentials, rec: cfg.Recorder, clock: cfg.Clock, http: hc}, nil
+	return &Client{endpoint: u, timeout: t, recordTO: rt0, creds: cfg.Credentials, rec: cfg.Recorder, clock: cfg.Clock, http: hc}, nil
 }
 
 // request is the canonical request envelope.
@@ -266,13 +282,32 @@ func (c *Client) exchange(ctx context.Context, op, token string, expected, paylo
 	}
 	// The evidence is recorded before the answer is used; without it the
 	// outcome is not provable and stays UNKNOWN.
-	if rerr := c.rec.Record(context.WithoutCancel(ctx), ex); rerr != nil {
-		return response{}, outcomeErr{v: verdict, msg: "exchange evidence not recorded: " + rerr.Error()}
+	if err := c.record(ctx, ex); err != nil {
+		return response{}, err
 	}
 	if err != nil {
 		return response{}, err
 	}
 	return resp, nil
+}
+
+// record persists ex with a context that survives the request's
+// cancellation but has its own bounded deadline (recordTO). A failed or
+// timed-out write is an UNKNOWN outcome, never a proven result. The
+// diagnostic is a fixed classification: the store's own error text (which
+// may name hosts, roles or values) is never propagated.
+func (c *Client) record(ctx context.Context, ex Exchange) error {
+	rctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.recordTO)
+	defer cancel()
+	err := c.rec.Record(rctx, ex)
+	if err == nil {
+		return nil
+	}
+	cause := "evidence store unavailable"
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(rctx.Err(), context.DeadlineExceeded) {
+		cause = "evidence write exceeded its deadline"
+	}
+	return outcomeErr{v: ex.Verdict, msg: "exchange evidence not recorded (" + cause + ")"}
 }
 
 func (c *Client) send(ctx context.Context, body []byte, op, token string, observe bool) (response, Verdict, int, []byte, error) {

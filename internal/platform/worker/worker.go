@@ -122,6 +122,13 @@ type Config struct {
 	// Grace is how long Run waits for in-flight passes after shutdown
 	// before cancelling them.
 	Grace time.Duration
+	// HardStop is how long Run waits, after cancelling in-flight passes,
+	// for them to return (0: DefaultHardStop). Past it, Run returns and the
+	// passes are abandoned: their claims live in PostgreSQL (transactions
+	// roll back with their connections, write-ahead states stay UNKNOWN or
+	// FINALIZING and are recovered), so shutdown is bounded even if a job
+	// ignores cancellation.
+	HardStop time.Duration
 	// Now is the wall clock (tests); nil means time.Now.
 	Now func() time.Time
 }
@@ -134,6 +141,9 @@ const (
 	MaxInterval = 24 * time.Hour
 	MaxTimeout  = 30 * time.Minute
 	MaxParallel = 16
+	// DefaultHardStop exceeds the longest bounded detached operation a pass
+	// may run after cancellation (the compat evidence write, 30 s max).
+	DefaultHardStop = 45 * time.Second
 )
 
 func (c Config) validate() error {
@@ -146,7 +156,7 @@ func (c Config) validate() error {
 	if c.MaxParallel < 1 || c.MaxParallel > MaxParallel {
 		return fmt.Errorf("%w: MaxParallel must be 1..%d", ErrInvalid, MaxParallel)
 	}
-	if c.Jitter < 0 || c.Jitter > 0.5 || c.Grace < 0 || c.Grace > MaxTimeout {
+	if c.Jitter < 0 || c.Jitter > 0.5 || c.Grace < 0 || c.Grace > MaxTimeout || c.HardStop < 0 || c.HardStop > MaxTimeout {
 		return fmt.Errorf("%w: jitter / grace", ErrInvalid)
 	}
 	seen := map[string]bool{}
@@ -210,6 +220,9 @@ func New(cfg Config) (*Runtime, error) {
 	}
 	if cfg.Instance == "" {
 		cfg.Instance = defaultInstance()
+	}
+	if cfg.HardStop == 0 {
+		cfg.HardStop = DefaultHardStop
 	}
 	now := cfg.Now
 	if now == nil {
@@ -291,7 +304,12 @@ func (rt *Runtime) Run(ctx context.Context) error {
 	case <-time.After(rt.cfg.Grace):
 		rt.cfg.Logger.Warn("worker grace period elapsed; cancelling in-flight passes", "instance", rt.cfg.Instance)
 		cancelRuns()
-		<-done
+		select {
+		case <-done:
+		case <-time.After(rt.cfg.HardStop):
+			rt.cfg.Logger.Error("in-flight passes ignored cancellation; abandoning them (claims are durable and recovered)",
+				"instance", rt.cfg.Instance)
+		}
 	}
 	rt.mu.Lock()
 	rt.running, rt.stopped = false, true

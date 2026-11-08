@@ -287,3 +287,37 @@ func TestHealthReadinessAndMetrics(t *testing.T) {
 		t.Fatal("invalid metric names / labels must be dropped")
 	}
 }
+
+// R2 review P2: shutdown is bounded even when a pass ignores cancellation
+// (grace, then cancel, then at most HardStop).
+func TestShutdownBoundedWhenPassIgnoresCancellation(t *testing.T) {
+	started := make(chan struct{}, 1)
+	stubborn := JobFunc{JobName: "stubborn_job", Fn: func(context.Context, *Run) error {
+		started <- struct{}{}
+		time.Sleep(10 * time.Second) // ignores ctx entirely
+		return nil
+	}}
+	s := spec(stubborn, Always)
+	s.Timeout = time.Minute
+	rt, err := New(Config{Logger: quiet, MaxParallel: 1, Grace: 100 * time.Millisecond, HardStop: 200 * time.Millisecond, Specs: []Spec{s}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, stop := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- rt.Run(ctx) }()
+	<-started
+	begin := time.Now()
+	stop()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("shutdown must be bounded by Grace + HardStop")
+	}
+	if d := time.Since(begin); d > 2*time.Second {
+		t.Fatalf("shutdown took %s", d)
+	}
+	if _, err := New(Config{Logger: quiet, MaxParallel: 1, HardStop: -time.Second, Specs: []Spec{s}}); !errors.Is(err, ErrInvalid) {
+		t.Fatal("negative hard stop accepted")
+	}
+}
