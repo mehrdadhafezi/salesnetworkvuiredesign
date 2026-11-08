@@ -52,6 +52,7 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/ids"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/inbox"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/outbox"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/relay"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/rollout"
 )
 
@@ -632,4 +633,23 @@ func BlockedCommands() map[string][]string {
 		out[k] = append([]string(nil), v...)
 	}
 	return out
+}
+
+// IgnoredSubscriptionActivated documents why the biawin subscription-level
+// event is dispatched without delivery: fulfillment intake acts per item.
+const IgnoredSubscriptionActivated = "subscription-level event; fulfillment intake acts per item on subscription_item_activated (Slice 14)"
+
+// IntakeRoute is the complete relay route of the biawin outbox (R2): the
+// item-activated event creates the work case (inbox-deduplicated); the
+// subscription-level event is declared non-actionable with its reason. Any
+// other biawin event type fails visibly in the biawin outbox.
+func (s *Service) IntakeRoute() relay.Route {
+	return relay.Route{
+		Name: Consumer,
+		Handlers: map[string]relay.Handler{biawinapi.EventItemActivated: func(ctx context.Context, rec outbox.Record) error {
+			_, err := s.OnItemActivated(ctx, rec)
+			return err
+		}},
+		Ignore: map[string]string{biawinapi.EventSubscriptionActivated: IgnoredSubscriptionActivated},
+	}
 }

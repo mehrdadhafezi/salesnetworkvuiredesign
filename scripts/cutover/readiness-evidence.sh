@@ -87,16 +87,32 @@ static_checks() {
     *) unk "could not inspect the dev auth stub" ;;
   esac
 
-  # Runtime workers: is any cmd wired to the background steps?
-  # (payments receipt finaliser, unbound-upload expiry, outbox relay,
-  # legacy write-back worker, provider-operation dispatch / reconcile)
-  for sym in "Finalise(" "ExpireUnbound(" "relay.Drain(" "writeback.New(" "providerops" ; do
+  # Runtime workers (R2): is a command wired to each background step?
+  # (receipt finaliser, unbound-upload expiry, outbox relays, legacy
+  # write-back delivery, provider-operation reconciliation)
+  for sym in "FinaliseJob(" "ExpiryReportJob(" "RelayJob(" "DeliverJob(" "ReconcileJob(" ; do
     case "$(gg -F "$sym" -- 'cmd/*.go' ':!*_test.go' ':!cmd/crm-api/*')" in
-      match) note "an offline command references $sym" ;;
-      none) bad "no offline command runs $sym (worker not deployable)" ;;
+      match) note "a worker command composes $sym" ;;
+      none) bad "no command runs $sym (worker not deployable)" ;;
       *) unk "could not inspect commands for $sym" ;;
     esac
   done
+  # External adapters stay blocked until approved / verified.
+  case "$(gg -E '^const approvedContract = ""$' -- 'internal/integration/legacy/compat/compat.go')" in
+    match) bad "legacy write-back delivery BLOCKED: no approved compatibility contract (E-3); commands stay PENDING" ;;
+    none) note "a legacy write-back contract pin is set: verify the approval record" ;;
+    *) unk "could not inspect the write-back contract pin" ;;
+  esac
+  case "$(gg -F 'supports only disabled (no verified provider adapter exists)' -- 'cmd/crm-worker/config.go')" in
+    match) bad "provider reconciliation BLOCKED: no verified provider adapter (Biawin protocol not evidenced)" ;;
+    none) note "a provider adapter option exists: verify its evidence" ;;
+    *) unk "could not inspect the provider adapter configuration" ;;
+  esac
+  case "$(gg -F 'BLOCKED by D-44' -- 'cmd/crm-worker/config.go')" in
+    match) bad "unbound-upload purge BLOCKED by D-44 (report-only expiry)" ;;
+    none) unk "unbound-upload purge gate not found" ;;
+    *) unk "could not inspect the purge gate" ;;
+  esac
 
   # Provider packages unreachable from every command.
   # go list omits packages it cannot load, so absence counts only when the

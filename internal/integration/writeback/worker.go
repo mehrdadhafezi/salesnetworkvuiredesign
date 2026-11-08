@@ -23,6 +23,7 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/inbox"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/outbox"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/owner"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/relay"
 )
 
 // Consumer is the inbox consumer name of the write-back.
@@ -57,6 +58,41 @@ type Worker struct {
 	runner    *db.Runner
 	clock     timeutil.Clock
 	connector Connector
+	opts      Options
+}
+
+// Options bound delivery (R2). The zero value keeps the Slice 11 library
+// behaviour (every type, immediate re-observation, no budget); the worker
+// job always sets them.
+type Options struct {
+	// Types restricts Step to these command types (nil: all). Commands of
+	// other types stay as they are (PENDING / UNKNOWN), visible.
+	Types []string
+	// ObserveInterval is the minimum spacing of two observations of one
+	// UNKNOWN command.
+	ObserveInterval time.Duration
+	// ObservationBudget is the number of consecutive unreadable (UNKNOWN)
+	// observations after which the command moves to
+	// RECONCILIATION_REQUIRED for evidence-based human review (0: no
+	// budget). It is never retried blindly either way.
+	ObservationBudget int
+}
+
+// WithOptions returns a copy of w bounded by o.
+func (w *Worker) WithOptions(o Options) (*Worker, error) {
+	if o.ObserveInterval < 0 || o.ObservationBudget < 0 {
+		return nil, errors.New("writeback: invalid options")
+	}
+	for _, t := range o.Types {
+		switch t {
+		case TypeContactOutcome, TypeHRCreate, TypeHRDecide, TypePaymentAttempt:
+		default:
+			return nil, fmt.Errorf("writeback: unknown command type %q", t)
+		}
+	}
+	c := *w
+	c.opts = o
+	return &c, nil
 }
 
 // New returns a worker over an integration-owned runner.
@@ -204,36 +240,44 @@ func (w *Worker) Receive(ctx context.Context, source owner.Module, rec outbox.Re
 	return out, err
 }
 
-// Drain claims up to limit undispatched events from a source module's own
-// outbox (a source-owned transaction), records each as a write-back command
-// (integration-owned transaction, inbox-deduplicated) and marks it
-// dispatched in the source outbox. No transaction spans two schemas.
+// IntakeRoute is the complete relay route of one source outbox (R2): every
+// event type the source publishes is recorded through Receive (an
+// integration-owned, inbox-deduplicated transaction). An event type the
+// source does not publish fails visibly in the source outbox.
+func (w *Worker) IntakeRoute(source owner.Module) (relay.Route, error) {
+	var types []string
+	switch source {
+	case "cases":
+		types = []string{casesapi.EventContactOutcomeRecorded}
+	case "organization":
+		types = []string{orgapi.EventHRRequestCreated, orgapi.EventHRRequestDecided}
+	case "payments":
+		// The batch event is consumed without a command (audit only).
+		types = []string{paymentsapi.EventAttemptEvidenceReady, paymentsapi.EventBatchSubmitted}
+	default:
+		return relay.Route{}, fmt.Errorf("writeback: %s publishes no write-back event", source)
+	}
+	h := map[string]relay.Handler{}
+	for _, t := range types {
+		h[t] = func(ctx context.Context, rec outbox.Record) error {
+			_, err := w.Receive(ctx, source, rec)
+			return err
+		}
+	}
+	return relay.Route{Name: Consumer + "." + string(source), Handlers: h}, nil
+}
+
+// Drain relays up to limit events of a source module's outbox into
+// write-back commands (relay.Drain over IntakeRoute, redelivering failed
+// events immediately). No transaction spans two schemas.
 func (w *Worker) Drain(ctx context.Context, source *db.Runner, limit int) (int, error) {
-	var recs []outbox.Record
-	if err := source.InTx(ctx, db.TxOptions{Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
-		var err error
-		recs, err = outbox.Claim(ctx, tx, limit, 10)
-		return err
-	}); err != nil {
+	route, err := w.IntakeRoute(source.Module())
+	if err != nil {
 		return 0, err
 	}
-	n := 0
-	for _, rec := range recs {
-		if _, err := w.Receive(ctx, source.Module(), rec); err != nil {
-			reason := err.Error()
-			_ = source.InTx(ctx, db.TxOptions{Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
-				return outbox.MarkFailed(ctx, tx, rec.ID, w.clock.Now(), reason)
-			})
-			continue
-		}
-		if err := source.InTx(ctx, db.TxOptions{Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
-			return outbox.MarkDispatched(ctx, tx, rec.ID, w.clock.Now())
-		}); err != nil {
-			return n, err
-		}
-		n++
-	}
-	return n, nil
+	route.Backoff = &outbox.Backoff{}
+	rep, err := relay.Drain(ctx, source, w.clock, limit, route)
+	return rep.Dispatched + rep.Ignored, err
 }
 
 // command is a stored write-back command.
@@ -273,9 +317,17 @@ type Report struct {
 func (w *Worker) Step(ctx context.Context, limit int) (Report, error) {
 	var rep Report
 	var pending []string
+	types := w.opts.Types
+	if types == nil {
+		types = []string{}
+	}
+	observeBefore := w.clock.Now().Time().Add(-w.opts.ObserveInterval)
 	if err := w.runner.InTx(ctx, db.TxOptions{ReadOnly: true}, func(ctx context.Context, tx db.Tx) error {
 		rows, err := tx.Query(ctx, `SELECT command_id::text FROM integration.writeback_command
-			WHERE state IN ('PENDING', 'WAITING_DEPENDENCY', 'UNKNOWN') ORDER BY received_at, command_id LIMIT $1`, limit)
+			WHERE state IN ('PENDING', 'WAITING_DEPENDENCY', 'UNKNOWN')
+				AND (cardinality($2::text[]) = 0 OR event_type = ANY($2::text[]))
+				AND (state <> 'UNKNOWN' OR updated_at <= $3)
+			ORDER BY received_at, command_id LIMIT $1`, limit, types, observeBefore)
 		if err != nil {
 			return err
 		}
@@ -479,8 +531,34 @@ func (w *Worker) reconcile(ctx context.Context, c command, rep *Report) error {
 		return w.transition(ctx, c, StateReconciliation, &att, &recon{reason: "LEGACY_AMBIGUOUS", action: "DOMAIN_OWNER_REVIEW",
 			attempt: c.Attempts + 1, evidence: map[string]any{"detail": obs.Detail}}, countAttempt())
 	}
+	if w.opts.ObservationBudget > 0 {
+		unseen, err := w.unseenStreak(ctx, c.ID)
+		if err != nil {
+			return err
+		}
+		if unseen+1 >= w.opts.ObservationBudget {
+			// Budget spent: the outcome stays unproven. Human review with
+			// evidence decides; nothing is retried or assumed.
+			rep.Reconciliation++
+			return w.transition(ctx, c, StateReconciliation, &att, &recon{reason: "WRITEBACK_UNKNOWN", action: "DOMAIN_OWNER_REVIEW",
+				attempt: c.Attempts + 1, evidence: map[string]any{"detail": "legacy unreadable for the whole observation budget",
+					"observations": unseen + 1}}, countAttempt())
+		}
+	}
 	rep.Unknown++
 	return w.transition(ctx, c, StateUnknown, &att, nil, countAttempt())
+}
+
+// unseenStreak counts the consecutive unreadable observations of a command
+// since its last apply attempt or readable observation.
+func (w *Worker) unseenStreak(ctx context.Context, id string) (int, error) {
+	var n int
+	err := w.runner.InTx(ctx, db.TxOptions{ReadOnly: true}, func(ctx context.Context, tx db.Tx) error {
+		return tx.QueryRow(ctx, `SELECT count(*) FROM integration.writeback_attempt a WHERE a.command_id = $1 AND a.kind = 'OBSERVE'
+			AND a.observation = 'UNKNOWN' AND a.attempt_no > coalesce((SELECT max(b.attempt_no) FROM integration.writeback_attempt b
+				WHERE b.command_id = $1 AND (b.kind = 'APPLY' OR b.observation <> 'UNKNOWN')), 0)`, id).Scan(&n)
+	})
+	return n, err
 }
 
 func observeOutcome(o Observation) result.Status {

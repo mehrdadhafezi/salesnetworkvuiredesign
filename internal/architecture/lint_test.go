@@ -63,7 +63,7 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleForeignStore:       3,  // sales imports billing/store; authorization imports organization/store; connector imports customers/store
 		RuleLegacyImport:       4,  // + cases/http imports the legacy write-back connector; sales, crm-api and crm-migrate (non-migrations) import the connector
 		RuleModuleBoundary:     23, // + catalog→biawin/api, fulfillment/work→biawin/activation, fulfillment/work→catalog/registry; + cases/command→billing/api; + biawin→billing/query, fulfillment→biawin/query; + finance→billing/query, commission→finance/api; + reporting→cases/query, reporting/http→payments/api, billing→reporting/query; + payments→billing/query, billing/query→payments/api; custody→cases/query, custody→organization/api, cases/http→custody/query; identity→organization/api, organization→identity/query, authorization→organization/store, connector→organization/imports; customers→organization/query, customers/http→identity/query, connector→customers/store
-		RuleForeignWrite:       9,  // + catalog UPDATE fulfillment.work_case; + biawin UPDATE finance.*, fulfillment INSERT INTO billing.*; connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*; finance UPDATE billing.*; commission INSERT INTO finance.*
+		RuleForeignWrite:       10, // + crm-worker INSERT INTO payments.*; + catalog UPDATE fulfillment.work_case; + biawin UPDATE finance.*, fulfillment INSERT INTO billing.*; connector INSERT INTO organization.*, UPDATE customers.*, INSERT INTO cases.*; payments INSERT INTO billing.*; finance UPDATE billing.*; commission INSERT INTO finance.*
 		RuleReadPathImport:     9,  // + commission/http imports the offline commission shadow job; + biawin/http and fulfillment/query import an import command; organization/http, customers/http, cases/http and crm-api import an import command; reporting/http imports the projection rebuild; finance/http imports the shadow rebuild
 		RuleMergePath:          2,  // customers MergeCustomers, canonicalizeByPhone
 		RuleAppendOnlyWrite:    10, // + catalog UPDATE fulfillment.work_case, fulfillment/work DELETE FROM work_case + UPDATE work_event; + biawin UPDATE finance.ledger_entry, DELETE FROM biawin.subscription, fulfillment/query UPDATE fulfillment.*; custody UPDATE custody.custody_event; payments UPDATE payments.attempt_state_history; reporting UPDATE reporting.case_fact; finance DELETE FROM finance.ledger_entry
@@ -106,6 +106,8 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleS13DomainPure:      2,  // domain imports platform/db; domain reads time.Now
 		RuleS13ReadWrite:       1,  // commission/http INSERT INTO commission.*
 		RuleR1CredentialWrite:  2,  // identity INSERT INTO / UPDATE identity.credential
+		RuleR2Network:          3,  // http.NewRequest in integration/writeback; http.Get in cmd/crm-worker; net.Dial in the S12 gateway fixture
+		RuleR2WorkerSQL:        2,  // INSERT / SELECT literals in cmd/crm-worker
 	}
 	for rule, n := range want {
 		if hits[rule] != n {

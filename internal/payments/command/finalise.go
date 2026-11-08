@@ -20,6 +20,12 @@ const ServiceActor = "service:payments.evidence"
 // run may take the receipt over (a crashed worker never strands evidence).
 const FinalisingLease = 5 * time.Minute
 
+// MaxFinaliseAttempts bounds the claims of one receipt (R2). A receipt that
+// reached it stays in its state (STORAGE_ERROR, or FINALIZING after a
+// crash), visible with its reconciliation record, and is never claimed
+// again automatically. Proposed engineering default, not an approved value.
+const MaxFinaliseAttempts = 20
+
 // FinaliseReport counts what one Finalise run did.
 type FinaliseReport struct {
 	Ready, StorageError, NotRecoverable, AttemptsReady int
@@ -46,8 +52,8 @@ func (s *Service) Finalise(ctx context.Context, limit int) (FinaliseReport, erro
 	now := s.clock.Now().Time().UTC()
 	err := s.runner.InTx(ctx, db.TxOptions{ReadOnly: true, Isolation: db.ReadCommitted}, func(ctx context.Context, tx db.Tx) error {
 		rows, err := tx.Query(ctx, `SELECT receipt_id::text, attempt_id::text, quarantine_ref, state, content_sha256, version FROM payments.receipt_evidence
-			WHERE state IN ('QUARANTINED', 'STORAGE_ERROR') OR (state = 'FINALIZING' AND updated_at < $1)
-			ORDER BY updated_at, receipt_id LIMIT $2`, now.Add(-FinalisingLease), limit)
+			WHERE (state IN ('QUARANTINED', 'STORAGE_ERROR') OR (state = 'FINALIZING' AND updated_at < $1)) AND finalise_attempts < $3
+			ORDER BY updated_at, receipt_id LIMIT $2`, now.Add(-FinalisingLease), limit, MaxFinaliseAttempts)
 		if err != nil {
 			return err
 		}

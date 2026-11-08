@@ -314,6 +314,8 @@ const (
 	// password, reset and recovery are open decisions (D-34); the
 	// application role has SELECT only, and this rule keeps code honest.
 	RuleR1CredentialWrite = "r1-credential-write"
+	RuleR2Network         = "r2-network-call"
+	RuleR2WorkerSQL       = "r2-worker-sql"
 )
 
 // Slice 13 commission trees.
@@ -426,6 +428,18 @@ func s14MutableWrite(rel, m string) bool {
 	f := strings.Fields(strings.ToLower(m))
 	return len(f) == 2 && f[0] == "update" && f[1] == "fulfillment.work_case" && under(rel, "internal/fulfillment/work")
 }
+
+// R2: background workers. Network client calls are confined to the legacy
+// compatibility transport (which cannot be activated without an approved
+// contract); the worker runtime, the worker binary and the rest of
+// integration never open a connection themselves. The worker binary holds
+// no SQL: every database effect goes through the owning module's service.
+var (
+	r2NetworkScoped = []string{"internal/integration", "internal/platform/worker", "cmd/crm-worker"}
+	r2NetworkAllow  = "internal/integration/legacy/compat"
+	r2WorkerCmd     = "cmd/crm-worker"
+	r2SQL           = regexp.MustCompile(`(?i)\b(insert\s+into|delete\s+from|update\s+[a-z_]+(\.[a-z_]+)?\s+set|select\s+.+\s+from)\b`)
+)
 
 // r1CredentialWrite matches SQL that writes a credential row.
 var r1CredentialWrite = regexp.MustCompile(`(?i)\b(insert\s+into|update|delete\s+from)\s+identity\.credential\b`)
@@ -621,7 +635,9 @@ var legacyLiteral = regexp.MustCompile(`(^|[^A-Za-z0-9_])(wp|sn)_[A-Za-z0-9_]`)
 var wooLiteral = regexp.MustCompile(`(?i)woo` + `commerce`)
 
 // legacyImporters may import internal/integration/legacy/**.
-var legacyImporters = []string{legacyInteg, "cmd/crm-legacy-import", "cmd/crm-finance-shadow", "cmd/crm-biawin-shadow", "cmd/crm-commission-shadow"}
+var legacyImporters = []string{legacyInteg, "cmd/crm-legacy-import", "cmd/crm-finance-shadow", "cmd/crm-biawin-shadow", "cmd/crm-commission-shadow",
+	// R2: the worker is the write-back composition root (compat client, legacy connector).
+	"cmd/crm-worker"}
 
 // legacyMigrationsImporter may import only the legacy migrations package.
 const (
@@ -783,6 +799,9 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			}
 			if x.Kind == token.STRING && !under(rel, architectureDir) {
 				if s, err := strconv.Unquote(x.Value); err == nil {
+					if !isTest && under(rel, r2WorkerCmd) && r2SQL.MatchString(s) {
+						add(RuleR2WorkerSQL, x.Pos(), "SQL in the worker binary; database effects go through the owning module's service")
+					}
 					if !isTest && r1CredentialWrite.MatchString(s) {
 						add(RuleR1CredentialWrite, x.Pos(), "writes identity.credential: enrolment / password set / reset is BLOCKED (D-34)")
 					}
@@ -992,6 +1011,9 @@ func checkSlice12File(f *ast.File, fset *token.FileSet, rel, modulePath string) 
 		case *ast.SelectorExpr:
 			if id, ok := x.X.(*ast.Ident); ok && inAny(rel, s12NetworkFree) && s12NetworkSel[id.Name][x.Sel.Name] {
 				add(RuleS12Network, x.Pos(), "network call "+id.Name+"."+x.Sel.Name+" (synthetic adapters only; no production call)")
+			}
+			if id, ok := x.X.(*ast.Ident); ok && inAny(rel, r2NetworkScoped) && !under(rel, r2NetworkAllow) && s12NetworkSel[id.Name][x.Sel.Name] {
+				add(RuleR2Network, x.Pos(), "network call "+id.Name+"."+x.Sel.Name+" outside "+r2NetworkAllow+" (no worker opens an external connection)")
 			}
 		case *ast.BasicLit:
 			if x.Kind != token.STRING {
