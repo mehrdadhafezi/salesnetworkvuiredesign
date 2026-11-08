@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -65,7 +66,9 @@ func (e *env) r1Account(t *testing.T, login, pw string) string {
 	if _, err := e.admin(t).Exec(ctx, `INSERT INTO identity.user_account (user_id, source_system, source_spec, source_key, first_batch_id, source_batch_id,
 		source_row_sha256, imported_at, refreshed_at, presence, display_name, account_state, login_enabled, version)
 		VALUES ($1, 'synthetic', 'synthetic.account.v1', $2, $3, $3, $4, now(), now(), 'PRESENT', $5, 'SHADOW_IMPORTED', false, 1)`,
-		uid, fmt.Sprint(3000+len(login)*7+int(sha[0])), batch, sha[:], login); err != nil {
+		// Unique numeric source key from the random user id (a one-byte
+		// derivation collided for equal-length logins, ~1/256 runs).
+		uid, fmt.Sprint(1+binary.BigEndian.Uint64(sha[:8])%999_999_999_999_999_999), batch, sha[:], login); err != nil {
 		t.Fatal(err)
 	}
 	h, err := password.Hash(pw, password.Params{MemoryKiB: 64, Iterations: 1, Parallelism: 1, SaltBytes: 16, KeyBytes: 32})
