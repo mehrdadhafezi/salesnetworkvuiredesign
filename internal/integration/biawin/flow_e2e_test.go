@@ -142,17 +142,16 @@ func paid(t *testing.T, product, route, customerState string, customer *string) 
 
 func (e *env) relay(t *testing.T) int {
 	t.Helper()
-	n, err := relay.Drain(context.Background(), e.bR, e.clock, 500, func(ctx context.Context, rec outbox.Record) error {
-		if rec.Type != biawinapi.EventItemActivated {
-			return relay.ErrSkip
-		}
-		_, err := e.work.OnItemActivated(ctx, rec)
-		return err
-	})
+	route := e.work.IntakeRoute()
+	route.Backoff = &outbox.Backoff{} // fixed test clock: redeliver immediately
+	rep, err := relay.Drain(context.Background(), e.bR, e.clock, 500, route)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return n
+	if rep.Failed != 0 || rep.NoRoute != 0 {
+		t.Fatalf("relay: %+v", rep)
+	}
+	return rep.Dispatched + rep.Ignored
 }
 
 func (e *env) admin(t *testing.T) *pgx.Conn {
@@ -686,14 +685,12 @@ func TestRelayFaultInjection(t *testing.T) {
 	customer := uid(t)
 	o := e.activate(t, paid(t, "prod-f", biawinapi.RouteAdditionalServices, "RESOLVED", &customer))
 	boom := errors.New("injected fulfillment outage")
-	n, err := relay.Drain(ctx, e.bR, e.clock, 500, func(ctx context.Context, rec outbox.Record) error {
-		if rec.Type != biawinapi.EventItemActivated {
-			return relay.ErrSkip
-		}
-		return boom
-	})
-	if err != nil || n != 1 {
-		t.Fatalf("faulty relay: n=%d err=%v (only the subscription event may be dispatched)", n, err)
+	faulty := e.work.IntakeRoute()
+	faulty.Backoff = &outbox.Backoff{}
+	faulty.Handlers = map[string]relay.Handler{biawinapi.EventItemActivated: func(context.Context, outbox.Record) error { return boom }}
+	rep, err := relay.Drain(ctx, e.bR, e.clock, 500, faulty)
+	if err != nil || rep.Ignored != 1 || rep.Dispatched != 0 || rep.Failed != 3 {
+		t.Fatalf("faulty relay: %+v err=%v (only the subscription event may be dispatched)", rep, err)
 	}
 	if len(e.cases(t, *o.SubscriptionID)) != 0 || e.count(t, `SELECT count(*) FROM biawin.target_item WHERE subscription_id = $1`, *o.SubscriptionID) != 3 {
 		t.Fatal("biawin must stay committed while fulfillment failed")

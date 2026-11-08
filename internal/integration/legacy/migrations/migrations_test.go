@@ -273,7 +273,7 @@ func TestSourceValidates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) != 11 || names[10] != "00011_integration_provider_operations.sql" || names[9] != filepath.Base(slice13File) || names[7] != "00008_integration_writeback.sql" || names[8] != "00009_integration_writeback_payments.sql" || names[0] != filepath.Base(renderedFile) || names[1] != "00002_integration_staging_guards.sql" ||
+	if len(names) != 12 || names[11] != "00012_integration_writeback_exchange.sql" || names[10] != "00011_integration_provider_operations.sql" || names[9] != filepath.Base(slice13File) || names[7] != "00008_integration_writeback.sql" || names[8] != "00009_integration_writeback_payments.sql" || names[0] != filepath.Base(renderedFile) || names[1] != "00002_integration_staging_guards.sql" ||
 		names[2] != filepath.Base(slice5File) || names[3] != filepath.Base(slice6File) || names[4] != filepath.Base(slice7File) ||
 		names[5] != filepath.Base(slice9File) || names[6] != filepath.Base(slice10File) {
 		t.Fatalf("migration files = %v", names)

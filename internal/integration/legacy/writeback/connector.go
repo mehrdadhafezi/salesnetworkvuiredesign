@@ -115,6 +115,20 @@ func NewConnector(legacy Legacy, users Users) (*Connector, error) {
 	return &Connector{legacy: legacy, users: users, tehran: loc}, nil
 }
 
+type correlationKey struct{}
+
+// WithCorrelation carries the target correlation id to a Legacy transport
+// (R2: the transport records it with every exchange).
+func WithCorrelation(ctx context.Context, id string) context.Context {
+	return context.WithValue(ctx, correlationKey{}, id)
+}
+
+// CorrelationFrom returns the correlation id carried by ctx ("" if none).
+func CorrelationFrom(ctx context.Context) string {
+	id, _ := ctx.Value(correlationKey{}).(string)
+	return id
+}
+
 // RequestToken is the legacy request token of a command (sanitize_key-safe).
 func RequestToken(commandID string) string { return strings.ReplaceAll(commandID, "-", "") }
 
@@ -245,6 +259,7 @@ func applied(r Result) wb.Applied {
 // Apply implements the port. A mapping refusal is BLOCKED (nothing was
 // sent); a legacy store error is returned as an error (outcome unknown).
 func (c *Connector) Apply(ctx context.Context, in wb.Intent) (wb.Applied, error) {
+	ctx = WithCorrelation(ctx, in.CorrelationID)
 	switch in.CommandType {
 	case wb.TypeContactOutcome:
 		op, why, err := c.leadOp(ctx, in)
@@ -295,6 +310,7 @@ func count(n int) wb.Observation {
 // Observe implements the port: it reads legacy by the command's
 // reconciliation key only (never by phone, name or time).
 func (c *Connector) Observe(ctx context.Context, in wb.Intent) (wb.Observed, error) {
+	ctx = WithCorrelation(ctx, in.CorrelationID)
 	switch in.CommandType {
 	case wb.TypeContactOutcome:
 		f := in.Fields

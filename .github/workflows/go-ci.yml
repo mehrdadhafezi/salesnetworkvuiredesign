@@ -283,6 +283,33 @@ jobs:
             echo "a policy-dependent authentication route appeared in the contract (D-34 / D-26)"; exit 1
           fi
 
+      - name: R2 background workers and guarded write-back (verbose + race; PostgreSQL, temporary object store, synthetic legacy / provider only)
+        run: |
+          go build -o /tmp/crm-worker ./cmd/crm-worker/
+          go test -count=1 -v ./internal/platform/worker/ ./internal/platform/relay/ ./internal/platform/outbox/ ./internal/integration/legacy/compat/ ./cmd/crm-worker/
+          go test -count=1 -v -run 'TestR2' ./internal/integration/legacy/shadow/
+          go test -count=1 -v -run 'TestProviderReconcileJob|TestRelayFaultInjection' ./internal/integration/biawin/
+          go test -count=1 -race ./internal/platform/worker/ ./internal/platform/relay/ ./internal/integration/legacy/compat/ ./cmd/crm-worker/ ./internal/integration/writeback/ ./internal/integration/providerops/
+          go test -count=1 -race -run 'TestR2' ./internal/integration/legacy/shadow/
+          go test -count=1 -race -run 'TestProviderReconcileJob' ./internal/integration/biawin/
+
+      - name: R2 boundary — no silent skip, no approved legacy contract, no synthetic adapter or SQL in the worker binary, no financial write-back
+        shell: bash
+        run: |
+          # The silent-skip escape hatch is gone: unhandled event types fail visibly.
+          if grep -rn 'relay\.ErrSkip\|ErrSkip *=' --include='*.go' internal cmd; then echo "relay.ErrSkip reappeared"; exit 1; fi
+          # No legacy write-back contract is approved (E-3): the pin stays empty.
+          grep -q '^const approvedContract = ""$' internal/integration/legacy/compat/compat.go || { echo "the compat contract pin changed: needs the E-3 approval record"; exit 1; }
+          # The worker binary links no synthetic adapter and no provider port.
+          bad="$(grep -ln 'legacytest\|integration/biawin"\|gateway/synthetic' cmd/crm-worker/*.go | grep -v '_test.go' || true)"
+          if [ -n "$bad" ]; then echo "crm-worker links a synthetic adapter / provider port: $bad"; exit 1; fi
+          # The manual payment write-back is not in the worker's delivery allowlist.
+          if grep -n 'writebackDeliverTypes = .*TypePaymentAttempt' cmd/crm-worker/compose.go; then echo "financial write-back enabled in crm-worker"; exit 1; fi
+          # Irreversible upload purge stays behind the D-44 gate.
+          grep -q 'BLOCKED by D-44' cmd/crm-worker/config.go || { echo "the D-44 purge gate is missing"; exit 1; }
+          # Workers never dispatch a provider operation.
+          if grep -n '\.Dispatch(' internal/integration/providerops/job.go cmd/crm-worker/*.go | grep -v '_test.go'; then echo "a worker dispatches a provider operation"; exit 1; fi
+
       - name: Slice 3 — no snapshot content tracked
         shell: bash
         run: |
@@ -515,6 +542,16 @@ jobs:
           test "$wc" = "1" || { echo "a wallet charge operation must be BLOCKED by D-38 at the database"; exit 1; }
           walletcap="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM identity.capability WHERE capability_key ~* '(wallet|charge|activate|dispatch|cancel|reopen)'")"
           test "$walletcap" = "0" || { echo "a wallet / charge / activation / dispatch / cancel capability exists (D-35 / D-38 / OPD-04)"; exit 1; }
+          # R2: write-back exchange evidence (digests and verdicts only; append-only; no body / secret column).
+          grep -q "applied  00012_integration_writeback_exchange.sql" <<< "$status" || { echo "00012_integration_writeback_exchange.sql not applied"; exit 1; }
+          ex="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.triggers WHERE trigger_schema = 'integration' AND event_object_table = 'writeback_exchange' AND trigger_name IN ('writeback_exchange_append_only', 'writeback_exchange_no_truncate')")"
+          test "$ex" -ge "2" || { echo "writeback_exchange must be append-only"; exit 1; }
+          exg="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT string_agg(privilege_type, ',' ORDER BY privilege_type) FROM information_schema.role_table_grants WHERE table_schema = 'integration' AND table_name = 'writeback_exchange' AND grantee = 'crm_owner_integration'")"
+          test "$exg" = "INSERT,SELECT" || { echo "writeback_exchange grants must be SELECT, INSERT only: $exg"; exit 1; }
+          exc="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'integration' AND table_name = 'writeback_exchange' AND column_name ~* '(body|payload|secret|signature|password|token_value|key|phone|amount)'")"
+          test "$exc" = "0" || { echo "writeback_exchange must hold digests only"; exit 1; }
+          rows="$(psql -h localhost -U crm_ci -d crm_migrate_ci -tAc "SELECT count(*) FROM integration.writeback_exchange")"
+          test "$rows" = "0" || { echo "writeback_exchange must be empty after migration"; exit 1; }
 
       - name: plugin/current unchanged
         if: github.event_name == 'pull_request'

@@ -205,3 +205,96 @@ func update(ctx context.Context, tx db.Tx, sql, id string, args ...any) error {
 	}
 	return nil
 }
+
+// Backoff is the redelivery spacing of a failed event: an event that failed
+// n times is not claimed again before Base·2^(n-1) (capped at Max) has
+// passed since its last attempt. A zero Backoff claims immediately.
+type Backoff struct {
+	Base, Max time.Duration
+}
+
+// ClaimNext locks the oldest claimable event of tx's module (FOR UPDATE
+// SKIP LOCKED) and returns it. The row lock is held until tx ends, so a
+// caller that delivers the event INSIDE tx has exclusive ownership of it for
+// the whole delivery: a concurrent dispatcher skips it, and a crashed
+// dispatcher's lock disappears with its connection (the lease is the
+// transaction). Events that reached maxAttempts, failed events still
+// inside their backoff window, and the events listed in exclude (already
+// attempted by the caller's current pass) are not claimed.
+func ClaimNext(ctx context.Context, tx db.Tx, maxAttempts int, now timeutil.Instant, b Backoff, exclude []string) (Record, bool, error) {
+	if tx.ReadOnly() {
+		return Record{}, false, ErrReadOnly
+	}
+	if maxAttempts < 1 || b.Base < 0 || b.Max < b.Base || now.IsZero() || len(exclude) > 1000 {
+		return Record{}, false, fmt.Errorf("%w: claim bounds", ErrInvalidEvent)
+	}
+	if exclude == nil {
+		exclude = []string{}
+	}
+	rows, err := tx.Query(ctx, `SELECT event_id::text, event_type, event_version, subject_domain, subject_id, payload,
+			occurred_at, correlation_id, attempts
+		FROM `+table(tx)+`
+		WHERE dispatch_state <> 'dispatched' AND attempts < $1
+			AND (attempts = 0 OR last_attempt_at IS NULL
+				OR last_attempt_at + least(make_interval(secs => $3::double precision * power(2, least(attempts - 1, 30))),
+					make_interval(secs => $4::double precision)) <= $2)
+			AND NOT (event_id::text = ANY($5::text[]))
+		ORDER BY recorded_at, event_id
+		LIMIT 1
+		FOR UPDATE SKIP LOCKED`, maxAttempts, now.Time(), b.Base.Seconds(), b.Max.Seconds(), exclude)
+	if err != nil {
+		return Record{}, false, fmt.Errorf("outbox: claim: %w", err)
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return Record{}, false, rows.Err()
+	}
+	var (
+		r                     Record
+		subjectDomain, subjID *string
+		payload               []byte
+		occurred              time.Time
+	)
+	if err := rows.Scan(&r.ID, &r.Type, &r.Version, &subjectDomain, &subjID, &payload, &occurred, &r.CorrelationID, &r.Attempts); err != nil {
+		return Record{}, false, fmt.Errorf("outbox: scan: %w", err)
+	}
+	if subjectDomain != nil && subjID != nil {
+		ref := refs.NativeRef{Domain: refs.Domain(*subjectDomain), ID: *subjID}
+		r.Subject = &ref
+	}
+	r.Payload = payload
+	if r.OccurredAt, err = timeutil.NewInstant(occurred); err != nil {
+		return Record{}, false, err
+	}
+	return r, true, rows.Err()
+}
+
+// Stats is the delivery backlog of one module outbox (technical state only).
+type Stats struct {
+	Pending   int // never attempted or retryable
+	Failed    int // failed at least once, still retryable
+	Exhausted int // reached maxAttempts: visible, never claimed again
+	// OldestUndispatched is the age of the oldest undispatched event (0 when none).
+	OldestUndispatched time.Duration
+}
+
+// ReadStats reads the outbox backlog of tx's module.
+func ReadStats(ctx context.Context, tx db.Tx, maxAttempts int, now timeutil.Instant) (Stats, error) {
+	var s Stats
+	var oldest *time.Time
+	err := tx.QueryRow(ctx, `SELECT
+			count(*) FILTER (WHERE attempts < $1),
+			count(*) FILTER (WHERE dispatch_state = 'failed' AND attempts < $1),
+			count(*) FILTER (WHERE attempts >= $1),
+			min(recorded_at)
+		FROM `+table(tx)+` WHERE dispatch_state <> 'dispatched'`, maxAttempts).Scan(&s.Pending, &s.Failed, &s.Exhausted, &oldest)
+	if err != nil {
+		return s, fmt.Errorf("outbox: stats: %w", err)
+	}
+	if oldest != nil {
+		if d := now.Time().Sub(*oldest); d > 0 {
+			s.OldestUndispatched = d
+		}
+	}
+	return s, nil
+}
