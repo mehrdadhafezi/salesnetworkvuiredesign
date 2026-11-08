@@ -138,6 +138,7 @@ type resp struct {
 	json    map[string]any
 	cookies []*http.Cookie
 	setRaw  []string
+	header  http.Header
 }
 
 type req struct {
@@ -179,7 +180,7 @@ func (e *env) do(t *testing.T, r req) resp {
 	}
 	rec := httptest.NewRecorder()
 	e.h.ServeHTTP(rec, q)
-	out := resp{code: rec.Code, body: rec.Body.String(), cookies: rec.Result().Cookies(), setRaw: rec.Result().Header.Values("Set-Cookie")}
+	out := resp{code: rec.Code, body: rec.Body.String(), cookies: rec.Result().Cookies(), setRaw: rec.Result().Header.Values("Set-Cookie"), header: rec.Result().Header}
 	_ = json.Unmarshal(rec.Body.Bytes(), &out.json)
 	return out
 }
@@ -444,4 +445,49 @@ func TestHTTPConcurrentLogout(t *testing.T) {
 	if ok200.Load() == 0 {
 		t.Fatal("no logout succeeded")
 	}
+}
+
+// R1 security review P2: every session-bearing response is no-store, and the
+// header does not interfere with cookie issuance, restoration, CSRF or logout.
+func TestHTTPSessionResponsesNotCacheable(t *testing.T) {
+	e := setup(t)
+	e.account(t, "seller.cache", "synthetic-Pass-1")
+	noStore := func(name string, r resp) {
+		t.Helper()
+		if r.header.Get("Cache-Control") != "no-store" || r.header.Get("Pragma") != "no-cache" {
+			t.Fatalf("%s (%d): Cache-Control %q Pragma %q", name, r.code, r.header.Get("Cache-Control"), r.header.Get("Pragma"))
+		}
+	}
+	noStore("anonymous session", e.do(t, req{method: http.MethodGet, path: "/api/v1/session"}))
+	noStore("wrong password", e.login(t, "seller.cache", "wrong"))
+	noStore("cross-site login", e.login(t, "seller.cache", "synthetic-Pass-1", func(q *req) { q.fetchSite = "cross-site" }))
+	r := e.login(t, "seller.cache", "synthetic-Pass-1")
+	noStore("login", r)
+	c := sessionCookie(t, r) // cookie still issued alongside no-store
+	csrf := websession.CSRFToken(c.Value)
+	active := e.do(t, req{method: http.MethodGet, path: "/api/v1/session", cookie: c.Value})
+	noStore("active session", active)
+	if data, _ := active.json["data"].(map[string]any); data["authenticated"] != true {
+		t.Fatalf("restore with no-store: %s", active.body)
+	}
+	noStore("effective access", e.do(t, req{method: http.MethodGet, path: "/api/v1/authorization/effective-access", cookie: c.Value}))
+	noStore("identity directory", e.do(t, req{method: http.MethodGet, path: "/api/v1/identity/users", cookie: c.Value}))
+	noStore("csrf rejected", e.do(t, req{method: http.MethodPost, path: "/api/v1/auth/logout", cookie: c.Value, csrf: "x", origin: origin}))
+	// A forged cookie is cleared on any path; that response is private too.
+	noStore("cookie cleared on a non-session path", e.do(t, req{method: http.MethodGet, path: "/health/live", cookie: "garbage"}))
+	out := e.do(t, req{method: http.MethodPost, path: "/api/v1/auth/logout", cookie: c.Value, csrf: csrf, origin: origin})
+	noStore("logout", out)
+	if out.code != 200 || sessionCookie(t, out).MaxAge >= 0 {
+		t.Fatalf("logout with no-store: %d %v", out.code, out.setRaw)
+	}
+	noStore("logout-all without session", e.do(t, req{method: http.MethodPost, path: "/api/v1/auth/logout-all", origin: origin}))
+	noStore("ended session", e.do(t, req{method: http.MethodGet, path: "/api/v1/session", cookie: c.Value}))
+	for i := 0; i < 6; i++ {
+		e.login(t, "seller.cache", "wrong")
+	}
+	th := e.login(t, "seller.cache", "wrong")
+	if th.code != 429 {
+		t.Fatalf("throttle: %d", th.code)
+	}
+	noStore("throttled", th)
 }

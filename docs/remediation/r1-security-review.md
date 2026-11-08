@@ -30,6 +30,7 @@ browser ──HTTPS──▶ proxy (TLS, HSTS, edge rate limit: operator) ──
 | Replay after logout | Server-side revocation is checked on every request | — |
 | Privilege escalation via identity | Sessions give identity only. ACTIVE grants only; synthetic DEV grants and direct capability sets are dropped. Slice 4 constraints (no login, shadow-only grants) are kept. No grant or activation path exists. | Granting is D-42. |
 | Dev bypass in production | Stub refused in production; stub plus sessions is a startup error; the resolver ignores the stub principal; CI grep keeps stub use confined | — |
+| Session data in HTTP caches | `Cache-Control: no-store` and `Pragma: no-cache` set by the app (`apiserver.noStore`) on every response, success or error, under `/api/v1/session`, `/api/v1/auth/*`, `/api/v1/identity/*` and `/api/v1/authorization/effective-access`, and on any response that clears the session cookie. All problem responses were already no-store (`httpx.WriteProblem`). The policy does not depend on the proxy or on `identity.session_auth`. | — (independent review finding P2, fixed; see §6) |
 | Secrets in logs or DB | No password, token, CSRF token, raw login, IP or user agent in logs, events or sessions (tested) | Proxy and access logs are an operator responsibility. |
 | Denial of service via hashing | 1024-byte password bound; stored-parameter bounds (≤ 256 MiB, ≤ 10 iterations, ≤ 8 lanes); throttle | Concurrent legitimate logins still cost about 19 MiB each; size the hosts accordingly. |
 | Unbounded growth | — | Session and auth_event rows are never deleted (retention decision open). |
@@ -75,7 +76,61 @@ These are existing IDs, not new questions:
       synthetic accounts.
 - [ ] Confirm `identity.session_auth` stays OFF until P-SEC is approved.
 
-## 6. Verdict
+## 6. Independent review follow-up
+
+### P2: session response caching (reviewed head `dffbc72`)
+
+**Finding.** `GET /api/v1/session` returns the authenticated session and its CSRF token without an
+explicit `Cache-Control: no-store`.
+
+**Existing protection checked.**
+- `internal/platform/httpx/problem.go` (`WriteProblem`) already set `no-store` on every problem
+  response.
+- Nothing set it on successful JSON responses: no middleware, no strict-handler option and no
+  generated response header. The finding was valid.
+
+**Fix.**
+- `noStore` middleware in `internal/platform/apiserver/auth.go`, installed in `NewHandlerWithSurfaces`
+  inside `Correlation` / `Recover` and outside every handler and auth middleware. Two consequences:
+  - Rejections from the cross-site guard, the allowlists and the body limit are covered.
+  - The middleware is installed whether or not sessions are configured.
+- Paths covered, matched exactly or by full segment (so `/api/v1/sessionx` is **not** covered):
+
+  | Path | Why it is sensitive |
+  |---|---|
+  | `/api/v1/session` | session and CSRF token |
+  | `/api/v1/auth/*` | Set-Cookie, session and CSRF token |
+  | `/api/v1/identity/*` | user directory (personal data) |
+  | `/api/v1/authorization/effective-access` | the caller's own access |
+
+- `sessionAuth` also marks no-store on any response where it clears a forged or expired cookie,
+  whatever the path.
+
+**Other identity endpoints reviewed.**
+- `/api/v1/identity/users`, `/identity/users/{id}` and `/authorization/effective-access` return
+  per-caller or personal data, so they get the same policy.
+- No other endpoint returns the session or the CSRF token.
+- Business read endpoints are outside this finding. Their responses are protected by authorization
+  and carry no session secret. A broader API-wide caching policy is left to the P-SEC sign-off.
+
+**Regression tests.**
+- `apiserver.TestSessionSensitiveResponsesAreNoStore` (no database, production and development
+  configurations), covering:
+  - success, BLOCKED and contract-error responses
+  - logout and logout-all
+  - unknown auth paths
+  - the prefix boundary
+- `identityhttp.TestHTTPSessionResponsesNotCacheable` (real PostgreSQL), covering:
+  - anonymous, active and ended sessions
+  - wrong password, throttled (429), cross-site login (403) and CSRF rejection (403)
+  - login and logout
+  - effective access and the identity directory
+  - a cookie cleared on a non-session path
+
+  The same flow confirms the cookie is still issued, the session restores, CSRF is enforced and
+  logout clears the cookie.
+
+## 7. Verdict
 
 Technical authentication readiness: **READY FOR INDEPENDENT REVIEW**.
 

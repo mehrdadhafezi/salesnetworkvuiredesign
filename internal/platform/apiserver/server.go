@@ -725,6 +725,7 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 		h = sessionAuth(auth, logger)(h)
 	}
 	h = limitBody(cfg.MaxBodyBytes)(h)
+	h = noStore(h)
 	h = httpx.Recover(logger)(h)
 	h = httpx.Correlation(h)
 	return h, nil

@@ -110,6 +110,8 @@ func sessionAuth(auth websession.Authenticator, logger *slog.Logger) func(http.H
 				logger.Error("session lookup failed", "correlation_id", httpx.CorrelationID(ctx), "error", err)
 			}
 			if !ok || err != nil {
+				// Any response that changes the session cookie is private.
+				setNoStore(w.Header())
 				w.Header().Add("Set-Cookie", websession.ClearCookie().String())
 				next.ServeHTTP(w, r.WithContext(websession.WithState(ctx, websession.StateInvalid)))
 				return
@@ -118,6 +120,41 @@ func sessionAuth(auth websession.Authenticator, logger *slog.Logger) func(http.H
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// sessionSensitive reports whether responses on path can carry session,
+// credential or caller-identity data: the session context (with its CSRF
+// token), the auth endpoints (Set-Cookie), the identity directory and the
+// caller's effective access. These must never be stored by a browser or
+// an intermediary cache, whatever the proxy defaults are.
+func sessionSensitive(path string) bool {
+	switch {
+	case path == "/api/v1/session",
+		path == "/api/v1/authorization/effective-access",
+		strings.HasPrefix(path, "/api/v1/auth/"),
+		path == "/api/v1/identity", strings.HasPrefix(path, "/api/v1/identity/"):
+		return true
+	}
+	return false
+}
+
+func setNoStore(h http.Header) {
+	h.Set("Cache-Control", "no-store")
+	h.Set("Pragma", "no-cache") // HTTP/1.0 intermediaries
+}
+
+// noStore marks every response on a session-sensitive path, success and
+// error alike, as not storable. It is installed independently of whether
+// sessions are configured, so the policy never depends on a deployment flag.
+// (Problem responses are additionally no-store everywhere, see
+// httpx.WriteProblem.)
+func noStore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if sessionSensitive(r.URL.Path) {
+			setNoStore(w.Header())
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // loginPath is the one unsafe route that runs before a CSRF token exists.
