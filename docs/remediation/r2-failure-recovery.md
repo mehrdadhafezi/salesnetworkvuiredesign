@@ -34,7 +34,7 @@ No real legacy, financial, Biawin or gateway system was contacted.
 | 19 | Feature flag off while jobs are queued | `TestR2WorkerFaultInjection`; `crm-worker.TestRunLifecycle` | Commands stay PENDING; legacy calls 0; job `paused` | Resumes when switched on |
 | 20 | Cancellation and graceful shutdown | `worker.TestGracefulShutdownAndConcurrency` | In-flight pass completes within grace, else is cancelled | — |
 | 21 | Malformed or missing adapter credentials | `compat.TestNotApprovedAndConfig` | Construction refused | — |
-| 22 | Wrong environment configuration | `crm-worker.TestConfigFailsClosed`, `TestAttestationAndCheck` | Startup refused: undeclared or inferred environment, attestation mismatch, ambiguous attestation | — |
+| 22 | Wrong environment configuration | `crm-worker.TestConfigFailsClosed`, `TestAttestationAndCheck`, `TestModuleLoginsBoundToAttestedDatabase` | Startup refused: undeclared or inferred environment, attestation mismatch, ambiguous attestation, or a module login reaching a database other than the attested one | — |
 | 23 | No cross-module direct DB writes | Lint `foreign-schema-write`, `r2-worker-sql`; `db.Runner` owner-role isolation | Worker binary holds no SQL; each pool logs in to one owner | — |
 | 24 | No forbidden financial side effects | `TestR2WorkerFaultInjection` | No attempt leaves PENDING_REVIEW; `finance.ledger_entry` empty; legacy payments stay `pending`; financial type excluded from delivery | — |
 | 25 | Evidence retained across recovery | `TestR2WorkerFaultInjection` | Attempt rows per command (2 and 4); service actor only; every outbox event dispatched | Append-only triggers prevent deletion |

@@ -82,6 +82,28 @@ func flagOn(ctx context.Context, flags *db.Runner, key string) (bool, error) {
 	return on, err
 }
 
+// bind verifies that every owner connection reaches the same database as
+// the feature-flag connection that carries the attestation. Without it, a
+// module DSN pointing at another database (e.g. a flag database attesting
+// development and a payments DSN on staging) would bypass every
+// environment gate.
+func bind(ctx context.Context, flags *db.Runner, runners map[owner.Module]*db.Runner) error {
+	want, err := flags.DatabaseIdentity(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: database identity unreadable", ErrAttestation)
+	}
+	for m, r := range runners {
+		got, err := r.DatabaseIdentity(ctx)
+		if err != nil {
+			return fmt.Errorf("%w: %s database identity unreadable", ErrAttestation, m)
+		}
+		if got != want {
+			return fmt.Errorf("%w: the %s login reaches a different database than the attested one", ErrAttestation, m)
+		}
+	}
+	return nil
+}
+
 // attest verifies that the database attests exactly the declared
 // environment.
 func attest(ctx context.Context, flags *db.Runner, env Environment) error {
@@ -138,6 +160,9 @@ func compose(ctx context.Context, cfg Config, runners map[owner.Module]*db.Runne
 	ov overrides) (composition, error) {
 	var c composition
 	c.plan = cfg.Plan()
+	if err := bind(ctx, flags, runners); err != nil {
+		return c, err
+	}
 	if err := attest(ctx, flags, cfg.Environment); err != nil {
 		return c, err
 	}

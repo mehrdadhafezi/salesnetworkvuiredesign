@@ -24,6 +24,8 @@ go build -o crm-worker ./cmd/crm-worker
 
    The worker refuses to start if the declared `CRM_WORKER_ENV` and the attestation differ, or if more than one environment is attested. A host name (including `localhost`) is never used as evidence.
 
+   Every owner login must also reach the **same database** as the feature-flag login. Each connection reports `pg_control_system().system_identifier` and `current_database()`, and any mismatch refuses startup. One attested database therefore cannot authorise jobs against another.
+
 ## 3. Configure
 
 | Variable | Value |

@@ -228,3 +228,18 @@ func beginOwned(ctx context.Context, pool *pgxpool.Pool, opts pgx.TxOptions, m o
 	}
 	return ptx, nil
 }
+
+// DatabaseIdentity returns the identity of the database this runner reaches:
+// the cluster's system identifier and the database name. Two runners with
+// the same identity write to the same database (R2: a worker binds every
+// owner connection to the database that attested its environment).
+func (r *Runner) DatabaseIdentity(ctx context.Context) (string, error) {
+	var id string
+	err := r.InTx(ctx, TxOptions{ReadOnly: true}, func(ctx context.Context, tx Tx) error {
+		return tx.QueryRow(ctx, `SELECT s.system_identifier::text || '/' || current_database() FROM pg_control_system() s`).Scan(&id)
+	})
+	if err != nil {
+		return "", fmt.Errorf("db: database identity: %w", err)
+	}
+	return id, nil
+}

@@ -257,6 +257,31 @@ func TestRunLifecycle(t *testing.T) {
 	}
 }
 
+// Codex P1: every owner login must reach the attested database. A flag
+// database attesting development cannot authorise a purge on another
+// database.
+func TestModuleLoginsBoundToAttestedDatabase(t *testing.T) {
+	dev := setupDB(t, Development)
+	other := setupDB(t, "") // e.g. staging / production: attests nothing here
+	root := t.TempDir()
+	env := dev.env(map[string]string{EnvEnvironment: "development", EnvJobs: "upload_expiry", EnvUploadExpiryMode: "purge", EnvEvidenceRoot: root,
+		moduleEnv("payments"): other.urls[moduleEnv("payments")]})
+	var out, errOut bytes.Buffer
+	if code := run(context.Background(), []string{"check"}, env, &out, &errOut); code != 1 ||
+		!strings.Contains(errOut.String(), "reaches a different database than the attested one") {
+		t.Fatalf("a module login on another database must refuse startup: code=%d %s", code, errOut.String())
+	}
+	if code := run(context.Background(), []string{"once", JobUploadExpiry}, env, &out, &errOut); code != 1 {
+		t.Fatal("no pass may run against an unattested database")
+	}
+	// The same configuration on one database starts.
+	errOut.Reset()
+	same := dev.env(map[string]string{EnvEnvironment: "development", EnvJobs: "upload_expiry", EnvUploadExpiryMode: "purge", EnvEvidenceRoot: root})
+	if code := run(context.Background(), []string{"check"}, same, &out, &errOut); code != 0 {
+		t.Fatalf("bound configuration: %s", errOut.String())
+	}
+}
+
 // Synthetic adapters only in an attested development environment.
 func TestSyntheticAdaptersOnlyInDevelopment(t *testing.T) {
 	d := setupDB(t, Staging)
