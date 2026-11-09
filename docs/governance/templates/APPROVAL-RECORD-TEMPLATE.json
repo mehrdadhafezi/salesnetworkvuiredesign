@@ -1,0 +1,33 @@
+{
+  "_comment": "TEMPLATE ONLY. Copy to docs/governance/approvals/<decision-id>-v<version>.json and fill from real evidence. Never fill on someone's behalf. See docs/remediation/r6-approval-evidence-standard.md.",
+  "decision_id": "",
+  "decision_version": "1.0",
+  "outcome": "",
+  "selected_option": "",
+  "decision_text": "",
+  "approvers": [
+    {
+      "name": "",
+      "role": "",
+      "authority_evidence": {
+        "type": "",
+        "reference": ""
+      }
+    }
+  ],
+  "independent_approvals": [],
+  "decision_date": "",
+  "effective_date": "",
+  "evidence_source": {
+    "type": "",
+    "reference": ""
+  },
+  "immutable_ref": "",
+  "supersedes": [],
+  "conditions": "",
+  "recorded_by": {
+    "name": "",
+    "role": ""
+  },
+  "human_verification": null
+}
