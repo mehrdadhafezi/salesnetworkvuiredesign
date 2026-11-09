@@ -410,10 +410,15 @@ func Verify(ctx context.Context, dir, identity string, t Tools) (VerifyReport, e
 		return r, err
 	}
 	plain := sha256.New()
+	hashed := io.TeeReader(src, plain)
 	var listing strings.Builder
-	listErr := runCmd(ctx, t.pg("pg_restore"), []string{"--list"}, []string{"PATH=" + os.Getenv("PATH"), "LC_ALL=C"}, io.TeeReader(src, plain),
+	listErr := runCmd(ctx, t.pg("pg_restore"), []string{"--list"}, []string{"PATH=" + os.Getenv("PATH"), "LC_ALL=C"}, hashed,
 		&limited{w: &listing, n: 1 << 20})
-	_, _ = io.Copy(io.Discard, src)
+	// pg_restore --list may stop after the table of contents; drain the
+	// rest THROUGH the hash so every decrypted byte is covered.
+	if _, err := io.Copy(io.Discard, hashed); err != nil {
+		listErr = errors.Join(listErr, err)
+	}
 	src.Close()
 	if err := errors.Join(listErr, wait()); err != nil {
 		return r, fmt.Errorf("%w: database archive unreadable: %v", ErrIntegrity, err)
