@@ -44,7 +44,9 @@ func Open(ctx context.Context, cfg Config) (*Pool, error) {
 		p.Close()
 		return nil, fmt.Errorf("db: ping: %w", err)
 	}
-	return &Pool{pool: p}, nil
+	out := &Pool{pool: p}
+	track(out, "")
+	return out, nil
 }
 
 // Ping verifies that a connection can be acquired and used.
@@ -60,6 +62,7 @@ func (p *Pool) Close() {
 	if p == nil || p.pool == nil {
 		return
 	}
+	untrack(p)
 	p.pool.Close()
 	p.pool = nil
 }

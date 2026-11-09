@@ -1,0 +1,13 @@
+# R3 backup runner: PostgreSQL 16 client tools (pg_dump / pg_restore of the
+# server's major version) + age (Debian package) + crm-backup from the
+# verified release artifact. No credential in the image; DSNs and age keys
+# are mounted at runtime as files.
+#
+#   docker build -f deploy/docker/Dockerfile.backup -t crm-backup:<commit12> <artifact-dir>
+FROM postgres@sha256:5264710be20f409750ac6dc4e5706dcef929c87e241605463f0f9aefa932a8d9
+ARG CRM_COMMIT=unknown
+LABEL org.opencontainers.image.title="crm-backup" org.opencontainers.image.revision="${CRM_COMMIT}"
+RUN apt-get update && apt-get install -y --no-install-recommends age && rm -rf /var/lib/apt/lists/*
+COPY --chown=0:0 --chmod=0555 bin/crm-backup /usr/local/bin/crm-backup
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/crm-backup"]

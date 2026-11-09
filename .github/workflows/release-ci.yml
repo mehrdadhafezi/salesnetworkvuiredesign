@@ -1,0 +1,174 @@
+name: Release artifact and staging rehearsal
+
+# R3: reproducible release artifact, provenance verification, container
+# image builds and a disposable staging deployment rehearsal on the runner.
+# No secret is used, nothing is pushed or deployed anywhere, and there is no
+# production target: the staging stack runs on an internal Docker network
+# with per-run random credentials and is destroyed at the end.
+on:
+  pull_request:
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'web/**'
+      - 'deploy/**'
+      - 'scripts/release/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/release-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'web/**'
+      - 'deploy/**'
+      - 'scripts/release/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/release-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Reproducible artifact, images and staging rehearsal
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the artifact twice and require identical checksums
+        shell: bash
+        run: |
+          scripts/release/build.sh "$RUNNER_TEMP/a1"
+          scripts/release/build.sh "$RUNNER_TEMP/a2"
+          diff "$RUNNER_TEMP/a1/SHA256SUMS" "$RUNNER_TEMP/a2/SHA256SUMS"
+          cat "$RUNNER_TEMP/a1/SHA256SUMS"
+
+      - name: Verify provenance; a tampered artifact must be refused
+        shell: bash
+        run: |
+          cp -r "$RUNNER_TEMP/a2" "$RUNNER_TEMP/tampered"
+          printf 'x' >> "$RUNNER_TEMP/tampered/bin/crm-api"
+          if scripts/release/verify.sh "$RUNNER_TEMP/tampered" --mark-eligible; then echo "a tampered artifact verified"; exit 1; fi
+          test ! -e "$RUNNER_TEMP/tampered/ELIGIBLE"
+          scripts/release/verify.sh "$RUNNER_TEMP/a1" --mark-eligible
+
+      - name: Build the images from the verified artifact
+        shell: bash
+        run: |
+          c="$(git rev-parse HEAD)"
+          docker build -q -f deploy/docker/Dockerfile.app --build-arg CRM_COMMIT="$c" -t "crm-app:ci" "$RUNNER_TEMP/a1"
+          docker build -q -f deploy/docker/Dockerfile.web --build-arg CRM_COMMIT="$c" -t "crm-web:ci" "$RUNNER_TEMP/a1"
+          docker build -q -f deploy/docker/Dockerfile.backup --build-arg CRM_COMMIT="$c" -t "crm-backup:ci" "$RUNNER_TEMP/a1"
+          test "$(docker image inspect --format '{{.Config.User}}' crm-app:ci)" = "65532:65532"
+          docker run --rm --entrypoint /opt/crm/bin/crm-healthcheck crm-app:ci http://example.com/ && exit 1 || true
+          docker run --rm --entrypoint sh crm-backup:ci -c 'age --version && pg_dump --version'
+
+      - name: Prometheus configuration, rules and alert unit tests (real promtool)
+        shell: bash
+        run: |
+          # Official image, version-pinned; the resolved digest is logged as evidence.
+          docker pull -q "$PROM_IMAGE"
+          docker image inspect --format 'prometheus image: {{index .RepoDigests 0}}' "$PROM_IMAGE"
+          obs="$GITHUB_WORKSPACE/deploy/observability"
+          run_promtool() { docker run --rm -v "$obs":/etc/prometheus:ro -w /etc/prometheus --entrypoint promtool "$PROM_IMAGE" "$@"; }
+          run_promtool check config prometheus.yml
+          run_promtool check rules alerts.yaml
+          run_promtool test rules alerts.promtool-test.yml
+        env:
+          PROM_IMAGE: prom/prometheus:v3.5.0
+
+      - name: Disposable staging rehearsal (init-secrets, preflight, up, verify, destroy)
+        shell: bash
+        run: |
+          cd deploy/staging
+          sudo ./stage.sh init-secrets
+          sudo ./stage.sh preflight "$RUNNER_TEMP/a1"
+          sudo ./stage.sh up "$RUNNER_TEMP/a1"
+          sudo ./stage.sh verify
+          sudo ./stage.sh evidence
+          sudo cat .state/events.jsonl
+
+      - name: Isolation gate fails closed on the real stack (positive control removed)
+        shell: bash
+        run: |
+          cd deploy/staging
+          sudo ./stage.sh probe-isolation
+          docker stop crm-staging-api-1
+          if sudo ./stage.sh probe-isolation; then echo "isolation reported without its positive control"; exit 1; fi
+          docker start crm-staging-api-1
+          for i in $(seq 1 30); do
+            [ "$(docker inspect --format '{{.State.Health.Status}}' crm-staging-api-1)" = healthy ] && break; sleep 2
+          done
+          sudo ./stage.sh probe-isolation
+
+      - name: Real Prometheus scrape of the staging stack (worker job identity, alert expression)
+        shell: bash
+        env:
+          PROM_IMAGE: prom/prometheus:v3.5.0
+        run: |
+          obs="$GITHUB_WORKSPACE/deploy/observability"
+          # Negative control: the pre-fix scrape (no honor_labels) must show the defect.
+          prefix="$RUNNER_TEMP/prom-pre-fix"; mkdir -p "$prefix"
+          cp "$obs/alerts.yaml" "$prefix/"; sed '/honor_labels/d' "$obs/prometheus.yml" > "$prefix/prometheus.yml"
+          docker run -d --name crm-prom --network crm-staging_internal -v "$obs":/etc/prometheus:ro "$PROM_IMAGE" --config.file=/etc/prometheus/prometheus.yml
+          docker run -d --name crm-prom-prefix --network crm-staging_internal -v "$prefix":/etc/prometheus:ro "$PROM_IMAGE" --config.file=/etc/prometheus/prometheus.yml
+          q() { docker exec "$1" promtool query instant -o json http://localhost:9090 "$2"; }
+          n() { q "$1" "$2" | jq -r 'if length == 0 then "none" else .[0].value[1] end'; }
+          for p in crm-prom crm-prom-prefix; do
+            for i in $(seq 1 45); do
+              [ "$(n "$p" 'count(crm_worker_job_state_paused)')" != none ] && [ "$(n "$p" 'up{job="crm-worker"}')" = 1 ] && break; sleep 2
+            done
+          done
+          jobs="$(n crm-prom 'count(crm_worker_job_state_paused)')"
+          echo "worker jobs scraped: $jobs; api up: $(n crm-prom 'up{job="crm-api"}'); worker up: $(n crm-prom 'up{job="crm-worker"}')"
+          q crm-prom 'crm_worker_job_state_paused' | jq -c '.[] | .metric'
+          test "$jobs" -ge 2
+          test "$(n crm-prom 'up{job="crm-worker"}')" = 1
+          test "$(n crm-prom 'up{job="crm-api"}')" = 1
+          # Each worker job keeps its own `job` label; nothing is renamed.
+          test "$(n crm-prom 'count(count by (job) (crm_worker_job_state_paused))')" = "$jobs"
+          test "$(n crm-prom 'count(crm_worker_job_state_paused{exported_job!=""})')" = none
+          # Every staging job is paused or blocked: the alert expression is empty.
+          expr="$(yq -r '.groups[].rules[] | select(.alert == "CRMJobNoRecentSuccess") | .expr' "$obs/alerts.yaml")"
+          test "$(q crm-prom "$expr" | jq 'length')" = 0
+          # The negative control reproduces the original defect: job collapsed, renamed to exported_job.
+          test "$(n crm-prom-prefix 'count(count by (job) (crm_worker_job_state_paused))')" = 1
+          test "$(n crm-prom-prefix 'count(crm_worker_job_state_paused{exported_job!=""})')" = "$jobs"
+          echo "honor_labels keeps $jobs distinct worker job identities; the pre-fix scrape collapses them (negative control)"
+
+      - name: Destroy the disposable staging project
+        if: always()
+        shell: bash
+        run: |
+          docker rm -f crm-prom crm-prom-prefix 2>/dev/null || true
+          cd deploy/staging
+          sudo CRM_STAGING_DESTROY=crm-staging ./stage.sh destroy || true
+          test -z "$(docker volume ls -q --filter label=com.docker.compose.project=crm-staging)"
+
+      - name: Keep the release evidence (manifest and checksums only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-evidence
+          path: |
+            ${{ runner.temp }}/a1/manifest.json
+            ${{ runner.temp }}/a1/SHA256SUMS
+            ${{ runner.temp }}/a1/ELIGIBLE
+          retention-days: 30

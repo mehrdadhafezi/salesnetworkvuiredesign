@@ -1,0 +1,9 @@
+{"event":"up","release":"c01626b64fd4","commit":"c01626b64fd4183c8f1c3ca475362c57536ba8d2","seconds":15,"at":"2026-11-08T12:44:54Z"}
+{"release":"c01626b64fd4","unhealthy_services":0,"tls_ready_status":"200","hsts":1,"internal_egress":"blocked","worker_jobs_paused":5,"worker_jobs_blocked":2,"api_metric_series":1,"at":"2026-11-08T12:45:01Z"}
+{"event":"up","release":"d1bc8c8d95ee","commit":"d1bc8c8d95ee0f350bbb93d77455848ea14eff81","seconds":10,"at":"2026-11-08T12:46:01Z"}
+{"release":"d1bc8c8d95ee","unhealthy_services":0,"tls_ready_status":"200","hsts":1,"internal_egress":"blocked","worker_jobs_paused":5,"worker_jobs_blocked":2,"api_metric_series":1,"at":"2026-11-08T12:46:02Z"}
+{"event":"rollback","from":"d1bc8c8d95ee","to":"c01626b64fd4","seconds":10,"at":"2026-11-08T12:46:12Z"}
+{"release":"c01626b64fd4","unhealthy_services":0,"tls_ready_status":"200","hsts":1,"internal_egress":"blocked","worker_jobs_paused":5,"worker_jobs_blocked":2,"api_metric_series":1,"at":"2026-11-08T12:46:13Z"}
+{"event":"up","release":"c01626b64fd4","commit":"c01626b64fd4183c8f1c3ca475362c57536ba8d2","seconds":13,"at":"2026-11-08T12:52:30Z"}
+{"event":"up","release":"c01626b64fd4","commit":"c01626b64fd4183c8f1c3ca475362c57536ba8d2","seconds":6,"at":"2026-11-08T13:00:05Z"}
+{"event":"up","release":"efb76c8a6ad1","commit":"efb76c8a6ad1ee14df0dd5e00a523bfdc21a3f79","seconds":10,"at":"2026-11-08T13:02:47Z"}

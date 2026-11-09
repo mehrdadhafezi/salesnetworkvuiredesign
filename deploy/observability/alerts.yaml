@@ -1,0 +1,125 @@
+# R3 PROPOSED alert rules (Prometheus format). Every threshold is a
+# proposed engineering default ("proposed": "true"), not an approved SLA;
+# owner_role names a role, never a person. Delivery and paging are NOT
+# configured or verified. Runbooks: docs/remediation/r3-observability-and-alerts.md
+groups:
+  - name: crm-availability
+    rules:
+      - alert: CRMApiDown
+        expr: up{job="crm-api"} == 0
+        for: 2m
+        labels: { severity: critical, proposed: "true" }
+        annotations: { summary: "crm-api not scraped", owner_role: platform-operations, containment: "check process / health; do not fail over to legacy writes", runbook: "r3-observability-and-alerts.md#crmapidown" }
+      - alert: CRMApiErrorRate
+        expr: sum(rate(crm_api_requests_total{class="5xx"}[5m])) / clamp_min(sum(rate(crm_api_requests_total[5m])), 1e-9) > 0.05
+        for: 10m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "API 5xx ratio above 5%", owner_role: platform-operations, containment: "inspect logs by correlation id; roll back executables if a release caused it", runbook: "r3-observability-and-alerts.md#crmapierrorrate" }
+      - alert: CRMApiLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(crm_api_request_duration_seconds_bucket[5m]))) > 2
+        for: 15m
+        labels: { severity: warning, proposed: "true" }
+        annotations: { summary: "API p95 latency above 2s", owner_role: platform-operations, containment: "check database pool saturation", runbook: "r3-observability-and-alerts.md#crmapilatency" }
+      - alert: CRMLoginFailuresSpike
+        expr: sum(increase(crm_api_login_outcomes_total{outcome=~"denied|throttled"}[10m])) > 50
+        for: 0m
+        labels: { severity: warning, proposed: "true" }
+        annotations: { summary: "login denials / throttles spiking (no identities recorded)", owner_role: security, containment: "review auth_event aggregates; consider the identity.session_auth kill switch", runbook: "r3-observability-and-alerts.md#crmloginfailuresspike" }
+      - alert: CRMDatabasePoolSaturated
+        expr: max by (owner) (crm_db_pool_acquired_conns / clamp_min(crm_db_pool_max_conns, 1)) > 0.9
+        for: 10m
+        labels: { severity: warning, proposed: "true" }
+        annotations: { summary: "database pool near saturation", owner_role: platform-operations, containment: "check slow queries / locks", runbook: "r3-observability-and-alerts.md#crmdatabasepoolsaturated" }
+      - alert: CRMWorkerDown
+        expr: up{job="crm-worker"} == 0
+        for: 2m
+        labels: { severity: critical, proposed: "true" }
+        annotations: { summary: "crm-worker not scraped", owner_role: platform-operations, containment: "restart; all claims are durable", runbook: "r3-observability-and-alerts.md#crmworkerdown" }
+      - alert: CRMDatabaseUnavailable
+        expr: min(crm_worker_check_up) == 0 or crm_worker_ready == 0
+        for: 2m
+        labels: { severity: critical, proposed: "true" }
+        annotations: { summary: "worker dependency check failing", owner_role: database-operations, containment: "verify PostgreSQL; jobs fail closed", runbook: "r3-observability-and-alerts.md#crmdatabaseunavailable" }
+      - alert: CRMWatchdog
+        expr: vector(1)
+        labels: { severity: none, proposed: "true" }
+        annotations: { summary: "dead-man's switch: must ALWAYS fire; its absence means monitoring is down", owner_role: platform-operations, containment: "restore the monitoring pipeline", runbook: "r3-observability-and-alerts.md#crmwatchdog" }
+  - name: crm-workers
+    rules:
+      - alert: CRMJobNoRecentSuccess
+        expr: (time() - crm_worker_job_last_success_timestamp_seconds) > 3600 and on (job) crm_worker_job_state_paused == 0 and on (job) crm_worker_job_state_blocked == 0
+        for: 5m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "enabled job without a successful pass for 1h", owner_role: platform-operations, containment: "read the job's last_error in logs by run_id", runbook: "r3-observability-and-alerts.md#crmjobnorecentsuccess" }
+      - alert: CRMQueueBacklog
+        expr: crm_worker_outbox_oldest_pending_age_seconds > 900
+        for: 15m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "outbox backlog older than 15 min", owner_role: platform-operations, containment: "check the consumer and the relay job state", runbook: "r3-observability-and-alerts.md#crmqueuebacklog" }
+      - alert: CRMDeliveryExhausted
+        expr: crm_worker_outbox_exhausted > 0
+        for: 0m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "events exhausted their delivery attempts", owner_role: platform-operations, containment: "root-cause before any reviewed re-arm", runbook: "r3-observability-and-alerts.md#crmdeliveryexhausted" }
+      - alert: CRMUnknownIncreasing
+        expr: delta(crm_worker_writeback_unknown[1h]) > 0 or crm_worker_provider_unknown > 0
+        for: 1h
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "UNKNOWN external outcomes increasing", owner_role: integration-owner, containment: "never retry blindly; wait for observation / lookup", runbook: "r3-observability-and-alerts.md#crmunknownincreasing" }
+      - alert: CRMReconciliationRequired
+        expr: crm_worker_writeback_reconciliation_required > 0 or crm_worker_provider_reconciliation_required > 0
+        for: 0m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "operations need evidence-based human resolution", owner_role: domain-owner, containment: "review evidence; record resolution through the authorised route", runbook: "r3-observability-and-alerts.md#crmreconciliationrequired" }
+      - alert: CRMWritebackParityMismatch
+        expr: crm_worker_writeback_parity_conflicts > 0
+        for: 0m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "write-back parity MISMATCH / CONFLICT", owner_role: domain-owner, containment: "no automatic correction; owner review", runbook: "r3-observability-and-alerts.md#crmwritebackparitymismatch" }
+      - alert: CRMReceiptStorageError
+        expr: crm_worker_receipt_storage_error > 0
+        for: 30m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "receipt evidence cannot be finalised", owner_role: platform-operations, containment: "check the evidence volume (capacity, permissions)", runbook: "r3-observability-and-alerts.md#crmreceiptstorageerror" }
+      - alert: CRMReceiptNotRecoverable
+        expr: crm_worker_receipt_not_recoverable > 0
+        for: 0m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "receipt bytes missing or corrupt", owner_role: finance-owner, containment: "never mark READY; review with the uploader", runbook: "r3-observability-and-alerts.md#crmreceiptnotrecoverable" }
+      - alert: CRMUnexpectedFlagActivation
+        expr: crm_worker_feature_flags_enabled > 1
+        for: 0m
+        labels: { severity: critical, proposed: "true" }
+        annotations: { summary: "feature flags enabled beyond the environment attestation", owner_role: release-manager, containment: "verify the change against an approval record; switch OFF if unapproved", runbook: "r3-observability-and-alerts.md#crmunexpectedflagactivation" }
+      - alert: CRMAttestationMismatch
+        expr: crm_worker_environment_attested != 1
+        for: 0m
+        labels: { severity: critical, proposed: "true" }
+        annotations: { summary: "database no longer attests the declared environment", owner_role: platform-operations, containment: "stop the worker; verify which database it reaches", runbook: "r3-observability-and-alerts.md#crmattestationmismatch" }
+  - name: crm-backup
+    rules:
+      - alert: CRMBackupFailed
+        expr: crm_backup_last_run_success == 0
+        for: 0m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "last backup failed", owner_role: database-operations, containment: "read crm-backup stderr; never reuse a .partial", runbook: "r3-observability-and-alerts.md#crmbackupfailed" }
+      - alert: CRMBackupTooOld
+        expr: (time() - crm_backup_last_success_timestamp_seconds) > 93600
+        for: 0m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "no successful backup for 26h", owner_role: database-operations, containment: "run a backup; check the schedule", runbook: "r3-observability-and-alerts.md#crmbackuptooold" }
+      - alert: CRMRestoreRehearsalFailed
+        expr: crm_restore_rehearsal_last_run_success == 0 or (time() - crm_restore_rehearsal_last_success_timestamp_seconds) > 3024000
+        for: 0m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "restore rehearsal failed or older than 35 days", owner_role: database-operations, containment: "investigate the report; backups are unproven until a rehearsal passes", runbook: "r3-observability-and-alerts.md#crmrestorerehearsalfailed" }
+      - alert: CRMVolumeSpaceLow
+        expr: node_filesystem_avail_bytes{mountpoint=~"/var/lib/(crm|postgresql).*|/srv/backups.*"} / node_filesystem_size_bytes < 0.15
+        for: 15m
+        labels: { severity: high, proposed: "true" }
+        annotations: { summary: "evidence / database / backup volume below 15% free", owner_role: platform-operations, containment: "expand the volume; never delete evidence or backups without an approved retention decision", runbook: "r3-observability-and-alerts.md#crmvolumespacelow" }
+      - alert: CRMCertificateExpiry
+        expr: probe_ssl_earliest_cert_expiry - time() < 14 * 86400
+        for: 1h
+        labels: { severity: warning, proposed: "true" }
+        annotations: { summary: "TLS certificate expires within 14 days (needs a blackbox exporter)", owner_role: platform-operations, containment: "renew through the certificate process", runbook: "r3-observability-and-alerts.md#crmcertificateexpiry" }

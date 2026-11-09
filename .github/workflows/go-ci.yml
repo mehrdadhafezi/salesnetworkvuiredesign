@@ -11,6 +11,23 @@ on:
       - 'go.sum'
       - 'cmd/**'
       - 'internal/**'
+      - 'deploy/**'
+      - 'scripts/**'
+      - '.github/workflows/go-ci.yml'
+  # R3: post-merge verification of main (no deployment, no secrets).
+  push:
+    branches: [main]
+    paths:
+      - '**.go'
+      - '**.sql'
+      - '**.sql.tmpl'
+      - 'api/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'deploy/**'
+      - 'scripts/**'
       - '.github/workflows/go-ci.yml'
   workflow_dispatch:
 
@@ -309,6 +326,45 @@ jobs:
           grep -q 'BLOCKED by D-44' cmd/crm-worker/config.go || { echo "the D-44 purge gate is missing"; exit 1; }
           # Workers never dispatch a provider operation.
           if grep -n '\.Dispatch(' internal/integration/providerops/job.go cmd/crm-worker/*.go | grep -v '_test.go'; then echo "a worker dispatches a provider operation"; exit 1; fi
+
+      - name: R3 backup / restore rehearsal (PostgreSQL 18 client + age; synthetic data; disposable databases)
+        shell: bash
+        run: |
+          # pg_dump / pg_restore must match the CI server's major version (18).
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-18 age >/dev/null
+          export PATH=/usr/lib/postgresql/18/bin:$PATH
+          pg_dump --version
+          CRM_TEST_BACKUP=1 go test -count=1 -v -run 'TestR3' ./internal/integration/legacy/shadow/
+          go test -count=1 -race ./internal/platform/backup/ ./cmd/crm-backup/ ./cmd/crm-healthcheck/ ./internal/platform/envfile/ ./deploy/observability/
+          go test -count=1 -v -run 'TestRequestMetrics|TestMetricsAddr' ./internal/platform/apiserver/
+
+      - name: R3 boundary — no tracked binaries or secrets, pinned images, no production endpoint, no deployment trigger
+        shell: bash
+        run: |
+          # No compiled binary is ever tracked.
+          bins="$(git ls-files -z | xargs -0 file --mime-type 2>/dev/null | grep -E 'application/(x-executable|x-pie-executable|x-sharedlib)' || true)"
+          if [ -n "$bins" ]; then echo "tracked binaries:"; echo "$bins"; exit 1; fi
+          # No staging secret, state or local backup is tracked.
+          if git ls-files | grep -E '^deploy/staging/\.(secrets|state)/|^dist/'; then echo "secrets / state / artifacts tracked"; exit 1; fi
+          # Third-party images are pinned by digest.
+          if grep -hE '^\s*(FROM|image:)' deploy/docker/Dockerfile.* deploy/staging/compose.yaml | grep -v '@sha256:' | grep -vE 'crm-(app|web|backup):'; then
+            echo "an image is not pinned by digest"; exit 1
+          fi
+          # No production endpoint in runnable staging / observability configuration.
+          if grep -rEin '(sn-crm\.ir|crm\.[a-z0-9-]+\.(ir|com)|wp-admin|admin-ajax|woocommerce|biawin\.(ir|com)|amazonaws\.com)' deploy/staging/compose.yaml deploy/staging/nginx deploy/staging/faults deploy/docker deploy/observability; then
+            echo "a production-looking endpoint appears under deploy/"; exit 1
+          fi
+          # No workflow deploys anywhere (R3 provides no production deployment).
+          if grep -rEn '(environment:\s*production|kubectl|helm upgrade|ssh |scp |rsync |docker push|aws |gcloud )' .github/workflows/ | grep -v 'grep -rEn'; then
+            echo "a workflow contains a deployment step"; exit 1
+          fi
+          # Every job switch / flag stays off by default: the staging bootstrap enables only the attestation.
+          grep -q "flag_key <> 'worker.environment.staging'" deploy/staging/bootstrap.sh
+          # Backups stay refused for production.
+          grep -q 'enabled only for development and staging' internal/platform/backup/run.go
 
       - name: Slice 3 — no snapshot content tracked
         shell: bash
