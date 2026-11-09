@@ -85,6 +85,7 @@ its own judgement.
 | No option pre-selected | `TestR6PersianWorksheets` (no ☑ ☒ ✓ [x] in any R6 document) |
 | References consistent with R5 (IDs, readiness, blockers) | `TestR6TrackerAccountsForEveryR5Record`, `TestR6BlockersMatchInventory` |
 | P0 / P1 classification honest (from the R5 inventory) | `TestR6BlockersMatchInventory` |
+| Status ↔ record consistency (review notice, deferral, verified state = recorded outcome) | `TestRecordedStatusMatchesRecord` |
 | Approval validator rules | `TestApprovalValidatorRules` (15 defect fixtures plus positive, inconclusive and placeholder cases; all synthetic, built in test code, never written to `approvals/`) |
 | R5 tests, including the provenance test and its limits | Unchanged, passing |
 | Mutation checks (each makes the tests fail) | (1) a status set without a record; (2) an outcome filled; (3) a record dropped; (4) C-03 changed; (5) a blocker changed; (6) a P-GOV box ticked; (7) a worksheet outcome filled; (8) a placeholder approval file |

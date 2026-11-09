@@ -187,9 +187,39 @@ func checkRecordedDecision(t *testing.T, r trackerRecord) {
 	if rec.DecisionID != r.ID {
 		t.Errorf("%s: approval record is for %s", r.ID, rec.DecisionID)
 	}
-	if strings.HasSuffix(r.Status, "_VERIFIED") && level != levelHumanVerified {
-		t.Errorf("%s: %s without a consistent human verification entry", r.ID, r.Status)
+	if err := statusMatchesRecord(r.Status, rec, level); err != nil {
+		t.Errorf("%s: %v", r.ID, err)
 	}
+}
+
+// statusMatchesRecord ties each recorded state to the kind of record that can justify it:
+// a review notice for UNDER_HUMAN_REVIEW, a deferral for DEFERRED, a decision for the rest, and for a
+// *_VERIFIED state a consistent human verification of a decision whose outcome is that state.
+func statusMatchesRecord(status string, rec approvalRecord, level string) error {
+	switch status {
+	case "UNDER_HUMAN_REVIEW":
+		if level != levelNotice {
+			return fmt.Errorf("%s needs a valid REVIEW_NOTICE record (level %s)", status, level)
+		}
+	case "DEFERRED":
+		if level != levelDeferred {
+			return fmt.Errorf("%s needs a valid DEFERRAL record (level %s)", status, level)
+		}
+	case "DECISION_RECORDED_PENDING_VERIFICATION":
+		if level != levelRecorded && level != levelHumanVerified {
+			return fmt.Errorf("%s needs a valid DECISION record (level %s)", status, level)
+		}
+	case "APPROVED_VERIFIED", "REJECTED_VERIFIED", "SUPERSEDED_VERIFIED", "VOID_VERIFIED":
+		if level != levelHumanVerified {
+			return fmt.Errorf("%s without a consistent human verification entry (level %s)", status, level)
+		}
+		if want := strings.TrimSuffix(status, "_VERIFIED"); rec.Outcome != want {
+			return fmt.Errorf("%s does not match the recorded outcome %q", status, rec.Outcome)
+		}
+	default:
+		return fmt.Errorf("status %s does not take an approval record", status)
+	}
+	return nil
 }
 
 // Conflict statuses are copied from R5 unchanged; C-03 stays unresolved.
@@ -301,6 +331,8 @@ func TestR6PersianWorksheets(t *testing.T) {
 
 const (
 	levelIncomplete    = "STRUCTURALLY_INCOMPLETE"
+	levelNotice        = "REVIEW_NOTICE_RECORDED"
+	levelDeferred      = "DEFERRAL_RECORDED"
 	levelRecorded      = "DECISION_RECORDED_PENDING_VERIFICATION"
 	levelHumanVerified = "HUMAN_VERIFICATION_ENTRY_CONSISTENT"
 )
@@ -311,6 +343,7 @@ type person struct {
 }
 
 type approvalRecord struct {
+	RecordType      string `json:"record_type"`
 	DecisionID      string `json:"decision_id"`
 	DecisionVersion string `json:"decision_version"`
 	Outcome         string `json:"outcome"`
@@ -334,6 +367,8 @@ type approvalRecord struct {
 	ImmutableRef      string   `json:"immutable_ref"`
 	Supersedes        []string `json:"supersedes"`
 	Conditions        string   `json:"conditions"`
+	DeferralReason    string   `json:"deferral_reason"`
+	RevisitCondition  string   `json:"revisit_condition"`
 	RecordedBy        person   `json:"recorded_by"`
 	HumanVerification *struct {
 		VerifierName string `json:"verifier_name"`
@@ -353,36 +388,25 @@ func loadApproval(path string) (approvalRecord, error) {
 	return r, json.Unmarshal(b, &r)
 }
 
-// validateApprovalRecord checks structure only. It never authenticates a person, a signature or an
-// authority document; the best it can return is HUMAN_VERIFICATION_ENTRY_CONSISTENT, meaning that a
-// human verification entry exists and is consistent with the record.
-func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []string) {
+func requireFields(m map[string]string) []string {
 	var p []string
-	req := map[string]string{"decision_id": r.DecisionID, "decision_version": r.DecisionVersion, "outcome": r.Outcome,
-		"selected_option": r.SelectedOption, "decision_text": r.DecisionText, "decision_date": r.DecisionDate,
-		"effective_date": r.EffectiveDate, "evidence_source.type": r.EvidenceSource.Type,
-		"evidence_source.reference": r.EvidenceSource.Reference, "immutable_ref": r.ImmutableRef,
-		"conditions": r.Conditions, "recorded_by.name": r.RecordedBy.Name, "recorded_by.role": r.RecordedBy.Role}
-	for k, v := range req {
+	for k, v := range m {
 		if strings.TrimSpace(v) == "" {
 			p = append(p, "missing "+k)
 		}
 	}
-	switch r.Outcome {
-	case "APPROVED", "REJECTED", "VOID":
-	case "SUPERSEDED":
-		if len(r.Supersedes) == 0 {
-			p = append(p, "SUPERSEDED without supersedes")
-		}
-	default:
-		p = append(p, "unknown outcome "+r.Outcome)
-	}
-	dd, err1 := time.Parse("2006-01-02", r.DecisionDate)
-	ed, err2 := time.Parse("2006-01-02", r.EffectiveDate)
-	if err1 != nil || err2 != nil {
-		p = append(p, "dates must be ISO YYYY-MM-DD")
-	} else if ed.Before(dd) {
-		p = append(p, "effective date before decision date")
+	return p
+}
+
+// commonChecks: identity of the record, evidence, recorder, approvers with authority evidence, and no
+// placeholder content in a committed record.
+func commonChecks(r approvalRecord, inRepository bool) ([]string, map[string]bool) {
+	p := requireFields(map[string]string{"decision_id": r.DecisionID, "decision_version": r.DecisionVersion,
+		"decision_date": r.DecisionDate, "evidence_source.type": r.EvidenceSource.Type,
+		"evidence_source.reference": r.EvidenceSource.Reference, "immutable_ref": r.ImmutableRef,
+		"recorded_by.name": r.RecordedBy.Name, "recorded_by.role": r.RecordedBy.Role})
+	if _, err := time.Parse("2006-01-02", r.DecisionDate); err != nil {
+		p = append(p, "decision_date must be ISO YYYY-MM-DD")
 	}
 	if len(r.Approvers) == 0 {
 		p = append(p, "no approver")
@@ -407,6 +431,62 @@ func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []stri
 				p = append(p, "contains a synthetic / placeholder marker: "+marker)
 			}
 		}
+	}
+	return p, names
+}
+
+// validateApprovalRecord checks structure only. It never authenticates a person, a signature or an
+// authority document; the best it can return is HUMAN_VERIFICATION_ENTRY_CONSISTENT, meaning that a
+// human verification entry exists and is consistent with the record.
+//
+// record_type selects the shape:
+//   - REVIEW_NOTICE (T3): who opened the review, with authority evidence; carries no decision.
+//   - DEFERRAL (T6): outcome DEFERRED with a reason and a revisit condition; carries no selected option.
+//   - DECISION (T4/T5): a decided outcome, optionally with a human verification entry.
+func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []string) {
+	p, names := commonChecks(r, inRepository)
+	switch r.RecordType {
+	case "REVIEW_NOTICE":
+		if r.Outcome != "" || r.SelectedOption != "" || r.DecisionText != "" || r.HumanVerification != nil {
+			p = append(p, "a review notice carries no outcome, option, decision text or verification")
+		}
+		if len(p) > 0 {
+			return levelIncomplete, p
+		}
+		return levelNotice, nil
+	case "DEFERRAL":
+		p = append(p, requireFields(map[string]string{"deferral_reason": r.DeferralReason, "revisit_condition": r.RevisitCondition})...)
+		if r.Outcome != "DEFERRED" {
+			p = append(p, "a deferral has outcome DEFERRED")
+		}
+		if r.SelectedOption != "" {
+			p = append(p, "a deferral selects no option")
+		}
+		if len(p) > 0 {
+			return levelIncomplete, p
+		}
+		return levelDeferred, nil
+	case "DECISION":
+	default:
+		return levelIncomplete, append(p, "unknown record_type "+r.RecordType)
+	}
+	p = append(p, requireFields(map[string]string{"outcome": r.Outcome, "selected_option": r.SelectedOption,
+		"decision_text": r.DecisionText, "effective_date": r.EffectiveDate, "conditions": r.Conditions})...)
+	switch r.Outcome {
+	case "APPROVED", "REJECTED", "VOID":
+	case "SUPERSEDED":
+		if len(r.Supersedes) == 0 {
+			p = append(p, "SUPERSEDED without supersedes")
+		}
+	default:
+		p = append(p, "unknown outcome "+r.Outcome)
+	}
+	dd, err1 := time.Parse("2006-01-02", r.DecisionDate)
+	ed, err2 := time.Parse("2006-01-02", r.EffectiveDate)
+	if err1 != nil || err2 != nil {
+		p = append(p, "dates must be ISO YYYY-MM-DD")
+	} else if ed.Before(dd) {
+		p = append(p, "effective date before decision date")
 	}
 	if len(p) > 0 {
 		return levelIncomplete, p
@@ -447,7 +527,7 @@ func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []stri
 func TestApprovalValidatorRules(t *testing.T) {
 	base := func() approvalRecord {
 		var r approvalRecord
-		raw := `{"decision_id":"D-45","decision_version":"1.0","outcome":"APPROVED","selected_option":"1",
+		raw := `{"record_type":"DECISION","decision_id":"D-45","decision_version":"1.0","outcome":"APPROVED","selected_option":"1",
 		"decision_text":"fixture text","approvers":[{"name":"Fixture Approver One","role":"Security owner",
 		"authority_evidence":{"type":"appointment letter","reference":"fixture-ref-1"}},{"name":"Fixture Approver Two",
 		"role":"Product owner","authority_evidence":{"type":"delegation","reference":"fixture-ref-2"}}],
@@ -493,6 +573,7 @@ func TestApprovalValidatorRules(t *testing.T) {
 		"verifier is the recorder":    func(r *approvalRecord) { *r = verified("Fixture Recorder", "VERIFIED") },
 		"verifier is automation":      func(r *approvalRecord) { *r = verified("github-actions[bot]", "VERIFIED") },
 		"unknown verification result": func(r *approvalRecord) { *r = verified("Fixture Verifier", "AUTO_APPROVED") },
+		"unknown record type":         func(r *approvalRecord) { r.RecordType = "" },
 	}
 	for name, mutate := range bad {
 		r := base()
@@ -507,4 +588,62 @@ func TestApprovalValidatorRules(t *testing.T) {
 	if lvl, _ := validateApprovalRecord(r, true); lvl != levelIncomplete {
 		t.Errorf("placeholder record in the repository accepted (%s)", lvl)
 	}
+}
+
+// Regression (review findings on PR #46): a verified status must match the recorded outcome; a review
+// notice and a deferral have their own record shapes and cannot stand in for a decision.
+func TestRecordedStatusMatchesRecord(t *testing.T) {
+	decision := func(outcome, result string) approvalRecord {
+		var r approvalRecord
+		raw := fmt.Sprintf(`{"record_type":"DECISION","decision_id":"OPD-04","decision_version":"1.0","outcome":%q,
+		"selected_option":"1","decision_text":"fixture","approvers":[{"name":"Fixture Approver","role":"Finance owner",
+		"authority_evidence":{"type":"delegation","reference":"fixture-ref"}}],"decision_date":"2030-02-01",
+		"effective_date":"2030-02-01","evidence_source":{"type":"signed minutes","reference":"fixture-minutes"},
+		"immutable_ref":"0000000","conditions":"none","recorded_by":{"name":"Fixture Recorder","role":"Secretary"},
+		"human_verification":{"verifier_name":"Fixture Verifier","verifier_role":"Internal audit","method":"independent channel",
+		"date":"2030-02-02","result":%q}}`, outcome, result)
+		if err := json.Unmarshal([]byte(raw), &r); err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	check := func(name, status string, r approvalRecord, wantOK bool) {
+		lvl, _ := validateApprovalRecord(r, false)
+		err := statusMatchesRecord(status, r, lvl)
+		if (err == nil) != wantOK {
+			t.Errorf("%s: status %s, level %s, err %v, want ok=%v", name, status, lvl, err, wantOK)
+		}
+	}
+	check("approved verified", "APPROVED_VERIFIED", decision("APPROVED", "VERIFIED"), true)
+	check("rejected record shown as approved", "APPROVED_VERIFIED", decision("REJECTED", "VERIFIED"), false)
+	check("rejected verified", "REJECTED_VERIFIED", decision("REJECTED", "VERIFIED"), true)
+	check("void shown as superseded", "SUPERSEDED_VERIFIED", decision("VOID", "VERIFIED"), false)
+	check("inconclusive verification", "APPROVED_VERIFIED", decision("APPROVED", "INCONCLUSIVE"), false)
+	check("pending verification", "DECISION_RECORDED_PENDING_VERIFICATION", decision("APPROVED", "INCONCLUSIVE"), true)
+	check("decision as review notice", "UNDER_HUMAN_REVIEW", decision("APPROVED", "VERIFIED"), false)
+
+	var notice approvalRecord
+	if err := json.Unmarshal([]byte(`{"record_type":"REVIEW_NOTICE","decision_id":"OPD-04","decision_version":"1.0",
+		"approvers":[{"name":"Fixture Approver","role":"Finance owner","authority_evidence":{"type":"delegation","reference":"fixture-ref"}}],
+		"decision_date":"2030-01-15","evidence_source":{"type":"dated message","reference":"fixture-notice"},"immutable_ref":"0000000",
+		"recorded_by":{"name":"Fixture Recorder","role":"Secretary"}}`), &notice); err != nil {
+		t.Fatal(err)
+	}
+	check("review notice", "UNDER_HUMAN_REVIEW", notice, true)
+	check("review notice as decision", "DECISION_RECORDED_PENDING_VERIFICATION", notice, false)
+	withOutcome := notice
+	withOutcome.Outcome = "APPROVED"
+	check("review notice carrying an outcome", "UNDER_HUMAN_REVIEW", withOutcome, false)
+
+	deferral := notice
+	deferral.RecordType, deferral.Outcome = "DEFERRAL", "DEFERRED"
+	deferral.DeferralReason, deferral.RevisitCondition = "fixture reason", "after fixture evidence"
+	check("deferral", "DEFERRED", deferral, true)
+	check("deferral as approval", "APPROVED_VERIFIED", deferral, false)
+	noRevisit := deferral
+	noRevisit.RevisitCondition = ""
+	check("deferral without revisit condition", "DEFERRED", noRevisit, false)
+	withOption := deferral
+	withOption.SelectedOption = "1"
+	check("deferral selecting an option", "DEFERRED", withOption, false)
 }

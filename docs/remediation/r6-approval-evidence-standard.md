@@ -22,8 +22,19 @@ exists today**, and the directory `docs/governance/approvals/` is intentionally 
 Path: `docs/governance/approvals/<decision-id>-v<version>.json`. Template:
 `docs/governance/templates/APPROVAL-RECORD-TEMPLATE.json`.
 
+`record_type` selects one of three shapes. Each shape can justify only its own tracker status:
+
+| `record_type` | Workflow step | Can justify tracker status | Content |
+|---|---|---|---|
+| `REVIEW_NOTICE` | T3 | `UNDER_HUMAN_REVIEW` | Who opened the review: approver(s) with authority evidence, notice date (`decision_date`), notice reference, immutable reference, recorder. **No** outcome, option, decision text or verification |
+| `DEFERRAL` | T6 | `DEFERRED` | `outcome: DEFERRED`, `deferral_reason`, `revisit_condition`, approver(s) with authority evidence, date, evidence, immutable reference, recorder. **No** selected option |
+| `DECISION` | T4 / T5 | `DECISION_RECORDED_PENDING_VERIFICATION`; with a consistent human verification `VERIFIED`: the `*_VERIFIED` state **equal to its outcome** (`APPROVED` → `APPROVED_VERIFIED`, `REJECTED` → `REJECTED_VERIFIED`, `SUPERSEDED` → `SUPERSEDED_VERIFIED`, `VOID` → `VOID_VERIFIED`) | All fields below |
+
+Fields of a `DECISION` record:
+
 | Field | Requirement |
 |---|---|
+| `record_type` | `DECISION` |
 | `decision_id` | Exact ID from the tracker (unchanged from R5) |
 | `decision_version` | `1.0` for the first approval; later versions increment |
 | `outcome` | One of `APPROVED`, `REJECTED`, `SUPERSEDED`, `VOID` |
@@ -55,7 +66,9 @@ The verifier's judgement is the human step. The repository records it but cannot
 | Check | Automated? |
 |---|---|
 | All required fields present and non-empty | Yes |
+| `record_type` known; a review notice carries no decision; a deferral has a reason and a revisit condition and selects no option | Yes |
 | Outcome value allowed; `SUPERSEDED` has `supersedes` | Yes |
+| Tracker status matches the record type and, for a `*_VERIFIED` state, the recorded outcome (`statusMatchesRecord`) | Yes |
 | Dates are valid ISO dates; effective ≥ decision | Yes |
 | At least one approver; each has name, role and authority evidence reference | Yes |
 | Every role in `independent_approvals` is matched by its own approver | Yes (string match of role) |
