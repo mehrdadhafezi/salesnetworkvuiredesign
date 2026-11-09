@@ -1,0 +1,40 @@
+name: Governance docs
+
+# R5: consistency checks of the decision documents (no code, no secrets, no
+# deployment). Fails when a decision ID is missing from the inventory, when a
+# DRAFT record carries an approval without evidence, when a status claims
+# APPROVED without an authoritative record, or when the evidence index is
+# inconsistent.
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'AGENTS.md'
+      - '.github/workflows/governance-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'AGENTS.md'
+      - '.github/workflows/governance-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    name: Decision documents consistency
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: R5 governance consistency
+        run: go test -count=1 -v ./docs/governance/
