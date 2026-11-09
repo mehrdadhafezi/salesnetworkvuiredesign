@@ -14,6 +14,7 @@
 package refund
 
 import (
+	"fmt"
 	"regexp"
 	"slices"
 
@@ -93,10 +94,26 @@ type Evidence struct {
 	Amount *money.Money
 }
 
+// PersonLink is identity evidence about whether the actor and the other
+// participants of the refund (requester, reviewer) are different HUMANS.
+// Distinct account ids alone never prove that: one person may hold several
+// accounts. The zero value means no person-level evidence exists.
+type PersonLink string
+
+const (
+	// PersonDistinct: authoritative evidence proves different people.
+	PersonDistinct PersonLink = "DISTINCT"
+	// PersonSameHuman: evidence links the accounts to one person.
+	PersonSameHuman PersonLink = "SAME_HUMAN"
+)
+
 // Actor is the server-derived actor of a transition.
 type Actor struct {
 	UserID   string
 	Verified bool
+	// Independence is the person-level evidence for the separation of
+	// duties of this transition (review, authorization).
+	Independence PersonLink
 }
 
 // Refund is the refund aggregate as a transition sees it. Original*
@@ -117,7 +134,10 @@ type Refund struct {
 
 // Decision ids.
 const (
-	DecisionOPD04          = "OPD-04"
+	DecisionOPD04 = "OPD-04"
+	// PersonLinkUnmodelled: no authoritative person linkage exists, so the
+	// separation of duties is proven only at the account level.
+	PersonLinkUnmodelled   = "IDENTITY_PERSON_LINK_UNMODELLED"
 	NoRefundAuthority      = "NO_REFUND_AUTHORITY"
 	CompensationUnapproved = "FINANCIAL_COMPENSATION_UNAPPROVED"
 )
@@ -153,16 +173,40 @@ func EvaluateTransition(r Refund, to State, ev Evidence, actor Actor) Evaluation
 		fail = true
 		note(reasoncodes.ContractInvalid, "a refund must reference the preserved original invoice and payment")
 	}
-	// Exact money: positive, one unit, never above what is refundable.
-	if err := r.Amount.Validate(); err != nil || r.Amount.Sign() <= 0 {
+	// Exact money. Every fact is validated here, never assumed: the refund
+	// amount is positive; the original paid and previously refunded amounts
+	// are valid and nonnegative; all three share the refund's explicit unit;
+	// previously refunded never exceeds original paid; the amount never
+	// exceeds the remaining refundable amount. Invalid facts fail closed.
+	amountOK := r.Amount.Validate() == nil && r.Amount.Sign() > 0
+	paidOK := r.OriginalPaid.Validate() == nil && r.OriginalPaid.Sign() >= 0
+	prevOK := r.PreviouslyRefunded.Validate() == nil && r.PreviouslyRefunded.Sign() >= 0
+	if !amountOK {
 		fail = true
 		note(reasoncodes.ContractInvalid, "the refund amount must be positive in an explicit unit")
-	} else if refundable, err := money.Sub(r.OriginalPaid, r.PreviouslyRefunded); err != nil {
+	}
+	if !paidOK {
 		fail = true
-		note(reasoncodes.ContractInvalid, "refundable amount cannot be computed exactly (unit mismatch or overflow)")
-	} else if c, err := money.Compare(r.Amount, refundable); err != nil || c > 0 {
-		conflict = true
-		note(reasoncodes.DependencyFinancialActive, "the refund exceeds the proven refundable amount")
+		note(reasoncodes.ContractInvalid, "the original paid amount must be a valid nonnegative amount in an explicit unit")
+	}
+	if !prevOK {
+		fail = true
+		note(reasoncodes.ContractInvalid, "the previously refunded amount must be a valid nonnegative amount in an explicit unit")
+	}
+	if amountOK && paidOK && prevOK {
+		if r.OriginalPaid.Unit != r.Amount.Unit || r.PreviouslyRefunded.Unit != r.Amount.Unit {
+			fail = true
+			note(reasoncodes.ContractInvalid, "original paid, previously refunded and the refund must share one explicit unit (no conversion)")
+		} else if c, err := money.Compare(r.PreviouslyRefunded, r.OriginalPaid); err != nil || c > 0 {
+			conflict = true
+			note(reasoncodes.LinkageConflict, "previously refunded exceeds the original paid amount")
+		} else if remaining, err := money.Sub(r.OriginalPaid, r.PreviouslyRefunded); err != nil {
+			fail = true
+			note(reasoncodes.ContractInvalid, "the remaining refundable amount cannot be computed exactly")
+		} else if c, err := money.Compare(r.Amount, remaining); err != nil || c > 0 {
+			conflict = true
+			note(reasoncodes.DependencyFinancialActive, "the refund exceeds the remaining refundable amount")
+		}
 	}
 	switch ev.Kind {
 	case EvidenceInvoiceCancelled:
@@ -171,6 +215,20 @@ func EvaluateTransition(r Refund, to State, ev Evidence, actor Actor) Evaluation
 	case EvidenceHTTPSuccess:
 		fail = true
 		note(reasoncodes.ContractInvalid, "an HTTP success is never evidence that a refund was executed")
+	}
+	var blockedBy []string
+	if to == Reviewed || to == Authorized {
+		// Account inequality (below) is necessary, not sufficient: the
+		// separation of duties needs person-level evidence.
+		switch actor.Independence {
+		case PersonDistinct:
+		case PersonSameHuman:
+			unauthorized = true
+			note(reasoncodes.ActionDenied, "the actor is the same person as another participant (several accounts)")
+		default:
+			blockedBy = append(blockedBy, PersonLinkUnmodelled)
+			note(reasoncodes.CoverageIncomplete, "independence is proven only at the account level (no person linkage)")
+		}
 	}
 	switch to {
 	case Reviewed:
@@ -201,7 +259,7 @@ func EvaluateTransition(r Refund, to State, ev Evidence, actor Actor) Evaluation
 		reasons[reasoncodes.OutcomeUnknown] = true
 	}
 	reasons[reasoncodes.PolicyUnresolved] = true
-	e.BlockedBy = []string{DecisionOPD04, NoRefundAuthority, CompensationUnapproved}
+	e.BlockedBy = append([]string{DecisionOPD04, NoRefundAuthority, CompensationUnapproved}, blockedBy...)
 	switch {
 	case unauthorized:
 		e.Status = result.Unauthorized
@@ -230,18 +288,37 @@ type Event struct {
 // Projection is the derived read of a refund history.
 type Projection struct {
 	RefundID string
-	State    State
-	// Valid is false when the history contains a non-transition; the
-	// projection then stops at the last valid state and reports it.
-	Valid    bool
-	Findings []string
+	// State is the current state; it is set ONLY when the whole history is
+	// valid. An invalid history never yields a current state.
+	State State
+	Valid bool
+	// VerifiedState / VerifiedThrough describe the longest valid prefix
+	// (diagnosis only; never a current state).
+	VerifiedState   State
+	VerifiedThrough int64
+	Findings        []string
 }
 
-// Project derives the current state from the ordered history. It never
-// repairs or skips: an illegal step is a finding and the state stays at
-// the last valid step. The first event must be REQUESTED.
+// Project derives the current state from a refund's append-only history.
+//
+// Sequence contract (an engineering contract of the event log, not a
+// business policy): the events of ONE refund carry a per-refund sequence
+// that starts at 1 and increases by exactly 1 per event (1..n), like the
+// per-aggregate versions every target aggregate already uses. A strictly
+// increasing but gapped sequence is NOT accepted: a gap cannot be told
+// apart from a lost or hidden event, so it fails closed.
+//
+// Delivery order does not matter (events are ordered by sequence). Any
+// empty history, foreign event, sequence below 1, duplicate, gap, start
+// other than REQUESTED or illegal transition makes the history invalid:
+// nothing is skipped, repaired or manufactured, and no current state is
+// returned. The input slice is never modified.
 func Project(refundID string, events []Event) Projection {
-	p := Projection{RefundID: refundID, Valid: true}
+	p := Projection{RefundID: refundID}
+	if len(events) == 0 {
+		p.Findings = append(p.Findings, "no history")
+		return p
+	}
 	evs := slices.Clone(events)
 	slices.SortStableFunc(evs, func(a, b Event) int {
 		switch {
@@ -252,27 +329,32 @@ func Project(refundID string, events []Event) Projection {
 		}
 		return 0
 	})
+	broken := false
 	for n, e := range evs {
-		if e.RefundID != refundID {
-			p.Valid = false
-			p.Findings = append(p.Findings, "event of another refund")
-			continue
-		}
-		if n == 0 {
-			if e.To != Requested {
-				p.Valid = false
-				p.Findings = append(p.Findings, "history does not start with REQUESTED")
-				return p
+		want := int64(n + 1)
+		switch {
+		case e.RefundID != refundID:
+			p.Findings = append(p.Findings, fmt.Sprintf("seq %d: event of another refund", e.Seq))
+		case e.Seq < 1:
+			p.Findings = append(p.Findings, fmt.Sprintf("seq %d: sequence below 1", e.Seq))
+		case n > 0 && e.Seq == evs[n-1].Seq:
+			p.Findings = append(p.Findings, fmt.Sprintf("seq %d: duplicate sequence", e.Seq))
+		case e.Seq != want:
+			p.Findings = append(p.Findings, fmt.Sprintf("seq %d: expected %d (missing or out-of-contract sequence)", e.Seq, want))
+		case n == 0 && e.To != Requested:
+			p.Findings = append(p.Findings, "history does not start with REQUESTED")
+		case n > 0 && !broken && !Legal(p.VerifiedState, e.To):
+			p.Findings = append(p.Findings, fmt.Sprintf("seq %d: illegal step %s -> %s", e.Seq, p.VerifiedState, e.To))
+		default:
+			if !broken {
+				p.VerifiedState, p.VerifiedThrough = e.To, e.Seq
 			}
-			p.State = Requested
 			continue
 		}
-		if !Legal(p.State, e.To) {
-			p.Valid = false
-			p.Findings = append(p.Findings, "illegal step "+string(p.State)+" -> "+string(e.To))
-			return p
-		}
-		p.State = e.To
+		broken = true
+	}
+	if !broken {
+		p.Valid, p.State = true, p.VerifiedState
 	}
 	return p
 }

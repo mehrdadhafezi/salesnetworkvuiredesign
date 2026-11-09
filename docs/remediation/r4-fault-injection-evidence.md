@@ -28,6 +28,9 @@
 | Reversal | same | Reversal; second reversal; UPDATE / DELETE | Separate row; CONFLICT; refused | PASS |
 | Test sensitivity | posting store defect during development | Line written before the key check | Detected (`net 2000`) | DETECTED, fixed |
 | Refund evidence | `TestRefundGuards` | Cancellation / HTTP-success as proof; amount mismatch | Refused | PASS |
+| Refund money facts (review P2-A) | `TestRefundMonetaryInvariants` | Negative / invalid / mismatched paid and refunded facts; refunded > paid; amount > remaining | FAILED / CONFLICT, never eligible | PASS (failed before the fix: a negative refunded amount was accepted) |
+| Refund history (review P2-B) | `TestProjectionHistoryIntegrity`, `TestProjectionVerifiedPrefix` | Empty, duplicate, gap, zero / negative sequence, foreign event, illegal step | Invalid, no current state, nothing skipped | PASS (failed before the fix: 8 of 9 cases yielded a state) |
+| Refund separation of duties | `TestRefundPersonLevelIndependence` | No person linkage; same human on another account | BLOCKED (`IDENTITY_PERSON_LINK_UNMODELLED`); UNAUTHORIZED | PASS |
 | Commission duplicates | `TestReconcileEngines` | Two engines / one engine twice / shadow claims posted | Classified | PASS |
 | Wiring | `TestViolatingFixtureFails` (rule `r4-evaluator-wiring`) | Production import of an evaluator; stray `EvaluateDecision` | Lint fires (2) | PASS |
 | Feature flags | existing Slice 4–14 flag tests; R4 adds no flag | — | All write flags OFF by default | PASS (unchanged) |

@@ -94,13 +94,14 @@ func TestProjection(t *testing.T) {
 	if p := Project("rf", shuffled); !p.Valid || p.State != Completed {
 		t.Fatalf("full history: %+v", p)
 	}
-	if p := Project("rf", []Event{{1, "rf", Requested}, {2, "rf", Completed}}); p.Valid || p.State != Requested {
-		t.Fatalf("illegal step must stop the projection: %+v", p)
+	if p := Project("rf", []Event{{1, "rf", Requested}, {2, "rf", Completed}}); p.Valid || p.State != "" || p.VerifiedState != Requested ||
+		p.VerifiedThrough != 1 {
+		t.Fatalf("an illegal step invalidates the history (verified prefix kept for diagnosis only): %+v", p)
 	}
 	if p := Project("rf", []Event{{1, "rf", Authorized}}); p.Valid {
 		t.Fatalf("history must start with REQUESTED: %+v", p)
 	}
-	if p := Project("rf", []Event{{1, "rf", Requested}, {2, "other", Reviewed}}); p.Valid || p.State != Requested {
+	if p := Project("rf", []Event{{1, "rf", Requested}, {2, "other", Reviewed}}); p.Valid || p.State != "" {
 		t.Fatalf("foreign event: %+v", p)
 	}
 	for _, s := range States() {
