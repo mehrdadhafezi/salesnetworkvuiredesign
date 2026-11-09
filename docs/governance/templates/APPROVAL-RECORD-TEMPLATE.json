@@ -1,5 +1,5 @@
 {
-  "_comment": "TEMPLATE ONLY. Copy to docs/governance/approvals/<decision-id>-v<version>.json and fill from real evidence. Never fill on someone's behalf. See docs/remediation/r6-approval-evidence-standard.md. record_type is DECISION, REVIEW_NOTICE or DEFERRAL (see the standard, section 2).",
+  "_comment": "TEMPLATE ONLY (record_type DECISION, workflow T4/T5). Copy to docs/governance/approvals/<decision-id>-v<version>-DECISION.json and fill from real evidence. Never fill on someone's behalf. Review notices and deferrals use their own templates. See docs/remediation/r6-approval-evidence-standard.md.",
   "record_type": "DECISION",
   "decision_id": "",
   "decision_version": "1.0",
@@ -26,8 +26,6 @@
   "immutable_ref": "",
   "supersedes": [],
   "conditions": "",
-  "deferral_reason": "",
-  "revisit_condition": "",
   "recorded_by": {
     "name": "",
     "role": ""

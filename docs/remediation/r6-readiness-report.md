@@ -29,7 +29,7 @@ workflow and an offline evidence standard. It records no decision.
 | — | `r6-approval-evidence-standard.md` | English | Offline validation contract |
 | — | `r6-engineering-followup-map.md` | English | Decision-to-engineering matrix; P0 closure criteria |
 | — | `docs/governance/r6-decision-tracker.json` | JSON | Lifecycle status per decision + conflict statuses (single machine-readable status source) |
-| — | `docs/governance/templates/APPROVAL-RECORD-TEMPLATE.json` | JSON | Blank approval record |
+| — | `docs/governance/templates/APPROVAL-RECORD-TEMPLATE.json`, `REVIEW-NOTICE-TEMPLATE.json`, `DEFERRAL-RECORD-TEMPLATE.json` | JSON | Blank decision, review-notice and deferral records |
 | — | `docs/governance/r6_test.go` | Go | Offline governance checks |
 
 **No duplicated source of truth:**
@@ -85,10 +85,15 @@ its own judgement.
 | No option pre-selected | `TestR6PersianWorksheets` (no ☑ ☒ ✓ [x] in any R6 document) |
 | References consistent with R5 (IDs, readiness, blockers) | `TestR6TrackerAccountsForEveryR5Record`, `TestR6BlockersMatchInventory` |
 | P0 / P1 classification honest (from the R5 inventory) | `TestR6BlockersMatchInventory` |
-| Status ↔ record consistency (review notice, deferral, verified state = recorded outcome) | `TestRecordedStatusMatchesRecord` |
-| Approval validator rules | `TestApprovalValidatorRules` (15 defect fixtures plus positive, inconclusive and placeholder cases; all synthetic, built in test code, never written to `approvals/`) |
+| Verified state ↔ decision outcome (every outcome × verification result × all ten states) | `TestVerifiedStatusOutcomeMatrix` |
+| Review notice is bounded (initiator authority, notice date, no decision content) and justifies only `UNDER_HUMAN_REVIEW` | `TestReviewNoticeRecord` |
+| Formal deferral (initiator authority, date, reason, explicit revisit condition; no option) justifies only `DEFERRED`; never closed or actionable | `TestDeferralRecord` |
+| Decision record structure and human-verification guards | `TestApprovalValidatorRules` (synthetic fixtures in test code; any fixture marker is rejected under `approvals/`) |
+| Every documented transition (T1–T6, T9) is implemented and every state representable with its own evidence | `TestLifecycleTransitionsRepresentable` (parses the workflow table) |
+| Records append-only: per-type, per-version files; only a verification entry may be added; no delete / rename | `TestApprovalRecordsAppendOnly` (history part needs a full clone) |
+| Zero recorded approvals in the R6 data; blank templates never validate | `TestR6ZeroRecordedApprovals` |
 | R5 tests, including the provenance test and its limits | Unchanged, passing |
-| Mutation checks (each makes the tests fail) | (1) a status set without a record; (2) an outcome filled; (3) a record dropped; (4) C-03 changed; (5) a blocker changed; (6) a P-GOV box ticked; (7) a worksheet outcome filled; (8) a placeholder approval file |
+| Mutation checks (each makes the tests fail) | (1) a status set without a record; (2) an outcome filled; (3) a record dropped; (4) C-03 changed; (5) a blocker changed; (6) a P-GOV box ticked; (7) a worksheet outcome filled; (8) a placeholder approval file; (9) the outcome check removed; (10) an inconclusive verification treated as verified; (11) a notice allowed to carry a decision; (12) a verified decision accepted as a review notice; (13) the revisit condition made optional; (14) a decision accepted as a deferral; (15) a committed record rewritten |
 | Production code / flags | Diff is `docs/` and the Go CI step name only. No change to `internal/`, `cmd/`, `plugin/current`, migrations, flags or permissions |
 
 ## 7. Blockers
@@ -99,6 +104,15 @@ its own judgement.
 | P0-6 HR handover | **OPEN**: OPD-05, SD-04 review-ready; person identity (R5-SEC-01) undecided; HR NOT LIVE VERIFIED |
 | P0-7 financial execution | **PARTIAL / BLOCKED**: contracts only. OPD-08 and OPD-04 review-ready, but execution is blocked by person-level SoD. D-41, OPD-06, OPD-09, D-36 evidence-first |
 | P0-3 real-data reconciliation | **OPEN**: ADR #18 review-ready (M1) |
+
+## 7a. Review corrections (PR #46)
+
+The three review findings were each reproduced as a failing test on the reviewed head `5132190`:
+- P2-01: a REJECTED record was accepted as `APPROVED_VERIFIED`;
+- P2-02: a review-opening notice could not justify `UNDER_HUMAN_REVIEW`;
+- P2-03: a formal deferral was rejected.
+
+They are corrected by bounded record types (`REVIEW_NOTICE`, `DEFERRAL`, `DECISION`), an exact outcome-to-state mapping and append-only record files. Human authority and signatures remain unauthenticated by automation.
 
 ## 8. Stop
 

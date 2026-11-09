@@ -1,0 +1,24 @@
+{
+  "_comment": "TEMPLATE ONLY (record_type REVIEW_NOTICE, workflow T3). Opens a review; carries no outcome, option, decision text, approvers or verification and can never justify an approval. File: docs/governance/approvals/<decision-id>-v<version>-REVIEW_NOTICE.json.",
+  "record_type": "REVIEW_NOTICE",
+  "decision_id": "",
+  "decision_version": "1.0",
+  "initiator": {
+    "name": "",
+    "role": "",
+    "authority_evidence": {
+      "type": "",
+      "reference": ""
+    }
+  },
+  "notice_date": "",
+  "evidence_source": {
+    "type": "",
+    "reference": ""
+  },
+  "immutable_ref": "",
+  "recorded_by": {
+    "name": "",
+    "role": ""
+  }
+}

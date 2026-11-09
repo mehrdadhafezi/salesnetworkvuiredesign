@@ -17,18 +17,30 @@ exists today**, and the directory `docs/governance/approvals/` is intentionally 
   human verification entry (§3) can lead to a `*_VERIFIED` state.
 - The repository owner's account is not proof of authority for organizational decisions.
 
-## 2. Approval record (one JSON file per decision version)
+## 2. Record types (one JSON file per decision, version and type)
 
-Path: `docs/governance/approvals/<decision-id>-v<version>.json`. Template:
-`docs/governance/templates/APPROVAL-RECORD-TEMPLATE.json`.
+Path: `docs/governance/approvals/<decision-id>-v<version>-<record_type>.json`. In the decision ID, characters
+other than letters, digits and `-` become `_`. Separate files per type and version mean that no record
+overwrites another. A committed file may later gain only a human verification entry. It is never deleted or
+renamed (§4).
 
-`record_type` selects one of three shapes. Each shape can justify only its own tracker status:
+| `record_type` | Workflow step | Template | Can justify tracker status | Required | Forbidden |
+|---|---|---|---|---|---|
+| `REVIEW_NOTICE` | T3 | `REVIEW-NOTICE-TEMPLATE.json` | `UNDER_HUMAN_REVIEW` only | decision ID + version, `notice_date`, `initiator` (name, role, authority evidence), notice reference (`evidence_source`), audit reference (`immutable_ref`), recorder | outcome, option, decision text, decision / effective date, approvers, conditions, supersedes, human verification, deferral fields |
+| `DEFERRAL` | T6 | `DEFERRAL-RECORD-TEMPLATE.json` | `DEFERRED` only (never closed, never actionable) | decision ID + version, `outcome: DEFERRED`, `initiator` (name, role, authority evidence), `deferral_date`, `deferral_reason`, `revisit_condition`, evidence reference, audit reference, recorder | option, decision text, decision / effective date, approvers, conditions, supersedes, human verification, notice date |
+| `DECISION` | T4 / T5 | `APPROVAL-RECORD-TEMPLATE.json` | `DECISION_RECORDED_PENDING_VERIFICATION`; with a consistent human verification `VERIFIED`, exactly the `*_VERIFIED` state equal to its outcome | all fields below | initiator, notice and deferral fields |
 
-| `record_type` | Workflow step | Can justify tracker status | Content |
-|---|---|---|---|
-| `REVIEW_NOTICE` | T3 | `UNDER_HUMAN_REVIEW` | Who opened the review: approver(s) with authority evidence, notice date (`decision_date`), notice reference, immutable reference, recorder. **No** outcome, option, decision text or verification |
-| `DEFERRAL` | T6 | `DEFERRED` | `outcome: DEFERRED`, `deferral_reason`, `revisit_condition`, approver(s) with authority evidence, date, evidence, immutable reference, recorder. **No** selected option |
-| `DECISION` | T4 / T5 | `DECISION_RECORDED_PENDING_VERIFICATION`; with a consistent human verification `VERIFIED`: the `*_VERIFIED` state **equal to its outcome** (`APPROVED` → `APPROVED_VERIFIED`, `REJECTED` → `REJECTED_VERIFIED`, `SUPERSEDED` → `SUPERSEDED_VERIFIED`, `VOID` → `VOID_VERIFIED`) | All fields below |
+`revisit_date` is optional in a deferral and must be an ISO date when present. It is filled only when the
+revisit condition itself gives a date. It is never invented.
+
+**Outcome-to-state mapping for decisions** (all other pairs are rejected):
+
+| Outcome | Human verification `VERIFIED` | Human verification `REJECTED` / `INCONCLUSIVE` / none |
+|---|---|---|
+| `APPROVED` | `APPROVED_VERIFIED` | `DECISION_RECORDED_PENDING_VERIFICATION` |
+| `REJECTED` | `REJECTED_VERIFIED` | `DECISION_RECORDED_PENDING_VERIFICATION` |
+| `SUPERSEDED` | `SUPERSEDED_VERIFIED` | `DECISION_RECORDED_PENDING_VERIFICATION` |
+| `VOID` | `VOID_VERIFIED` | `DECISION_RECORDED_PENDING_VERIFICATION` |
 
 Fields of a `DECISION` record:
 
@@ -66,14 +78,16 @@ The verifier's judgement is the human step. The repository records it but cannot
 | Check | Automated? |
 |---|---|
 | All required fields present and non-empty | Yes |
-| `record_type` known; a review notice carries no decision; a deferral has a reason and a revisit condition and selects no option | Yes |
-| Outcome value allowed; `SUPERSEDED` has `supersedes` | Yes |
+| `record_type` known; each type has its required fields and none of its forbidden fields (§2) | Yes |
+| File name equals `<decision-id>-v<version>-<record_type>.json`; history append-only (no delete / rename; only a verification entry may be added) | Yes (`TestR6ZeroRecordedApprovals`, `TestApprovalRecordsAppendOnly`; history check needs a full clone) |
+| Blank templates never validate | Yes |
+| Decision outcome allowed (`APPROVED`, `REJECTED`, `SUPERSEDED`, `VOID`; never `DEFERRED`); `SUPERSEDED` has `supersedes` | Yes |
 | Tracker status matches the record type and, for a `*_VERIFIED` state, the recorded outcome (`statusMatchesRecord`) | Yes |
 | Dates are valid ISO dates; effective ≥ decision | Yes |
 | At least one approver; each has name, role and authority evidence reference | Yes |
 | Every role in `independent_approvals` is matched by its own approver | Yes (string match of role) |
 | `human_verification`, if present: verifier is not an approver and not the recorder, verifier is not automation, result allowed | Yes |
-| No synthetic / placeholder marker in a record under `approvals/` | Yes |
+| No synthetic / placeholder / fixture marker in a record under `approvals/` | Yes |
 | The person exists, holds the role, signed; the authority document is genuine | **No — human verification only** |
 | The decision text is what the approvers actually decided | **No — human verification only** |
 

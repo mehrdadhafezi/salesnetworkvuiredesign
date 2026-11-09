@@ -1,0 +1,28 @@
+{
+  "_comment": "TEMPLATE ONLY (record_type DEFERRAL, workflow T6). Formal postponement by an authorized person; selects no option and is never a closed policy. revisit_date only if the revisit condition itself gives a date; otherwise leave it empty. File: docs/governance/approvals/<decision-id>-v<version>-DEFERRAL.json.",
+  "record_type": "DEFERRAL",
+  "decision_id": "",
+  "decision_version": "1.0",
+  "outcome": "DEFERRED",
+  "initiator": {
+    "name": "",
+    "role": "",
+    "authority_evidence": {
+      "type": "",
+      "reference": ""
+    }
+  },
+  "deferral_date": "",
+  "deferral_reason": "",
+  "revisit_condition": "",
+  "revisit_date": "",
+  "evidence_source": {
+    "type": "",
+    "reference": ""
+  },
+  "immutable_ref": "",
+  "recorded_by": {
+    "name": "",
+    "role": ""
+  }
+}

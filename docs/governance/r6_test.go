@@ -9,9 +9,11 @@ package governance
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -328,6 +330,16 @@ func TestR6PersianWorksheets(t *testing.T) {
 }
 
 // ---------------- approval record validator (structural only)
+//
+// Three bounded record shapes, selected by record_type:
+//   - REVIEW_NOTICE (T3): opens a review. Initiator with authority evidence, notice date, notice reference.
+//     Carries no decision of any kind and can only justify UNDER_HUMAN_REVIEW.
+//   - DEFERRAL (T6): formal postponement. Initiator with authority evidence, deferral date, reason and an
+//     explicit revisit condition (a revisit date only if the condition itself provides one). Carries no
+//     option or decision and can only justify DEFERRED, which is never a closed policy.
+//   - DECISION (T4/T5): a decided outcome with approvers and their authority evidence; with a consistent
+//     human verification entry it can justify exactly the *_VERIFIED state equal to its outcome.
+// None of these checks authenticates a person, a signature or an authority document.
 
 const (
 	levelIncomplete    = "STRUCTURALLY_INCOMPLETE"
@@ -342,24 +354,33 @@ type person struct {
 	Role string `json:"role"`
 }
 
+type authorizedPerson struct {
+	Name              string `json:"name"`
+	Role              string `json:"role"`
+	AuthorityEvidence struct {
+		Type      string `json:"type"`
+		Reference string `json:"reference"`
+	} `json:"authority_evidence"`
+}
+
+func (a authorizedPerson) complete() bool {
+	return a.Name != "" && a.Role != "" && a.AuthorityEvidence.Type != "" && a.AuthorityEvidence.Reference != ""
+}
+
 type approvalRecord struct {
-	RecordType      string `json:"record_type"`
-	DecisionID      string `json:"decision_id"`
-	DecisionVersion string `json:"decision_version"`
-	Outcome         string `json:"outcome"`
-	SelectedOption  string `json:"selected_option"`
-	DecisionText    string `json:"decision_text"`
-	Approvers       []struct {
-		Name              string `json:"name"`
-		Role              string `json:"role"`
-		AuthorityEvidence struct {
-			Type      string `json:"type"`
-			Reference string `json:"reference"`
-		} `json:"authority_evidence"`
-	} `json:"approvers"`
-	IndependentApprovals []string `json:"independent_approvals"`
-	DecisionDate         string   `json:"decision_date"`
-	EffectiveDate        string   `json:"effective_date"`
+	RecordType           string             `json:"record_type"`
+	DecisionID           string             `json:"decision_id"`
+	DecisionVersion      string             `json:"decision_version"`
+	Outcome              string             `json:"outcome"`
+	SelectedOption       string             `json:"selected_option"`
+	DecisionText         string             `json:"decision_text"`
+	Initiator            *authorizedPerson  `json:"initiator"`
+	Approvers            []authorizedPerson `json:"approvers"`
+	IndependentApprovals []string           `json:"independent_approvals"`
+	NoticeDate           string             `json:"notice_date"`
+	DeferralDate         string             `json:"deferral_date"`
+	DecisionDate         string             `json:"decision_date"`
+	EffectiveDate        string             `json:"effective_date"`
 	EvidenceSource       struct {
 		Type      string `json:"type"`
 		Reference string `json:"reference"`
@@ -369,6 +390,7 @@ type approvalRecord struct {
 	Conditions        string   `json:"conditions"`
 	DeferralReason    string   `json:"deferral_reason"`
 	RevisitCondition  string   `json:"revisit_condition"`
+	RevisitDate       string   `json:"revisit_date"`
 	RecordedBy        person   `json:"recorded_by"`
 	HumanVerification *struct {
 		VerifierName string `json:"verifier_name"`
@@ -398,70 +420,74 @@ func requireFields(m map[string]string) []string {
 	return p
 }
 
-// commonChecks: identity of the record, evidence, recorder, approvers with authority evidence, and no
-// placeholder content in a committed record.
-func commonChecks(r approvalRecord, inRepository bool) ([]string, map[string]bool) {
+func forbidFields(kind string, m map[string]bool) []string {
+	var p []string
+	for k, present := range m {
+		if present {
+			p = append(p, kind+" must not carry "+k)
+		}
+	}
+	return p
+}
+
+func isoDate(name, v string) []string {
+	if _, err := time.Parse("2006-01-02", v); err != nil {
+		return []string{name + " must be an ISO date YYYY-MM-DD"}
+	}
+	return nil
+}
+
+// recordFileName is the only accepted file name under docs/governance/approvals/. Distinct record types and
+// versions get distinct files, so a new record never overwrites an earlier one.
+func recordFileName(r approvalRecord) string {
+	id := regexp.MustCompile(`[^A-Za-z0-9-]+`).ReplaceAllString(r.DecisionID, "_")
+	return fmt.Sprintf("%s-v%s-%s.json", strings.Trim(id, "_"), r.DecisionVersion, r.RecordType)
+}
+
+func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []string) {
 	p := requireFields(map[string]string{"decision_id": r.DecisionID, "decision_version": r.DecisionVersion,
-		"decision_date": r.DecisionDate, "evidence_source.type": r.EvidenceSource.Type,
-		"evidence_source.reference": r.EvidenceSource.Reference, "immutable_ref": r.ImmutableRef,
-		"recorded_by.name": r.RecordedBy.Name, "recorded_by.role": r.RecordedBy.Role})
-	if _, err := time.Parse("2006-01-02", r.DecisionDate); err != nil {
-		p = append(p, "decision_date must be ISO YYYY-MM-DD")
-	}
-	if len(r.Approvers) == 0 {
-		p = append(p, "no approver")
-	}
-	names, roles := map[string]bool{}, map[string]bool{}
-	for i, a := range r.Approvers {
-		if a.Name == "" || a.Role == "" || a.AuthorityEvidence.Type == "" || a.AuthorityEvidence.Reference == "" {
-			p = append(p, fmt.Sprintf("approver %d lacks name, role or authority evidence", i))
-		}
-		names[strings.ToLower(a.Name)] = true
-		roles[a.Role] = true
-	}
-	for _, role := range r.IndependentApprovals {
-		if !roles[role] {
-			p = append(p, "independent approval missing for role "+role)
-		}
-	}
+		"evidence_source.type": r.EvidenceSource.Type, "evidence_source.reference": r.EvidenceSource.Reference,
+		"immutable_ref": r.ImmutableRef, "recorded_by.name": r.RecordedBy.Name, "recorded_by.role": r.RecordedBy.Role})
 	if inRepository {
 		b, _ := json.Marshal(r)
-		for _, marker := range []string{"SYNTHETIC", "PLACEHOLDER", "TODO", "EXAMPLE"} {
+		for _, marker := range []string{"SYNTHETIC", "PLACEHOLDER", "TODO", "EXAMPLE", "FIXTURE"} {
 			if strings.Contains(strings.ToUpper(string(b)), marker) {
 				p = append(p, "contains a synthetic / placeholder marker: "+marker)
 			}
 		}
 	}
-	return p, names
-}
-
-// validateApprovalRecord checks structure only. It never authenticates a person, a signature or an
-// authority document; the best it can return is HUMAN_VERIFICATION_ENTRY_CONSISTENT, meaning that a
-// human verification entry exists and is consistent with the record.
-//
-// record_type selects the shape:
-//   - REVIEW_NOTICE (T3): who opened the review, with authority evidence; carries no decision.
-//   - DEFERRAL (T6): outcome DEFERRED with a reason and a revisit condition; carries no selected option.
-//   - DECISION (T4/T5): a decided outcome, optionally with a human verification entry.
-func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []string) {
-	p, names := commonChecks(r, inRepository)
+	noDecision := map[string]bool{"outcome": r.Outcome != "", "selected_option": r.SelectedOption != "",
+		"decision_text": r.DecisionText != "", "decision_date": r.DecisionDate != "", "effective_date": r.EffectiveDate != "",
+		"approvers": len(r.Approvers) > 0, "independent_approvals": len(r.IndependentApprovals) > 0,
+		"supersedes": len(r.Supersedes) > 0, "conditions": r.Conditions != "", "human_verification": r.HumanVerification != nil}
 	switch r.RecordType {
 	case "REVIEW_NOTICE":
-		if r.Outcome != "" || r.SelectedOption != "" || r.DecisionText != "" || r.HumanVerification != nil {
-			p = append(p, "a review notice carries no outcome, option, decision text or verification")
+		if r.Initiator == nil || !r.Initiator.complete() {
+			p = append(p, "initiator needs name, role and authority evidence")
 		}
+		p = append(p, isoDate("notice_date", r.NoticeDate)...)
+		p = append(p, forbidFields("a review notice", noDecision)...)
+		p = append(p, forbidFields("a review notice", map[string]bool{"deferral_date": r.DeferralDate != "",
+			"deferral_reason": r.DeferralReason != "", "revisit_condition": r.RevisitCondition != "", "revisit_date": r.RevisitDate != ""})...)
 		if len(p) > 0 {
 			return levelIncomplete, p
 		}
 		return levelNotice, nil
 	case "DEFERRAL":
+		if r.Initiator == nil || !r.Initiator.complete() {
+			p = append(p, "initiator needs name, role and authority evidence")
+		}
+		p = append(p, isoDate("deferral_date", r.DeferralDate)...)
 		p = append(p, requireFields(map[string]string{"deferral_reason": r.DeferralReason, "revisit_condition": r.RevisitCondition})...)
+		if r.RevisitDate != "" {
+			p = append(p, isoDate("revisit_date", r.RevisitDate)...)
+		}
+		delete(noDecision, "outcome")
 		if r.Outcome != "DEFERRED" {
 			p = append(p, "a deferral has outcome DEFERRED")
 		}
-		if r.SelectedOption != "" {
-			p = append(p, "a deferral selects no option")
-		}
+		p = append(p, forbidFields("a deferral", noDecision)...)
+		p = append(p, forbidFields("a deferral", map[string]bool{"notice_date": r.NoticeDate != ""})...)
 		if len(p) > 0 {
 			return levelIncomplete, p
 		}
@@ -471,7 +497,10 @@ func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []stri
 		return levelIncomplete, append(p, "unknown record_type "+r.RecordType)
 	}
 	p = append(p, requireFields(map[string]string{"outcome": r.Outcome, "selected_option": r.SelectedOption,
-		"decision_text": r.DecisionText, "effective_date": r.EffectiveDate, "conditions": r.Conditions})...)
+		"decision_text": r.DecisionText, "conditions": r.Conditions})...)
+	p = append(p, forbidFields("a decision", map[string]bool{"initiator": r.Initiator != nil, "notice_date": r.NoticeDate != "",
+		"deferral_date": r.DeferralDate != "", "deferral_reason": r.DeferralReason != "",
+		"revisit_condition": r.RevisitCondition != "", "revisit_date": r.RevisitDate != ""})...)
 	switch r.Outcome {
 	case "APPROVED", "REJECTED", "VOID":
 	case "SUPERSEDED":
@@ -479,14 +508,30 @@ func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []stri
 			p = append(p, "SUPERSEDED without supersedes")
 		}
 	default:
-		p = append(p, "unknown outcome "+r.Outcome)
+		p = append(p, "unknown decision outcome "+r.Outcome)
 	}
 	dd, err1 := time.Parse("2006-01-02", r.DecisionDate)
 	ed, err2 := time.Parse("2006-01-02", r.EffectiveDate)
 	if err1 != nil || err2 != nil {
-		p = append(p, "dates must be ISO YYYY-MM-DD")
+		p = append(p, "decision_date and effective_date must be ISO dates")
 	} else if ed.Before(dd) {
 		p = append(p, "effective date before decision date")
+	}
+	if len(r.Approvers) == 0 {
+		p = append(p, "no approver")
+	}
+	names, roles := map[string]bool{}, map[string]bool{}
+	for i, a := range r.Approvers {
+		if !a.complete() {
+			p = append(p, fmt.Sprintf("approver %d lacks name, role or authority evidence", i))
+		}
+		names[strings.ToLower(a.Name)] = true
+		roles[a.Role] = true
+	}
+	for _, role := range r.IndependentApprovals {
+		if !roles[role] {
+			p = append(p, "independent approval missing for role "+role)
+		}
 	}
 	if len(p) > 0 {
 		return levelIncomplete, p
@@ -498,9 +543,7 @@ func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []stri
 	if h.VerifierName == "" || h.VerifierRole == "" || h.Method == "" {
 		p = append(p, "human verification lacks verifier or method")
 	}
-	if _, err := time.Parse("2006-01-02", h.Date); err != nil {
-		p = append(p, "human verification date invalid")
-	}
+	p = append(p, isoDate("human_verification.date", h.Date)...)
 	v := strings.ToLower(h.VerifierName)
 	if names[v] || v == strings.ToLower(r.RecordedBy.Name) {
 		p = append(p, "verifier must not be an approver or the recorder")
@@ -522,128 +565,369 @@ func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []stri
 	return levelHumanVerified, nil
 }
 
-// Regression: synthetic fixtures (built here, never written to approvals/) show each structural defect
-// is rejected and that nothing reaches a verified level without a human verification entry.
-func TestApprovalValidatorRules(t *testing.T) {
-	base := func() approvalRecord {
-		var r approvalRecord
-		raw := `{"record_type":"DECISION","decision_id":"D-45","decision_version":"1.0","outcome":"APPROVED","selected_option":"1",
-		"decision_text":"fixture text","approvers":[{"name":"Fixture Approver One","role":"Security owner",
-		"authority_evidence":{"type":"appointment letter","reference":"fixture-ref-1"}},{"name":"Fixture Approver Two",
-		"role":"Product owner","authority_evidence":{"type":"delegation","reference":"fixture-ref-2"}}],
-		"independent_approvals":["Security owner","Product owner"],"decision_date":"2030-01-02","effective_date":"2030-01-03",
-		"evidence_source":{"type":"signed minutes","reference":"fixture-minutes"},"immutable_ref":"0000000",
-		"supersedes":[],"conditions":"none","recorded_by":{"name":"Fixture Recorder","role":"Governance secretary"},
-		"human_verification":null}`
-		if err := json.Unmarshal([]byte(raw), &r); err != nil {
-			t.Fatal(err)
+// closedPolicy: the only states that end a decision. DEFERRED, UNDER_HUMAN_REVIEW and
+// DECISION_RECORDED_PENDING_VERIFICATION are never closed, and only APPROVED_VERIFIED (or a verified
+// supersession / voiding that needs replacement work) can start engineering follow-up.
+var closedPolicy = map[string]bool{"APPROVED_VERIFIED": true, "REJECTED_VERIFIED": true, "SUPERSEDED_VERIFIED": true, "VOID_VERIFIED": true}
+var followUpEligible = map[string]bool{"APPROVED_VERIFIED": true, "SUPERSEDED_VERIFIED": true, "VOID_VERIFIED": true}
+
+// appendOnlyChange: a committed record may later gain a human verification entry; nothing else may change.
+func appendOnlyChange(old, new approvalRecord) error {
+	o, n := old, new
+	if o.HumanVerification != nil && (n.HumanVerification == nil || *n.HumanVerification != *o.HumanVerification) {
+		return errors.New("an existing human verification entry was changed or removed")
+	}
+	o.HumanVerification, n.HumanVerification = nil, nil
+	ob, _ := json.Marshal(o)
+	nb, _ := json.Marshal(n)
+	if string(ob) != string(nb) {
+		return errors.New("a committed record was rewritten; corrections need a new version file")
+	}
+	return nil
+}
+
+// ---------------- fixtures (synthetic, built in test code, never written to approvals/)
+
+func fixture(t *testing.T, raw string) approvalRecord {
+	t.Helper()
+	var r approvalRecord
+	if err := json.Unmarshal([]byte(raw), &r); err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+const fxCommon = `"decision_id":"OPD-04","decision_version":"1.0","evidence_source":{"type":"signed minutes","reference":"fixture-ref"},
+	"immutable_ref":"0000000","recorded_by":{"name":"Fixture Recorder","role":"Secretary"}`
+const fxAuth = `{"name":"Fixture Approver","role":"Finance owner","authority_evidence":{"type":"delegation","reference":"fixture-auth"}}`
+
+func fxDecision(t *testing.T, outcome, verification string) approvalRecord {
+	hv := "null"
+	if verification != "" {
+		hv = fmt.Sprintf(`{"verifier_name":"Fixture Verifier","verifier_role":"Internal audit","method":"independent channel","date":"2030-02-02","result":%q}`, verification)
+	}
+	sup := "[]"
+	if outcome == "SUPERSEDED" {
+		sup = `["OPD-04 v0.1"]`
+	}
+	return fixture(t, fmt.Sprintf(`{"record_type":"DECISION",%s,"outcome":%q,"selected_option":"1","decision_text":"fixture",
+	"approvers":[%s],"independent_approvals":["Finance owner"],"decision_date":"2030-02-01","effective_date":"2030-02-01",
+	"supersedes":%s,"conditions":"none","human_verification":%s}`, fxCommon, outcome, fxAuth, sup, hv))
+}
+
+func fxNotice(t *testing.T) approvalRecord {
+	return fixture(t, fmt.Sprintf(`{"record_type":"REVIEW_NOTICE",%s,"initiator":%s,"notice_date":"2030-01-15"}`, fxCommon, fxAuth))
+}
+
+func fxDeferral(t *testing.T) approvalRecord {
+	return fixture(t, fmt.Sprintf(`{"record_type":"DEFERRAL",%s,"outcome":"DEFERRED","initiator":%s,"deferral_date":"2030-01-20",
+	"deferral_reason":"fixture reason","revisit_condition":"when the fixture evidence report exists"}`, fxCommon, fxAuth))
+}
+
+// ---------------- regression tests
+
+// P2-01: every outcome × verified-state pair; only the matching pair with a VERIFIED human entry passes.
+func TestVerifiedStatusOutcomeMatrix(t *testing.T) {
+	for _, outcome := range []string{"APPROVED", "REJECTED", "SUPERSEDED", "VOID"} {
+		for _, result := range []string{"VERIFIED", "REJECTED", "INCONCLUSIVE", ""} {
+			rec := fxDecision(t, outcome, result)
+			lvl, p := validateApprovalRecord(rec, false)
+			if len(p) > 0 {
+				t.Fatalf("%s/%s fixture invalid: %v", outcome, result, p)
+			}
+			// Every one of the ten states: a decision justifies only "pending" and, with a VERIFIED
+			// human entry, the single *_VERIFIED state equal to its outcome.
+			for _, st := range lifecycle {
+				ok := statusMatchesRecord(st, rec, lvl) == nil
+				want := st == "DECISION_RECORDED_PENDING_VERIFICATION" || (result == "VERIFIED" && st == outcome+"_VERIFIED")
+				if ok != want {
+					t.Errorf("outcome %s, verification %q, status %s: accepted=%v, want %v", outcome, result, st, ok, want)
+				}
+			}
 		}
-		return r
 	}
-	if lvl, p := validateApprovalRecord(base(), false); lvl != levelRecorded || len(p) > 0 {
-		t.Fatalf("complete record without verification must be %s, got %s %v", levelRecorded, lvl, p)
+}
+
+// P2-02: a review notice is bounded, needs initiator authority, and can never justify a decided state.
+func TestReviewNoticeRecord(t *testing.T) {
+	n := fxNotice(t)
+	lvl, p := validateApprovalRecord(n, false)
+	if lvl != levelNotice || len(p) > 0 {
+		t.Fatalf("valid notice: %s %v", lvl, p)
 	}
-	verified := func(name, result string) approvalRecord {
-		r := base()
-		raw := fmt.Sprintf(`{"verifier_name":%q,"verifier_role":"Internal audit","method":"independent channel","date":"2030-01-04","result":%q}`, name, result)
-		if err := json.Unmarshal([]byte(`{"human_verification":`+raw+`}`), &r); err != nil {
-			t.Fatal(err)
+	for _, st := range lifecycle {
+		if ok := statusMatchesRecord(st, n, lvl) == nil; ok != (st == "UNDER_HUMAN_REVIEW") {
+			t.Errorf("notice justifies %s: %v", st, ok)
 		}
-		return r
-	}
-	if lvl, _ := validateApprovalRecord(verified("Fixture Verifier", "VERIFIED"), false); lvl != levelHumanVerified {
-		t.Fatalf("consistent human verification must reach %s, got %s", levelHumanVerified, lvl)
-	}
-	if lvl, _ := validateApprovalRecord(verified("Fixture Verifier", "INCONCLUSIVE"), false); lvl != levelRecorded {
-		t.Errorf("INCONCLUSIVE verification must stay %s, got %s", levelRecorded, lvl)
 	}
 	bad := map[string]func(*approvalRecord){
-		"no decision text":            func(r *approvalRecord) { r.DecisionText = "" },
-		"no approver":                 func(r *approvalRecord) { r.Approvers = nil },
-		"no authority evidence":       func(r *approvalRecord) { r.Approvers[0].AuthorityEvidence.Reference = "" },
-		"missing independent role":    func(r *approvalRecord) { r.IndependentApprovals = append(r.IndependentApprovals, "Legal owner") },
-		"bad date":                    func(r *approvalRecord) { r.DecisionDate = "next week" },
-		"effective before decision":   func(r *approvalRecord) { r.EffectiveDate = "2029-12-31" },
-		"unknown outcome":             func(r *approvalRecord) { r.Outcome = "APPROVED_VERIFIED" },
-		"superseded without target":   func(r *approvalRecord) { r.Outcome = "SUPERSEDED" },
-		"no immutable reference":      func(r *approvalRecord) { r.ImmutableRef = "" },
-		"no conditions statement":     func(r *approvalRecord) { r.Conditions = "" },
-		"no recorder":                 func(r *approvalRecord) { r.RecordedBy = person{} },
-		"verifier is an approver":     func(r *approvalRecord) { *r = verified("Fixture Approver One", "VERIFIED") },
-		"verifier is the recorder":    func(r *approvalRecord) { *r = verified("Fixture Recorder", "VERIFIED") },
-		"verifier is automation":      func(r *approvalRecord) { *r = verified("github-actions[bot]", "VERIFIED") },
-		"unknown verification result": func(r *approvalRecord) { *r = verified("Fixture Verifier", "AUTO_APPROVED") },
-		"unknown record type":         func(r *approvalRecord) { r.RecordType = "" },
+		"no initiator":             func(r *approvalRecord) { r.Initiator = nil },
+		"no initiator authority":   func(r *approvalRecord) { r.Initiator.AuthorityEvidence.Reference = "" },
+		"no notice date":           func(r *approvalRecord) { r.NoticeDate = "" },
+		"no notice reference":      func(r *approvalRecord) { r.EvidenceSource.Reference = "" },
+		"no version":               func(r *approvalRecord) { r.DecisionVersion = "" },
+		"no audit reference":       func(r *approvalRecord) { r.ImmutableRef = "" },
+		"carries an outcome":       func(r *approvalRecord) { r.Outcome = "APPROVED" },
+		"carries an option":        func(r *approvalRecord) { r.SelectedOption = "1" },
+		"carries decision text":    func(r *approvalRecord) { r.DecisionText = "approved" },
+		"carries approvers":        func(r *approvalRecord) { r.Approvers = []authorizedPerson{*r.Initiator} },
+		"carries a decision date":  func(r *approvalRecord) { r.DecisionDate = "2030-01-15" },
+		"carries a verification":   func(r *approvalRecord) { *r = fxNoticeWithVerification(t) },
+		"carries deferral content": func(r *approvalRecord) { r.RevisitCondition = "later" },
 	}
 	for name, mutate := range bad {
-		r := base()
+		r := fxNotice(t)
+		mutate(&r)
+		if lvl, _ := validateApprovalRecord(r, false); lvl != levelIncomplete {
+			t.Errorf("notice %s: accepted as %s", name, lvl)
+		}
+	}
+}
+
+func fxNoticeWithVerification(t *testing.T) approvalRecord {
+	return fixture(t, fmt.Sprintf(`{"record_type":"REVIEW_NOTICE",%s,"initiator":%s,"notice_date":"2030-01-15",
+	"human_verification":{"verifier_name":"Fixture Verifier","verifier_role":"Audit","method":"m","date":"2030-01-16","result":"VERIFIED"}}`, fxCommon, fxAuth))
+}
+
+// P2-03: a formal deferral is distinct from "no decision yet" and from a final decision, and is never closed.
+func TestDeferralRecord(t *testing.T) {
+	d := fxDeferral(t)
+	lvl, p := validateApprovalRecord(d, false)
+	if lvl != levelDeferred || len(p) > 0 {
+		t.Fatalf("valid deferral: %s %v", lvl, p)
+	}
+	for _, st := range lifecycle {
+		if ok := statusMatchesRecord(st, d, lvl) == nil; ok != (st == "DEFERRED") {
+			t.Errorf("deferral justifies %s: %v", st, ok)
+		}
+	}
+	withDate := fxDeferral(t)
+	withDate.RevisitDate = "2030-06-01"
+	if lvl, p := validateApprovalRecord(withDate, false); lvl != levelDeferred {
+		t.Errorf("deferral with a revisit date from its condition rejected: %v", p)
+	}
+	bad := map[string]func(*approvalRecord){
+		"no initiator":           func(r *approvalRecord) { r.Initiator = nil },
+		"no initiator authority": func(r *approvalRecord) { r.Initiator.AuthorityEvidence.Type = "" },
+		"no deferral date":       func(r *approvalRecord) { r.DeferralDate = "" },
+		"no reason":              func(r *approvalRecord) { r.DeferralReason = "" },
+		"no revisit condition":   func(r *approvalRecord) { r.RevisitCondition = "" },
+		"bad revisit date":       func(r *approvalRecord) { r.RevisitDate = "soon" },
+		"no evidence reference":  func(r *approvalRecord) { r.EvidenceSource.Reference = "" },
+		"no audit reference":     func(r *approvalRecord) { r.ImmutableRef = "" },
+		"wrong outcome":          func(r *approvalRecord) { r.Outcome = "APPROVED" },
+		"selects an option":      func(r *approvalRecord) { r.SelectedOption = "1" },
+		"carries decision text":  func(r *approvalRecord) { r.DecisionText = "approved" },
+		"carries approvers":      func(r *approvalRecord) { r.Approvers = []authorizedPerson{*r.Initiator} },
+	}
+	for name, mutate := range bad {
+		r := fxDeferral(t)
+		mutate(&r)
+		if lvl, _ := validateApprovalRecord(r, false); lvl != levelIncomplete {
+			t.Errorf("deferral %s: accepted as %s", name, lvl)
+		}
+	}
+	// "No decision yet" has no record at all; DEFERRED without a record is rejected by the tracker test.
+	if closedPolicy["DEFERRED"] || followUpEligible["DEFERRED"] || closedPolicy["UNDER_HUMAN_REVIEW"] ||
+		closedPolicy["DECISION_RECORDED_PENDING_VERIFICATION"] || followUpEligible["REJECTED_VERIFIED"] {
+		t.Error("a deferral, an open review or an unverified decision must never count as a closed or actionable policy")
+	}
+	// A deferral can never be read as a decision either.
+	asDecision := fxDeferral(t)
+	asDecision.RecordType = "DECISION"
+	if lvl, _ := validateApprovalRecord(asDecision, false); lvl != levelIncomplete {
+		t.Errorf("deferral relabelled as DECISION accepted as %s", lvl)
+	}
+}
+
+// Decision record structure (T4/T5) and human-verification guards.
+func TestApprovalValidatorRules(t *testing.T) {
+	if lvl, p := validateApprovalRecord(fxDecision(t, "APPROVED", ""), false); lvl != levelRecorded || len(p) > 0 {
+		t.Fatalf("complete decision without verification must be %s, got %s %v", levelRecorded, lvl, p)
+	}
+	verified := func(name string) approvalRecord {
+		r := fxDecision(t, "APPROVED", "VERIFIED")
+		r.HumanVerification.VerifierName = name
+		return r
+	}
+	bad := map[string]func(*approvalRecord){
+		"no decision text":          func(r *approvalRecord) { r.DecisionText = "" },
+		"no approver":               func(r *approvalRecord) { r.Approvers = nil },
+		"no authority evidence":     func(r *approvalRecord) { r.Approvers[0].AuthorityEvidence.Reference = "" },
+		"missing independent role":  func(r *approvalRecord) { r.IndependentApprovals = append(r.IndependentApprovals, "Legal owner") },
+		"bad date":                  func(r *approvalRecord) { r.DecisionDate = "next week" },
+		"effective before decision": func(r *approvalRecord) { r.EffectiveDate = "2029-12-31" },
+		"unknown outcome":           func(r *approvalRecord) { r.Outcome = "APPROVED_VERIFIED" },
+		"deferral outcome":          func(r *approvalRecord) { r.Outcome = "DEFERRED" },
+		"superseded without target": func(r *approvalRecord) { r.Outcome, r.Supersedes = "SUPERSEDED", nil },
+		"no immutable reference":    func(r *approvalRecord) { r.ImmutableRef = "" },
+		"no conditions statement":   func(r *approvalRecord) { r.Conditions = "" },
+		"no recorder":               func(r *approvalRecord) { r.RecordedBy = person{} },
+		"unknown record type":       func(r *approvalRecord) { r.RecordType = "" },
+		"carries notice fields":     func(r *approvalRecord) { r.NoticeDate = "2030-01-01" },
+		"verifier is an approver":   func(r *approvalRecord) { *r = verified("Fixture Approver") },
+		"verifier is the recorder":  func(r *approvalRecord) { *r = verified("Fixture Recorder") },
+		"verifier is automation":    func(r *approvalRecord) { *r = verified("github-actions[bot]") },
+		"unknown verification result": func(r *approvalRecord) {
+			*r = verified("Fixture Verifier")
+			r.HumanVerification.Result = "AUTO_APPROVED"
+		},
+	}
+	for name, mutate := range bad {
+		r := fxDecision(t, "APPROVED", "")
 		mutate(&r)
 		if lvl, p := validateApprovalRecord(r, false); lvl != levelIncomplete || len(p) == 0 {
 			t.Errorf("%s: accepted (%s)", name, lvl)
 		}
 	}
-	// A placeholder record committed to approvals/ is rejected even when otherwise complete.
-	r := base()
-	r.DecisionText = "PLACEHOLDER decision"
-	if lvl, _ := validateApprovalRecord(r, true); lvl != levelIncomplete {
-		t.Errorf("placeholder record in the repository accepted (%s)", lvl)
+	// Any fixture / placeholder content committed under approvals/ is rejected even when otherwise complete.
+	for _, r := range []approvalRecord{fxDecision(t, "APPROVED", "VERIFIED"), fxNotice(t), fxDeferral(t)} {
+		if lvl, _ := validateApprovalRecord(r, true); lvl != levelIncomplete {
+			t.Errorf("%s fixture accepted as a repository record (%s)", r.RecordType, lvl)
+		}
 	}
 }
 
-// Regression (review findings on PR #46): a verified status must match the recorded outcome; a review
-// notice and a deferral have their own record shapes and cannot stand in for a decision.
-func TestRecordedStatusMatchesRecord(t *testing.T) {
-	decision := func(outcome, result string) approvalRecord {
+// Every documented transition (T1–T6, T9) is representable, and each target state is validated with the
+// evidence appropriate to it.
+func TestLifecycleTransitionsRepresentable(t *testing.T) {
+	type tr struct{ from, to string }
+	impl := map[tr]bool{
+		{"EVIDENCE_MISSING", "READY_FOR_REVIEW"}: true, {"DRAFT", "READY_FOR_REVIEW"}: true,
+		{"READY_FOR_REVIEW", "UNDER_HUMAN_REVIEW"}: true, {"UNDER_HUMAN_REVIEW", "DECISION_RECORDED_PENDING_VERIFICATION"}: true,
+		{"DECISION_RECORDED_PENDING_VERIFICATION", "APPROVED_VERIFIED"}: true, {"DECISION_RECORDED_PENDING_VERIFICATION", "REJECTED_VERIFIED"}: true,
+		{"DECISION_RECORDED_PENDING_VERIFICATION", "SUPERSEDED_VERIFIED"}: true, {"DECISION_RECORDED_PENDING_VERIFICATION", "VOID_VERIFIED"}: true,
+		{"READY_FOR_REVIEW", "DEFERRED"}: true, {"UNDER_HUMAN_REVIEW", "DEFERRED"}: true, {"DEFERRED", "READY_FOR_REVIEW"}: true,
+	}
+	doc := read(t, "docs/remediation/r6-human-approval-workflow.md")
+	row := regexp.MustCompile("(?m)^\\| T[0-9]+ \\| (.*?) → (.*?) \\|")
+	state := regexp.MustCompile("`([A-Z_]+)`")
+	seen := map[tr]bool{}
+	for _, m := range row.FindAllStringSubmatch(doc, -1) {
+		for _, f := range state.FindAllStringSubmatch(m[1], -1) {
+			for _, to := range state.FindAllStringSubmatch(m[2], -1) {
+				k := tr{f[1], to[1]}
+				seen[k] = true
+				if !impl[k] {
+					t.Errorf("documented transition %s → %s is not implemented", k.from, k.to)
+				}
+			}
+		}
+	}
+	for k := range impl {
+		if !seen[k] {
+			t.Errorf("implemented transition %s → %s is not documented", k.from, k.to)
+		}
+	}
+	// Target evidence: record-backed states accept exactly their record type; the others need no record.
+	evidence := map[string]approvalRecord{"UNDER_HUMAN_REVIEW": fxNotice(t), "DEFERRED": fxDeferral(t),
+		"DECISION_RECORDED_PENDING_VERIFICATION": fxDecision(t, "APPROVED", ""),
+		"APPROVED_VERIFIED":                      fxDecision(t, "APPROVED", "VERIFIED"), "REJECTED_VERIFIED": fxDecision(t, "REJECTED", "VERIFIED"),
+		"SUPERSEDED_VERIFIED": fxDecision(t, "SUPERSEDED", "VERIFIED"), "VOID_VERIFIED": fxDecision(t, "VOID", "VERIFIED")}
+	for _, st := range lifecycle {
+		rec, ok := evidence[st]
+		if needsRecord[st] != ok {
+			t.Errorf("%s: record requirement mismatch", st)
+			continue
+		}
+		if ok {
+			lvl, _ := validateApprovalRecord(rec, false)
+			if err := statusMatchesRecord(st, rec, lvl); err != nil {
+				t.Errorf("%s not representable: %v", st, err)
+			}
+		}
+	}
+}
+
+// Records are append-only: distinct files per (decision, version, type); a committed file may only gain a
+// human verification entry; no record is ever deleted or renamed.
+func TestApprovalRecordsAppendOnly(t *testing.T) {
+	d := fxDecision(t, "APPROVED", "")
+	if recordFileName(d) != "OPD-04-v1.0-DECISION.json" || recordFileName(fxNotice(t)) == recordFileName(d) {
+		t.Errorf("file names must separate record types: %s / %s", recordFileName(d), recordFileName(fxNotice(t)))
+	}
+	if got := recordFileName(approvalRecord{DecisionID: "D-29 / D-31", DecisionVersion: "2.0", RecordType: "DECISION"}); got != "D-29_D-31-v2.0-DECISION.json" {
+		t.Errorf("sanitised file name %s", got)
+	}
+	if err := appendOnlyChange(d, fxDecision(t, "APPROVED", "VERIFIED")); err != nil {
+		t.Errorf("adding a verification entry must be allowed: %v", err)
+	}
+	rewritten := fxDecision(t, "APPROVED", "")
+	rewritten.DecisionText = "changed"
+	if appendOnlyChange(d, rewritten) == nil {
+		t.Error("rewriting a committed decision must be rejected")
+	}
+	changedVerification := fxDecision(t, "APPROVED", "VERIFIED")
+	changedVerification.HumanVerification.Result = "REJECTED"
+	if appendOnlyChange(fxDecision(t, "APPROVED", "VERIFIED"), changedVerification) == nil {
+		t.Error("changing an existing verification entry must be rejected")
+	}
+	if appendOnlyChange(fxDecision(t, "APPROVED", "VERIFIED"), d) == nil {
+		t.Error("removing a verification entry must be rejected")
+	}
+
+	// Repository history (needs full history; NOT VERIFIED and skipped otherwise unless required).
+	requireHistory(t)
+	const dir = "docs/governance/approvals"
+	if out, _ := git("log", "--diff-filter=DR", "--name-only", "--format=", "--", dir); strings.TrimSpace(out) != "" {
+		t.Errorf("approval records were deleted or renamed:\n%s", out)
+	}
+	files, _ := git("log", "--diff-filter=AM", "--name-only", "--format=", "--", dir)
+	for _, f := range strings.Fields(files) {
+		revs, _ := git("log", "--format=%H", "--reverse", "--", f)
+		var prev *approvalRecord
+		for _, rev := range strings.Fields(revs) {
+			body, err := git("show", rev+":"+f)
+			if err != nil {
+				continue
+			}
+			var r approvalRecord
+			if err := json.Unmarshal([]byte(body), &r); err != nil {
+				t.Errorf("%s at %s: %v", f, rev, err)
+				continue
+			}
+			if prev != nil {
+				if err := appendOnlyChange(*prev, r); err != nil {
+					t.Errorf("%s at %s: %v", f, rev, err)
+				}
+			}
+			prev = &r
+		}
+	}
+}
+
+// Committed records live in correctly named files, and the R6 baseline holds zero real records.
+func TestR6ZeroRecordedApprovals(t *testing.T) {
+	entries, err := os.ReadDir(filepath.Join(root, "docs/governance/approvals"))
+	if err == nil {
+		for _, e := range entries {
+			rec, err := loadApproval(filepath.Join(root, "docs/governance/approvals", e.Name()))
+			if err == nil && recordFileName(rec) != e.Name() {
+				t.Errorf("%s must be named %s", e.Name(), recordFileName(rec))
+			}
+		}
+	}
+	// R6 baseline: no real approval exists. A future PR that commits a verified record updates this check
+	// together with the record and its human verification.
+	if err == nil && len(entries) > 0 {
+		t.Errorf("R6 baseline expects zero approval records, found %d", len(entries))
+	}
+	for _, r := range loadTracker(t).Records {
+		if needsRecord[r.Status] {
+			t.Errorf("%s: R6 baseline has no recorded decision, but status is %s", r.ID, r.Status)
+		}
+	}
+	// Templates are blank and therefore never valid records.
+	for _, tpl := range []string{"APPROVAL-RECORD-TEMPLATE.json", "REVIEW-NOTICE-TEMPLATE.json", "DEFERRAL-RECORD-TEMPLATE.json"} {
 		var r approvalRecord
-		raw := fmt.Sprintf(`{"record_type":"DECISION","decision_id":"OPD-04","decision_version":"1.0","outcome":%q,
-		"selected_option":"1","decision_text":"fixture","approvers":[{"name":"Fixture Approver","role":"Finance owner",
-		"authority_evidence":{"type":"delegation","reference":"fixture-ref"}}],"decision_date":"2030-02-01",
-		"effective_date":"2030-02-01","evidence_source":{"type":"signed minutes","reference":"fixture-minutes"},
-		"immutable_ref":"0000000","conditions":"none","recorded_by":{"name":"Fixture Recorder","role":"Secretary"},
-		"human_verification":{"verifier_name":"Fixture Verifier","verifier_role":"Internal audit","method":"independent channel",
-		"date":"2030-02-02","result":%q}}`, outcome, result)
-		if err := json.Unmarshal([]byte(raw), &r); err != nil {
-			t.Fatal(err)
+		if err := json.Unmarshal([]byte(read(t, "docs/governance/templates/"+tpl)), &r); err != nil {
+			t.Fatalf("%s: %v", tpl, err)
 		}
-		return r
-	}
-	check := func(name, status string, r approvalRecord, wantOK bool) {
-		lvl, _ := validateApprovalRecord(r, false)
-		err := statusMatchesRecord(status, r, lvl)
-		if (err == nil) != wantOK {
-			t.Errorf("%s: status %s, level %s, err %v, want ok=%v", name, status, lvl, err, wantOK)
+		if r.RecordType == "" {
+			t.Errorf("%s has no record_type", tpl)
+		}
+		if lvl, _ := validateApprovalRecord(r, true); lvl != levelIncomplete {
+			t.Errorf("blank template %s validates as %s", tpl, lvl)
 		}
 	}
-	check("approved verified", "APPROVED_VERIFIED", decision("APPROVED", "VERIFIED"), true)
-	check("rejected record shown as approved", "APPROVED_VERIFIED", decision("REJECTED", "VERIFIED"), false)
-	check("rejected verified", "REJECTED_VERIFIED", decision("REJECTED", "VERIFIED"), true)
-	check("void shown as superseded", "SUPERSEDED_VERIFIED", decision("VOID", "VERIFIED"), false)
-	check("inconclusive verification", "APPROVED_VERIFIED", decision("APPROVED", "INCONCLUSIVE"), false)
-	check("pending verification", "DECISION_RECORDED_PENDING_VERIFICATION", decision("APPROVED", "INCONCLUSIVE"), true)
-	check("decision as review notice", "UNDER_HUMAN_REVIEW", decision("APPROVED", "VERIFIED"), false)
-
-	var notice approvalRecord
-	if err := json.Unmarshal([]byte(`{"record_type":"REVIEW_NOTICE","decision_id":"OPD-04","decision_version":"1.0",
-		"approvers":[{"name":"Fixture Approver","role":"Finance owner","authority_evidence":{"type":"delegation","reference":"fixture-ref"}}],
-		"decision_date":"2030-01-15","evidence_source":{"type":"dated message","reference":"fixture-notice"},"immutable_ref":"0000000",
-		"recorded_by":{"name":"Fixture Recorder","role":"Secretary"}}`), &notice); err != nil {
-		t.Fatal(err)
-	}
-	check("review notice", "UNDER_HUMAN_REVIEW", notice, true)
-	check("review notice as decision", "DECISION_RECORDED_PENDING_VERIFICATION", notice, false)
-	withOutcome := notice
-	withOutcome.Outcome = "APPROVED"
-	check("review notice carrying an outcome", "UNDER_HUMAN_REVIEW", withOutcome, false)
-
-	deferral := notice
-	deferral.RecordType, deferral.Outcome = "DEFERRAL", "DEFERRED"
-	deferral.DeferralReason, deferral.RevisitCondition = "fixture reason", "after fixture evidence"
-	check("deferral", "DEFERRED", deferral, true)
-	check("deferral as approval", "APPROVED_VERIFIED", deferral, false)
-	noRevisit := deferral
-	noRevisit.RevisitCondition = ""
-	check("deferral without revisit condition", "DEFERRED", noRevisit, false)
-	withOption := deferral
-	withOption.SelectedOption = "1"
-	check("deferral selecting an option", "DEFERRED", withOption, false)
 }

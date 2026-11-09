@@ -33,7 +33,7 @@ The machine-readable status of each decision is in `docs/governance/r6-decision-
 | `DECISION_RECORDED_PENDING_VERIFICATION` | An approval record exists and passes the structural check; human verification not done | 0 |
 | `APPROVED_VERIFIED` | Approval record + independent human verification of authority and evidence | 0 |
 | `REJECTED_VERIFIED` | All options rejected by the authorized approvers, verified | 0 |
-| `DEFERRED` | Authorized approvers postponed the decision, with a recorded reason and revisit condition | 0 |
+| `DEFERRED` | An authorized approver formally postponed the decision (`DEFERRAL` record: reason + revisit condition). Not closed, not actionable | 0 |
 | `SUPERSEDED_VERIFIED` | Replaced by an explicitly identified, verified decision | 0 |
 | `VOID_VERIFIED` | Declared void by a verified decision (P-GOV option 3) | 0 |
 
@@ -46,18 +46,24 @@ The machine-readable status of each decision is in `docs/governance/r6-decision-
 - for every state from `DECISION_RECORDED_PENDING_VERIFICATION` on, the approval record in
   `docs/governance/approvals/`.
 
-The history is append-only. A correction is a new commit, never a rewrite.
+The history is append-only, and `TestApprovalRecordsAppendOnly` enforces it:
+- each record is its own file `<decision-id>-v<version>-<record_type>.json`, so a notice, a deferral and a
+  decision never overwrite each other;
+- a committed file may later gain a human verification entry, and nothing else may change;
+- no record file is ever deleted or renamed;
+- a correction is a new version file.
 
 | # | From → To | Required evidence | Authorized actor (role) | Independent approvers | Validation conditions | Possible conflict | Recovery / correction |
 |---|---|---|---|---|---|---|---|
 | T1 | `EVIDENCE_MISSING` → `READY_FOR_REVIEW` | The missing evidence listed in the record, committed with path / commit (evidence index entry) | Engineering or evidence owner prepares; business owner confirms sufficiency | — | Evidence item passes the R5 provenance test; record updated; no approval field touched | Evidence contradicts a frozen source → new conflict entry | Revert the status; record the gap |
 | T2 | `DRAFT` → `READY_FOR_REVIEW` | Resolution of the blocking prerequisite (for D-35a–e: Product + Finance confirmation of the C-03 mapping as a verified record) | Owners of the prerequisite | Product **and** Finance for C-03 | Prerequisite record is `APPROVED_VERIFIED` | Prerequisite decision changes the question | Re-draft the record (new version) |
-| T3 | `READY_FOR_REVIEW` → `UNDER_HUMAN_REVIEW` | A `REVIEW_NOTICE` record: a written notice from an authorized approver that the review is open (minutes or a dated message), with the opener's authority evidence; no decision content | Any required approver | — | Reference is resolvable; approver role matches the record | Approver's authority disputed | Return to `READY_FOR_REVIEW` with a note |
+| T3 | `READY_FOR_REVIEW` → `UNDER_HUMAN_REVIEW` | A `REVIEW_NOTICE` record: decision ID and version, notice date, initiator name and role with authority evidence, notice reference (minutes or a dated message), audit reference, recorder. It carries **no** outcome, option, decision text, approvers or verification | Any required approver (the initiator) | — | Notice validates (`levelNotice`); it can justify only `UNDER_HUMAN_REVIEW` | Initiator's authority disputed | Return to `READY_FOR_REVIEW`; the notice file stays (append-only) |
 | T4 | `UNDER_HUMAN_REVIEW` → `DECISION_RECORDED_PENDING_VERIFICATION` | A `DECISION` record (all fields of `r6-approval-evidence-standard.md` §2) | Recorder (any role); the record names the approvers | Every role listed as required, each signing separately | Offline structural check passes (`validateApprovalRecord`); selected option is one of the record's options or explicit new text | Signatures from roles other than the required ones; missing independent sign-off | Record stays pending; recorder supplies the missing evidence |
 | T5 | `DECISION_RECORDED_PENDING_VERIFICATION` → `APPROVED_VERIFIED` / `REJECTED_VERIFIED` / `SUPERSEDED_VERIFIED` / `VOID_VERIFIED` | Human verification entry: verifier, role, method (e.g. confirmation with the approvers through an independent channel, check of the authority document), date, result | Verifier who is **not** one of the approvers and not the recorder | — | `human_verification.result = VERIFIED`; verifier ∉ approvers; verifier ≠ automation | Verifier finds authority or evidence insufficient | Status stays pending; result `REJECTED` or `INCONCLUSIVE` is recorded |
-| T6 | `READY_FOR_REVIEW` or `UNDER_HUMAN_REVIEW` → `DEFERRED` | A `DEFERRAL` record by an authorized approver (`outcome: DEFERRED`, reason, revisit condition; no selected option) | Required approver | — | Reason and revisit condition non-empty | — | Back to `READY_FOR_REVIEW` when the condition is met |
+| T6 | `READY_FOR_REVIEW` or `UNDER_HUMAN_REVIEW` → `DEFERRED` | A `DEFERRAL` record: decision ID and version, `outcome: DEFERRED`, initiator name and role with authority evidence, deferral date, reason, explicit revisit condition (a revisit date only if the condition gives one; never invented), evidence reference, audit reference, recorder. **No** option, decision text, approvers or verification | Required approver (the initiator) | — | Deferral validates (`levelDeferred`); it can justify only `DEFERRED`; `DEFERRED` is never a closed or actionable policy | Deferral contested by another required approver | Recorded as a conflict; status stays `DEFERRED` until resolved |
 | T7 | Any verified state → new version | A new decision record (v2.0…) referencing the earlier version | As T4–T5 | As T4–T5 | The earlier record stays; tracker points to the newest version | Conflicting concurrent versions | Both recorded; a conflict entry; neither treated as current until resolved |
 | T8 | Any state → previous state (correction) | Evidence that a recorded transition was wrong (forged reference, missing authority) | Verifier or Security | Security for suspected forgery | Correction commit explains the reason | — | The wrong record is kept and marked invalid; never deleted |
+| T9 | `DEFERRED` → `READY_FOR_REVIEW` | Evidence that the revisit condition is met (the event, evidence or date it names), referenced in the tracker change | Business owner of the decision | — | The deferral record stays; tracker `approval_record` is cleared because `READY_FOR_REVIEW` takes no record | Condition disputed | Stay `DEFERRED` |
 
 ## 4. Offline validation (what the repository can and cannot check)
 
@@ -65,10 +71,15 @@ The history is append-only. A correction is a new commit, never a rewrite.
 - every status is one of the ten states;
 - a status from `UNDER_HUMAN_REVIEW` on requires an approval record path that exists and passes the structural
   check;
-- the record type matches the status (`REVIEW_NOTICE` → `UNDER_HUMAN_REVIEW`, `DEFERRAL` → `DEFERRED`, `DECISION`
-  → recorded / verified);
+- the record type matches the status (`REVIEW_NOTICE` → `UNDER_HUMAN_REVIEW` only, `DEFERRAL` → `DEFERRED` only,
+  `DECISION` → recorded / verified); a notice or a deferral can never justify a decided or verified state;
+- every documented transition T1–T6 and T9 is implemented, and every target state is representable with its own
+  evidence (`TestLifecycleTransitionsRepresentable`);
 - a `*_VERIFIED` status requires a human verification entry by a verifier who is not an approver, and must equal
-  the recorded outcome (a `REJECTED` decision can never back `APPROVED_VERIFIED`);
+  the recorded outcome (a `REJECTED` decision can never back `APPROVED_VERIFIED`); a verification result of
+  `REJECTED` or `INCONCLUSIVE` never yields a verified state (`TestVerifiedStatusOutcomeMatrix`);
+- `DEFERRED`, `UNDER_HUMAN_REVIEW` and `DECISION_RECORDED_PENDING_VERIFICATION` never count as a closed policy;
+  only `APPROVED_VERIFIED` (or a verified supersession / voiding that needs replacement work) starts follow-up;
 - outcome fields are empty when no approval record exists;
 - tracker statuses match R5 readiness for decisions without an approval record.
 
