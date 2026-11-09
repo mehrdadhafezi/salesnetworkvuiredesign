@@ -1,0 +1,936 @@
+{
+  "version": 1,
+  "generated_for": "R5 governance (DRAFT)",
+  "baseline": "50d0f1429b5e5781fc5d08e27ba8234555faca11",
+  "classes": [
+    "AUTHORITATIVE_APPROVED",
+    "HISTORICAL_APPROVED_UNVERIFIED",
+    "PROPOSAL_ONLY",
+    "IMPLEMENTATION_BEHAVIOR",
+    "SYNTHETIC_TEST",
+    "REAL_RUNTIME",
+    "MISSING",
+    "CONFLICTING"
+  ],
+  "rule": "Code behaviour and tests are never management authorization.",
+  "verification_scope": "Automated provenance (governance_test.go, with full git history): every commit named in an item exists and is an ancestor of the tested HEAD, the path exists in that commit, and the item's exact anchor text occurs in that historical file version (first commit named). This shows the text was in the repository at that commit. It does NOT authenticate who wrote or approved it, does not prove that the fact summary is a complete or correct reading, and does not verify anything outside git (GitHub threads, owner statements, negative claims). No item is independently authenticated.",
+  "provenance_levels": {
+    "TEXT_AT_COMMIT_VERIFIED": "commit, ancestry, path-at-commit and anchor checked by automation",
+    "NOT_VERIFIED": "no reliable anchor; only path existence on the current tree and commit syntax are checked"
+  },
+  "evidence": [
+    {
+      "id": "EV-001",
+      "fact": "D-01, D-02 and the Slice 0 money contract were approved by the Human Owner and frozen",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/implementation/E0-governance-baseline-freeze.md",
+      "section": "§1, §7A",
+      "commit": "9d0bc3e (merged in PR #23 as add2a36)",
+      "anchor": "D-01 APPROVED / FROZEN · D-02 APPROVED / FROZEN · Money contract APPROVED / FROZEN FOR SLICE 0",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-002",
+      "fact": "D-27 is closed by reconciliation (SN-208 merged as 86859d7, SN-208A as 7b65390)",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/implementation/E0-governance-baseline-freeze.md",
+      "section": "§7C",
+      "commit": "9d0bc3e",
+      "anchor": "| D-27 | **CLOSED (reconciled).** SN-208 merged to main as 86859d7",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-003",
+      "fact": "The first E0 draft delegated D-03…D-22 to the uncommitted Blueprint ('As registered in the Blueprint')",
+      "cls": "CONFLICTING",
+      "path": "docs/implementation/E0-governance-baseline-freeze.md",
+      "section": "§7B (first revision)",
+      "commit": "9d0bc3e",
+      "anchor": "| D-03…D-22 | As registered in the Blueprint |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-004",
+      "fact": "The E0 review (Codex P2) asked to commit D-03…D-22 or stop citing them; E0 was amended to: not recorded on main, no authority until committed",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/implementation/E0-governance-baseline-freeze.md",
+      "section": "§7B (amended); PR #23 review thread PRRT_kwDOU-nRxs6uZM8x",
+      "commit": "4c3ae88",
+      "anchor": "D-03…D-22 are not recorded on main and must be committed before any phase that relies on them.",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "The PR #23 review thread lives on GitHub, not in git: not verified by automation."
+    },
+    {
+      "id": "EV-005",
+      "fact": "The Standalone Implementation Blueprint and the prior audit corpus are cited by owner approval and are NOT committed to the repository",
+      "cls": "MISSING",
+      "path": "docs/implementation/E0-governance-baseline-freeze.md",
+      "section": "§2 (OWNER-BRIEF)",
+      "commit": "9d0bc3e",
+      "anchor": "OWNER-BRIEF (stated by the owner; artifact not in repo)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "That the Blueprint exists outside the repository is an owner statement: not verifiable here."
+    },
+    {
+      "id": "EV-006",
+      "fact": "Architecture V1 §32 lists D-03…D-22 as 'content not recorded on main; not authoritative until separately recorded'",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
+      "section": "§32",
+      "commit": "560ca6c",
+      "anchor": "| D-03…D-22 | Content not recorded on main; **not authoritative until separately recorded** (E0 rule 1) |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-007",
+      "fact": "Architecture V1 §32 defines the questions, safe defaults and owners of D-23…D-45 and ADR-01 (candidate); none is resolved",
+      "cls": "PROPOSAL_ONLY",
+      "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
+      "section": "§32",
+      "commit": "560ca6c",
+      "anchor": "## 32. Open owner decisions (none resolved by this record)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-008",
+      "fact": "Cross-Role V1 §19 is the canonical open decision register for OPD-01…10, SD-04, F01…F09 with owners and priorities",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/source-of-truth/CRM-CROSS-ROLE-ARCHITECTURE-V1.md",
+      "section": "§19",
+      "commit": "a0c91ef",
+      "anchor": "## 19. Open Decision Register",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-009",
+      "fact": "Cross-Role V1 §8 defines the financial-dependency contract (union of valid links; eligibility table)",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/source-of-truth/CRM-CROSS-ROLE-ARCHITECTURE-V1.md",
+      "section": "§8",
+      "commit": "a0c91ef",
+      "anchor": "## 8. Financial Dependency",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-010",
+      "fact": "F01 is IMPLEMENTATION CONTRACT READY; rollout IMPLEMENTATION BLOCKED; RUNTIME VALIDATION REQUIRED",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/source-of-truth/CRM-CROSS-ROLE-ARCHITECTURE-V1.md",
+      "section": "§21 Implementation Readiness",
+      "commit": "a0c91ef",
+      "anchor": "IMPLEMENTATION CONTRACT READY",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-011",
+      "fact": "ADR-01 is a CANDIDATE reservation protocol, explicitly not accepted",
+      "cls": "PROPOSAL_ONLY",
+      "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
+      "section": "§6 (ADR-01 candidate)",
+      "commit": "560ca6c",
+      "anchor": "**ADR-01 candidate — Invoice issuance vs case return mutual safety (FPR Gate-0 INV-009).**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-012",
+      "fact": "The Slice 15 register marks every entry OPEN and approves nothing",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/cutover/decision-approval-register.md",
+      "section": "header, §1",
+      "commit": "7f1eb94",
+      "anchor": "**Status of every entry: OPEN.**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-013",
+      "fact": "Slice 15 go/no-go: NO-GO; P0-1…P0-7 blockers (historical assessment at b3bf31b)",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/cutover/go-no-go-report.md",
+      "section": "§4, §5",
+      "commit": "7f1eb94",
+      "anchor": "| **Overall recommendation** | **NO-GO for Production** |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-014",
+      "fact": "R4 addendum: P0-5 PARTIAL, P0-7 PARTIAL/BLOCKED; no decision approved",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/cutover/go-no-go-report.md",
+      "section": "Addendum 2026-11-09",
+      "commit": "9d6b49b",
+      "anchor": "## Addendum — R4 sales and finance readiness (2026-11-09)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-015",
+      "fact": "E0 §6 ADR status table: #18 staging/anonymisation DEFERRED; #19 invoice-total resolver DEFERRED; #20 main-status resolver DEFERRED",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/implementation/E0-governance-baseline-freeze.md",
+      "section": "§6",
+      "commit": "9d0bc3e",
+      "anchor": "| 18 | Staging / anonymization | DEFERRED |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-016",
+      "fact": "R4 synthetic PostgreSQL race harness of the ADR-01 candidate: 15 scenarios pass; mutation check detects races",
+      "cls": "SYNTHETIC_TEST",
+      "path": "docs/remediation/r4-inventory-race-safety.md",
+      "section": "Results; Mutation check",
+      "commit": "9d6b49b",
+      "anchor": "## Mutation check (the harness detects real races)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-017",
+      "fact": "R4 claim / issuance / return gates answer BLOCKED (ADR-01, F01, OPD-03) and are imported only by tests",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/remediation/r4-sales-implementation-matrix.md",
+      "section": "§2",
+      "commit": "9d6b49b",
+      "anchor": "| Invoice claim (`cases.ClaimCaseForInvoice`) | BLOCKED: no command, no route |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-018",
+      "fact": "Finance decision contract: maker≠checker, D-43 READY, capability, scope, digests; never SUCCESS",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/remediation/r4-finance-review-contract.md",
+      "section": "Checks",
+      "commit": "9d6b49b",
+      "anchor": "maker ≠ checker",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-019",
+      "fact": "No person-level identity model: SoD is proven only at the account level (IDENTITY_PERSON_LINK_UNMODELLED)",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/remediation/r4-finance-review-contract.md",
+      "section": "Known gaps",
+      "commit": "9d6b49b",
+      "anchor": "IDENTITY_PERSON_LINK_UNMODELLED",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-020",
+      "fact": "identity.user_account is one row per legacy user (source_system, source_key); no person entity exists",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "internal/identity/migrations/sql/00001_identity.sql",
+      "section": "user_account",
+      "commit": "833660a",
+      "anchor": "CONSTRAINT user_account_source_unique UNIQUE (source_system, source_key)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "The claim that no person entity exists is a negative claim over the whole schema: not proven by the anchor."
+    },
+    {
+      "id": "EV-021",
+      "fact": "Posting contract: explicit basis required, neither ACCRUAL nor CASH chosen; activation BLOCKED (D-41, OPD-06, OPD-08, OPD-09)",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/remediation/r4-ledger-posting-contract.md",
+      "section": "Contract",
+      "commit": "9d6b49b",
+      "anchor": "**Neither is chosen** (D-41)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-022",
+      "fact": "Posting idempotency proven on PostgreSQL with synthetic data (20 concurrent duplicates → 1 effect)",
+      "cls": "SYNTHETIC_TEST",
+      "path": "docs/remediation/r4-ledger-posting-contract.md",
+      "section": "Evidence",
+      "commit": "9d6b49b",
+      "anchor": "20 concurrent identical requests",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-023",
+      "fact": "Refund state machine BLOCKED by OPD-04; money facts and history integrity enforced; person independence fail-closed",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/remediation/r4-refund-state-machine.md",
+      "section": "all",
+      "commit": "225c53e",
+      "anchor": "every structurally sound transition is BLOCKED by OPD-04",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-024",
+      "fact": "Commission engines E1–E4: E1 enabled disables E2 auto-credit, E3 posting and E4; the engine option has no single authority",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/implementation/slice-13-commission-command-matrix.md",
+      "section": "§1 engine table",
+      "commit": "97c7129",
+      "anchor": "returns if E1 enabled",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-025",
+      "fact": "Cross-engine reconciliation classifies duplicates without choosing an engine",
+      "cls": "SYNTHETIC_TEST",
+      "path": "docs/remediation/r4-commission-reconciliation.md",
+      "section": "Verified properties",
+      "commit": "9d6b49b",
+      "anchor": "## Verified properties",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-026",
+      "fact": "Slice 12 command matrix: Finance approve/reject EVALUATOR-ONLY; posting, refund, settlement, next stage BLOCKED",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/implementation/slice-12-command-matrix.md",
+      "section": "§2, §4",
+      "commit": "beba65a",
+      "anchor": "BLOCKED (evaluator only)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-027",
+      "fact": "Slice 11 command matrix: claim / issue / return / allocate / transfer BLOCKED (ADR-01, F01, OPD-03, OPD-10)",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/implementation/slice-11-command-matrix.md",
+      "section": "Matrix",
+      "commit": "fb8be9b",
+      "anchor": "| `Transfer` (holder → holder) | BLOCKED |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-028",
+      "fact": "Slice 14 matrix: D-35a–e and D-38 OPEN; WALLET_CHARGE only BLOCKED (DB CHECK)",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/implementation/slice-14-biawin-command-matrix.md",
+      "section": "decision rows",
+      "commit": "26f92b1",
+      "anchor": "**`charge_wallet` is not a target command (D-38).**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-029",
+      "fact": "R1: authentication implemented; provisioning, initial password and recovery undecided (D-34); the app role has SELECT only on credentials",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/remediation/r1-production-auth.md",
+      "section": "Open decisions",
+      "commit": "dffbc72",
+      "anchor": "D-34 (initial password / provisioning)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-030",
+      "fact": "R2: upload purge refused outside development (BLOCKED by D-44); expiry runs in report mode",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/remediation/r2-implementation-matrix.md",
+      "section": "row 5",
+      "commit": "492dc4e",
+      "anchor": "**BLOCKED by D-44**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-031",
+      "fact": "R3: infrastructure engineering for E-6; P0-4 not closed; column B unsigned",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/remediation/r3-infrastructure-readiness-matrix.md",
+      "section": "E-6 and P0-4 status",
+      "commit": "0117c07",
+      "anchor": "- **P0-4: NOT closed.**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-032",
+      "fact": "Architecture §32 says D-28 exists because plugin 2.0.176 removed the full-payment rule; 2.0.176 is not in the repository (only 2.0.160)",
+      "cls": "CONFLICTING",
+      "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
+      "section": "§32 D-28",
+      "commit": "560ca6c",
+      "anchor": "| D-28 | Assessment invoice partial-payment policy (2.0.176 removed the full-payment rule) |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-033",
+      "fact": "Architecture V1 §14 'ODR D-35 a–e' assigns explicit letters: (a) cash credit, (b) installment credit, (c) expiry/spend rules, (d) Biawin as redemption system of record, (e) conversion mandatory for the no-cash path",
+      "cls": "CONFLICTING",
+      "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
+      "section": "§14 ODR D-35 a–e",
+      "commit": "560ca6c",
+      "anchor": "**ODR D-35 a–e:** (a) cash credit = liability vs voucher vs merchant credit; (b) installment credit =",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-034",
+      "fact": "D-44 safe default 'unbound 7 days' (Arch §32, register) vs implementation: purge BLOCKED, report-only (R2)",
+      "cls": "CONFLICTING",
+      "path": "docs/cutover/decision-approval-register.md",
+      "section": "§1 D-44",
+      "commit": "7f1eb94",
+      "anchor": "Bound kept indefinitely; unbound 7 days",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-035",
+      "fact": "D-34 safe default 'random password + reset flow' (Arch §32) vs R1: no credential is written; provisioning undecided",
+      "cls": "CONFLICTING",
+      "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
+      "section": "§32 D-34",
+      "commit": "560ca6c",
+      "anchor": "| D-34 | HR initial-password policy | identity | Slice 4 writes / 11 | random password + reset flow |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-036",
+      "fact": "OPD owners differ between Cross-Role §19 (frozen) and the Slice 15 register (e.g. OPD-06 adds Engineering; OPD-09 adds HR + Engineering; OPD-02 Product + Sales + MIS + HR)",
+      "cls": "CONFLICTING",
+      "path": "docs/cutover/decision-approval-register.md",
+      "section": "§1 OPD rows vs Cross-Role §19",
+      "commit": "7f1eb94",
+      "anchor": "| OPD-06 | Units, rounding, 0.5 boundary |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "The owner-list differences are a comparison of two documents; only the register row is anchored."
+    },
+    {
+      "id": "EV-037",
+      "fact": "Customer pathways: dissatisfied → after-sales → Complaint; no service → archive; extra services → Biawin API/CRM (Complaint never enters Biawin)",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/source-of-truth/CRM-CROSS-ROLE-ARCHITECTURE-V1.md",
+      "section": "§7 (pathways)",
+      "commit": "a0c91ef",
+      "anchor": "| خدمات مازاد | API / Web Service → Biawin CRM |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-038",
+      "fact": "Phone is discovery/search only; never canonical identity or financial join proof",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "AGENTS.md",
+      "section": "Identity",
+      "commit": "a0c91ef",
+      "anchor": "Phone is discovery/search data only.",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-039",
+      "fact": "Real-data reconciliation has never run (INV-036 unmet); ADR #18 undecided",
+      "cls": "MISSING",
+      "path": "docs/cutover/data-reconciliation-register.md",
+      "section": "§0",
+      "commit": "7f1eb94",
+      "anchor": "| Real-data reconciliation run | **NONE.**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "INV-036 linkage is an interpretation; the anchor shows only that no real-data run happened."
+    },
+    {
+      "id": "EV-040",
+      "fact": "No approval signature, meeting minute or dated authorization exists in the repository for any OPEN decision",
+      "cls": "MISSING",
+      "path": "docs/cutover/decision-approval-register.md",
+      "section": "header",
+      "commit": "7f1eb94",
+      "anchor": "**This register approves nothing.**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "Absence of any signature, minute or dated authorization is a negative claim: the anchor shows only the register's own statement."
+    },
+    {
+      "id": "EV-041",
+      "fact": "Slice 15 historical text still lists P2-1 (tracked binary) and P2-2 (CI on PRs only) as open; R3 removed the binary and added push-to-main and release CI",
+      "cls": "CONFLICTING",
+      "path": "docs/cutover/go-no-go-report.md",
+      "section": "§4 P2 vs R3 readiness matrix rows 21-22",
+      "commit": "7f1eb94 / 0117c07",
+      "anchor": "| P2-1 | Compiled 16 MB binary tracked at the repo root",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "The R3 side (0117c07) is checked for path and commit only; the comparison is an interpretation."
+    },
+    {
+      "id": "EV-042",
+      "fact": "Gate-0 INV-009 (return/invoice mutual safety), INV-015 (refund distinction), INV-032 (idempotent entitlement)",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/source-of-truth/GATE-0-PRODUCT-INVARIANTS.md",
+      "section": "INV table",
+      "commit": "a0c91ef",
+      "anchor": "| INV-015 Refund Distinction |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "INV-009 and INV-032 are in the same file version but only INV-015 is anchored."
+    },
+    {
+      "id": "EV-043",
+      "fact": "Finance product spec and HR product spec are frozen role contracts (source of truth)",
+      "cls": "AUTHORITATIVE_APPROVED",
+      "path": "docs/source-of-truth/FINANCE-PRODUCT-SPEC.md",
+      "section": "whole",
+      "commit": "a0c91ef",
+      "anchor": "**FROZEN PRODUCT TARGET / IMPLEMENTATION DEFERRED**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-044",
+      "fact": "Runtime evidence for HR and Finance roles: NOT LIVE VERIFIED (no dedicated real role accounts tested)",
+      "cls": "MISSING",
+      "path": "AGENTS.md",
+      "section": "Runtime Verification",
+      "commit": "a0c91ef",
+      "anchor": "HR and Finance runtime remain NOT LIVE VERIFIED until dedicated real role accounts are tested.",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-045",
+      "fact": "No real-world runtime evidence exists for any R1–R4 capability in a production-like environment (synthetic and disposable staging only)",
+      "cls": "MISSING",
+      "path": "docs/remediation/r4-fault-injection-evidence.md",
+      "section": "Not verified",
+      "commit": "9d6b49b",
+      "anchor": "## Not verified",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "Absence of runtime evidence is a negative claim: the anchor shows only the document's own section."
+    },
+    {
+      "id": "EV-046",
+      "fact": "Architecture V1 §32 row D-35a–e lists five topics without letters: Subscription+ business model, lifecycle, cash-credit semantics, Biawin fulfilment, mandatory conversion (topics and order differ from §14)",
+      "cls": "CONFLICTING",
+      "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
+      "section": "§32 row D-35a–e",
+      "commit": "560ca6c",
+      "anchor": "| D-35a–e | Subscription+ business model, lifecycle, cash-credit semantics, Biawin fulfilment, mandatory conversion |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-047",
+      "fact": "Slice 15 register row D-35a–e lists, without letters and in §14 order: cash-credit semantics, installment credit, expiry/redemption, Biawin as redemption system of record, mandatory conversion ('per Arch §14')",
+      "cls": "PROPOSAL_ONLY",
+      "path": "docs/cutover/decision-approval-register.md",
+      "section": "§1 row D-35a–e",
+      "commit": "7f1eb94",
+      "anchor": "| D-35a–e | Subscription+ model: cash-credit semantics, installment credit, expiry/redemption, Biawin as redemption system of record, mandatory conversion |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-048",
+      "fact": "Slice 14 implementation matrix assigns letters D-35a…e following Arch §14 (cites 'Target Arch §14 \"ODR D-35 a–e\"'); an implementation document, not product authority",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/implementation/slice-14-biawin-command-matrix.md",
+      "section": "§3 decision rows D-35a…e",
+      "commit": "1d873a7",
+      "anchor": "| D-35a cash credit semantics | OPEN | Target Arch §14 \"ODR D-35 a–e\"",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    }
+  ],
+  "decision_records": [
+    {
+      "id": "ADR-01",
+      "package": "P-SALES",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-011",
+        "EV-016",
+        "EV-017",
+        "EV-027",
+        "EV-042"
+      ]
+    },
+    {
+      "id": "F01",
+      "package": "P-SALES",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-009",
+        "EV-010",
+        "EV-016",
+        "EV-017"
+      ]
+    },
+    {
+      "id": "OPD-03",
+      "package": "P-SALES",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-008",
+        "EV-009",
+        "EV-017"
+      ]
+    },
+    {
+      "id": "OPD-10",
+      "package": "P-SALES",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-008",
+        "EV-017",
+        "EV-027"
+      ]
+    },
+    {
+      "id": "D-32",
+      "package": "P-SALES",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-007",
+        "EV-026"
+      ]
+    },
+    {
+      "id": "D-28",
+      "package": "P-SALES",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-007",
+        "EV-032",
+        "EV-017"
+      ]
+    },
+    {
+      "id": "D-29 / D-31",
+      "package": "P-SALES",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-038",
+        "EV-027",
+        "EV-017"
+      ]
+    },
+    {
+      "id": "D-30",
+      "package": "P-SALES",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-007",
+        "EV-038"
+      ]
+    },
+    {
+      "id": "OPD-08",
+      "package": "P-FIN-A",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-018",
+        "EV-019",
+        "EV-026"
+      ]
+    },
+    {
+      "id": "D-43",
+      "package": "P-FIN-A",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-018"
+      ]
+    },
+    {
+      "id": "D-25",
+      "package": "P-FIN-A",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007",
+        "EV-015",
+        "EV-026"
+      ]
+    },
+    {
+      "id": "D-44",
+      "package": "P-FIN-A",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-030",
+        "EV-034"
+      ]
+    },
+    {
+      "id": "REJECT-VOCAB (R4 gap)",
+      "package": "P-FIN-A",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-018"
+      ]
+    },
+    {
+      "id": "D-41",
+      "package": "P-FIN-B",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-021",
+        "EV-022"
+      ]
+    },
+    {
+      "id": "OPD-06",
+      "package": "P-FIN-B",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-001",
+        "EV-021"
+      ]
+    },
+    {
+      "id": "D-37",
+      "package": "P-FIN-B",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007",
+        "EV-028"
+      ]
+    },
+    {
+      "id": "OPD-09",
+      "package": "P-FIN-C",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-024",
+        "EV-025"
+      ]
+    },
+    {
+      "id": "D-36",
+      "package": "P-FIN-C",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-024",
+        "EV-025"
+      ]
+    },
+    {
+      "id": "OPD-04",
+      "package": "P-FIN-D",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-023",
+        "EV-042"
+      ]
+    },
+    {
+      "id": "R5-SEC-01 (proposed ADR)",
+      "package": "P-SEC",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-019",
+        "EV-020"
+      ]
+    },
+    {
+      "id": "D-34",
+      "package": "P-SEC",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-029",
+        "EV-035"
+      ]
+    },
+    {
+      "id": "D-42",
+      "package": "P-SEC",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007"
+      ]
+    },
+    {
+      "id": "D-45",
+      "package": "P-SEC",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007"
+      ]
+    },
+    {
+      "id": "D-26",
+      "package": "P-SEC",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007"
+      ]
+    },
+    {
+      "id": "ADR #18",
+      "package": "P-SEC",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-015",
+        "EV-039"
+      ]
+    },
+    {
+      "id": "OPD-05",
+      "package": "P-HR",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-008",
+        "EV-013",
+        "EV-044"
+      ]
+    },
+    {
+      "id": "SD-04",
+      "package": "P-HR",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-008"
+      ]
+    },
+    {
+      "id": "D-35a",
+      "package": "P-BIAWIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
+      "evidence": [
+        "EV-028",
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
+      ]
+    },
+    {
+      "id": "D-35b",
+      "package": "P-BIAWIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
+      "evidence": [
+        "EV-028",
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
+      ]
+    },
+    {
+      "id": "D-35c",
+      "package": "P-BIAWIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
+      "evidence": [
+        "EV-028",
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
+      ]
+    },
+    {
+      "id": "D-35d",
+      "package": "P-BIAWIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
+      "evidence": [
+        "EV-028",
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
+      ]
+    },
+    {
+      "id": "D-35e",
+      "package": "P-BIAWIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
+      "evidence": [
+        "EV-028",
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
+      ]
+    },
+    {
+      "id": "D-38",
+      "package": "P-BIAWIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-028"
+      ]
+    },
+    {
+      "id": "D-33",
+      "package": "P-BIAWIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007"
+      ]
+    },
+    {
+      "id": "D-39",
+      "package": "P-BIAWIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007"
+      ]
+    },
+    {
+      "id": "OPD-07",
+      "package": "P-REPORT",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-008"
+      ]
+    },
+    {
+      "id": "D-23",
+      "package": "P-REPORT",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007"
+      ]
+    },
+    {
+      "id": "D-24",
+      "package": "P-REPORT",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007"
+      ]
+    },
+    {
+      "id": "OPD-01",
+      "package": "P-REPORT",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "NEEDS FURTHER EVIDENCE BEFORE A DECISION",
+      "evidence": [
+        "EV-008"
+      ]
+    },
+    {
+      "id": "OPD-02",
+      "package": "CROSS-DOMAIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-008"
+      ]
+    },
+    {
+      "id": "D-40",
+      "package": "CROSS-DOMAIN",
+      "status": "DRAFT — NOT APPROVED",
+      "readiness": "READY FOR HUMAN REVIEW",
+      "evidence": [
+        "EV-007"
+      ]
+    }
+  ]
+}

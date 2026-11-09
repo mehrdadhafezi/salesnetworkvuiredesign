@@ -390,6 +390,11 @@ jobs:
             echo "a decision-gated sales / finance route appeared in the contract"; exit 1
           fi
 
+      - name: R5 governance documents (inventory, DRAFT records, evidence index, provenance)
+        env:
+          R5_REQUIRE_PROVENANCE: "1"
+        run: go test -count=1 -v ./docs/governance/
+
       - name: Slice 3 — no snapshot content tracked
         shell: bash
         run: |
