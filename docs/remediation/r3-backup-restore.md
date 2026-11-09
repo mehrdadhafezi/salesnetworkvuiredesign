@@ -17,7 +17,7 @@
 | Command | Behaviour |
 |---|---|
 | `crm-backup backup` | See below. |
-| `crm-backup verify <dir>` | Manifest checksum; file digests; decryption; `pg_restore --list` structure; plaintext digest; every archived object's SHA-256. |
+| `crm-backup verify <dir>` | Manifest checksum; file digests; decryption; `pg_restore --list` structure; plaintext digest over EVERY decrypted byte (including the bytes `pg_restore --list` does not read); every archived object's SHA-256. Any drain, close or decryption error fails. |
 | `crm-backup restore <dir>` | See below. |
 | `crm-backup discard <db>` | Drops only a database carrying the tool's marker comment, and the evidence directory carrying the tool's marker file. |
 | `crm-backup retention-plan <root>` | **Dry run.** Lists candidates beyond keep N and older than a minimum age. Deletion is not implemented (approved retention decision required). |
@@ -120,6 +120,8 @@ procedure works, not recovery targets. See the decision matrix in `r3-disaster-r
 | Database restored without matching objects | FAILED status, no state changed; the finaliser on that copy declares the receipt NOT_RECOVERABLE and never READY |
 | Objects without matching database references | Harmless extras (not referenced); not a finding |
 | Interrupted backup | A `.partial` directory has no manifest, never verifies and blocks the name |
+| Failed dump or encryption | A failing `pg_dump` (encrypted and plaintext) or a failing `age` returns an error, publishes nothing and writes no manifest; the name stays blocked (`TestR3FailedBackupPublishesNoManifest`) |
+| Large dump, tampered tail | ~9.6 MB of incompressible synthetic data: a valid backup verifies and restores (encrypted and development plaintext); one byte changed near the end of the decrypted dump, with file digests resealed, is rejected by the content digest (`TestR3LargeEncryptedBackupVerifiesRestoresAndRejectsTailTamper`, `TestR3DevelopmentPlaintextLargeBackupRoundTrip`) |
 | Interrupted restore | The database stays marked INCOMPLETE (or FAILED); `discard` removes only tool-marked copies |
 | Wrong key / tampered manifest / corrupted dump | Refused (`ErrIntegrity`) |
 | Replay / reconciliation after restore | Finaliser behaviour above |

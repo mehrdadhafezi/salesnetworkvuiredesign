@@ -416,11 +416,9 @@ func Verify(ctx context.Context, dir, identity string, t Tools) (VerifyReport, e
 		&limited{w: &listing, n: 1 << 20})
 	// pg_restore --list may stop after the table of contents; drain the
 	// rest THROUGH the hash so every decrypted byte is covered.
-	if _, err := io.Copy(io.Discard, hashed); err != nil {
-		listErr = errors.Join(listErr, err)
-	}
-	src.Close()
-	if err := errors.Join(listErr, wait()); err != nil {
+	_, drainErr := io.Copy(io.Discard, hashed)
+	closeErr := src.Close()
+	if err := errors.Join(listErr, drainErr, closeErr, wait()); err != nil {
 		return r, fmt.Errorf("%w: database archive unreadable: %v", ErrIntegrity, err)
 	}
 	if hex.EncodeToString(plain.Sum(nil)) != m.PlainSHA256 {
@@ -453,7 +451,16 @@ func walkArchive(ctx context.Context, dir string, m Manifest, identity string, t
 	if err != nil {
 		return 0, err
 	}
-	defer src.Close()
+	// Every exit drains, closes and reaps the decrypting process; on success
+	// its exit status is checked below.
+	waited := false
+	defer func() {
+		if !waited {
+			_, _ = io.Copy(io.Discard, src)
+			_ = src.Close()
+			_ = wait()
+		}
+	}()
 	tr := tar.NewReader(src)
 	seen := map[string]bool{}
 	for {
@@ -493,8 +500,10 @@ func walkArchive(ctx context.Context, dir string, m Manifest, identity string, t
 		}
 		seen[h.Name] = true
 	}
-	if err := wait(); err != nil {
-		return 0, err
+	waited = true
+	_, drainErr := io.Copy(io.Discard, src)
+	if err := errors.Join(drainErr, src.Close(), wait()); err != nil {
+		return 0, fmt.Errorf("%w: evidence archive unreadable: %v", ErrIntegrity, err)
 	}
 	if len(seen) != len(m.Evidence.Objects) {
 		return 0, fmt.Errorf("%w: evidence archive is missing objects (%d of %d)", ErrIntegrity, len(seen), len(m.Evidence.Objects))
@@ -595,9 +604,11 @@ func Restore(ctx context.Context, cfg RestoreConfig) (RestoreReport, error) {
 	}
 	rerr := runCmd(ctx, cfg.Tools.pg("pg_restore"), []string{"--no-password", "--exit-on-error", "--single-transaction", "--dbname=" + cfg.Target},
 		env, src, io.Discard)
-	_, _ = io.Copy(io.Discard, src)
-	src.Close()
-	if err := errors.Join(rerr, wait()); err != nil {
+	// Drain whatever pg_restore left so the decrypting process can exit;
+	// every failure (restore, drain, close, decryption) fails the restore.
+	_, drainErr := io.Copy(io.Discard, src)
+	closeErr := src.Close()
+	if err := errors.Join(rerr, drainErr, closeErr, wait()); err != nil {
 		return rep, fmt.Errorf("pg_restore: %w", err)
 	}
 	rep.TimingsSeconds["database_restore"] = since(t0)

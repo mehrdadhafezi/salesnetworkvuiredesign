@@ -39,9 +39,23 @@ operations-owner approval. Roles are named, never people.
 - `deploy/observability/alerts_test.go` checks that every `crm_*` metric referenced by a rule or a panel
   is emitted by the code, and that every rule has `proposed="true"`, a severity, an owner role, a
   containment step and a runbook section in this document.
-- **`promtool check rules` NOT VERIFIED.** The tool could not be fetched in this environment (Docker Hub
-  rate limit; Quay and the GitHub release download were blocked by policy). It is the first operator step
-  before loading the rules.
+- `deploy/observability/alerts.promtool-test.yml`: rule unit tests. `CRMJobNoRecentSuccess` is
+  evaluated per worker job: an enabled stale job alerts; paused or blocked jobs neither alert nor
+  mask or cause an alert for another job.
+- The worker scrape sets `honor_labels: true`. The worker labels its per-job series with `job` (the
+  worker job name); without it Prometheus renames that label to `exported_job` and every worker job
+  collapses into `job="crm-worker"`, which breaks `on (job)` matching.
+- **Real Prometheus validation runs in `release-ci.yml`** (official `prom/prometheus` image,
+  version-pinned, digest logged):
+  - `promtool check config`, `promtool check rules` and `promtool test rules`;
+  - a real Prometheus scrapes the disposable staging stack and the job asserts distinct worker job
+    identities, no `exported_job`, and an empty `CRMJobNoRecentSuccess` expression while every
+    staging job is paused or blocked;
+  - a negative control with the pre-fix scrape configuration must reproduce the collapse.
+
+  promtool could not be run in the local authoring environment (Docker Hub rate limit; downloads
+  blocked by policy), so local evidence is the Go consistency test only. Alert DELIVERY remains not
+  configured and not verified.
 
 ## 3. Alerts and runbooks
 

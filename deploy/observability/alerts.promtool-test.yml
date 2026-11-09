@@ -1,0 +1,76 @@
+# R3 review remediation (PR #43, Codex P2): promtool rule unit tests,
+# evaluated by the REAL Prometheus rule engine in release-ci.yml
+#   promtool test rules deploy/observability/alerts.promtool-test.yml
+#
+# The series carry the labels Prometheus stores with prometheus.yml's
+# `honor_labels: true` on the worker scrape: each worker job keeps its own
+# `job` label (no `exported_job`). CRMJobNoRecentSuccess must evaluate every
+# worker job independently: a paused or blocked job must neither alert
+# itself nor mask / cause an alert for another job.
+rule_files: [alerts.yaml]
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      # outbox_relay: enabled (not paused, not blocked), last success at t=0 -> stale after 1h.
+      - series: 'crm_worker_job_last_success_timestamp_seconds{job="outbox_relay",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_state_paused{job="outbox_relay",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_state_blocked{job="outbox_relay",instance="worker:9091"}'
+        values: '0x120'
+      # writeback_deliver: PAUSED, equally stale -> must not alert.
+      - series: 'crm_worker_job_last_success_timestamp_seconds{job="writeback_deliver",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_state_paused{job="writeback_deliver",instance="worker:9091"}'
+        values: '1x120'
+      - series: 'crm_worker_job_state_blocked{job="writeback_deliver",instance="worker:9091"}'
+        values: '0x120'
+      # receipt_finalise: BLOCKED, equally stale -> must not alert.
+      - series: 'crm_worker_job_last_success_timestamp_seconds{job="receipt_finalise",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_state_paused{job="receipt_finalise",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_state_blocked{job="receipt_finalise",instance="worker:9091"}'
+        values: '1x120'
+      # upload_expiry: enabled and succeeding every minute (timestamp == now) -> must not alert.
+      - series: 'crm_worker_job_last_success_timestamp_seconds{job="upload_expiry",instance="worker:9091"}'
+        values: '0+60x120'
+      - series: 'crm_worker_job_state_paused{job="upload_expiry",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_state_blocked{job="upload_expiry",instance="worker:9091"}'
+        values: '0x120'
+    alert_rule_test:
+      # Nothing is stale yet.
+      - eval_time: 30m
+        alertname: CRMJobNoRecentSuccess
+        exp_alerts: []
+      # Stale since 61m, `for: 5m` -> firing at 70m for outbox_relay ONLY.
+      - eval_time: 70m
+        alertname: CRMJobNoRecentSuccess
+        exp_alerts:
+          - exp_labels: { severity: high, proposed: "true", job: outbox_relay, instance: "worker:9091" }
+            exp_annotations: { summary: "enabled job without a successful pass for 1h", owner_role: platform-operations, containment: "read the job's last_error in logs by run_id", runbook: "r3-observability-and-alerts.md#crmjobnorecentsuccess" }
+
+  # A paused job must not be masked into alerting by an enabled sibling, and
+  # an enabled stale job must still alert when every other job is paused.
+  - interval: 1m
+    input_series:
+      - series: 'crm_worker_job_last_success_timestamp_seconds{job="writeback_intake_payments",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_state_paused{job="writeback_intake_payments",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_state_blocked{job="writeback_intake_payments",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_last_success_timestamp_seconds{job="provider_reconcile",instance="worker:9091"}'
+        values: '0x120'
+      - series: 'crm_worker_job_state_paused{job="provider_reconcile",instance="worker:9091"}'
+        values: '1x120'
+      - series: 'crm_worker_job_state_blocked{job="provider_reconcile",instance="worker:9091"}'
+        values: '1x120'
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: CRMJobNoRecentSuccess
+        exp_alerts:
+          - exp_labels: { severity: high, proposed: "true", job: writeback_intake_payments, instance: "worker:9091" }
+            exp_annotations: { summary: "enabled job without a successful pass for 1h", owner_role: platform-operations, containment: "read the job's last_error in logs by run_id", runbook: "r3-observability-and-alerts.md#crmjobnorecentsuccess" }

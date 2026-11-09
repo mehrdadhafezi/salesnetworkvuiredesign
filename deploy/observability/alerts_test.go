@@ -14,7 +14,8 @@ import (
 // R3: every crm_* metric an alert or dashboard uses is actually emitted by
 // the code, and every alert carries the proposed label, a severity, an
 // owner ROLE (never a person), containment and a runbook anchor that exists.
-// promtool syntax validation is a separate CI step (NOT VERIFIED locally).
+// promtool validation (config, rules, alerts.promtool-test.yml) and a real
+// Prometheus scrape of the staging stack run in release-ci.yml.
 
 type rule struct {
 	Alert       string            `yaml:"alert"`

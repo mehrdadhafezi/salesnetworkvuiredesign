@@ -51,7 +51,7 @@ remains NO-GO.**
 | API request / latency / login-outcome / pool metrics (private listener) | IMPL+TESTED | `apiserver/metrics.go`, `CRM_API_METRICS_ADDR` | `TestRequestMetricsLowCardinalityAndRedacted` |
 | Worker readiness, dependency checks, flag and attestation gauges | IMPL+TESTED | `worker/metrics.go`, `cmd/crm-worker` | Drills #3, #18 |
 | Backup / restore textfile metrics | IMPL+TESTED | `cmd/crm-backup` | `TestMetricsTextfile`; drill #21 |
-| Alert rules and dashboard | DOC / proposed, consistency-tested | `deploy/observability/*` | `alerts_test.go`; promtool NOT VERIFIED |
+| Alert rules and dashboard | DOC / proposed, consistency-tested | `deploy/observability/*` | `alerts_test.go`; promtool + real staging scrape in `release-ci.yml` |
 | Monitoring stack, Alertmanager, paging | BLOCKED-INFRA | — | — |
 | File-based secret injection (`*_FILE`) | IMPL+TESTED | `internal/platform/envfile` | Unit tests; drill #16 |
 | Secret store, rotation automation | BLOCKED-INFRA (procedure documented) | `r3-deployment-runbook-DRAFT.md` | — |

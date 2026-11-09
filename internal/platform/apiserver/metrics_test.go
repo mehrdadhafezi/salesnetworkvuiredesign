@@ -3,11 +3,15 @@ package apiserver
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/timeutil"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/authstub"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/db"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/owner"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/pgtest"
 )
 
 // R3: request telemetry is labelled by route TEMPLATE, method and status
@@ -67,5 +71,49 @@ func TestMetricsAddrMustDifferFromPublic(t *testing.T) {
 	env[EnvMetricsAddr] = "127.0.0.1:9090"
 	if c, err := ConfigFromEnv(func(k string) string { return env[k] }); err != nil || c.MetricsAddr != "127.0.0.1:9090" {
 		t.Fatalf("metrics addr: %+v %v", c, err)
+	}
+}
+
+// R3 review remediation (PR #43, Codex P2): several API surfaces open
+// separate pools for the SAME owner. The exposition must still carry each
+// (metric, labels) identity exactly once, with the owner's pools summed.
+func TestMetricsExpositionHasNoDuplicateSeriesWithSharedOwnerPools(t *testing.T) {
+	dsn := pgtest.AdminURL(t)
+	before := map[string]int64{}
+	for _, s := range db.Stats() {
+		before[s.Owner] = int64(s.Max)
+	}
+	owners := []owner.Module{"identity", "identity", "platform_featureflags", "platform_featureflags", "platform_featureflags"}
+	for _, m := range owners {
+		if _, err := pgtest.OpenPool(t, dsn).Runner(m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	m := NewMetrics()
+	var b strings.Builder
+	m.Write(&b)
+	seen := map[string]int{}
+	values := map[string]string{}
+	for _, line := range strings.Split(b.String(), "\n") {
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		i := strings.LastIndexByte(line, ' ')
+		id := line[:i]
+		seen[id]++
+		values[id] = line[i+1:]
+	}
+	for id, n := range seen {
+		if n > 1 {
+			t.Fatalf("duplicate sample identity %s (%d times):\n%s", id, n, b.String())
+		}
+	}
+	per := db.DefaultConfig(dsn).MaxConns
+	for owner, pools := range map[string]int64{"identity": 2, "platform_featureflags": 3} {
+		id := `crm_db_pool_max_conns{owner="` + owner + `"}`
+		want := strconv.FormatInt(before[owner]+pools*int64(per), 10)
+		if values[id] != want {
+			t.Fatalf("%s = %q, want %s (the owner's pools summed)", id, values[id], want)
+		}
 	}
 }

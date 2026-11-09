@@ -6,6 +6,7 @@
 #   stage.sh preflight <artifact-dir>      validate artifact, config, secrets and isolation
 #   stage.sh up <artifact-dir>             build images from the verified artifact and start
 #   stage.sh verify                        health / readiness / isolation checks (JSON evidence)
+#   stage.sh probe-isolation               the fail-closed internal-network isolation check alone
 #   stage.sh rollback                      restart the previous artifact's images (code only)
 #   stage.sh evidence                      write the deployment evidence manifest
 #   stage.sh down                          stop containers (volumes kept)
@@ -30,6 +31,28 @@ artifact_ok() {
   [ -f "$a/ELIGIBLE" ] || die "artifact $a is not marked ELIGIBLE (run scripts/release/verify.sh --mark-eligible)"
   ( cd "$a" && sha256sum --quiet --strict -c SHA256SUMS ) || die "artifact checksums do not match"
   grep -q '"dirty": false' "$a/manifest.json" || die "a dirty artifact is never deployed"
+}
+
+# isolation_probe prints the internal network's outbound status. It is
+# "blocked" ONLY when the probe container provably ran on the internal
+# network (positive control: it reached the api metrics listener) AND the
+# external request then failed. Anything else fails closed:
+#   0          -> OPEN     (outbound traffic reached the internet)
+#   4          -> blocked  (control reached, outbound refused)
+#   3          -> UNKNOWN  (control failed: not proven to be on the network)
+#   124        -> UNKNOWN  (probe timed out)
+#   125-127    -> UNKNOWN  (docker itself failed / command missing)
+#   other      -> UNKNOWN
+isolation_probe() {
+  local rc=0
+  timeout "${CRM_STAGING_PROBE_TIMEOUT:-60}" docker run --rm --network "${project}_internal" alpine:3.20 sh -c \
+    'wget -q -T 3 -O /dev/null http://api:9090/metrics || exit 3; wget -q -T 3 -O /dev/null http://1.1.1.1 && exit 0; exit 4' \
+    >/dev/null 2>&1 || rc=$?
+  case "$rc" in
+    0) echo "OPEN" ;;
+    4) echo "blocked" ;;
+    *) echo "UNKNOWN(probe_exit_$rc)" ;;
+  esac
 }
 
 commit_of() { sed -n 's/.*"commit": "\([0-9a-f]\{40\}\)".*/\1/p' "$1/manifest.json"; }
@@ -103,25 +126,19 @@ up)
   echo "{\"event\":\"up\",\"release\":\"$tag\",\"commit\":\"$c\",\"seconds\":$(( $(date +%s) - start )),\"at\":\"$(now)\"}" >> "$state/events.jsonl"
   echo "stage: release $tag healthy"
   ;;
+probe-isolation)
+  # Fail-closed isolation gate on its own: exit 0 only when proven blocked.
+  egress="$(isolation_probe)"
+  printf '{"internal_egress":"%s","at":"%s"}\n' "$egress" "$(now)"
+  [ "$egress" = "blocked" ] || exit 1
+  ;;
 verify)
   tag="$(cat "$state/current")"
   out="$(CRM_RELEASE="$tag" compose ps --format json)"
   unhealthy="$(jq -s -r '[.[] | (if type=="array" then .[] else . end) | select(.Service=="api" or .Service=="worker" or .Service=="web" or .Service=="postgres") | select(.Health!="healthy")] | length' <<< "$out")"
   ready="$(curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1:${CRM_STAGING_HTTPS_PORT:-8443}/health/ready || true)"
   hdr="$(curl -skI https://127.0.0.1:${CRM_STAGING_HTTPS_PORT:-8443}/ | tr -d '\r' | grep -ci 'strict-transport-security' || true)"
-  # Isolation is established only when the probe container provably ran on
-  # the internal network (positive control: it reached the api metrics
-  # listener) AND the external request then failed. A probe that could not
-  # run (docker exit 125-127) or failed its control is UNKNOWN, never
-  # "blocked", and fails the gate.
-  rc=0
-  docker run --rm --network "${project}_internal" alpine:3.20 sh -c \
-    'wget -q -T 3 -O /dev/null http://api:9090/metrics || exit 3; wget -q -T 3 -O /dev/null http://1.1.1.1 && exit 0; exit 4' >/dev/null 2>&1 || rc=$?
-  case "$rc" in
-    0) egress="OPEN" ;;
-    4) egress="blocked" ;;
-    *) egress="UNKNOWN(probe_exit_$rc)" ;;
-  esac
+  egress="$(isolation_probe)"
   wstate="$(docker run --rm --network "${project}_internal" alpine:3.20 wget -q -T 3 -O - http://worker:9091/health/ready 2>/dev/null || true)"
   paused="$(grep -o '"state":"paused"' <<< "$wstate" | wc -l | tr -d ' ')"
   blocked="$(grep -o '"state":"blocked"' <<< "$wstate" | wc -l | tr -d ' ')"

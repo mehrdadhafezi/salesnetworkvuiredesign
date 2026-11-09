@@ -20,7 +20,7 @@ security, operations or business owner approval is implied.
 | 10 | Scheduled jobs and workers | IMPL+TESTED (R2 + staging) | `crm-worker` service | R2 tests; drills 2–3 | Job switches OFF; delivery BLOCKED (E-3) | Platform operations | Per-job enablement | Owner-approved enablement per job |
 | 11 | Outbox relays | IMPL+TESTED (R2) | R2 | R2 | — | Platform operations | — | — |
 | 12 | Inbox consumers | IMPL+TESTED (R2) | R2 | R2 | — | — | — | — |
-| 13 | Monitoring and alerting | Metrics IMPL+TESTED; rules / dashboard PROPOSED | `apiserver/metrics.go`, `deploy/observability/*` | `alerts_test.go`; drills 17–19 | Monitoring stack, Alertmanager, paging, promtool validation | Platform operations | Thresholds, on-call model | Alerts delivered end to end in the target environment |
+| 13 | Monitoring and alerting | Metrics IMPL+TESTED; rules / dashboard PROPOSED | `apiserver/metrics.go`, `deploy/observability/*` | `alerts_test.go`; promtool config / rules / unit tests and a real staging scrape in `release-ci.yml`; drills 17–19 | Monitoring stack, Alertmanager, paging | Platform operations | Thresholds, on-call model | Alerts delivered end to end in the target environment |
 | 14 | Error logging and correlation | Unchanged + nginx log format without query / cookies | `nginx.conf` | — | Log shipping, retention, PII review | Platform operations / security | Retention | — |
 | 15 | Security audit logs | Unchanged (R1 auth events) | — | — | SIEM forwarding | Security | — | — |
 | 16 | Failure ownership | DOC (roles per alert) | `r3-observability-and-alerts.md` | — | Named owners and on-call | Operations leadership | On-call model | Approved roster (not invented here) |
