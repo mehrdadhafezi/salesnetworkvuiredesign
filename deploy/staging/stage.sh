@@ -109,8 +109,19 @@ verify)
   unhealthy="$(jq -s -r '[.[] | (if type=="array" then .[] else . end) | select(.Service=="api" or .Service=="worker" or .Service=="web" or .Service=="postgres") | select(.Health!="healthy")] | length' <<< "$out")"
   ready="$(curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1:${CRM_STAGING_HTTPS_PORT:-8443}/health/ready || true)"
   hdr="$(curl -skI https://127.0.0.1:${CRM_STAGING_HTTPS_PORT:-8443}/ | tr -d '\r' | grep -ci 'strict-transport-security' || true)"
-  egress="blocked"
-  if docker run --rm --network "${project}_internal" alpine:3.20 wget -q -T 3 -O /dev/null http://1.1.1.1 >/dev/null 2>&1; then egress="OPEN"; fi
+  # Isolation is established only when the probe container provably ran on
+  # the internal network (positive control: it reached the api metrics
+  # listener) AND the external request then failed. A probe that could not
+  # run (docker exit 125-127) or failed its control is UNKNOWN, never
+  # "blocked", and fails the gate.
+  rc=0
+  docker run --rm --network "${project}_internal" alpine:3.20 sh -c \
+    'wget -q -T 3 -O /dev/null http://api:9090/metrics || exit 3; wget -q -T 3 -O /dev/null http://1.1.1.1 && exit 0; exit 4' >/dev/null 2>&1 || rc=$?
+  case "$rc" in
+    0) egress="OPEN" ;;
+    4) egress="blocked" ;;
+    *) egress="UNKNOWN(probe_exit_$rc)" ;;
+  esac
   wstate="$(docker run --rm --network "${project}_internal" alpine:3.20 wget -q -T 3 -O - http://worker:9091/health/ready 2>/dev/null || true)"
   paused="$(grep -o '"state":"paused"' <<< "$wstate" | wc -l | tr -d ' ')"
   blocked="$(grep -o '"state":"blocked"' <<< "$wstate" | wc -l | tr -d ' ')"

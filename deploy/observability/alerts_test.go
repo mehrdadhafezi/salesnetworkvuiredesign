@@ -143,3 +143,31 @@ func TestAlertRulesReferenceEmittedMetrics(t *testing.T) {
 		}
 	}
 }
+
+// R3: the worker labels per-job series with `job`; the scrape must honour it
+// (otherwise Prometheus renames it exported_job and `on (job)` matching in
+// the rules joins unrelated worker jobs).
+func TestWorkerScrapeHonoursJobLabel(t *testing.T) {
+	src, err := os.ReadFile("prometheus.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cfg struct {
+		ScrapeConfigs []struct {
+			JobName     string `yaml:"job_name"`
+			HonorLabels bool   `yaml:"honor_labels"`
+		} `yaml:"scrape_configs"`
+	}
+	if err := yaml.Unmarshal(src, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	for _, sc := range cfg.ScrapeConfigs {
+		if sc.JobName == "crm-worker" {
+			if !sc.HonorLabels {
+				t.Fatal("crm-worker scrape must set honor_labels: true")
+			}
+			return
+		}
+	}
+	t.Fatal("crm-worker scrape config missing")
+}

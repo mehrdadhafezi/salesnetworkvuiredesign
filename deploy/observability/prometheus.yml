@@ -9,7 +9,12 @@ rule_files: ["alerts.yaml"]
 scrape_configs:
   - job_name: crm-api
     static_configs: [{ targets: ["api:9090"] }]
+  # The worker labels its per-job series with `job` (the worker job name,
+  # e.g. job="runtime"); honor_labels keeps that label instead of renaming
+  # it to exported_job, so rules such as `and on (job)` match per worker job.
+  # `up{job="crm-worker"}` is unaffected (synthetic series use target labels).
   - job_name: crm-worker
+    honor_labels: true
     static_configs: [{ targets: ["worker:9091"] }]
   # crm-backup writes a textfile (CRM_BACKUP_METRICS_FILE) for the node
   # exporter's textfile collector; node exporter is an operator component.

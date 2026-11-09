@@ -41,7 +41,7 @@ policy is `unless-stopped`. Drills #1 and #2 measured recovery after a process c
 
 | # | Property | How | Verified by |
 |---|---|---|---|
-| 1 | No production network connectivity | `internal: true` network; only web joins `edge` | `stage.sh verify` (`internal_egress: blocked`); `preflight` |
+| 1 | No production network connectivity | `internal: true` network; only web joins `edge` | `stage.sh verify` (`internal_egress: blocked` only when the probe first reached an internal service and then failed outbound; a probe that could not run reports `UNKNOWN` and fails the gate); `preflight` |
 | 2 | No real external provider credentials | Write-back adapter disabled; provider adapter disabled; no gateway configured | Worker reports 2 jobs BLOCKED |
 | 3 | No real customer records | Fresh database; migrations only; synthetic fixtures in tests | Bootstrap creates no data |
 | 4 | No shared production volumes | Named volumes labelled `crm.disposable=true` | `destroy` refuses unlabelled volumes |

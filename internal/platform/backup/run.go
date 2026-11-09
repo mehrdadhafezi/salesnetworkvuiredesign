@@ -114,7 +114,8 @@ func openSink(ctx context.Context, path, recipients string, t Tools) (sink, erro
 		if err != nil {
 			return sink{}, err
 		}
-		return sink{w: f, wait: func() error { return f.Sync() }}, nil
+		// Sync must happen while the file is open: callers Close before wait.
+		return sink{w: syncCloser{f}, wait: func() error { return nil }}, nil
 	}
 	cmd := exec.CommandContext(ctx, t.age(), "-R", recipients, "-o", path)
 	cmd.Env = []string{"PATH=" + os.Getenv("PATH")}
@@ -133,6 +134,15 @@ func openSink(ctx context.Context, path, recipients string, t Tools) (sink, erro
 		}
 		return nil
 	}}, nil
+}
+
+// syncCloser flushes a plaintext file to stable storage before closing it.
+type syncCloser struct{ f *os.File }
+
+func (s syncCloser) Write(p []byte) (int, error) { return s.f.Write(p) }
+
+func (s syncCloser) Close() error {
+	return errors.Join(s.f.Sync(), s.f.Close())
 }
 
 // openSource decrypts path (or opens it) and returns a reader.

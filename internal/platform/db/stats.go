@@ -40,12 +40,14 @@ func untrack(p *Pool) {
 	delete(registry.pools, p)
 }
 
-// Stats returns one entry per open pool, sorted by owner. Pools not yet
-// bound to an owner report "unbound".
+// Stats returns one entry per owner, summing every open pool that owner
+// holds (a process may open several pools for one owner, e.g. one per API
+// surface), sorted by owner, so each owner is exactly one metric series.
+// Pools not yet bound to an owner report "unbound".
 func Stats() []PoolStat {
 	registry.Lock()
 	defer registry.Unlock()
-	out := make([]PoolStat, 0, len(registry.pools))
+	byOwner := map[string]*PoolStat{}
 	for p, m := range registry.pools {
 		if p.pool == nil {
 			continue
@@ -55,8 +57,20 @@ func Stats() []PoolStat {
 		if name == "" {
 			name = "unbound"
 		}
-		out = append(out, PoolStat{Owner: name, Max: s.MaxConns(), Total: s.TotalConns(), Idle: s.IdleConns(), Acquired: s.AcquiredConns(),
-			EmptyAcquire: s.EmptyAcquireCount()})
+		agg := byOwner[name]
+		if agg == nil {
+			agg = &PoolStat{Owner: name}
+			byOwner[name] = agg
+		}
+		agg.Max += s.MaxConns()
+		agg.Total += s.TotalConns()
+		agg.Idle += s.IdleConns()
+		agg.Acquired += s.AcquiredConns()
+		agg.EmptyAcquire += s.EmptyAcquireCount()
+	}
+	out := make([]PoolStat, 0, len(byOwner))
+	for _, agg := range byOwner {
+		out = append(out, *agg)
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].Owner < out[b].Owner })
 	return out
