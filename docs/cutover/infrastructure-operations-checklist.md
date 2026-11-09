@@ -1,5 +1,9 @@
 # Slice 15 — Infrastructure and operations checklist
 
+> **R3 update.** Column A has been re-assessed in `docs/remediation/r3-infrastructure-readiness-matrix.md`
+> (staging reference deployment, backups, metrics, DR drills; items #21 and #22 fixed). Column B remains
+> unsigned. This table is kept as the Slice 15 record.
+
 **Column A** records what the repository actually provides (VERIFIED at `b3bf31b`). **Column B** records
 what an operator must verify in each target environment. Nothing in column B was run.
 

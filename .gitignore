@@ -127,3 +127,11 @@ auth.json
 
 # Previous local Git metadata backup
 .git-old-backup/
+
+# R3: build outputs never belong in the repository (binaries at the root,
+# release artifacts, staging secrets and local backups).
+/crm-*
+!/crm-*/
+/dist/
+/deploy/staging/.secrets/
+/deploy/staging/.state/

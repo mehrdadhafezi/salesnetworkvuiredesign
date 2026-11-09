@@ -1,5 +1,10 @@
 # Slice 15 — Rollback and recovery plan (DRAFT, NOT REHEARSED)
 
+> **R3 update.** Recovery classes, rehearsed failure modes and the proposed RPO / RTO decision matrix
+> are in `docs/remediation/r3-disaster-recovery-DRAFT.md` (still DRAFT, not approved). Rows marked "No worker
+> process", "Backup and restore NOT VERIFIED" or "no relay process" are superseded by R2 / R3 evidence for
+> disposable staging only.
+
 **Principle.** Turning a flag OFF stops **new** target writes. It does **not** reverse committed target
 transactions, delivered write-backs, stored evidence or provider effects. No destructive recovery has
 been executed. Nothing here has been rehearsed.

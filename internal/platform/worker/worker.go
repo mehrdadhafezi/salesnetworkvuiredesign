@@ -129,6 +129,9 @@ type Config struct {
 	// FINALIZING and are recovered), so shutdown is bounded even if a job
 	// ignores cancellation.
 	HardStop time.Duration
+	// ExtraMetrics appends process-level series (pool stats, build info) to
+	// /metrics (R3). It must emit only low-cardinality, non-sensitive labels.
+	ExtraMetrics func(*strings.Builder)
 	// Now is the wall clock (tests); nil means time.Now.
 	Now func() time.Time
 }

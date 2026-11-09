@@ -471,6 +471,8 @@ type WritebackAPI interface {
 // Surfaces are the optional business read surfaces; nil ones answer
 // BLOCKED / FEATURE_DISABLED.
 type Surfaces struct {
+	// Metrics, when set, observes every request (R3).
+	Metrics    *Metrics
 	Read       ReadAPI
 	Customers  CustomersAPI
 	Sales      SalesAPI
@@ -728,6 +730,9 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 	h = noStore(h)
 	h = httpx.Recover(logger)(h)
 	h = httpx.Correlation(h)
+	if sf.Metrics != nil {
+		h = sf.Metrics.Middleware(h)
+	}
 	return h, nil
 }
 

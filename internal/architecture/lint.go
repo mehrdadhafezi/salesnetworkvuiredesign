@@ -596,7 +596,15 @@ func moduleImportAllowed(rel, top, other, rest string) bool {
 
 // DDL is allowed only in migration tooling and the test-only harness. The
 // lint package itself is exempt because its patterns spell DDL keywords.
-var ddlAllowedDirs = []string{"internal/platform/migrations", "cmd/crm-migrate", "internal/platform/pgtest", "internal/architecture"}
+var ddlAllowedDirs = []string{"internal/platform/migrations", "cmd/crm-migrate", "internal/platform/pgtest", "internal/architecture",
+	// R3: the restore toolchain creates (and discards) only new, tool-marked
+	// crm_restore_* databases; it never alters a schema.
+	"internal/platform/backup"}
+
+// r3QuarantineWriter is the one place outside internal/platform/featureflags
+// that writes the flag store: it turns every flag OFF on a freshly restored,
+// tool-created disposable copy (quarantine), never enabling anything.
+const r3QuarantineWriter = "internal/platform/backup"
 
 var runtimeDDL = regexp.MustCompile(`(?i)\b(create|alter|drop)\s+(table|schema|database|index|role|user|function|procedure|trigger|type|view|sequence|extension|policy)\b|\btruncate\b|\b(grant|revoke)\s+(all|select|insert|update|delete|truncate|references|trigger|usage|create|connect|temporary|execute|maintain|set)\b`)
 
@@ -875,7 +883,8 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 			if x.Kind == token.STRING && !isTest && !under(rel, architectureDir) {
 				if s, err := strconv.Unquote(x.Value); err == nil {
 					for _, m := range foreignWrite.FindAllStringSubmatch(s, -1) {
-						if owner := schemaOwners[strings.ToLower(m[2])]; !under(rel, owner) {
+						if owner := schemaOwners[strings.ToLower(m[2])]; !under(rel, owner) &&
+							!(strings.ToLower(m[2]) == "platform_featureflags" && under(rel, r3QuarantineWriter) && strings.Contains(s, "SET enabled = false")) {
 							add(RuleForeignWrite, x.Pos(), "writes schema "+m[2]+" outside "+owner)
 						}
 					}

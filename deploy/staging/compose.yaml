@@ -1,0 +1,167 @@
+# R3 DISPOSABLE STAGING reference environment (local rehearsal only).
+#
+# This is a reproducible reference topology for deployment, backup and
+# disaster-recovery rehearsals with SYNTHETIC data. It is not a production
+# orchestrator choice and contains no production host, credential, volume or
+# database. Drive it ONLY through deploy/staging/stage.sh, which validates
+# the artifact, generates per-environment secrets and refuses unsafe states.
+#
+# Isolation:
+#   - "internal" network has internal: true → no route to any external
+#     network (no production, no WordPress, no gateway, no provider);
+#   - only the TLS proxy is published, on 127.0.0.1;
+#   - every credential is a file in ./.secrets (generated, gitignored),
+#     mounted read-only; no secret in images, build args or environment;
+#   - every worker job switch and feature flag starts OFF (paused).
+name: crm-staging
+
+x-hardening: &hardening
+  read_only: true
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  tmpfs: ["/tmp"]
+  labels:
+    crm.environment: "staging"
+    crm.disposable: "true"
+
+networks:
+  internal:
+    internal: true
+  edge: {}
+
+volumes:
+  pgdata:
+    labels: { crm.environment: "staging", crm.disposable: "true" }
+  evidence:
+    labels: { crm.environment: "staging", crm.disposable: "true" }
+
+secrets:
+  pg_admin_password: { file: ./.secrets/pg_admin_password }
+  pg_admin_dsn: { file: ./.secrets/pg_admin_dsn }
+  dsn_flags: { file: ./.secrets/dsn_flags }
+  dsn_payments: { file: ./.secrets/dsn_payments }
+  dsn_integration: { file: ./.secrets/dsn_integration }
+  dsn_cases: { file: ./.secrets/dsn_cases }
+  login_passwords: { file: ./.secrets/login_passwords.sql }
+  tls_cert: { file: ./.secrets/tls_cert.pem }
+  tls_key: { file: ./.secrets/tls_key.pem }
+
+services:
+  postgres:
+    image: postgres@sha256:aa6cb33cf4c19c765cefcf48d96176258800870a9a1e930ad126200f9d825139
+    networks: [internal]
+    environment:
+      POSTGRES_DB: crm_staging
+      POSTGRES_USER: crm_staging_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_admin_password
+    secrets: [pg_admin_password]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    shm_size: 128m
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    labels: { crm.environment: "staging", crm.disposable: "true" }
+    deploy:
+      resources: { limits: { cpus: "1.0", memory: 512M } }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm_staging_admin -d crm_staging"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    image: crm-app:${CRM_RELEASE:?set by stage.sh}
+    entrypoint: ["/opt/crm/bin/crm-migrate", "up"]
+    networks: [internal]
+    environment:
+      CRM_MIGRATE_DATABASE_URL_FILE: /run/secrets/pg_admin_dsn
+    secrets: [pg_admin_dsn]
+    <<: *hardening
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  bootstrap:
+    image: postgres@sha256:aa6cb33cf4c19c765cefcf48d96176258800870a9a1e930ad126200f9d825139
+    entrypoint: ["sh", "/staging/bootstrap.sh"]
+    networks: [internal]
+    environment:
+      PGHOST: postgres
+      PGUSER: crm_staging_admin
+      PGDATABASE: crm_staging
+      PGPASSFILE: /tmp/.pgpass
+    secrets: [pg_admin_password, login_passwords]
+    volumes: ["./bootstrap.sh:/staging/bootstrap.sh:ro", "evidence:/evidence"]
+    security_opt: ["no-new-privileges:true"]
+    labels: { crm.environment: "staging", crm.disposable: "true" }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: "no"
+
+  api:
+    image: crm-app:${CRM_RELEASE:?set by stage.sh}
+    entrypoint: ["/opt/crm/bin/crm-api"]
+    networks: [internal]
+    environment:
+      CRM_ENV: production            # production-like behaviour: no dev auth stub
+      CRM_API_ADDR: 0.0.0.0:8080
+      CRM_API_METRICS_ADDR: 0.0.0.0:9090
+    <<: *hardening
+    deploy:
+      resources: { limits: { cpus: "0.5", memory: 256M } }
+    healthcheck:
+      test: ["CMD", "/opt/crm/bin/crm-healthcheck", "http://127.0.0.1:8080/health/ready"]
+      interval: 3s
+      timeout: 4s
+      retries: 20
+    depends_on:
+      bootstrap: { condition: service_completed_successfully }
+    stop_grace_period: 15s
+    restart: unless-stopped
+
+  worker:
+    image: crm-app:${CRM_RELEASE:?set by stage.sh}
+    entrypoint: ["/opt/crm/bin/crm-worker", "run"]
+    networks: [internal]
+    environment:
+      CRM_WORKER_ENV: staging
+      CRM_WORKER_JOBS: receipt_finalise,upload_expiry,writeback_intake_cases,writeback_deliver,provider_reconcile
+      CRM_WORKER_ADDR: 0.0.0.0:9091
+      CRM_WORKER_EVIDENCE_ROOT: /var/lib/crm/evidence
+      CRM_WORKER_FEATUREFLAGS_DATABASE_URL_FILE: /run/secrets/dsn_flags
+      CRM_WORKER_PAYMENTS_DATABASE_URL_FILE: /run/secrets/dsn_payments
+      CRM_WORKER_INTEGRATION_DATABASE_URL_FILE: /run/secrets/dsn_integration
+      CRM_WORKER_CASES_DATABASE_URL_FILE: /run/secrets/dsn_cases
+    secrets: [dsn_flags, dsn_payments, dsn_integration, dsn_cases]
+    volumes: ["evidence:/var/lib/crm/evidence"]
+    <<: *hardening
+    deploy:
+      resources: { limits: { cpus: "0.5", memory: 256M } }
+    healthcheck:
+      test: ["CMD", "/opt/crm/bin/crm-healthcheck", "http://127.0.0.1:9091/health/live"]
+      interval: 3s
+      timeout: 4s
+      retries: 20
+    depends_on:
+      bootstrap: { condition: service_completed_successfully }
+    stop_grace_period: 40s
+    restart: unless-stopped
+
+  web:
+    image: crm-web:${CRM_RELEASE:?set by stage.sh}
+    networks: [internal, edge]
+    ports: ["127.0.0.1:${CRM_STAGING_HTTPS_PORT:-8443}:8443"]
+    secrets: [tls_cert, tls_key]
+    volumes: ["./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"]
+    tmpfs: ["/var/cache/nginx", "/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    labels: { crm.environment: "staging", crm.disposable: "true" }
+    deploy:
+      resources: { limits: { cpus: "0.25", memory: 64M } }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null --no-check-certificate https://127.0.0.1:8443/healthz"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }

@@ -37,6 +37,9 @@ type Config struct {
 	// AllowedOrigins are the exact browser origins allowed to send unsafe
 	// requests when R1 sessions are configured (CRM_AUTH_ALLOWED_ORIGINS).
 	AllowedOrigins []string
+	// MetricsAddr is the private metrics listener (CRM_API_METRICS_ADDR);
+	// empty disables metrics.
+	MetricsAddr string
 }
 
 // DefaultConfig returns safe defaults: loopback, production, no dev auth.
@@ -79,6 +82,10 @@ func ConfigFromEnv(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	cfg.AllowedOrigins = origins
+	cfg.MetricsAddr = getenv(EnvMetricsAddr)
+	if cfg.MetricsAddr != "" && cfg.MetricsAddr == cfg.Addr {
+		return Config{}, fmt.Errorf("%w: %s must differ from the public listener", ErrInvalidConfig, EnvMetricsAddr)
+	}
 	return cfg, cfg.Validate()
 }
 

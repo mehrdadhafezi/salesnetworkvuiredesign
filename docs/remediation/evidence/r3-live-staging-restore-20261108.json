@@ -1,0 +1,19 @@
+{
+  "backup_id": "7d01bf6c68381c09",
+  "target": "crm_restore_drill_1794142996",
+  "status": "COMPLETE",
+  "differences": [],
+  "evidence_checked": 0,
+  "evidence_findings": [],
+  "quarantined_flags": [
+    "worker.environment.staging"
+  ],
+  "tables_compared": 231,
+  "timings_seconds": {
+    "database_restore": 2.18,
+    "evidence_restore": 0.004,
+    "reconcile": 0.26,
+    "verify": 0.046
+  },
+  "measured_recovery_seconds": 2.507
+}

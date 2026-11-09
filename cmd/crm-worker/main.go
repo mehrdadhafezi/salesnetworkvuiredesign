@@ -34,16 +34,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/envfile"
 	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"sort"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/apiserver"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/clock"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/db"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/owner"
@@ -53,7 +57,7 @@ import (
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	os.Exit(run(ctx, os.Args[1:], os.Getenv, os.Stdout, os.Stderr))
+	os.Exit(run(ctx, os.Args[1:], envfile.Getenv(os.Getenv), os.Stdout, os.Stderr))
 }
 
 // pools opens one pool per owner module plus the feature-flag pool.
@@ -104,6 +108,42 @@ func openPools(ctx context.Context, cfg Config) (*pools, error) {
 	return p, nil
 }
 
+// processMetrics appends pool saturation and build provenance (R3).
+func processMetrics(b *strings.Builder) {
+	version, revision := "unknown", "unknown"
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		if bi.Main.Version != "" {
+			version = bi.Main.Version
+		}
+		for _, s := range bi.Settings {
+			if s.Key == "vcs.revision" && s.Value != "" {
+				revision = s.Value
+			}
+		}
+	}
+	fmt.Fprintf(b, "# TYPE crm_build_info gauge\ncrm_build_info{component=\"crm-worker\",version=%q,revision=%q} 1\n", version, revision)
+	apiserver.WritePoolStats(b, "crm_worker_db_pool")
+}
+
+// flagMetrics reports the number of enabled feature flags and whether the
+// database still attests exactly the declared environment (R3 alerts:
+// unexpected flag activation, attestation mismatch). Unreadable → -1.
+func flagMetrics(b *strings.Builder, flags *db.Runner, env Environment) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	enabled, attested := -1.0, -1.0
+	if n, err := countEnabledFlags(ctx, flags); err == nil {
+		enabled = float64(n)
+	}
+	if err := attest(ctx, flags, env); err == nil {
+		attested = 1
+	} else if !strings.Contains(err.Error(), "unreadable") {
+		attested = 0
+	}
+	fmt.Fprintf(b, "# TYPE crm_worker_feature_flags_enabled gauge\ncrm_worker_feature_flags_enabled %g\n", enabled)
+	fmt.Fprintf(b, "# TYPE crm_worker_environment_attested gauge\ncrm_worker_environment_attested{environment=%q} %g\n", string(env), attested)
+}
+
 func run(ctx context.Context, args []string, getenv func(string) string, stdout, stderr io.Writer) int {
 	log := slog.New(slog.NewJSONHandler(stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	if len(args) == 0 || (args[0] != "check" && args[0] != "run" && args[0] != "once") || (args[0] == "once") != (len(args) == 2) ||
@@ -128,7 +168,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 		return 1
 	}
 	rt, err := worker.New(worker.Config{Logger: log, Specs: comp.specs, Checks: p.checks, MaxParallel: cfg.MaxParallel, Jitter: 0.2,
-		Grace: cfg.Grace})
+		Grace: cfg.Grace, ExtraMetrics: func(b *strings.Builder) { processMetrics(b); flagMetrics(b, p.flags, cfg.Environment) }})
 	if err != nil {
 		log.Error("startup refused", "error", err.Error())
 		return 1

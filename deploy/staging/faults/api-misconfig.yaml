@@ -1,0 +1,6 @@
+# DRILL ONLY (scenario 14: deployment health-check failure): the metrics
+# listener on the public address is a configuration error crm-api refuses.
+services:
+  api:
+    environment:
+      CRM_API_METRICS_ADDR: 0.0.0.0:8080

@@ -124,8 +124,20 @@ func (rt *Runtime) Handler() http.Handler {
 		write(w, code, detail)
 	})
 	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
+		// Readiness and each dependency check as gauges, evaluated at
+		// scrape time (R3), so "database unavailable" is alertable.
+		ok, detail := rt.Ready(r.Context())
+		rt.metrics.Set("ready", "runtime", boolf(ok))
+		if checks, _ := detail["checks"].(map[string]string); checks != nil {
+			for name, st := range checks {
+				rt.metrics.Set("check_up", name, boolf(st == "ok"))
+			}
+		}
 		var b strings.Builder
 		rt.metrics.Write(&b)
+		if rt.cfg.ExtraMetrics != nil {
+			rt.cfg.ExtraMetrics(&b)
+		}
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write([]byte(b.String()))
@@ -140,6 +152,9 @@ func write(w http.ResponseWriter, code int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+// CheckTimeout bounds each readiness dependency check.
+const CheckTimeout = 2 * time.Second
+
 // Ready reports readiness: every dependency check passes, the runtime is
 // running, and no enabled job is stale (no completed pass for 3 intervals
 // plus its timeout after the first such window). Paused and blocked jobs do
@@ -147,15 +162,27 @@ func write(w http.ResponseWriter, code int, v any) {
 func (rt *Runtime) Ready(ctx context.Context) (bool, map[string]any) {
 	ok := true
 	checks := map[string]string{}
+	// Checks run concurrently, each bounded, so one unreachable dependency
+	// cannot make a readiness probe or a metrics scrape exceed its timeout.
+	type res struct {
+		name string
+		err  error
+	}
+	results := make(chan res, len(rt.cfg.Checks))
 	for _, ch := range rt.cfg.Checks {
-		cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		err := ch.Fn(cctx)
-		cancel()
-		if err != nil {
+		go func(ch Check) {
+			cctx, cancel := context.WithTimeout(ctx, CheckTimeout)
+			defer cancel()
+			results <- res{ch.Name, ch.Fn(cctx)}
+		}(ch)
+	}
+	for range rt.cfg.Checks {
+		r := <-results
+		if r.err != nil {
 			ok = false
-			checks[ch.Name] = "unavailable"
+			checks[r.name] = "unavailable"
 		} else {
-			checks[ch.Name] = "ok"
+			checks[r.name] = "ok"
 		}
 	}
 	rt.mu.Lock()
@@ -183,4 +210,11 @@ func (rt *Runtime) Ready(ctx context.Context) (bool, map[string]any) {
 		status = "not_ready"
 	}
 	return ok, map[string]any{"status": status, "instance": rt.cfg.Instance, "checks": checks, "jobs": jobs}
+}
+
+func boolf(b bool) float64 {
+	if b {
+		return 1
+	}
+	return 0
 }

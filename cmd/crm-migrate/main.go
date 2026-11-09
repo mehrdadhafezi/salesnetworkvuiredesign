@@ -20,6 +20,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/envfile"
 	"io"
 	"os"
 	"os/signal"
@@ -54,7 +55,7 @@ func sources() []migrations.Source {
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	os.Exit(run(ctx, os.Args[1:], os.Getenv, os.Stdout, os.Stderr))
+	os.Exit(run(ctx, os.Args[1:], envfile.Getenv(os.Getenv), os.Stdout, os.Stderr))
 }
 
 func run(ctx context.Context, args []string, getenv func(string) string, stdout, stderr io.Writer) int {

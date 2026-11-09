@@ -113,3 +113,16 @@ func Enabled(ctx context.Context, tx db.Tx, key string) (bool, error) {
 	}
 	return ok && f.Enabled, nil
 }
+
+// CountEnabled returns the number of enabled flags (R3 observability:
+// unexpected activation alert).
+func CountEnabled(ctx context.Context, tx db.Tx) (int, error) {
+	if err := checkOwner(tx); err != nil {
+		return 0, err
+	}
+	var n int
+	if err := tx.QueryRow(ctx, `SELECT count(*) FROM platform_featureflags.feature_flag WHERE enabled`).Scan(&n); err != nil {
+		return 0, fmt.Errorf("featureflags: count: %w", err)
+	}
+	return n, nil
+}

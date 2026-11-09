@@ -275,10 +275,18 @@ func TestHealthReadinessAndMetrics(t *testing.T) {
 			t.Fatalf("metrics missing %q:\n%s", want, m)
 		}
 	}
+	allowed := map[string]bool{`{job="ready_job"}`: true, `{job="db_payments"}`: true, `{job="runtime"}`: true}
 	for _, line := range strings.Split(strings.TrimSpace(m), "\n") {
-		if !strings.HasPrefix(line, "#") && !strings.Contains(line, `{job="ready_job"}`) {
-			t.Fatalf("a series carries a label other than the job name: %s", line)
+		if strings.HasPrefix(line, "#") {
+			continue
 		}
+		lbl := line[strings.Index(line, "{") : strings.Index(line, "}")+1]
+		if !allowed[lbl] {
+			t.Fatalf("a series carries a label other than a registered job / check name: %s", line)
+		}
+	}
+	if !strings.Contains(m, `crm_worker_ready{job="runtime"}`) || !strings.Contains(m, `crm_worker_check_up{job="db_payments"} 1`) {
+		t.Fatalf("readiness gauges missing:\n%s", m)
 	}
 	// Invalid names never reach the exposition.
 	rt.Metrics().Set("customer phone", "ready_job", 1)

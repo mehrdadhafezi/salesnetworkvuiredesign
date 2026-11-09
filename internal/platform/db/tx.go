@@ -136,6 +136,7 @@ func (p *Pool) Runner(m owner.Module) (*Runner, error) {
 	if p == nil || p.pool == nil {
 		return nil, ErrClosed
 	}
+	track(p, m)
 	return &Runner{pool: p, module: m}, nil
 }
 

@@ -73,11 +73,16 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/envfile"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization"
@@ -91,7 +96,7 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if err := run(ctx, os.Getenv, logger); err != nil {
+	if err := run(ctx, envfile.Getenv(os.Getenv), logger); err != nil {
 		logger.Error("crm-api stopped", "error", err)
 		os.Exit(1)
 	}
@@ -163,7 +168,16 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 		return err
 	}
 	defer closePayments()
-	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Read: read, Customers: cust, Sales: sales, Billing: bill,
+	var metrics *apiserver.Metrics
+	if cfg.MetricsAddr != "" {
+		metrics = apiserver.NewMetrics()
+		stopMetrics, err := serveMetrics(ctx, cfg.MetricsAddr, metrics, logger)
+		if err != nil {
+			return err
+		}
+		defer stopMetrics()
+	}
+	srv, err := apiserver.NewServerWithSurfaces(cfg, clock.System{}, logger, apiserver.Surfaces{Metrics: metrics, Read: read, Customers: cust, Sales: sales, Billing: bill,
 		Reporting: rep, Finance: fin, Biawin: bw, Commission: com, Operations: ops,
 		CaseWrite: writes.CaseWrite, HRRequest: writes.HRRequest, Writeback: writes.Writeback, Payments: pay, Auth: auth})
 	if err != nil {
@@ -171,6 +185,26 @@ func run(ctx context.Context, getenv func(string) string, logger *slog.Logger) e
 	}
 	logger.Info("crm-api listening", "addr", cfg.Addr, "environment", string(cfg.Environment), "dev_auth", cfg.DevAuth, "session_auth", auth != nil)
 	return apiserver.Serve(ctx, srv, cfg, logger)
+}
+
+// serveMetrics starts the private metrics listener (R3).
+func serveMetrics(ctx context.Context, addr string, m *apiserver.Metrics, logger *slog.Logger) (func(), error) {
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("crm-api: metrics listener: %w", err)
+	}
+	srv := &http.Server{Handler: m.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second}
+	go func() {
+		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("metrics listener failed", "error", err.Error())
+		}
+	}()
+	logger.Info("crm-api metrics listening", "addr", ln.Addr().String())
+	return func() {
+		sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+		_ = srv.Shutdown(sctx)
+	}, nil
 }
 
 // openRead opens the Slice 4 read pools when configured (all or none).

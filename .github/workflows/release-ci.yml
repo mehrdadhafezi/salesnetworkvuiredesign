@@ -1,0 +1,111 @@
+name: Release artifact and staging rehearsal
+
+# R3: reproducible release artifact, provenance verification, container
+# image builds and a disposable staging deployment rehearsal on the runner.
+# No secret is used, nothing is pushed or deployed anywhere, and there is no
+# production target: the staging stack runs on an internal Docker network
+# with per-run random credentials and is destroyed at the end.
+on:
+  pull_request:
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'web/**'
+      - 'deploy/**'
+      - 'scripts/release/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/release-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'web/**'
+      - 'deploy/**'
+      - 'scripts/release/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/release-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Reproducible artifact, images and staging rehearsal
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the artifact twice and require identical checksums
+        shell: bash
+        run: |
+          scripts/release/build.sh "$RUNNER_TEMP/a1"
+          scripts/release/build.sh "$RUNNER_TEMP/a2"
+          diff "$RUNNER_TEMP/a1/SHA256SUMS" "$RUNNER_TEMP/a2/SHA256SUMS"
+          cat "$RUNNER_TEMP/a1/SHA256SUMS"
+
+      - name: Verify provenance; a tampered artifact must be refused
+        shell: bash
+        run: |
+          cp -r "$RUNNER_TEMP/a2" "$RUNNER_TEMP/tampered"
+          printf 'x' >> "$RUNNER_TEMP/tampered/bin/crm-api"
+          if scripts/release/verify.sh "$RUNNER_TEMP/tampered" --mark-eligible; then echo "a tampered artifact verified"; exit 1; fi
+          test ! -e "$RUNNER_TEMP/tampered/ELIGIBLE"
+          scripts/release/verify.sh "$RUNNER_TEMP/a1" --mark-eligible
+
+      - name: Build the images from the verified artifact
+        shell: bash
+        run: |
+          c="$(git rev-parse HEAD)"
+          docker build -q -f deploy/docker/Dockerfile.app --build-arg CRM_COMMIT="$c" -t "crm-app:ci" "$RUNNER_TEMP/a1"
+          docker build -q -f deploy/docker/Dockerfile.web --build-arg CRM_COMMIT="$c" -t "crm-web:ci" "$RUNNER_TEMP/a1"
+          docker build -q -f deploy/docker/Dockerfile.backup --build-arg CRM_COMMIT="$c" -t "crm-backup:ci" "$RUNNER_TEMP/a1"
+          test "$(docker image inspect --format '{{.Config.User}}' crm-app:ci)" = "65532:65532"
+          docker run --rm --entrypoint /opt/crm/bin/crm-healthcheck crm-app:ci http://example.com/ && exit 1 || true
+          docker run --rm --entrypoint sh crm-backup:ci -c 'age --version && pg_dump --version'
+
+      - name: Disposable staging rehearsal (init-secrets, preflight, up, verify, destroy)
+        shell: bash
+        run: |
+          cd deploy/staging
+          sudo ./stage.sh init-secrets
+          sudo ./stage.sh preflight "$RUNNER_TEMP/a1"
+          sudo ./stage.sh up "$RUNNER_TEMP/a1"
+          sudo ./stage.sh verify
+          sudo ./stage.sh evidence
+          sudo cat .state/events.jsonl
+
+      - name: Destroy the disposable staging project
+        if: always()
+        shell: bash
+        run: |
+          cd deploy/staging
+          sudo CRM_STAGING_DESTROY=crm-staging ./stage.sh destroy || true
+          test -z "$(docker volume ls -q --filter label=com.docker.compose.project=crm-staging)"
+
+      - name: Keep the release evidence (manifest and checksums only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-evidence
+          path: |
+            ${{ runner.temp }}/a1/manifest.json
+            ${{ runner.temp }}/a1/SHA256SUMS
+            ${{ runner.temp }}/a1/ELIGIBLE
+          retention-days: 30

@@ -104,6 +104,17 @@ func bind(ctx context.Context, flags *db.Runner, runners map[owner.Module]*db.Ru
 	return nil
 }
 
+// countEnabledFlags counts enabled feature flags (all keys).
+func countEnabledFlags(ctx context.Context, flags *db.Runner) (int, error) {
+	n := 0
+	err := flags.InTx(ctx, db.TxOptions{ReadOnly: true}, func(ctx context.Context, tx db.Tx) error {
+		var err error
+		n, err = featureflags.CountEnabled(ctx, tx)
+		return err
+	})
+	return n, err
+}
+
 // attest verifies that the database attests exactly the declared
 // environment.
 func attest(ctx context.Context, flags *db.Runner, env Environment) error {
