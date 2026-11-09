@@ -246,9 +246,9 @@ func (s *Service) ReviewAttempt(ctx context.Context, attemptID string) (api.Revi
 func reviewAttempt(ctx context.Context, tx db.Tx, id string) (api.ReviewAttempt, bool, error) {
 	var a api.ReviewAttempt
 	err := tx.QueryRow(ctx, `SELECT attempt_id::text, batch_id::text, invoice_id::text, stage_no, amount, unit, state, review_provenance,
-		evidence_state, submitted_by_user_id::text, created_at FROM payments.submitted_attempt WHERE attempt_id = $1`, id).
+		evidence_state, submitted_by_user_id::text, created_at, version FROM payments.submitted_attempt WHERE attempt_id = $1`, id).
 		Scan(&a.AttemptID, &a.BatchID, &a.InvoiceID, &a.StageNo, &a.Amount, &a.Unit, &a.State, &a.ReviewProvenance, &a.EvidenceState,
-			&a.SubmittedByUserID, &a.SubmittedAt)
+			&a.SubmittedByUserID, &a.SubmittedAt, &a.Version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return a, false, nil
 	}
@@ -256,15 +256,21 @@ func reviewAttempt(ctx context.Context, tx db.Tx, id string) (api.ReviewAttempt,
 		return a, false, err
 	}
 	a.SubmittedAt = a.SubmittedAt.UTC()
-	rs, err := receipts(ctx, tx, id)
+	rows, err := tx.Query(ctx, `SELECT receipt_id::text, upload_id::text, state, media_type, size_bytes, updated_at, encode(content_sha256, 'hex'),
+		evidence_ref FROM payments.receipt_evidence WHERE attempt_id = $1 ORDER BY created_at, receipt_id`, id)
 	if err != nil {
 		return a, false, err
 	}
-	for _, r := range rs {
-		a.Receipts = append(a.Receipts, api.ReviewReceipt{ReceiptID: r.ReceiptID, UploadID: r.UploadID, State: r.State, MediaType: r.MediaType,
-			SizeBytes: r.SizeBytes, UpdatedAt: r.UpdatedAt})
+	defer rows.Close()
+	for rows.Next() {
+		var r api.ReviewReceipt
+		if err := rows.Scan(&r.ReceiptID, &r.UploadID, &r.State, &r.MediaType, &r.SizeBytes, &r.UpdatedAt, &r.ContentSHA256, &r.EvidenceRef); err != nil {
+			return a, false, err
+		}
+		r.UpdatedAt = r.UpdatedAt.UTC()
+		a.Receipts = append(a.Receipts, r)
 	}
-	return a, true, nil
+	return a, true, rows.Err()
 }
 
 // ReconciliationView is one evidence reconciliation record.
