@@ -29,6 +29,15 @@ only when authorized human owners take actual decisions recorded with verifiable
   قابل اثبات نیست.
 - تا تصمیم دربارهٔ مدل هویت فرد (پیشنهاد R5-SEC-01) گرفته نشود، تأیید مالی و بازپرداخت مسدود می‌ماند.
 
+**یافتهٔ مهم ۳ — زیرمجموعه‌های D-35a تا D-35e (اشتراک پلاس):**
+- دو بخش از سند معماری مصوب (§14 و §32) برای این پنج زیرمجموعه عنوان‌های متفاوتی می‌دهند. ماتریس پیاده‌سازی
+  Slice 14 از §14 پیروی کرده است، اما سند پیاده‌سازی مرجع تصمیم محصول نیست.
+- هر دو نگاشت با ذکر منبع حفظ شده و هیچ‌کدام انتخاب نشده است (تعارض C-03).
+- تا تأیید مالکان محصول و مالی، این پنج پرونده آمادهٔ تصمیم نیستند.
+
+**دامنهٔ راستی‌آزمایی شواهد:** آزمون خودکار فقط نشان می‌دهد که متن هر شاهد در همان commit و همان فایل در مخزن
+وجود داشته است. نویسنده یا تأییدکنندهٔ آن را احراز نمی‌کند و هیچ شاهدی «مستقلاً احرازشده» اعلام نشده است.
+
 **ترتیب پیشنهادی جلسات:**
 - **M1:** حاکمیت و دسترسی به دادهٔ واقعی.
 - **M2:** هویت و دسترسی.
@@ -63,7 +72,7 @@ only when authorized human owners take actual decisions recorded with verifiable
 | 9 | `r5-decision-conflict-register.md` | 12 conflicts; historical vs current table |
 | 10 | `r5-management-meeting-agenda.md` | Meetings M1–M6 (no dates), Persian notes |
 | 11 | `r5-readiness-and-closure-report.md` | This report |
-| — | `docs/governance/r5-evidence-index.json` | 45 evidence items (classified, with path / section / commit) + 41 record entries |
+| — | `docs/governance/r5-evidence-index.json` | 48 evidence items (classified, with path / section / commit / anchor / provenance level) + 41 record entries |
 | — | `docs/governance/templates/DECISION-RECORD-TEMPLATE.md` | Standard record template |
 | — | `docs/governance/governance_test.go` | Consistency checks (CI) |
 
@@ -76,7 +85,8 @@ only when authorized human owners take actual decisions recorded with verifiable
 | Closed | 2: D-27, F10 |
 | D-03 … D-22 recovered | **0 of 20**: EVIDENCE NOT RECOVERED — HUMAN REVIEW REQUIRED |
 | DRAFT decision records | 41 (39 existing decisions + REJECT-VOCAB gap + R5-SEC-01 proposal) |
-| Ready for human review | 31: ADR-01, OPD-03, OPD-10, D-29 / D-31, OPD-08, D-43, D-25, D-44, REJECT-VOCAB, D-37, OPD-04, R5-SEC-01, D-34, D-42, D-45, D-26, ADR #18, OPD-05, SD-04, D-35a–e, D-38, D-33, D-39, D-23, D-24, OPD-02, D-40 |
+| Ready for human review | 26: ADR-01, OPD-03, OPD-10, D-29 / D-31, OPD-08, D-43, D-25, D-44, REJECT-VOCAB, D-37, OPD-04, R5-SEC-01, D-34, D-42, D-45, D-26, ADR #18, OPD-05, SD-04, D-38, D-33, D-39, D-23, D-24, OPD-02, D-40 |
+| Need Product + Finance mapping confirmation first | 5: D-35a–e. The sub-item mapping is UNRESOLVED (C-03): Architecture §14 and §32 disagree, and R5 does not treat the Slice 14 implementation matrix as authority |
 | Need further evidence first | 10: F01, D-32, D-28, D-30, D-41, OPD-06, OPD-09, D-36, OPD-07, OPD-01 (mostly real-data evidence blocked by ADR #18; D-28 needs the 2.0.176 artefact; D-32 needs the billing lifecycle contract) |
 | Conflicts | 12 (C-01 … C-12): 1 resolved, 1 resolved by later engineering, 1 controlled, 1 partial, 8 open |
 | Approvals made automatically | **0** |
@@ -114,8 +124,32 @@ only when authorized human owners take actual decisions recorded with verifiable
 | Approval fields empty unless backed by evidence | Test: every R5 record has empty approval date, named approvers, selected option, conditions, evidence of approval and effective date |
 | No unapproved status changed to APPROVED | Test: the only APPROVED statuses in the inventory are D-01, D-02, MONEY (E0); every R5 record carries "DRAFT — NOT APPROVED" |
 | Evidence index valid | Test: JSON parses; every class is allowed; every path exists; every record's evidence ids exist |
+| Evidence provenance | Test (needs full git history; CI fetches it and fails without it): see §6a. Text-at-commit only, **not** independent authentication |
+| D-35a–e mapping | Test: every D-35a–e record cites C-03, states the mapping UNRESOLVED and is not READY; C-03 stays OPEN — UNRESOLVED |
 | No feature activation, deployment, customer data, `plugin/current` change, financial execution, identity merge, Finance / HR authority change | Documentation-only diff (no code under `internal/` or `cmd/`, no migration, no flag); `plugin/current` diff = 0 files |
 | Historical records | Not rewritten: register, go/no-go, E0 and Architecture are unchanged; conflicts are recorded in C-01 … C-12 |
+
+## 6a. Evidence provenance: what is and is not verified
+
+| Check | Status | How |
+|---|---|---|
+| Path exists in the current tree | VERIFIED (automated) | `TestEvidenceIndex` |
+| Commit reference syntax | VERIFIED (automated) | `TestEvidenceIndex` |
+| Every named commit exists and is an ancestor of the tested HEAD | VERIFIED (automated) for all 48 items | `TestEvidenceProvenance` (`git cat-file`, `git merge-base --is-ancestor`) |
+| The cited path exists in that historical commit | VERIFIED (automated) for all 48 items | `git cat-file -e <commit>:<path>` |
+| The supporting section exists in that historical file version | VERIFIED (automated) for all 48 items, by an exact anchor text | `git show <first commit>:<path>` contains the item's `anchor` |
+| Parts outside git or negative claims (PR #23 review thread, the Blueprint's existence, "no signature exists", "no runtime evidence", interpretive comparisons) | **NOT VERIFIED** | Listed per item in `not_verified` (EV-004, 005, 020, 036, 039, 040, 041, 042, 045) |
+| That the fact summary is a complete and correct reading of the anchored text | **NOT VERIFIED** (human review) | — |
+| Who wrote or approved the cited text; independent authentication | **NOT VERIFIED.** No item is independently authenticated | Passing checks show only that the text was in the repository at that commit |
+
+A shallow clone cannot run these checks. The test then reports them as NOT VERIFIED and skips, unless
+`R5_REQUIRE_PROVENANCE=1` is set; CI sets it and checks out full history, so CI fails instead of
+skipping. Regression tests (`TestProvenanceVerifierRejects`) prove that the verifier rejects:
+- an unknown commit;
+- a path absent from the commit;
+- an anchor absent from that version;
+- a malformed commit;
+- a level that claims more than was checked.
 
 ## 7. Independent review readiness
 

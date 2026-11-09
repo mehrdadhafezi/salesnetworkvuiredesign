@@ -13,6 +13,11 @@
     "CONFLICTING"
   ],
   "rule": "Code behaviour and tests are never management authorization.",
+  "verification_scope": "Automated provenance (governance_test.go, with full git history): every commit named in an item exists and is an ancestor of the tested HEAD, the path exists in that commit, and the item's exact anchor text occurs in that historical file version (first commit named). This shows the text was in the repository at that commit. It does NOT authenticate who wrote or approved it, does not prove that the fact summary is a complete or correct reading, and does not verify anything outside git (GitHub threads, owner statements, negative claims). No item is independently authenticated.",
+  "provenance_levels": {
+    "TEXT_AT_COMMIT_VERIFIED": "commit, ancestry, path-at-commit and anchor checked by automation",
+    "NOT_VERIFIED": "no reliable anchor; only path existence on the current tree and commit syntax are checked"
+  },
   "evidence": [
     {
       "id": "EV-001",
@@ -20,7 +25,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/implementation/E0-governance-baseline-freeze.md",
       "section": "§1, §7A",
-      "commit": "9d0bc3e (merged in PR #23 as add2a36)"
+      "commit": "9d0bc3e (merged in PR #23 as add2a36)",
+      "anchor": "D-01 APPROVED / FROZEN · D-02 APPROVED / FROZEN · Money contract APPROVED / FROZEN FOR SLICE 0",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-002",
@@ -28,7 +35,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/implementation/E0-governance-baseline-freeze.md",
       "section": "§7C",
-      "commit": "9d0bc3e"
+      "commit": "9d0bc3e",
+      "anchor": "| D-27 | **CLOSED (reconciled).** SN-208 merged to main as 86859d7",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-003",
@@ -36,7 +45,9 @@
       "cls": "CONFLICTING",
       "path": "docs/implementation/E0-governance-baseline-freeze.md",
       "section": "§7B (first revision)",
-      "commit": "9d0bc3e"
+      "commit": "9d0bc3e",
+      "anchor": "| D-03…D-22 | As registered in the Blueprint |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-004",
@@ -44,7 +55,10 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/implementation/E0-governance-baseline-freeze.md",
       "section": "§7B (amended); PR #23 review thread PRRT_kwDOU-nRxs6uZM8x",
-      "commit": "4c3ae88"
+      "commit": "4c3ae88",
+      "anchor": "D-03…D-22 are not recorded on main and must be committed before any phase that relies on them.",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "The PR #23 review thread lives on GitHub, not in git: not verified by automation."
     },
     {
       "id": "EV-005",
@@ -52,7 +66,10 @@
       "cls": "MISSING",
       "path": "docs/implementation/E0-governance-baseline-freeze.md",
       "section": "§2 (OWNER-BRIEF)",
-      "commit": "9d0bc3e"
+      "commit": "9d0bc3e",
+      "anchor": "OWNER-BRIEF (stated by the owner; artifact not in repo)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "That the Blueprint exists outside the repository is an owner statement: not verifiable here."
     },
     {
       "id": "EV-006",
@@ -60,7 +77,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
       "section": "§32",
-      "commit": "560ca6c"
+      "commit": "560ca6c",
+      "anchor": "| D-03…D-22 | Content not recorded on main; **not authoritative until separately recorded** (E0 rule 1) |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-007",
@@ -68,7 +87,9 @@
       "cls": "PROPOSAL_ONLY",
       "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
       "section": "§32",
-      "commit": "560ca6c"
+      "commit": "560ca6c",
+      "anchor": "## 32. Open owner decisions (none resolved by this record)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-008",
@@ -76,7 +97,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/source-of-truth/CRM-CROSS-ROLE-ARCHITECTURE-V1.md",
       "section": "§19",
-      "commit": "a0c91ef"
+      "commit": "a0c91ef",
+      "anchor": "## 19. Open Decision Register",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-009",
@@ -84,7 +107,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/source-of-truth/CRM-CROSS-ROLE-ARCHITECTURE-V1.md",
       "section": "§8",
-      "commit": "a0c91ef"
+      "commit": "a0c91ef",
+      "anchor": "## 8. Financial Dependency",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-010",
@@ -92,7 +117,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/source-of-truth/CRM-CROSS-ROLE-ARCHITECTURE-V1.md",
       "section": "§21 Implementation Readiness",
-      "commit": "a0c91ef"
+      "commit": "a0c91ef",
+      "anchor": "IMPLEMENTATION CONTRACT READY",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-011",
@@ -100,7 +127,9 @@
       "cls": "PROPOSAL_ONLY",
       "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
       "section": "§6 (ADR-01 candidate)",
-      "commit": "560ca6c"
+      "commit": "560ca6c",
+      "anchor": "**ADR-01 candidate — Invoice issuance vs case return mutual safety (FPR Gate-0 INV-009).**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-012",
@@ -108,7 +137,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/cutover/decision-approval-register.md",
       "section": "header, §1",
-      "commit": "7f1eb94"
+      "commit": "7f1eb94",
+      "anchor": "**Status of every entry: OPEN.**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-013",
@@ -116,7 +147,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/cutover/go-no-go-report.md",
       "section": "§4, §5",
-      "commit": "7f1eb94"
+      "commit": "7f1eb94",
+      "anchor": "| **Overall recommendation** | **NO-GO for Production** |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-014",
@@ -124,7 +157,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/cutover/go-no-go-report.md",
       "section": "Addendum 2026-11-09",
-      "commit": "9d6b49b"
+      "commit": "9d6b49b",
+      "anchor": "## Addendum — R4 sales and finance readiness (2026-11-09)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-015",
@@ -132,7 +167,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/implementation/E0-governance-baseline-freeze.md",
       "section": "§6",
-      "commit": "9d0bc3e"
+      "commit": "9d0bc3e",
+      "anchor": "| 18 | Staging / anonymization | DEFERRED |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-016",
@@ -140,7 +177,9 @@
       "cls": "SYNTHETIC_TEST",
       "path": "docs/remediation/r4-inventory-race-safety.md",
       "section": "Results; Mutation check",
-      "commit": "9d6b49b"
+      "commit": "9d6b49b",
+      "anchor": "## Mutation check (the harness detects real races)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-017",
@@ -148,7 +187,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/remediation/r4-sales-implementation-matrix.md",
       "section": "§2",
-      "commit": "9d6b49b"
+      "commit": "9d6b49b",
+      "anchor": "| Invoice claim (`cases.ClaimCaseForInvoice`) | BLOCKED: no command, no route |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-018",
@@ -156,7 +197,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/remediation/r4-finance-review-contract.md",
       "section": "Checks",
-      "commit": "9d6b49b"
+      "commit": "9d6b49b",
+      "anchor": "maker ≠ checker",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-019",
@@ -164,7 +207,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/remediation/r4-finance-review-contract.md",
       "section": "Known gaps",
-      "commit": "9d6b49b"
+      "commit": "9d6b49b",
+      "anchor": "IDENTITY_PERSON_LINK_UNMODELLED",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-020",
@@ -172,7 +217,10 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "internal/identity/migrations/sql/00001_identity.sql",
       "section": "user_account",
-      "commit": "833660a"
+      "commit": "833660a",
+      "anchor": "CONSTRAINT user_account_source_unique UNIQUE (source_system, source_key)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "The claim that no person entity exists is a negative claim over the whole schema: not proven by the anchor."
     },
     {
       "id": "EV-021",
@@ -180,7 +228,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/remediation/r4-ledger-posting-contract.md",
       "section": "Contract",
-      "commit": "9d6b49b"
+      "commit": "9d6b49b",
+      "anchor": "**Neither is chosen** (D-41)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-022",
@@ -188,7 +238,9 @@
       "cls": "SYNTHETIC_TEST",
       "path": "docs/remediation/r4-ledger-posting-contract.md",
       "section": "Evidence",
-      "commit": "9d6b49b"
+      "commit": "9d6b49b",
+      "anchor": "20 concurrent identical requests",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-023",
@@ -196,7 +248,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/remediation/r4-refund-state-machine.md",
       "section": "all",
-      "commit": "225c53e"
+      "commit": "225c53e",
+      "anchor": "every structurally sound transition is BLOCKED by OPD-04",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-024",
@@ -204,7 +258,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/implementation/slice-13-commission-command-matrix.md",
       "section": "§1 engine table",
-      "commit": "97c7129"
+      "commit": "97c7129",
+      "anchor": "returns if E1 enabled",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-025",
@@ -212,7 +268,9 @@
       "cls": "SYNTHETIC_TEST",
       "path": "docs/remediation/r4-commission-reconciliation.md",
       "section": "Verified properties",
-      "commit": "9d6b49b"
+      "commit": "9d6b49b",
+      "anchor": "## Verified properties",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-026",
@@ -220,7 +278,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/implementation/slice-12-command-matrix.md",
       "section": "§2, §4",
-      "commit": "beba65a"
+      "commit": "beba65a",
+      "anchor": "BLOCKED (evaluator only)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-027",
@@ -228,7 +288,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/implementation/slice-11-command-matrix.md",
       "section": "Matrix",
-      "commit": "fb8be9b"
+      "commit": "fb8be9b",
+      "anchor": "| `Transfer` (holder → holder) | BLOCKED |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-028",
@@ -236,7 +298,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/implementation/slice-14-biawin-command-matrix.md",
       "section": "decision rows",
-      "commit": "26f92b1"
+      "commit": "26f92b1",
+      "anchor": "**`charge_wallet` is not a target command (D-38).**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-029",
@@ -244,7 +308,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/remediation/r1-production-auth.md",
       "section": "Open decisions",
-      "commit": "dffbc72"
+      "commit": "dffbc72",
+      "anchor": "D-34 (initial password / provisioning)",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-030",
@@ -252,7 +318,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/remediation/r2-implementation-matrix.md",
       "section": "row 5",
-      "commit": "492dc4e"
+      "commit": "492dc4e",
+      "anchor": "**BLOCKED by D-44**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-031",
@@ -260,7 +328,9 @@
       "cls": "IMPLEMENTATION_BEHAVIOR",
       "path": "docs/remediation/r3-infrastructure-readiness-matrix.md",
       "section": "E-6 and P0-4 status",
-      "commit": "0117c07"
+      "commit": "0117c07",
+      "anchor": "- **P0-4: NOT closed.**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-032",
@@ -268,15 +338,19 @@
       "cls": "CONFLICTING",
       "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
       "section": "§32 D-28",
-      "commit": "560ca6c"
+      "commit": "560ca6c",
+      "anchor": "| D-28 | Assessment invoice partial-payment policy (2.0.176 removed the full-payment rule) |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-033",
-      "fact": "D-35a–e sub-item labels differ: Arch §32 (business model, lifecycle, cash-credit, Biawin fulfilment, mandatory conversion) vs register / Slice 14 (cash credit, installment credit, expiry/redemption, Biawin redemption SoR, mandatory conversion)",
+      "fact": "Architecture V1 §14 'ODR D-35 a–e' assigns explicit letters: (a) cash credit, (b) installment credit, (c) expiry/spend rules, (d) Biawin as redemption system of record, (e) conversion mandatory for the no-cash path",
       "cls": "CONFLICTING",
-      "path": "docs/cutover/decision-approval-register.md",
-      "section": "§1 D-35a–e; Arch §32; Slice 14 matrix",
-      "commit": "7f1eb94"
+      "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
+      "section": "§14 ODR D-35 a–e",
+      "commit": "560ca6c",
+      "anchor": "**ODR D-35 a–e:** (a) cash credit = liability vs voucher vs merchant credit; (b) installment credit =",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-034",
@@ -284,7 +358,9 @@
       "cls": "CONFLICTING",
       "path": "docs/cutover/decision-approval-register.md",
       "section": "§1 D-44",
-      "commit": "7f1eb94"
+      "commit": "7f1eb94",
+      "anchor": "Bound kept indefinitely; unbound 7 days",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-035",
@@ -292,7 +368,9 @@
       "cls": "CONFLICTING",
       "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
       "section": "§32 D-34",
-      "commit": "560ca6c"
+      "commit": "560ca6c",
+      "anchor": "| D-34 | HR initial-password policy | identity | Slice 4 writes / 11 | random password + reset flow |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-036",
@@ -300,7 +378,10 @@
       "cls": "CONFLICTING",
       "path": "docs/cutover/decision-approval-register.md",
       "section": "§1 OPD rows vs Cross-Role §19",
-      "commit": "7f1eb94"
+      "commit": "7f1eb94",
+      "anchor": "| OPD-06 | Units, rounding, 0.5 boundary |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "The owner-list differences are a comparison of two documents; only the register row is anchored."
     },
     {
       "id": "EV-037",
@@ -308,7 +389,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/source-of-truth/CRM-CROSS-ROLE-ARCHITECTURE-V1.md",
       "section": "§7 (pathways)",
-      "commit": "a0c91ef"
+      "commit": "a0c91ef",
+      "anchor": "| خدمات مازاد | API / Web Service → Biawin CRM |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-038",
@@ -316,7 +399,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "AGENTS.md",
       "section": "Identity",
-      "commit": "a0c91ef"
+      "commit": "a0c91ef",
+      "anchor": "Phone is discovery/search data only.",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-039",
@@ -324,7 +409,10 @@
       "cls": "MISSING",
       "path": "docs/cutover/data-reconciliation-register.md",
       "section": "§0",
-      "commit": "7f1eb94"
+      "commit": "7f1eb94",
+      "anchor": "| Real-data reconciliation run | **NONE.**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "INV-036 linkage is an interpretation; the anchor shows only that no real-data run happened."
     },
     {
       "id": "EV-040",
@@ -332,7 +420,10 @@
       "cls": "MISSING",
       "path": "docs/cutover/decision-approval-register.md",
       "section": "header",
-      "commit": "7f1eb94"
+      "commit": "7f1eb94",
+      "anchor": "**This register approves nothing.**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "Absence of any signature, minute or dated authorization is a negative claim: the anchor shows only the register's own statement."
     },
     {
       "id": "EV-041",
@@ -340,7 +431,10 @@
       "cls": "CONFLICTING",
       "path": "docs/cutover/go-no-go-report.md",
       "section": "§4 P2 vs R3 readiness matrix rows 21-22",
-      "commit": "7f1eb94 / 0117c07"
+      "commit": "7f1eb94 / 0117c07",
+      "anchor": "| P2-1 | Compiled 16 MB binary tracked at the repo root",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "The R3 side (0117c07) is checked for path and commit only; the comparison is an interpretation."
     },
     {
       "id": "EV-042",
@@ -348,7 +442,10 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/source-of-truth/GATE-0-PRODUCT-INVARIANTS.md",
       "section": "INV table",
-      "commit": "a0c91ef"
+      "commit": "a0c91ef",
+      "anchor": "| INV-015 Refund Distinction |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "INV-009 and INV-032 are in the same file version but only INV-015 is anchored."
     },
     {
       "id": "EV-043",
@@ -356,7 +453,9 @@
       "cls": "AUTHORITATIVE_APPROVED",
       "path": "docs/source-of-truth/FINANCE-PRODUCT-SPEC.md",
       "section": "whole",
-      "commit": "a0c91ef"
+      "commit": "a0c91ef",
+      "anchor": "**FROZEN PRODUCT TARGET / IMPLEMENTATION DEFERRED**",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-044",
@@ -364,7 +463,9 @@
       "cls": "MISSING",
       "path": "AGENTS.md",
       "section": "Runtime Verification",
-      "commit": "a0c91ef"
+      "commit": "a0c91ef",
+      "anchor": "HR and Finance runtime remain NOT LIVE VERIFIED until dedicated real role accounts are tested.",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     },
     {
       "id": "EV-045",
@@ -372,7 +473,40 @@
       "cls": "MISSING",
       "path": "docs/remediation/r4-fault-injection-evidence.md",
       "section": "Not verified",
-      "commit": "9d6b49b"
+      "commit": "9d6b49b",
+      "anchor": "## Not verified",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED",
+      "not_verified": "Absence of runtime evidence is a negative claim: the anchor shows only the document's own section."
+    },
+    {
+      "id": "EV-046",
+      "fact": "Architecture V1 §32 row D-35a–e lists five topics without letters: Subscription+ business model, lifecycle, cash-credit semantics, Biawin fulfilment, mandatory conversion (topics and order differ from §14)",
+      "cls": "CONFLICTING",
+      "path": "docs/implementation/CRM-STANDALONE-TARGET-ARCHITECTURE-V1.md",
+      "section": "§32 row D-35a–e",
+      "commit": "560ca6c",
+      "anchor": "| D-35a–e | Subscription+ business model, lifecycle, cash-credit semantics, Biawin fulfilment, mandatory conversion |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-047",
+      "fact": "Slice 15 register row D-35a–e lists, without letters and in §14 order: cash-credit semantics, installment credit, expiry/redemption, Biawin as redemption system of record, mandatory conversion ('per Arch §14')",
+      "cls": "PROPOSAL_ONLY",
+      "path": "docs/cutover/decision-approval-register.md",
+      "section": "§1 row D-35a–e",
+      "commit": "7f1eb94",
+      "anchor": "| D-35a–e | Subscription+ model: cash-credit semantics, installment credit, expiry/redemption, Biawin as redemption system of record, mandatory conversion |",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
+    },
+    {
+      "id": "EV-048",
+      "fact": "Slice 14 implementation matrix assigns letters D-35a…e following Arch §14 (cites 'Target Arch §14 \"ODR D-35 a–e\"'); an implementation document, not product authority",
+      "cls": "IMPLEMENTATION_BEHAVIOR",
+      "path": "docs/implementation/slice-14-biawin-command-matrix.md",
+      "section": "§3 decision rows D-35a…e",
+      "commit": "1d873a7",
+      "anchor": "| D-35a cash credit semantics | OPEN | Target Arch §14 \"ODR D-35 a–e\"",
+      "provenance": "TEXT_AT_COMMIT_VERIFIED"
     }
   ],
   "decision_records": [
@@ -656,48 +790,65 @@
       "id": "D-35a",
       "package": "P-BIAWIN",
       "status": "DRAFT — NOT APPROVED",
-      "readiness": "READY FOR HUMAN REVIEW",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
       "evidence": [
         "EV-028",
-        "EV-033"
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
       ]
     },
     {
       "id": "D-35b",
       "package": "P-BIAWIN",
       "status": "DRAFT — NOT APPROVED",
-      "readiness": "READY FOR HUMAN REVIEW",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
       "evidence": [
         "EV-028",
-        "EV-033"
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
       ]
     },
     {
       "id": "D-35c",
       "package": "P-BIAWIN",
       "status": "DRAFT — NOT APPROVED",
-      "readiness": "READY FOR HUMAN REVIEW",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
       "evidence": [
         "EV-028",
-        "EV-033"
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
       ]
     },
     {
       "id": "D-35d",
       "package": "P-BIAWIN",
       "status": "DRAFT — NOT APPROVED",
-      "readiness": "READY FOR HUMAN REVIEW",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
       "evidence": [
-        "EV-028"
+        "EV-028",
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
       ]
     },
     {
       "id": "D-35e",
       "package": "P-BIAWIN",
       "status": "DRAFT — NOT APPROVED",
-      "readiness": "READY FOR HUMAN REVIEW",
+      "readiness": "NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION",
       "evidence": [
-        "EV-028"
+        "EV-028",
+        "EV-033",
+        "EV-046",
+        "EV-047",
+        "EV-048"
       ]
     },
     {

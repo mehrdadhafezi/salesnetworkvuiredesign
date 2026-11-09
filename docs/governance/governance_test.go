@@ -210,3 +210,46 @@ func TestEvidenceIndex(t *testing.T) {
 		}
 	}
 }
+
+// D-35a–e (review finding G1): the sub-item mapping is disputed between Architecture §14 and §32
+// (conflict C-03). No record may present a mapping as settled, and C-03 stays unresolved until an
+// approval record exists.
+func TestD35MappingStaysUnresolved(t *testing.T) {
+	doc := read(t, "docs/remediation/r5-biawin-reporting-governance-DRAFT.md")
+	found := 0
+	for _, b := range strings.Split(doc, "\n### ")[1:] {
+		if !strings.HasPrefix(b, "D-35") {
+			continue
+		}
+		found++
+		title := strings.SplitN(b, "\n", 2)[0]
+		for _, want := range []string{"mapping UNRESOLVED (C-03)", "Arch §14", "Arch §32", "| Readiness | NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03)"} {
+			if !strings.Contains(b, want) {
+				t.Errorf("record %q must contain %q", title, want)
+			}
+		}
+	}
+	if found != 5 {
+		t.Fatalf("expected 5 D-35a–e records, found %d", found)
+	}
+	var row string
+	for _, l := range strings.Split(read(t, "docs/remediation/r5-decision-conflict-register.md"), "\n") {
+		if strings.HasPrefix(l, "| C-03 |") {
+			row = l
+		}
+	}
+	if !strings.HasSuffix(strings.TrimSpace(row), "| **OPEN — UNRESOLVED** pending Product + Finance |") {
+		t.Errorf("C-03 must stay OPEN — UNRESOLVED, got %q", row)
+	}
+	var idx struct {
+		Records []struct{ ID, Readiness string } `json:"decision_records"`
+	}
+	if err := json.Unmarshal([]byte(read(t, "docs/governance/r5-evidence-index.json")), &idx); err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range idx.Records {
+		if strings.HasPrefix(r.ID, "D-35") && !strings.Contains(r.Readiness, "MAPPING CONFIRMATION (C-03)") {
+			t.Errorf("index record %s readiness %q presents the mapping as settled", r.ID, r.Readiness)
+		}
+	}
+}

@@ -293,7 +293,7 @@ separate intent. **Never** is accrual / cash, conversion or rounding chosen here
 | Background | Architecture §32 safe default: entitlement account flagged provisional. |
 | Current behavior | No installment entitlement exists in the target (Slice 14). |
 | Evidence references | EV-007, EV-028 (see `docs/governance/r5-evidence-index.json`) |
-| Source | Architecture V1 §32; register (D-35b references D-37) |
+| Source | Architecture V1 §12, §32; register; Slice 14 matrix (its D-35b row references D-37; §14 labelling, mapping disputed C-03) |
 | Authority status | OPEN |
 | Missing evidence | Business model definition (D-35). |
 | Alternatives | Financing product (receivable with schedule).<br>Entitlement (credit consumable for services).<br>Not offered in the target. |
@@ -304,7 +304,7 @@ separate intent. **Never** is accrual / cash, conversion or rounding chosen here
 | Dependent modules | finance, catalog, biawin |
 | Business owner | Finance |
 | Required approver roles | Finance owner |
-| Dependencies | D-35b, D-41 |
+| Dependencies | D-35b (§14 labelling; C-03), D-41 |
 | Affected blocker | P1 |
 | Readiness | READY FOR HUMAN REVIEW |
 | Approval date |  |

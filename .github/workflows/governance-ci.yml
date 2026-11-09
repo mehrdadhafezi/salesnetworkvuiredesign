@@ -30,11 +30,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history: the provenance test reads the cited commits.
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
-      - name: R5 governance consistency
+      - name: R5 governance consistency and evidence provenance
+        env:
+          R5_REQUIRE_PROVENANCE: "1"
         run: go test -count=1 -v ./docs/governance/

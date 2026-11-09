@@ -17,32 +17,32 @@ financial policy is approved here.
 
 ## P-BIAWIN
 
-### D-35a — Subscription+ cash credit semantics
+### D-35a — Sub-item (a): mapping UNRESOLVED (C-03)
 
 **DRAFT — NOT APPROVED**
 
 | Field | Value |
 |---|---|
 | Decision ID | D-35a |
-| Title | Subscription+ cash credit semantics |
-| Business question | What is the cash-credit entitlement of a Subscription+ plan and how is it consumed? |
-| Background | Sub-item labels differ between Arch §32 and the register (conflict C-03). |
+| Title | Sub-item (a): mapping UNRESOLVED (C-03) |
+| Business question | Two exact source mappings exist and neither is confirmed (C-03). Under Arch §14 / register / Slice 14 the question is: What is the cash-credit entitlement of a Subscription+ plan and how is it consumed? Under a positional reading of the unlettered Arch §32 list, sub-item (a) would be 'Subscription+ business model'. Product + Finance first confirm the mapping; this record presupposes neither. |
+| Background | Arch §14 (560ca6c): '(a) cash credit = liability vs voucher vs merchant credit'. Arch §32 row D-35a–e (560ca6c), 1st of five unlettered topics: 'Subscription+ business model' (whether §32 is positional is not stated). Register §1 (7f1eb94) follows §14 order without letters; the Slice 14 matrix (1d873a7) assigns letters from §14. The implementation matrix is not treated as authority over the frozen architecture; R5 selects no mapping. |
 | Current behavior | No cash-credit entitlement exists. |
-| Evidence references | EV-028, EV-033 (see `docs/governance/r5-evidence-index.json`) |
-| Source | Architecture V1 §32 / §14; register; Slice 14 (labels conflict C-03) |
+| Evidence references | EV-028, EV-033, EV-046, EV-047, EV-048 (see `docs/governance/r5-evidence-index.json`) |
+| Source | Architecture V1 §14 (explicit letter) and §32 (unlettered list); register §1; Slice 14 matrix §3. Mapping UNRESOLVED pending Product + Finance (C-03) |
 | Authority status | OPEN |
-| Missing evidence | Business model definition; label reconciliation. |
-| Alternatives | Define as consumable credit.<br>Define as prepaid balance.<br>Not offered. |
+| Missing evidence | Product + Finance confirmation of the D-35 sub-item mapping (C-03). Business model definition. |
+| Alternatives | (Listed under the §14 labelling; void if a different mapping is confirmed.) Define as consumable credit.<br>Define as prepaid balance.<br>Not offered. |
 | Trade-offs | Credit implies ledger accounts (P-FIN-B). |
 | Recommended option, if defensible | None — this is a business choice; engineering has no defensible preference. |
 | Why the recommendation is conditional | — |
 | Risks and compensating controls | See trade-offs; no control replaces the decision. |
 | Dependent modules | catalog, biawin, finance |
 | Business owner | Product + Finance |
-| Required approver roles | Product and Finance owners |
-| Dependencies | D-41, D-37 |
+| Required approver roles | Product and Finance owners (mapping); Product and Finance owners (decision) |
+| Dependencies | C-03 mapping confirmation, D-41, D-37 |
 | Affected blocker | P1-2 |
-| Readiness | READY FOR HUMAN REVIEW |
+| Readiness | NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION |
 | Approval date |  |
 | Named approvers |  |
 | Selected option |  |
@@ -53,32 +53,32 @@ financial policy is approved here.
 | Implementation follow-up | Entitlement model. |
 | Activation gate | Separate. |
 
-### D-35b — Installment credit (see D-37)
+### D-35b — Sub-item (b): mapping UNRESOLVED (C-03)
 
 **DRAFT — NOT APPROVED**
 
 | Field | Value |
 |---|---|
 | Decision ID | D-35b |
-| Title | Installment credit (see D-37) |
-| Business question | How does installment credit apply to Subscription+ (D-37 decides the account type)? |
-| Background | Arch §32 labels D-35b 'lifecycle' (conflict C-03). |
+| Title | Sub-item (b): mapping UNRESOLVED (C-03) |
+| Business question | Two exact source mappings exist and neither is confirmed (C-03). Under Arch §14 / register / Slice 14 the question is: How does installment credit apply to Subscription+ (D-37 decides the account type)? Under a positional reading of the unlettered Arch §32 list, sub-item (b) would be 'lifecycle'. Product + Finance first confirm the mapping; this record presupposes neither. |
+| Background | Arch §14 (560ca6c): '(b) installment credit = financing product?'. Arch §32 row D-35a–e (560ca6c), 2nd of five unlettered topics: 'lifecycle' (whether §32 is positional is not stated). Register §1 (7f1eb94) follows §14 order without letters; the Slice 14 matrix (1d873a7) assigns letters from §14. The implementation matrix is not treated as authority over the frozen architecture; R5 selects no mapping. |
 | Current behavior | No installment entitlement. |
-| Evidence references | EV-028, EV-033 (see `docs/governance/r5-evidence-index.json`) |
-| Source | register; Slice 14 |
+| Evidence references | EV-028, EV-033, EV-046, EV-047, EV-048 (see `docs/governance/r5-evidence-index.json`) |
+| Source | Architecture V1 §14 (explicit letter) and §32 (unlettered list); register §1; Slice 14 matrix §3. Mapping UNRESOLVED pending Product + Finance (C-03) |
 | Authority status | OPEN |
-| Missing evidence | D-37. |
-| Alternatives | Follow D-37.<br>Exclude from Subscription+. |
+| Missing evidence | Product + Finance confirmation of the D-35 sub-item mapping (C-03). D-37. |
+| Alternatives | (Listed under the §14 labelling; void if a different mapping is confirmed.) Follow D-37.<br>Exclude from Subscription+. |
 | Trade-offs | — |
 | Recommended option, if defensible | None — this is a business choice; engineering has no defensible preference. |
 | Why the recommendation is conditional | — |
 | Risks and compensating controls | See trade-offs; no control replaces the decision. |
 | Dependent modules | finance, biawin |
 | Business owner | Finance |
-| Required approver roles | Finance owner |
-| Dependencies | D-37 |
+| Required approver roles | Product and Finance owners (mapping); Finance owner (decision) |
+| Dependencies | C-03 mapping confirmation, D-37 |
 | Affected blocker | P1-2 |
-| Readiness | READY FOR HUMAN REVIEW |
+| Readiness | NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION |
 | Approval date |  |
 | Named approvers |  |
 | Selected option |  |
@@ -89,32 +89,32 @@ financial policy is approved here.
 | Implementation follow-up | — |
 | Activation gate | — |
 
-### D-35c — Expiry / spend / redemption lifecycle
+### D-35c — Sub-item (c): mapping UNRESOLVED (C-03)
 
 **DRAFT — NOT APPROVED**
 
 | Field | Value |
 |---|---|
 | Decision ID | D-35c |
-| Title | Expiry / spend / redemption lifecycle |
-| Business question | When do Subscription+ entitlements expire, how are they spent and redeemed, and may they be suspended or reactivated? |
-| Background | Arch §32 labels D-35c 'cash-credit semantics' (conflict C-03). |
+| Title | Sub-item (c): mapping UNRESOLVED (C-03) |
+| Business question | Two exact source mappings exist and neither is confirmed (C-03). Under Arch §14 / register / Slice 14 the question is: When do Subscription+ entitlements expire, how are they spent and redeemed, and may they be suspended or reactivated? Under a positional reading of the unlettered Arch §32 list, sub-item (c) would be 'cash-credit semantics'. Product + Finance first confirm the mapping; this record presupposes neither. |
+| Background | Arch §14 (560ca6c): '(c) expiry/spend rules'. Arch §32 row D-35a–e (560ca6c), 3rd of five unlettered topics: 'cash-credit semantics' (whether §32 is positional is not stated). Register §1 (7f1eb94) follows §14 order without letters; the Slice 14 matrix (1d873a7) assigns letters from §14. The implementation matrix is not treated as authority over the frozen architecture; R5 selects no mapping. |
 | Current behavior | No lifecycle transitions. |
-| Evidence references | EV-028, EV-033 (see `docs/governance/r5-evidence-index.json`) |
-| Source | register; Slice 14 |
+| Evidence references | EV-028, EV-033, EV-046, EV-047, EV-048 (see `docs/governance/r5-evidence-index.json`) |
+| Source | Architecture V1 §14 (explicit letter) and §32 (unlettered list); register §1; Slice 14 matrix §3. Mapping UNRESOLVED pending Product + Finance (C-03) |
 | Authority status | OPEN |
-| Missing evidence | Lifecycle definition. |
-| Alternatives | Fixed term from activation.<br>Term from first use.<br>No expiry. |
+| Missing evidence | Product + Finance confirmation of the D-35 sub-item mapping (C-03). Lifecycle definition. |
+| Alternatives | (Listed under the §14 labelling; void if a different mapping is confirmed.) Fixed term from activation.<br>Term from first use.<br>No expiry. |
 | Trade-offs | Expiry affects revenue recognition (D-41). |
 | Recommended option, if defensible | None — this is a business choice; engineering has no defensible preference. |
 | Why the recommendation is conditional | — |
 | Risks and compensating controls | See trade-offs; no control replaces the decision. |
 | Dependent modules | catalog, biawin |
 | Business owner | Product + Finance |
-| Required approver roles | Product and Finance owners |
-| Dependencies | D-41 |
+| Required approver roles | Product and Finance owners (mapping); Product and Finance owners (decision) |
+| Dependencies | C-03 mapping confirmation, D-41 |
 | Affected blocker | P1-2 |
-| Readiness | READY FOR HUMAN REVIEW |
+| Readiness | NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION |
 | Approval date |  |
 | Named approvers |  |
 | Selected option |  |
@@ -125,32 +125,32 @@ financial policy is approved here.
 | Implementation follow-up | Lifecycle commands. |
 | Activation gate | Separate. |
 
-### D-35d — Biawin as redemption system of record
+### D-35d — Sub-item (d): mapping UNRESOLVED (C-03)
 
 **DRAFT — NOT APPROVED**
 
 | Field | Value |
 |---|---|
 | Decision ID | D-35d |
-| Title | Biawin as redemption system of record |
-| Business question | Is Biawin the system of record for redemption, or evidence only? |
-| Background | Target treats provider results as evidence only. |
+| Title | Sub-item (d): mapping UNRESOLVED (C-03) |
+| Business question | Two exact source mappings exist and neither is confirmed (C-03). Under Arch §14 / register / Slice 14 the question is: Is Biawin the system of record for redemption, or evidence only? Under a positional reading of the unlettered Arch §32 list, sub-item (d) would be 'Biawin fulfilment'. Product + Finance first confirm the mapping; this record presupposes neither. |
+| Background | Arch §14 (560ca6c): '(d) Biawin as redemption system of record'. Arch §32 row D-35a–e (560ca6c), 4th of five unlettered topics: 'Biawin fulfilment' (whether §32 is positional is not stated). Register §1 (7f1eb94) follows §14 order without letters; the Slice 14 matrix (1d873a7) assigns letters from §14. The implementation matrix is not treated as authority over the frozen architecture; R5 selects no mapping. |
 | Current behavior | Biawin never authoritative; synthetic provider only. |
-| Evidence references | EV-028 (see `docs/governance/r5-evidence-index.json`) |
-| Source | register; Slice 14 |
+| Evidence references | EV-028, EV-033, EV-046, EV-047, EV-048 (see `docs/governance/r5-evidence-index.json`) |
+| Source | Architecture V1 §14 (explicit letter) and §32 (unlettered list); register §1; Slice 14 matrix §3. Mapping UNRESOLVED pending Product + Finance (C-03) |
 | Authority status | OPEN |
-| Missing evidence | Provider contract. |
-| Alternatives | CRM is SoR; Biawin reports.<br>Biawin is SoR; CRM mirrors.<br>Shared with reconciliation. |
+| Missing evidence | Product + Finance confirmation of the D-35 sub-item mapping (C-03). Provider contract. |
+| Alternatives | (Listed under the §14 labelling; void if a different mapping is confirmed.) CRM is SoR; Biawin reports.<br>Biawin is SoR; CRM mirrors.<br>Shared with reconciliation. |
 | Trade-offs | SoR choice decides reconciliation direction. |
 | Recommended option, if defensible | None — this is a business choice; engineering has no defensible preference. |
 | Why the recommendation is conditional | — |
 | Risks and compensating controls | See trade-offs; no control replaces the decision. |
 | Dependent modules | biawin, integration |
 | Business owner | Product + Finance |
-| Required approver roles | Product and Finance owners |
-| Dependencies | D-38 |
+| Required approver roles | Product and Finance owners (mapping); Product and Finance owners (decision) |
+| Dependencies | C-03 mapping confirmation, D-38 |
 | Affected blocker | P1-2 |
-| Readiness | READY FOR HUMAN REVIEW |
+| Readiness | NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION |
 | Approval date |  |
 | Named approvers |  |
 | Selected option |  |
@@ -161,32 +161,32 @@ financial policy is approved here.
 | Implementation follow-up | Provider adapter. |
 | Activation gate | Separate. |
 
-### D-35e — Mandatory conversion (no-cash path)
+### D-35e — Sub-item (e): mapping UNRESOLVED (C-03)
 
 **DRAFT — NOT APPROVED**
 
 | Field | Value |
 |---|---|
 | Decision ID | D-35e |
-| Title | Mandatory conversion (no-cash path) |
-| Business question | Is conversion mandatory for the no-cash path? |
-| Background | Dot conversion is never substituted for Biawin routing. |
+| Title | Sub-item (e): mapping UNRESOLVED (C-03) |
+| Business question | Two exact source mappings exist and neither is confirmed (C-03). Under Arch §14 / register / Slice 14 the question is: Is conversion mandatory for the no-cash path? Under a positional reading of the unlettered Arch §32 list, sub-item (e) would be 'mandatory conversion'. Product + Finance first confirm the mapping; this record presupposes neither. |
+| Background | Arch §14 (560ca6c): '(e) is conversion mandatory for the no-cash path'. Arch §32 row D-35a–e (560ca6c), 5th of five unlettered topics: 'mandatory conversion' (whether §32 is positional is not stated). Register §1 (7f1eb94) follows §14 order without letters; the Slice 14 matrix (1d873a7) assigns letters from §14. The implementation matrix is not treated as authority over the frozen architecture; R5 selects no mapping. |
 | Current behavior | Routing explicit; never inferred. |
-| Evidence references | EV-028 (see `docs/governance/r5-evidence-index.json`) |
-| Source | register; Slice 14 |
+| Evidence references | EV-028, EV-033, EV-046, EV-047, EV-048 (see `docs/governance/r5-evidence-index.json`) |
+| Source | Architecture V1 §14 (explicit letter) and §32 (unlettered list); register §1; Slice 14 matrix §3. Mapping UNRESOLVED pending Product + Finance (C-03) |
 | Authority status | OPEN |
-| Missing evidence | — |
-| Alternatives | Mandatory.<br>Optional.<br>Not applicable. |
+| Missing evidence | Product + Finance confirmation of the D-35 sub-item mapping (C-03). — |
+| Alternatives | (Listed under the §14 labelling; void if a different mapping is confirmed.) Mandatory.<br>Optional.<br>Not applicable. |
 | Trade-offs | — |
 | Recommended option, if defensible | None — this is a business choice; engineering has no defensible preference. |
 | Why the recommendation is conditional | — |
 | Risks and compensating controls | See trade-offs; no control replaces the decision. |
 | Dependent modules | biawin, sales |
-| Business owner | Product |
-| Required approver roles | Product owner |
-| Dependencies | — |
+| Business owner | Product (Finance for the C-03 mapping) |
+| Required approver roles | Product and Finance owners (mapping); Product owner (decision) |
+| Dependencies | C-03 mapping confirmation |
 | Affected blocker | P1-2 |
-| Readiness | READY FOR HUMAN REVIEW |
+| Readiness | NEEDS PRODUCT + FINANCE MAPPING CONFIRMATION (C-03) BEFORE A DECISION |
 | Approval date |  |
 | Named approvers |  |
 | Selected option |  |
@@ -220,7 +220,7 @@ financial policy is approved here.
 | Dependent modules | biawin, finance |
 | Business owner | Finance + Product |
 | Required approver roles | Finance and Product owners |
-| Dependencies | D-41, D-35d |
+| Dependencies | D-41, D-35d (§14 labelling; C-03) |
 | Affected blocker | P1-2 |
 | Readiness | READY FOR HUMAN REVIEW |
 | Approval date |  |
