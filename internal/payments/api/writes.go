@@ -90,6 +90,11 @@ type ReviewReceipt struct {
 	MediaType string
 	SizeBytes int
 	UpdatedAt time.Time
+	// ContentSHA256 is the immutable hex SHA-256 of the receipt bytes bound
+	// at submission (R4: the evidence reference a decision must cite).
+	ContentSHA256 string
+	// EvidenceRef is the content-addressed object key once READY.
+	EvidenceRef *string
 }
 
 // ReviewAttempt is a target-submitted attempt as the Finance review surface
@@ -107,6 +112,9 @@ type ReviewAttempt struct {
 	SubmittedByUserID string
 	SubmittedAt       time.Time
 	Receipts          []ReviewReceipt
+	// Version is the attempt's optimistic-concurrency version (R4: a
+	// decision citing a stale version is a CONFLICT).
+	Version int64
 }
 
 // ReviewSource is the published read the Finance review surface uses.

@@ -3,6 +3,16 @@
 **No financial activation is authorized.** This document reports implemented execution boundaries at
 `b3bf31b`. Legacy 2.0.160 is the financial system of record for every operation below.
 
+> **R4 update (2026-11-09; historical text below unchanged).** R4 adds contracts and evaluators only:
+> - the Finance decision contract (`review.EvaluateDecision`);
+> - the ledger posting contract (`finance/posting`);
+> - the refund state machine (`finance/refund`);
+> - commission cross-engine reconciliation.
+>
+> Every capability row below keeps its state: approve / reject is EVALUATOR-ONLY; posting, refund,
+> wallet, commission posting and settlement are BLOCKED. See `docs/remediation/r4-decision-gates.md`.
+> **Overall financial readiness: still NO-GO.**
+
 ## 1. Execution boundary per capability
 
 **Capability states used in the table:**

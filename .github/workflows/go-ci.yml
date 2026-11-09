@@ -366,6 +366,30 @@ jobs:
           # Backups stay refused for production.
           grep -q 'enabled only for development and staging' internal/platform/backup/run.go
 
+      - name: R4 sales and finance contracts (verbose + race; disposable PostgreSQL databases; synthetic data; evaluators only)
+        run: |
+          go test -count=1 -v ./internal/cases/api/ ./internal/cases/claimgate/ ./internal/billing/issuance/ ./internal/custody/release/ ./internal/finance/review/ ./internal/finance/posting/ ./internal/finance/refund/
+          go test -count=1 -v -run 'TestReconcileEngines' ./internal/commission/domain/
+          go test -count=1 -v -run 'TestR4' ./internal/integration/legacy/shadow/
+          go test -count=1 -race ./internal/cases/api/ ./internal/cases/claimgate/ ./internal/billing/issuance/ ./internal/custody/release/ ./internal/finance/review/ ./internal/finance/posting/ ./internal/finance/refund/ ./internal/commission/domain/
+          go test -count=1 -race -run 'TestR4' ./internal/integration/legacy/shadow/
+
+      - name: R4 boundary — evaluators stay unwired; no claim, issue, return, decision, posting or refund route; nothing policy-dependent invented
+        shell: bash
+        run: |
+          # Decision-gated evaluators are imported only by tests (also enforced by the architecture lint rule r4-evaluator-wiring).
+          bad="$(grep -rlE 'internal/(cases/claimgate|billing/issuance|custody/release|finance/posting|finance/refund)"' --include='*.go' cmd internal | grep -v '_test.go$' | grep -v '^internal/architecture/testdata/' || true)"
+          if [ -n "$bad" ]; then echo "an R4 evaluator is wired into production code: $bad"; exit 1; fi
+          # No approved rejection vocabulary has been invented (OPD-08 / billing rejection transition).
+          grep -q '^var rejectionCodes = map\[string\]bool{}$' internal/finance/review/contract.go || { echo "the rejection vocabulary changed: needs an approval record"; exit 1; }
+          # Posting and refund activation stay BLOCKED by the open decisions.
+          grep -q 'DecisionD41, DecisionOPD06, DecisionOPD08, DecisionOPD09, NoPostingAuthority' internal/finance/posting/posting.go || { echo "posting activation gate changed"; exit 1; }
+          grep -q 'DecisionOPD04, NoRefundAuthority, CompensationUnapproved' internal/finance/refund/refund.go || { echo "refund gate changed"; exit 1; }
+          # No sales / finance write route exists in the OpenAPI contract.
+          if grep -rnE '^\s+/api/v1/(cases|custody|invoices|billing|payments|finance|commission|refunds)[^:]*/(claim|claims|issue|return|returns|release|reset|approve|approvals|reject|rejections|decisions|postings|refund|refunds|settle|settlements):' api/openapi; then
+            echo "a decision-gated sales / finance route appeared in the contract"; exit 1
+          fi
+
       - name: Slice 3 — no snapshot content tracked
         shell: bash
         run: |

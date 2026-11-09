@@ -223,6 +223,15 @@
 //   - s12-review-pure: the Finance review gate holds no SQL and no database
 //     access (an evaluator over the payments published read).
 //
+// R4 rule (sales / finance readiness; ADR-01, F01, OPD-03/04/06/08/09,
+// D-41 open):
+//
+//   - r4-evaluator-wiring: the decision-gated evaluators and contracts
+//     (cases/claimgate, billing/issuance, custody/release, finance/posting,
+//     finance/refund) are imported only by tests, and the Finance decision
+//     contract (EvaluateDecision) is called only inside finance/review and
+//     tests: no command, route, worker or job wires an executable path.
+//
 // Test files are composition roots for module-boundary (as cmd/ is); every
 // other rule applies to them as before.
 package architecture
@@ -316,7 +325,17 @@ const (
 	RuleR1CredentialWrite = "r1-credential-write"
 	RuleR2Network         = "r2-network-call"
 	RuleR2WorkerSQL       = "r2-worker-sql"
+	// R4: the sales / finance evaluators and contracts (invoice claim,
+	// issuance, return / reset / release, ledger posting, refunds) are
+	// imported only by tests: no command, route, worker or job may wire an
+	// executable path to them while ADR-01, F01, OPD-03/04/06/08/09 and
+	// D-41 are open. The Finance decision contract (EvaluateDecision) is
+	// called only inside internal/finance/review and tests.
+	RuleR4EvaluatorWiring = "r4-evaluator-wiring"
 )
+
+// r4TestOnly are the R4 evaluator / contract packages.
+var r4TestOnly = []string{"cases/claimgate", "billing/issuance", "custody/release", "finance/posting", "finance/refund"}
 
 // Slice 13 commission trees.
 var (
@@ -748,6 +767,11 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		if full := internalTop + "/" + internalRest; hasPrefixPath(full, strings.TrimPrefix(legacyInteg, "internal/")) && !legacyImportAllowed(rel, full) && !legacyMigrationsTestAllowed(rel, full, isTest) {
 			add(RuleLegacyImport, imp.Pos(), "imports the legacy connector "+p+" outside "+legacyInteg+" and the offline jobs (crm-legacy-import, crm-finance-shadow, crm-biawin-shadow)")
 		}
+		for _, pkg := range r4TestOnly {
+			if full := internalTop + "/" + internalRest; !isTest && hasPrefixPath(full, pkg) && !under(rel, "internal/"+pkg) {
+				add(RuleR4EvaluatorWiring, imp.Pos(), "production code imports the R4 evaluator "+p+" (decision-gated; tests only)")
+			}
+		}
 		// Test files are composition roots (like cmd/) and may wire modules.
 		if relTop, ok := internalTopOf(rel); ok && !isTest && internalTop != "kernel" && internalTop != "platform" {
 			if !moduleImportAllowed(rel, relTop, internalTop, internalRest) {
@@ -939,6 +963,9 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 				add(RuleForbiddenCommand, x.Pos(), "Slice 10 forbidden command identifier "+x.Name)
 			}
 		case *ast.SelectorExpr:
+			if x.Sel.Name == "EvaluateDecision" && !isTest && !under(rel, "internal/finance/review") {
+				add(RuleR4EvaluatorWiring, x.Pos(), "Finance decision contract called outside internal/finance/review (decision-gated; tests only)")
+			}
 			if x.Sel.Name == legacyRefMaker && !under(rel, legacyInteg) && !under(rel, refsDir) {
 				add(RuleLegacyRefFactory, x.Pos(), legacyRefMaker+" called outside "+legacyInteg)
 			}

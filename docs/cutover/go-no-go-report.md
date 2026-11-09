@@ -107,3 +107,36 @@ P0-1, P0-3 and P0-4 below close and pilot grants are approved. It is not a GO to
 **NO-GO.** Production is not ready. No module may change its system of record. Legacy 2.0.160 remains
 authoritative for all business operations. Additional implementation work is required: E-1…E-7 in the
 decision register, plus the decision-dependent commands.
+
+---
+
+## Addendum — R4 sales and finance readiness (2026-11-09)
+
+This addendum is appended. The Slice 15 assessment above is preserved unchanged as the historical
+record at `b3bf31b`. The R4 baseline is `4c7c1352bb10aa0751c14d524f0e2f1867e9460f` (R3 merge).
+
+| Blocker | Slice 15 finding (unchanged) | After R4 | Status |
+|---|---|---|---|
+| **P0-5** | ADR-01 / F01 inventory safety undecided; invoice issue, claim and return not implemented | See below | **PARTIAL**: ADR-01 and F01 still undecided; no command |
+| **P0-7** | Financial execution decisions open; no approve / post / refund / compensation commands | See below | **PARTIAL / BLOCKED**: OPD-08, OPD-09, D-41, OPD-04 and OPD-06 still open; no command |
+
+**P0-5, what R4 added:**
+- the union-of-links dependency classifier (Cross-Role §8);
+- claim, issuance and return / reset / release evaluators;
+- a 15-scenario PostgreSQL race harness of the ADR-01 candidate, with a mutation check.
+
+**P0-7, what R4 added:**
+- the Finance decision contract over the real payments review read;
+- a policy-independent ledger posting contract, with duplicate-effect proof on PostgreSQL;
+- the refund state machine;
+- cross-engine commission reconciliation.
+
+Every R4 component is an evaluator or a contract:
+- it answers BLOCKED while its decisions are open;
+- it is imported only by tests (lint `r4-evaluator-wiring`);
+- it exposes no route, flag, capability or grant.
+
+Details: `docs/remediation/r4-*.md`, in particular `r4-decision-gates.md`.
+
+**The decision in §5 stands: NO-GO for Production.** No module changes its system of record. Legacy
+2.0.160 remains authoritative. No decision was approved by R4.
