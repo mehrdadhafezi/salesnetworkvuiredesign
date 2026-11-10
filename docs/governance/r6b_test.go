@@ -6,8 +6,10 @@ package governance
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -119,6 +121,9 @@ func TestR6BPGovWorksheets(t *testing.T) {
 
 // No R6-B document pre-selects an option or fills an outcome, answer, check or verifier.
 func TestR6BNoPreselectionOrFilledOutcome(t *testing.T) {
+	for _, p := range validateRehearsalChecklist(read(t, "docs/remediation/"+rehearsalChecklist)) {
+		t.Errorf("%s: %s", rehearsalChecklist, p)
+	}
 	for _, f := range r6bDocs {
 		d := read(t, "docs/remediation/"+f)
 		if strings.ContainsAny(d, "☑☒✓✔") || strings.Contains(d, "[x]") {
@@ -139,12 +144,122 @@ func TestR6BNoPreselectionOrFilledOutcome(t *testing.T) {
 					}
 				}
 			}
-			// Rehearsal checklist rows: box unticked, evidence and verifier empty.
-			if f == "r6b-m1-staging-rehearsal-checklist-fa.md" && len(cols) == 7 && strings.TrimSpace(cols[4]) == "☐" && strings.TrimSpace(cols[0]) != "#" {
-				if strings.TrimSpace(cols[5]) != "" || strings.TrimSpace(cols[6]) != "" {
-					t.Errorf("checklist row %s is filled", strings.TrimSpace(cols[0]))
-				}
+		}
+	}
+}
+
+const (
+	rehearsalChecklist      = "r6b-m1-staging-rehearsal-checklist-fa.md"
+	rehearsalChecklistItems = 24
+)
+
+// validateRehearsalChecklist checks every row of the rehearsal checklist table, whatever its checkbox value:
+// exactly rows 1…24, each once, seven columns, checkbox exactly ☐, evidence and verifier empty. The header
+// (first cell "#") and the separator are excluded explicitly; any other row is reported as malformed.
+func validateRehearsalChecklist(doc string) []string {
+	var p []string
+	number := regexp.MustCompile(`^[1-9][0-9]*$`)
+	separator := regexp.MustCompile(`^\|(\s*:?-+:?\s*\|)+$`)
+	seen := map[int]int{}
+	header := 0
+	for i, l := range strings.Split(doc, "\n") {
+		l = strings.TrimSpace(l)
+		if !strings.HasPrefix(l, "|") {
+			continue
+		}
+		if separator.MatchString(l) {
+			continue
+		}
+		cols := strings.Split(strings.TrimSuffix(strings.TrimPrefix(l, "|"), "|"), "|")
+		for k := range cols {
+			cols[k] = strings.TrimSpace(cols[k])
+		}
+		if cols[0] == "#" {
+			header++
+			continue
+		}
+		where := fmt.Sprintf("line %d", i+1)
+		if !number.MatchString(cols[0]) {
+			p = append(p, fmt.Sprintf("%s: malformed checklist row number %q", where, cols[0]))
+			continue
+		}
+		n := 0
+		fmt.Sscanf(cols[0], "%d", &n)
+		seen[n]++
+		if n < 1 || n > rehearsalChecklistItems {
+			p = append(p, fmt.Sprintf("%s: unexpected checklist row %d", where, n))
+		}
+		if len(cols) != 7 {
+			p = append(p, fmt.Sprintf("row %d: %d columns, want 7", n, len(cols)))
+			continue
+		}
+		if cols[4] != "☐" {
+			p = append(p, fmt.Sprintf("row %d: checkbox %q, want exactly ☐", n, cols[4]))
+		}
+		if cols[5] != "" {
+			p = append(p, fmt.Sprintf("row %d: evidence reference is filled (%q)", n, cols[5]))
+		}
+		if cols[6] != "" {
+			p = append(p, fmt.Sprintf("row %d: verifier is filled (%q)", n, cols[6]))
+		}
+	}
+	if header != 1 {
+		p = append(p, fmt.Sprintf("%d checklist header rows, want 1", header))
+	}
+	for n := 1; n <= rehearsalChecklistItems; n++ {
+		switch seen[n] {
+		case 0:
+			p = append(p, fmt.Sprintf("checklist row %d is missing", n))
+		case 1:
+		default:
+			p = append(p, fmt.Sprintf("checklist row %d appears %d times", n, seen[n]))
+		}
+	}
+	return p
+}
+
+// Regression: every way the checklist can be altered is rejected, independently of the checkbox value.
+func TestR6BRehearsalChecklistRejectsAlterations(t *testing.T) {
+	doc := read(t, "docs/remediation/"+rehearsalChecklist)
+	if p := validateRehearsalChecklist(doc); len(p) > 0 {
+		t.Fatalf("committed checklist must be valid: %v", p)
+	}
+	row := func(n int) string {
+		for _, l := range strings.Split(doc, "\n") {
+			if strings.HasPrefix(l, fmt.Sprintf("| %d | ", n)) {
+				return l
 			}
 		}
+		t.Fatalf("row %d not found", n)
+		return ""
+	}
+	cell := func(l string, i int, v string) string {
+		c := strings.Split(l, " | ")
+		c[i] = v
+		return strings.Join(c, " | ")
+	}
+	r1, r5 := row(1), row(5)
+	cases := map[string]string{
+		"checkbox changed to X":    strings.Replace(doc, r1, cell(r1, 4, "X"), 1),
+		"checkbox checked":         strings.Replace(doc, r1, cell(r1, 4, "☑"), 1),
+		"row removed":              strings.Replace(doc, r5+"\n", "", 1),
+		"row duplicated":           strings.Replace(doc, r5, r5+"\n"+r5, 1),
+		"row number changed":       strings.Replace(doc, r5, strings.Replace(r5, "| 5 |", "| 25 |", 1), 1),
+		"row number malformed":     strings.Replace(doc, r5, strings.Replace(r5, "| 5 |", "| 5a |", 1), 1),
+		"evidence field filled":    strings.Replace(doc, r1, cell(r1, 5, "ref-1"), 1),
+		"verifier field filled":    strings.Replace(doc, r1, strings.TrimSuffix(r1, "|  |")+"| Someone |", 1),
+		"X with evidence (bypass)": strings.Replace(doc, r1, cell(cell(r1, 4, "X"), 5, "fabricated-ref"), 1),
+		"header duplicated":        strings.Replace(doc, "| # | ", "| # | x |\n| # | ", 1),
+	}
+	for name, d := range cases {
+		if d == doc {
+			t.Fatalf("%s: mutation did not apply", name)
+		}
+		p := validateRehearsalChecklist(d)
+		if len(p) == 0 {
+			t.Errorf("%s: accepted", name)
+			continue
+		}
+		t.Logf("%s → rejected: %s", name, strings.Join(p, "; "))
 	}
 }
