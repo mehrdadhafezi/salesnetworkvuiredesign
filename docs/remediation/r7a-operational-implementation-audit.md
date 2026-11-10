@@ -9,7 +9,7 @@
 
 | Evidence | Result on the baseline |
 |---|---|
-| API contract `api/openapi/openapi.yaml` | 103 paths: **92 GET, 13 POST**, 0 PUT / PATCH / DELETE |
+| API contract `api/openapi/openapi.yaml` | 103 unique paths carrying **105 operations: 92 GET + 13 POST** (two paths have both a GET and a POST), 0 PUT / PATCH / DELETE |
 | Frontend `web/src` | 132 files, 48 routed pages (incl. dev primitives) (`web/src/app/routes.tsx`), 14 test files |
 | Frontend tests `npx vitest run` | **119 / 119 passed** (14 files); `tsc --noEmit` clean. All against `web/src/test/fakeApi.ts`: no test drives the real API |
 | Go tests | 92 packages `ok`, 73 without tests. 521 `Test*` functions; per module: platform 113, integration 128, kernel 53, finance 27, architecture 26, commission 23, identity 16, billing 14, customers 14, authorization 13, custody 12, reporting 11, payments 10, cases 9, organization 5, biawin 4, catalog 3, fulfillment 3 |
