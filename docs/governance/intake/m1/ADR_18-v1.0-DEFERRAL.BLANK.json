@@ -1,0 +1,28 @@
+{
+  "_comment": "BLANK INTAKE FORM for ADR #18 (M1). Not a record: never copy into docs/governance/approvals/ unfilled. Fill only from a real decision and real evidence; never on someone's behalf. See docs/remediation/r6b-m1-adr18-decision-pack-fa.md §3. Template: docs/governance/templates/DEFERRAL-RECORD-TEMPLATE.json",
+  "record_type": "DEFERRAL",
+  "decision_id": "ADR #18",
+  "decision_version": "1.0",
+  "outcome": "DEFERRED",
+  "initiator": {
+    "name": "",
+    "role": "",
+    "authority_evidence": {
+      "type": "",
+      "reference": ""
+    }
+  },
+  "deferral_date": "",
+  "deferral_reason": "",
+  "revisit_condition": "",
+  "revisit_date": "",
+  "evidence_source": {
+    "type": "",
+    "reference": ""
+  },
+  "immutable_ref": "",
+  "recorded_by": {
+    "name": "",
+    "role": ""
+  }
+}
