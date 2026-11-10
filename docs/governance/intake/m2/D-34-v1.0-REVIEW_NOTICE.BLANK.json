@@ -1,0 +1,24 @@
+{
+  "_comment": "BLANK INTAKE FORM for D-34 (M2). Not a record: never copy into docs/governance/approvals/ unfilled. Fill only from a real decision and real evidence; never on someone's behalf. See docs/remediation/m2-authorization-decision-intake-fa.md §10. Template: docs/governance/templates/REVIEW-NOTICE-TEMPLATE.json",
+  "record_type": "REVIEW_NOTICE",
+  "decision_id": "D-34",
+  "decision_version": "1.0",
+  "initiator": {
+    "name": "",
+    "role": "",
+    "authority_evidence": {
+      "type": "",
+      "reference": ""
+    }
+  },
+  "notice_date": "",
+  "evidence_source": {
+    "type": "",
+    "reference": ""
+  },
+  "immutable_ref": "",
+  "recorded_by": {
+    "name": "",
+    "role": ""
+  }
+}

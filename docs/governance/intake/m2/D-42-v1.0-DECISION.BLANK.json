@@ -1,0 +1,63 @@
+{
+  "_comment": "BLANK INTAKE FORM for D-42 (M2). Not a record: never copy into docs/governance/approvals/ unfilled. Fill only from a real decision and real evidence; never on someone's behalf. See docs/remediation/m2-authorization-decision-intake-fa.md §10. Template: docs/governance/templates/APPROVAL-RECORD-TEMPLATE.json",
+  "record_type": "DECISION",
+  "decision_id": "D-42",
+  "decision_version": "1.0",
+  "outcome": "",
+  "selected_option": "",
+  "decision_text": "",
+  "approvers": [
+    {
+      "name": "",
+      "role": "Product owner",
+      "authority_evidence": {
+        "type": "",
+        "reference": ""
+      }
+    },
+    {
+      "name": "",
+      "role": "HR owner",
+      "authority_evidence": {
+        "type": "",
+        "reference": ""
+      }
+    },
+    {
+      "name": "",
+      "role": "Sales owner",
+      "authority_evidence": {
+        "type": "",
+        "reference": ""
+      }
+    },
+    {
+      "name": "",
+      "role": "Security owner",
+      "authority_evidence": {
+        "type": "",
+        "reference": ""
+      }
+    }
+  ],
+  "independent_approvals": [
+    "Product owner",
+    "HR owner",
+    "Sales owner",
+    "Security owner"
+  ],
+  "decision_date": "",
+  "effective_date": "",
+  "evidence_source": {
+    "type": "",
+    "reference": ""
+  },
+  "immutable_ref": "",
+  "supersedes": [],
+  "conditions": "",
+  "recorded_by": {
+    "name": "",
+    "role": ""
+  },
+  "human_verification": null
+}
