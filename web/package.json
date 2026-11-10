@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
+    "typecheck:e2e": "tsc --noEmit -p e2e/tsconfig.json",
     "openapi:lint": "redocly lint ../api/openapi/openapi.yaml --config ../api/openapi/redocly.yaml",
     "openapi:bundle": "redocly bundle ../api/openapi/openapi.yaml --config ../api/openapi/redocly.yaml --output ../api/openapi/openapi.bundled.yaml",
     "openapi:ts": "openapi-typescript ../api/openapi/openapi.bundled.yaml --output src/generated/api/schema.ts",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.56.1",
     "@redocly/cli": "2.72.1",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",

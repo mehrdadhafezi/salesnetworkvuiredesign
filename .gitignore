@@ -135,3 +135,7 @@ auth.json
 /dist/
 /deploy/staging/.secrets/
 /deploy/staging/.state/
+
+# R7-1 Playwright full-stack E2E output (never committed)
+web/test-results/
+web/playwright-report/
