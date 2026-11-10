@@ -25,7 +25,9 @@ permissions:
 jobs:
   e2e:
     name: Browser → SPA → crm-api → PostgreSQL
-    runs-on: ubuntu-latest
+    # Pinned: Playwright 1.56.1 (the version validated locally) cannot install
+    # Chromium or its system dependencies on ubuntu-latest (26.04).
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
 
     services:
