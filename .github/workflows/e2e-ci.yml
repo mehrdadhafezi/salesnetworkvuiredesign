@@ -1,8 +1,9 @@
 name: Full-stack E2E
 
-# R7-1 / R7-2: real Chromium → built SPA → real cmd/crm-api → disposable
+# R7-1 / R7-2 / R7-3: real Chromium → built SPA → real cmd/crm-api → disposable
 # PostgreSQL, SYNTHETIC data only. R7-1 covers login and the contact outcome;
-# R7-2 covers invoices, payment attempts, receipt upload and batch submission.
+# R7-2 covers invoices, payment attempts, receipt upload and batch submission;
+# R7-3 covers fulfillment work cases and the provider-operation boundary.
 # Test harness authorization only: nothing here deploys, activates a feature or
 # touches a non-CI database. Flags are switched on only inside the disposable
 # databases the tests create and drop; no grant or capability is added.
@@ -30,7 +31,7 @@ jobs:
     # Pinned: Playwright 1.56.1 (the version validated locally) cannot install
     # Chromium or its system dependencies on ubuntu-latest (26.04).
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
 
     services:
       # Disposable CI database. Synthetic fixtures only; never production data.
@@ -84,7 +85,7 @@ jobs:
         run: npm --prefix web run build
 
       - name: Full-stack E2E (fails on any database, API, frontend or acceptance failure)
-        run: go test -tags e2e -count=1 -v -run '^(TestBrowserFullStack|TestBrowserPaymentsFullStack|TestFinancialSnapshotDetectsUpdate)$' ./internal/integration/legacy/shadow/
+        run: go test -tags e2e -count=1 -v -run '^(TestBrowserFullStack|TestBrowserPaymentsFullStack|TestBrowserFulfillmentFullStack|TestFinancialSnapshotDetectsUpdate)$' ./internal/integration/legacy/shadow/
 
       - name: Upload failure artifacts (screenshots and report only; no traces, no video)
         if: failure()

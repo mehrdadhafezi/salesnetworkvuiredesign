@@ -34,11 +34,18 @@ type tableState struct {
 // financialSnapshot snapshots every base table of the financial schemas.
 func financialSnapshot(t *testing.T, admin *pgx.Conn) map[string]tableState {
 	t.Helper()
+	return schemaSnapshot(t, admin, financialSchemas)
+}
+
+// schemaSnapshot snapshots every base table of schemas the same way (R7-3
+// adds the fulfillment, biawin, catalog and integration schemas).
+func schemaSnapshot(t *testing.T, admin *pgx.Conn, schemas []string) map[string]tableState {
+	t.Helper()
 	ctx := context.Background()
 	rows, err := admin.Query(ctx, `SELECT quote_ident(table_schema) || '.' || quote_ident(table_name) FROM information_schema.tables
-		WHERE table_type = 'BASE TABLE' AND table_schema = ANY($1) ORDER BY 1`, financialSchemas)
+		WHERE table_type = 'BASE TABLE' AND table_schema = ANY($1) ORDER BY 1`, schemas)
 	if err != nil {
-		t.Fatal("list financial tables failed") // the driver error is never printed
+		t.Fatal("list guarded tables failed") // the driver error is never printed
 	}
 	var tables []string
 	for rows.Next() {
