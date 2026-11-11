@@ -9,7 +9,7 @@ export interface Stack {
   caseHeldByY: string
 }
 
-function required(name: string): string {
+export function required(name: string): string {
   const v = process.env[name]
   if (!v) throw new Error(`${name} is not set: run the suite through the Go orchestrator (go test -tags e2e)`)
   return v
@@ -34,17 +34,14 @@ function originOf(url: string): string {
 }
 
 /**
- * Network guard: every request whose origin is not the local stack is
- * aborted and recorded, and the test fails if any was attempted.
+ * Network guard: every request whose origin is not the local stack
+ * (E2E_BASE_URL) is aborted and recorded, and the test fails if any was
+ * attempted. Every R7 suite builds on this fixture.
  */
-export const test = base.extend<{ stack: Stack; blocked: string[] }>({
-  stack: async ({ baseURL }, provide) => {
-    const s = stack()
-    expect(baseURL, 'baseURL comes from E2E_BASE_URL').toBe(s.baseURL)
-    await provide(s)
-  },
-  blocked: async ({ context, stack }, provide) => {
-    const allowed = new URL(stack.baseURL).origin
+export const guarded = base.extend<{ blocked: string[] }>({
+  blocked: async ({ context, baseURL }, provide) => {
+    const allowed = new URL(required('E2E_BASE_URL')).origin
+    expect(baseURL, 'baseURL comes from E2E_BASE_URL').toBe(required('E2E_BASE_URL'))
     const blocked: string[] = []
     await context.route('**/*', async route => {
       const url = route.request().url()
@@ -57,6 +54,15 @@ export const test = base.extend<{ stack: Stack; blocked: string[] }>({
     })
     await provide(blocked)
     expect(blocked, 'unexpected non-local requests').toEqual([])
+  },
+})
+
+/** The R7-1 sales stack (contact outcome). */
+export const test = guarded.extend<{ stack: Stack }>({
+  stack: async ({ baseURL }, provide) => {
+    const s = stack()
+    expect(baseURL, 'baseURL comes from E2E_BASE_URL').toBe(s.baseURL)
+    await provide(s)
   },
 })
 
