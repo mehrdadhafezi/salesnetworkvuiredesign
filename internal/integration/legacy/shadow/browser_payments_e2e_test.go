@@ -21,8 +21,9 @@ package shadow_test
 //     Every invoice read and payment command is therefore refused, and the
 //     suite asserts those refusals; it never records a payment.
 //
-// After both Playwright projects the orchestrator proves that no row of any
-// billing, payments or finance table changed, that no write-back command was
+// After both Playwright projects the orchestrator proves that no billing,
+// payments or finance table gained, lost or changed a row (row count plus a
+// checksum of every row's full content), that no write-back command was
 // queued and that no receipt byte reached the evidence store.
 
 import (
@@ -80,7 +81,7 @@ func TestBrowserPaymentsFullStack(t *testing.T) {
 	if len(before) == 0 {
 		t.Fatal("no billing / payments / finance table found: the scenario did not migrate")
 	}
-	if before["billing.invoice"] == 0 || before["payments.payment_attempt"] == 0 {
+	if before["billing.invoice"].rows == 0 || before["payments.payment_attempt"].rows == 0 {
 		t.Fatalf("the synthetic scenario imported no invoice or payment attempt: %v", before)
 	}
 
@@ -106,11 +107,15 @@ func TestBrowserPaymentsFullStack(t *testing.T) {
 	runPlaywright(t, root, "payments-flags-off", env, x, y)
 
 	// No unauthorized write: every billing, payments and finance table holds
-	// exactly the rows it held before the browser ran.
+	// exactly the rows it held before the browser ran, with the same content
+	// (an UPDATE of an imported amount, status or relationship is caught).
 	after := e.financialRows(t)
-	for table, n := range before {
-		if after[table] != n {
-			t.Errorf("%s: %d rows before the browser suite, %d after (no write may have been applied)", table, n, after[table])
+	for table, b := range before {
+		a := after[table]
+		if a.rows != b.rows {
+			t.Errorf("%s: %d rows before the browser suite, %d after (no write may have been applied)", table, b.rows, a.rows)
+		} else if a.sum != b.sum {
+			t.Errorf("%s: row content changed during the browser suite (no write may have been applied)", table)
 		}
 	}
 	for table := range after {
@@ -126,9 +131,17 @@ func TestBrowserPaymentsFullStack(t *testing.T) {
 	}
 }
 
-// financialRows counts the rows of every base table in the billing, payments
-// and finance schemas.
-func (e *paymentsEnv) financialRows(t *testing.T) map[string]int64 {
+// tableState is one table's row count and a checksum of its full content.
+type tableState struct {
+	rows int64
+	sum  string
+}
+
+// financialRows snapshots every base table in the billing, payments and
+// finance schemas: its row count and an md5 over the text of every row in a
+// deterministic order, so an UPDATE is detected as well as an INSERT or
+// DELETE.
+func (e *paymentsEnv) financialRows(t *testing.T) map[string]tableState {
 	t.Helper()
 	ctx := context.Background()
 	rows, err := e.admin.Query(ctx, `SELECT table_schema || '.' || table_name FROM information_schema.tables
@@ -147,10 +160,15 @@ func (e *paymentsEnv) financialRows(t *testing.T) map[string]int64 {
 	if rows.Err() != nil {
 		t.Fatal(rows.Err())
 	}
-	out := make(map[string]int64, len(tables))
+	out := make(map[string]tableState, len(tables))
 	for _, n := range tables {
 		// Names come from information_schema of the disposable database.
-		out[n] = e.count(t, `SELECT count(*) FROM `+n)
+		var st tableState
+		if err := e.admin.QueryRow(ctx, `SELECT count(*), coalesce(md5(string_agg(r::text, E'\n' ORDER BY r::text)), '') FROM `+n+` r`).
+			Scan(&st.rows, &st.sum); err != nil {
+			t.Fatalf("snapshot %s: %v", n, err)
+		}
+		out[n] = st
 	}
 	return out
 }
