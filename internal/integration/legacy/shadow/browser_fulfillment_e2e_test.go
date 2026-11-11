@@ -116,20 +116,20 @@ func TestBrowserFulfillmentFullStack(t *testing.T) {
 	cases := e.workCaseStates(t)
 
 	env := map[string]string{
-		"E2E_BASE_URL":            web,
-		"E2E_SELLER_X_LOGIN":      x.login,
-		"E2E_SELLER_X_PASSWORD":   x.password,
-		"E2E_SELLER_X_USER_ID":    x.userID,
-		"E2E_SELLER_Y_LOGIN":      y.login,
-		"E2E_SELLER_Y_PASSWORD":   y.password,
-		"E2E_SELLER_Y_USER_ID":    y.userID,
-		"E2E_WORK_CASE_A":         sc.caseA,
-		"E2E_WORK_CASE_B":         sc.caseB,
-		"E2E_WORK_CASE_PROVIDER":  sc.caseP,
-		"E2E_PROVIDER_OPERATION":  sc.operation,
-		"E2E_WORK_SERVICE_A":      sc.serviceA,
-		"E2E_WORK_SERVICE_B":      sc.serviceB,
-		"E2E_WORK_SERVICE_P"     : sc.serviceP,
+		"E2E_BASE_URL":           web,
+		"E2E_SELLER_X_LOGIN":     x.login,
+		"E2E_SELLER_X_PASSWORD":  x.password,
+		"E2E_SELLER_X_USER_ID":   x.userID,
+		"E2E_SELLER_Y_LOGIN":     y.login,
+		"E2E_SELLER_Y_PASSWORD":  y.password,
+		"E2E_SELLER_Y_USER_ID":   y.userID,
+		"E2E_WORK_CASE_A":        sc.caseA,
+		"E2E_WORK_CASE_B":        sc.caseB,
+		"E2E_WORK_CASE_PROVIDER": sc.caseP,
+		"E2E_PROVIDER_OPERATION": sc.operation,
+		"E2E_WORK_SERVICE_A":     sc.serviceA,
+		"E2E_WORK_SERVICE_B":     sc.serviceB,
+		"E2E_WORK_SERVICE_P":     sc.serviceP,
 	}
 	runPlaywright(t, root, "fulfillment-flags-on", env, x, y)
 
