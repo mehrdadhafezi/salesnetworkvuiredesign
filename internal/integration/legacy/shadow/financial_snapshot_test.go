@@ -38,18 +38,18 @@ func financialSnapshot(t *testing.T, admin *pgx.Conn) map[string]tableState {
 	rows, err := admin.Query(ctx, `SELECT quote_ident(table_schema) || '.' || quote_ident(table_name) FROM information_schema.tables
 		WHERE table_type = 'BASE TABLE' AND table_schema = ANY($1) ORDER BY 1`, financialSchemas)
 	if err != nil {
-		t.Fatalf("list financial tables: %v", err)
+		t.Fatal("list financial tables failed") // the driver error is never printed
 	}
 	var tables []string
 	for rows.Next() {
 		var n string
 		if err := rows.Scan(&n); err != nil {
-			t.Fatalf("list financial tables: %v", err)
+			t.Fatal("list financial tables failed") // the driver error is never printed
 		}
 		tables = append(tables, n)
 	}
 	if err := rows.Err(); err != nil {
-		t.Fatalf("list financial tables: %v", err)
+		t.Fatal("list financial tables failed") // the driver error is never printed
 	}
 	out := make(map[string]tableState, len(tables))
 	for _, n := range tables {
@@ -61,6 +61,23 @@ func financialSnapshot(t *testing.T, admin *pgx.Conn) map[string]tableState {
 			t.Fatalf("snapshot %s failed", n) // the driver error may quote row data; never print it
 		}
 		out[n] = st
+	}
+	return out
+}
+
+// missingSeed lists each required table that is absent from the snapshot or
+// holds no row. Messages carry table names and row counts only: never the
+// snapshot itself, which holds the fingerprints.
+func missingSeed(snap map[string]tableState, required ...string) []string {
+	var out []string
+	for _, table := range required {
+		st, ok := snap[table]
+		switch {
+		case !ok:
+			out = append(out, fmt.Sprintf("%s: table missing", table))
+		case st.rows == 0:
+			out = append(out, fmt.Sprintf("%s: 0 rows", table))
+		}
 	}
 	return out
 }
@@ -98,8 +115,17 @@ func TestFinancialSnapshotDetectsUpdate(t *testing.T) {
 	e := setupPayments(t) // disposable DB + SYNTHETIC payments scenario (dropped on cleanup)
 	ctx := context.Background()
 	before := financialSnapshot(t, e.admin)
-	if before[`payments.payment_attempt`].rows == 0 || before[`billing.invoice`].rows == 0 {
-		t.Fatal("the synthetic scenario imported no payment attempt or invoice")
+	if m := missingSeed(before, `billing.invoice`, `payments.payment_attempt`); len(m) != 0 {
+		t.Fatalf("the synthetic scenario is incomplete: %v", m)
+	}
+	// The seed report names tables and counts only, never a fingerprint.
+	seed := map[string]tableState{`billing.invoice`: before[`billing.invoice`], `payments.payment_attempt`: {rows: 0, sum: before[`payments.payment_attempt`].sum}}
+	m := missingSeed(seed, `billing.invoice`, `payments.payment_attempt`, `finance.absent_table`)
+	if want := []string{"payments.payment_attempt: 0 rows", "finance.absent_table: table missing"}; len(m) != 2 || m[0] != want[0] || m[1] != want[1] {
+		t.Fatalf("missingSeed = %v, want %v", m, want)
+	}
+	if containsAny(m, before[`billing.invoice`].sum, before[`payments.payment_attempt`].sum) {
+		t.Fatal("the seed report must not carry a fingerprint")
 	}
 	if d := diffFinancial(before, financialSnapshot(t, e.admin)); len(d) != 0 {
 		t.Fatalf("an unchanged database must give an identical snapshot: %v", d)

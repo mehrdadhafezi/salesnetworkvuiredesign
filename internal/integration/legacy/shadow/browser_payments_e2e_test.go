@@ -82,8 +82,9 @@ func TestBrowserPaymentsFullStack(t *testing.T) {
 	if len(before) == 0 {
 		t.Fatal("no billing / payments / finance table found: the scenario did not migrate")
 	}
-	if before["billing.invoice"].rows == 0 || before["payments.payment_attempt"].rows == 0 {
-		t.Fatalf("the synthetic scenario imported no invoice or payment attempt: %v", before)
+	// Table names and row counts only: the snapshot holds fingerprints and is never printed.
+	if m := missingSeed(before, "billing.invoice", "payments.payment_attempt"); len(m) != 0 {
+		t.Fatalf("the synthetic scenario is incomplete: %v", m)
 	}
 
 	env := map[string]string{
@@ -136,7 +137,7 @@ func countFiles(t *testing.T, dir string) int {
 		}
 		return nil
 	}); err != nil {
-		t.Fatal(err)
+		t.Fatal("walk the evidence store failed") // the error may name a stored object; never print it
 	}
 	return n
 }
