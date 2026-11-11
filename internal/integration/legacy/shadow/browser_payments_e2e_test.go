@@ -23,11 +23,12 @@ package shadow_test
 //
 // After both Playwright projects the orchestrator proves that no billing,
 // payments or finance table gained, lost or changed a row (row count plus a
-// checksum of every row's full content), that no write-back command was
-// queued and that no receipt byte reached the evidence store.
+// SHA-256 fingerprint of every row's full content; see
+// financial_snapshot_test.go and its mutation regression), that no
+// write-back command was queued and that no receipt byte reached the
+// evidence store.
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -77,7 +78,7 @@ func TestBrowserPaymentsFullStack(t *testing.T) {
 	}, map[string]string{"CRM_PAYMENTS_OBJECT_ROOT": objects})
 	web := serveSPA(t, filepath.Join(root, "web", "dist"), api)
 
-	before := e.financialRows(t)
+	before := financialSnapshot(t, e.admin)
 	if len(before) == 0 {
 		t.Fatal("no billing / payments / finance table found: the scenario did not migrate")
 	}
@@ -107,21 +108,13 @@ func TestBrowserPaymentsFullStack(t *testing.T) {
 	runPlaywright(t, root, "payments-flags-off", env, x, y)
 
 	// No unauthorized write: every billing, payments and finance table holds
-	// exactly the rows it held before the browser ran, with the same content
-	// (an UPDATE of an imported amount, status or relationship is caught).
-	after := e.financialRows(t)
-	for table, b := range before {
-		a := after[table]
-		if a.rows != b.rows {
-			t.Errorf("%s: %d rows before the browser suite, %d after (no write may have been applied)", table, b.rows, a.rows)
-		} else if a.sum != b.sum {
-			t.Errorf("%s: row content changed during the browser suite (no write may have been applied)", table)
-		}
-	}
-	for table := range after {
-		if _, ok := before[table]; !ok {
-			t.Errorf("%s appeared during the browser suite", table)
-		}
+	// exactly the rows it held before the browser ran (row count) with the
+	// same content (SHA-256 fingerprint), so an INSERT, DELETE or an UPDATE of
+	// an imported amount, status or relationship is caught. The report names
+	// tables and counts only (financial_snapshot_test.go).
+	after := financialSnapshot(t, e.admin)
+	for _, d := range diffFinancial(before, after) {
+		t.Errorf("%s (no write may have been applied by the browser suite)", d)
 	}
 	if n := e.count(t, `SELECT count(*) FROM integration.writeback_command`); n != 0 {
 		t.Errorf("integration.writeback_command = %d, want 0 (no legacy write-back may be queued)", n)
@@ -129,48 +122,6 @@ func TestBrowserPaymentsFullStack(t *testing.T) {
 	if n := countFiles(t, objects); n != 0 {
 		t.Errorf("evidence store holds %d files, want 0 (no receipt may have been stored)", n)
 	}
-}
-
-// tableState is one table's row count and a checksum of its full content.
-type tableState struct {
-	rows int64
-	sum  string
-}
-
-// financialRows snapshots every base table in the billing, payments and
-// finance schemas: its row count and an md5 over the text of every row in a
-// deterministic order, so an UPDATE is detected as well as an INSERT or
-// DELETE.
-func (e *paymentsEnv) financialRows(t *testing.T) map[string]tableState {
-	t.Helper()
-	ctx := context.Background()
-	rows, err := e.admin.Query(ctx, `SELECT table_schema || '.' || table_name FROM information_schema.tables
-		WHERE table_type = 'BASE TABLE' AND table_schema IN ('billing', 'payments', 'finance') ORDER BY 1`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var tables []string
-	for rows.Next() {
-		var n string
-		if err := rows.Scan(&n); err != nil {
-			t.Fatal(err)
-		}
-		tables = append(tables, n)
-	}
-	if rows.Err() != nil {
-		t.Fatal(rows.Err())
-	}
-	out := make(map[string]tableState, len(tables))
-	for _, n := range tables {
-		// Names come from information_schema of the disposable database.
-		var st tableState
-		if err := e.admin.QueryRow(ctx, `SELECT count(*), coalesce(md5(string_agg(r::text, E'\n' ORDER BY r::text)), '') FROM `+n+` r`).
-			Scan(&st.rows, &st.sum); err != nil {
-			t.Fatalf("snapshot %s: %v", n, err)
-		}
-		out[n] = st
-	}
-	return out
 }
 
 func countFiles(t *testing.T, dir string) int {
