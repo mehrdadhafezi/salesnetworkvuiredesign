@@ -38,6 +38,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -75,7 +76,17 @@ func TestBrowserFullStack(t *testing.T) {
 	// Flags ON only inside this disposable database.
 	e.setFlags(t, map[string]bool{"identity.session_auth": true, "sales.read_shadow": true, "cases.nonfinancial_write": true})
 
-	api := e.startCRMAPI(t, root)
+	api := e.startCRMAPI(t, root, map[string]owner.Module{
+		"CRM_IDENTITY_AUTH_DATABASE_URL":      identity.Module,
+		"CRM_IDENTITY_READ_DATABASE_URL":      identity.Module,
+		"CRM_ORGANIZATION_READ_DATABASE_URL":  organization.Module,
+		"CRM_CASES_READ_DATABASE_URL":         cases.Module,
+		"CRM_CUSTODY_READ_DATABASE_URL":       custody.Module,
+		"CRM_CASES_WRITE_DATABASE_URL":        cases.Module,
+		"CRM_CUSTODY_HOLDER_DATABASE_URL":     custody.Module,
+		"CRM_ORGANIZATION_WRITE_DATABASE_URL": organization.Module,
+		"CRM_WRITEBACK_READ_DATABASE_URL":     integration.Module,
+	}, nil)
 	web := serveSPA(t, filepath.Join(root, "web", "dist"), api)
 
 	env := map[string]string{
@@ -110,7 +121,7 @@ func TestBrowserFullStack(t *testing.T) {
 
 // syntheticCredential inserts one ACTIVE password credential for a synthetic
 // imported user, the way the R1 auth tests do. It grants nothing.
-func (e *writesEnv) syntheticCredential(t *testing.T, login, userID string) browserSeller {
+func (e *env) syntheticCredential(t *testing.T, login, userID string) browserSeller {
 	t.Helper()
 	if userID == "" {
 		t.Fatalf("%s: synthetic user not imported", login)
@@ -134,9 +145,11 @@ func (e *writesEnv) syntheticCredential(t *testing.T, login, userID string) brow
 }
 
 // startCRMAPI builds and starts the real cmd/crm-api binary bound to
-// 127.0.0.1 with one restricted login per module owner, real R1 sessions and
-// CRM_ENV=test (no dev stub). It returns the API base URL.
-func (e *writesEnv) startCRMAPI(t *testing.T, root string) string {
+// 127.0.0.1 with real R1 sessions and CRM_ENV=test (no dev stub). logins
+// maps each *_DATABASE_URL variable to the module whose restricted login it
+// receives (every one must be loopback); extra adds non-secret settings. The
+// feature-flag store login is always configured. It returns the API base URL.
+func (e *env) startCRMAPI(t *testing.T, root string, logins map[string]owner.Module, extra map[string]string) string {
 	t.Helper()
 	bin := filepath.Join(t.TempDir(), "crm-api")
 	build := exec.Command("go", "build", "-o", bin, "./cmd/crm-api")
@@ -151,21 +164,27 @@ func (e *writesEnv) startCRMAPI(t *testing.T, root string) string {
 		requireLoopbackDSN(t, dsn)
 		return dsn
 	}
-	flags := login(owner.FeatureFlags)
 	envv := []string{
 		"CRM_ENV=test",
 		"CRM_API_ADDR=" + addr,
 		"CRM_AUTH_ALLOWED_ORIGINS=" + spaOrigin.Load(t),
-		"CRM_FEATUREFLAGS_DATABASE_URL=" + flags,
-		"CRM_IDENTITY_AUTH_DATABASE_URL=" + login(identity.Module),
-		"CRM_IDENTITY_READ_DATABASE_URL=" + login(identity.Module),
-		"CRM_ORGANIZATION_READ_DATABASE_URL=" + login(organization.Module),
-		"CRM_CASES_READ_DATABASE_URL=" + login(cases.Module),
-		"CRM_CUSTODY_READ_DATABASE_URL=" + login(custody.Module),
-		"CRM_CASES_WRITE_DATABASE_URL=" + login(cases.Module),
-		"CRM_CUSTODY_HOLDER_DATABASE_URL=" + login(custody.Module),
-		"CRM_ORGANIZATION_WRITE_DATABASE_URL=" + login(organization.Module),
-		"CRM_WRITEBACK_READ_DATABASE_URL=" + login(integration.Module),
+		"CRM_FEATUREFLAGS_DATABASE_URL=" + login(owner.FeatureFlags),
+	}
+	keys := make([]string, 0, len(logins))
+	for k := range logins {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		envv = append(envv, k+"="+login(logins[k]))
+	}
+	keys = keys[:0]
+	for k := range extra {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		envv = append(envv, k+"="+extra[k])
 	}
 	var logs lockedBuffer
 	cmd := exec.Command(bin)
