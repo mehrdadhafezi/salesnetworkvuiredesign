@@ -119,6 +119,41 @@ export async function expectFeatureDisabled(r: APIResponse) {
   expect(body.reasons).toEqual(['FEATURE_DISABLED'])
 }
 
+/** The disabled contract of a work-case command: not applied, TARGET_WRITE_DISABLED, nothing recorded. */
+export async function expectCommandDisabled(r: APIResponse, label: string) {
+  await expectFeatureDisabled(r)
+  const c = ((await r.json()) as { command?: { applied: boolean; rollout_mode: string; blocked_by: string[]; command_id?: string; version?: number; replayed?: boolean } }).command
+  expect(c, label).toBeDefined()
+  expect(c?.applied, label).toBe(false)
+  expect(c?.rollout_mode, label).toBe('TARGET_WRITE_DISABLED')
+  expect(c?.blocked_by, label).toEqual([])
+  expect(c?.command_id, label).toBeUndefined()
+  expect(c?.version, label).toBeUndefined()
+  expect(c?.replayed, label).toBe(false)
+}
+
+/**
+ * Sends a work-case command with exactly the given extra headers and raw
+ * body (the session cookie, Origin and, when given, the CSRF token are
+ * added). Used for contract-invalid requests the typed helper cannot build.
+ */
+export async function rawCommand(page: Page, s: OpsStack, caseId: string, cmd: WorkCommand, csrf: string | null,
+  headers: Record<string, string>, body: string): Promise<APIResponse> {
+  return page.request.post(`/api/v1/fulfillment/work-cases/${caseId}/${cmd}`, {
+    headers: { ...(await unsafeHeaders(page, s, csrf)), 'Content-Type': 'application/json', ...headers },
+    data: body,
+  })
+}
+
+/** The contract check (400 problem+json, CONTRACT_INVALID); returns the case-independent part of the body. */
+export async function expectContractInvalid(r: APIResponse, label: string): Promise<string> {
+  expect(r.status(), label).toBe(400)
+  expect(r.headers()['content-type'], label).toContain('application/problem+json')
+  const p = (await r.json()) as { type: string; title: string; status: number; reason_code: string; detail?: string }
+  expect(p.reason_code, label).toBe('CONTRACT_INVALID')
+  return JSON.stringify([p.type, p.title, p.status, p.reason_code, p.detail ?? null])
+}
+
 /** Unique, well-formed idempotency key (8–128 of [A-Za-z0-9_-]). */
 export function idemKey(label: string): string {
   return `e2e-ops-${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`

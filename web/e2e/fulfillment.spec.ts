@@ -1,6 +1,7 @@
 import { csrfToken, expectActionDenied, loginUI, sessionGet, sessionHeaders, type Envelope } from './fixtures'
 import {
-  caseReads, collectionReads, expect, expectFeatureDisabled, idemKey, resolveOperation, test, unknownCase, workCommand, workCommands,
+  caseReads, collectionReads, commandBody, expect, expectCommandDisabled, expectContractInvalid, expectFeatureDisabled, idemKey, rawCommand,
+  resolveOperation, test, unknownCase, workCommand, workCommands,
 } from './fulfillment-fixtures'
 
 // R7-3: real browser → real SPA → real crm-api (R1 sessions, production
@@ -233,6 +234,73 @@ test.describe('work-case commands (flags ON, CONTROLLED mode)', () => {
       expect(((await r.json()) as { reason_code: string }).reason_code).toBe('ACTION_DENIED')
     }
   })
+
+  test('contract-invalid commands get one 400 answer, identical for in-scope, out-of-scope and unknown cases (no existence oracle)', async ({ page, ops, blocked }) => {
+    void blocked
+    const valid = JSON.stringify(commandBody('assignment', ops.userX.userId))
+    // Anonymous (no session cookie yet): the contract check runs before authority.
+    await expectContractInvalid(await rawCommand(page, ops, ops.caseA, 'assignment', null, { 'If-Match': '"1"' }, valid), 'anonymous, no Idempotency-Key')
+    await loginUI(page, ops.userX.login, ops.userX.password)
+    await expect(page.getByRole('button', { name: 'خروج' })).toBeVisible()
+    const csrf = await csrfToken(page)
+    const shapes: [string, Record<string, string>, string][] = [
+      ['no Idempotency-Key', { 'If-Match': '"1"' }, valid],
+      ['no If-Match', { 'Idempotency-Key': idemKey('no-if-match') }, valid],
+      ['body is not one JSON object', { 'Idempotency-Key': idemKey('array-body'), 'If-Match': '"1"' }, '[]'],
+      ['field outside the command scope', { 'Idempotency-Key': idemKey('extra-field'), 'If-Match': '"1"' },
+        JSON.stringify({ ...commandBody('assignment', ops.userX.userId), state: 'COMPLETED' })],
+    ]
+    for (const [label, headers, body] of shapes) {
+      const answers = new Set<string>()
+      for (const id of [ops.caseA, ops.caseB, unknownCase]) {
+        answers.add(await expectContractInvalid(await rawCommand(page, ops, id, 'assignment', csrf, headers, body), `${label} ${id}`))
+      }
+      expect(answers.size, `${label}: one answer for every case`).toBe(1)
+    }
+    // A malformed case id is a contract error too.
+    await expectContractInvalid(await rawCommand(page, ops, 'not-a-case-id', 'assignment', csrf,
+      { 'Idempotency-Key': idemKey('bad-id'), 'If-Match': '"1"' }, valid), 'malformed case id')
+    // With a session but no CSRF token, the cross-site guard refuses first
+    // (403 problem+json), before the contract check.
+    const noCsrf = await rawCommand(page, ops, ops.caseA, 'assignment', null, { 'If-Match': '"1"' }, valid)
+    expect(noCsrf.status()).toBe(403)
+    expect(noCsrf.headers()['content-type']).toContain('application/problem+json')
+    expect(((await noCsrf.json()) as { reason_code: string }).reason_code).toBe('ACTION_DENIED')
+    // A well-formed request with an unparsable If-Match version reaches the
+    // capability gate first: the refusal, not a version error.
+    await expectActionDenied(await workCommand(page, ops, ops.caseA, 'assignment', idemKey('bad-if-match'), csrf, 'not-a-version'))
+    // The orchestrator asserts nothing was recorded.
+  })
+
+  test('a session past its absolute lifetime is refused by the server and the open page returns to login', async ({ page, browser, ops, blocked }) => {
+    void blocked
+    // The orchestrator starts crm-api with CRM_AUTH_SESSION_IDLE / _ABSOLUTE = 1m:
+    // this waits for the server to expire the real session; no row is edited.
+    test.setTimeout(150_000)
+    await loginUI(page, ops.userX.login, ops.userX.password)
+    await expect(page.getByRole('button', { name: 'خروج' })).toBeVisible()
+    const loggedInAt = Date.now()
+    const cookie = (await page.context().cookies()).find(c => c.name === '__Host-crm_session')
+    expect(cookie, 'the real login set the session cookie').toBeTruthy()
+    await page.goto(`/operations/work/${ops.caseA}`)
+    await expect(page.getByRole('heading', { name: CASE, exact: true })).toBeVisible()
+
+    // Probe with the same cookie value from a separate client, so a
+    // browser-side cookie expiry cannot fake the result.
+    const probe = await browser.newContext({ baseURL: ops.baseURL })
+    const headers = { Cookie: `${cookie?.name}=${cookie?.value}` }
+    await expect.poll(async () => {
+      const s = (await (await probe.request.get('/api/v1/session', { headers })).json()) as SessionBody
+      return s.data.authenticated
+    }, { timeout: 120_000, intervals: [5_000] }).toBe(false)
+    expect(Date.now() - loggedInAt, 'expired by the configured lifetime, not earlier').toBeGreaterThanOrEqual(55_000)
+    await expectActionDenied(await probe.request.get(`/api/v1/fulfillment/work-cases/${ops.caseA}`, { headers }))
+    await probe.close()
+
+    await page.reload()
+    await expect(page.getByRole('button', { name: 'ورود', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'خروج' })).toHaveCount(0)
+  })
 })
 
 test.describe('provider operations and activation decisions (flags ON)', () => {
@@ -306,18 +374,62 @@ test.describe('operations surfaces with every Slice 14 flag OFF @flags-off', () 
       ...workCommands.map(c => [ops.caseA, c] as const), [ops.caseA, 'operational-actions'] as const, [ops.caseP, 'outcome'] as const,
       [unknownCase, 'assignment'] as const,
     ]) {
-      const r = await workCommand(page, ops, id, cmd, cmd === 'operational-actions' ? key : idemKey(`off-${cmd}`), csrf)
-      await expectFeatureDisabled(r)
-      const c = ((await r.json()) as { command?: { applied: boolean; rollout_mode: string; blocked_by: string[]; command_id?: string; version?: number; replayed?: boolean } }).command
-      expect(c, `${cmd} ${id}`).toBeDefined()
-      expect(c?.applied).toBe(false)
-      expect(c?.rollout_mode).toBe('TARGET_WRITE_DISABLED')
-      expect(c?.blocked_by).toEqual([])
-      expect(c?.command_id).toBeUndefined()
-      expect(c?.version).toBeUndefined()
-      expect(c?.replayed).toBe(false)
+      await expectCommandDisabled(await workCommand(page, ops, id, cmd, cmd === 'operational-actions' ? key : idemKey(`off-${cmd}`), csrf), `${cmd} ${id}`)
     }
     const res = await resolveOperation(page, ops, ops.operation, idemKey('off-resolve'), csrf)
+    await expectFeatureDisabled(res)
+    expect(((await res.json()) as { operation?: unknown }).operation).toBeUndefined()
+  })
+
+  test('a contract-invalid command is still answered 400 by the contract check, which runs before the flag gate @flags-off', async ({ page, ops, blocked }) => {
+    void blocked
+    await loginUI(page, ops.userX.login, ops.userX.password)
+    await expect(page.getByRole('button', { name: 'خروج' })).toBeVisible()
+    const csrf = await csrfToken(page)
+    await expectContractInvalid(await rawCommand(page, ops, ops.caseA, 'operational-actions', csrf, { 'If-Match': '"1"' },
+      JSON.stringify(commandBody('operational-actions', ops.userX.userId))), 'no Idempotency-Key, flags off')
+  })
+})
+
+test.describe('reads ON, commands OFF, write-back flag ON alone, reconciliation OFF @flags-mixed', () => {
+  test('the navigation hint follows the read flag; every page shows the no-access state, not the disabled state @flags-mixed', async ({ page, ops, blocked }) => {
+    void blocked
+    await loginUI(page, ops.userX.login, ops.userX.password)
+    await expect(page.getByRole('button', { name: 'خروج' })).toBeVisible()
+    const s = (await (await sessionGet(page, '/api/v1/session')).json()) as SessionBody
+    expect(s.data.features?.fulfillment_work).toBe(true)
+    for (const label of NAV) await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible()
+    for (const route of ['/operations/work', `/operations/work/${ops.caseA}`, '/operations/provider-operations', '/operations/activations']) {
+      await page.goto(route)
+      await expect(page.getByText(DENIED).first(), route).toBeVisible()
+      await expect(page.getByText(DISABLED), route).toHaveCount(0)
+    }
+    await expectNoCommandControls(page)
+  })
+
+  test('reads are refused by the capability gate (403), for the session and for anonymous @flags-mixed', async ({ page, ops, blocked }) => {
+    void blocked
+    for (const path of [...collectionReads(ops), ...caseReads(ops.caseA)]) await expectActionDenied(await page.request.get(path))
+    await loginUI(page, ops.userX.login, ops.userX.password)
+    await expect(page.getByRole('button', { name: 'خروج' })).toBeVisible()
+    for (const path of [...collectionReads(ops), ...caseReads(ops.caseA), ...caseReads(ops.caseB), ...caseReads(unknownCase)]) {
+      await expectActionDenied(await sessionGet(page, path))
+    }
+  })
+
+  test('commands answer the disabled contract (200) while reads are denied (403); the write-back flag alone enables nothing @flags-mixed', async ({ page, ops, blocked }) => {
+    void blocked
+    // Anonymous: the command flag is OFF, so the flag gate answers before authority.
+    await expectCommandDisabled(await workCommand(page, ops, ops.caseA, 'assignment', idemKey('mixed-anon'), null), 'anonymous assignment')
+    await loginUI(page, ops.userX.login, ops.userX.password)
+    await expect(page.getByRole('button', { name: 'خروج' })).toBeVisible()
+    const csrf = await csrfToken(page)
+    for (const id of [ops.caseA, ops.caseB, ops.caseP, unknownCase]) {
+      for (const cmd of workCommands) await expectCommandDisabled(await workCommand(page, ops, id, cmd, idemKey(`mixed-${cmd}`), csrf), `${cmd} ${id}`)
+    }
+    // Same case, same moment: the read is denied, the command is disabled. Never interchangeable.
+    await expectActionDenied(await sessionGet(page, `/api/v1/fulfillment/work-cases/${ops.caseA}`))
+    const res = await resolveOperation(page, ops, ops.operation, idemKey('mixed-resolve'), csrf)
     await expectFeatureDisabled(res)
     expect(((await res.json()) as { operation?: unknown }).operation).toBeUndefined()
   })
@@ -334,6 +446,8 @@ test.describe('isolation on the operations stack', () => {
     })
     await expect.poll(() => blocked.length).toBe(1)
     expect(blocked[0]).toBe('https://e2e-guard-probe.example.invalid/operations.css')
+    // The probe is the only expected block: it is cleared after asserting it,
+    // so the fixture's teardown still fails on any other non-local request.
     blocked.length = 0
   })
 })

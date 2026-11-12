@@ -34,7 +34,8 @@ export default defineConfig({
     { name: 'payments-flags-on', testMatch: 'payments.spec.ts', grepInvert: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
     { name: 'payments-flags-off', testMatch: 'payments.spec.ts', grep: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
     // R7-3 (TestBrowserFulfillmentFullStack): work cases and provider operations.
-    { name: 'fulfillment-flags-on', testMatch: 'fulfillment.spec.ts', grepInvert: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'fulfillment-flags-on', testMatch: 'fulfillment.spec.ts', grepInvert: /@flags-off|@flags-mixed/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'fulfillment-flags-mixed', testMatch: 'fulfillment.spec.ts', grep: /@flags-mixed/, use: { ...devices['Desktop Chrome'] } },
     { name: 'fulfillment-flags-off', testMatch: 'fulfillment.spec.ts', grep: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
   ],
 })

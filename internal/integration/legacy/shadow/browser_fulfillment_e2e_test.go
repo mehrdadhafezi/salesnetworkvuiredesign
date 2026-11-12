@@ -30,7 +30,7 @@ package shadow_test
 //     and reconciliation is therefore refused, and the suite asserts those
 //     refusals; it never assigns, records, attaches or completes anything.
 //
-// After both Playwright projects the orchestrator proves that no billing,
+// After the three Playwright projects (flags ON, mixed, OFF) the orchestrator proves that no billing,
 // payments, finance, fulfillment, biawin, catalog or integration row changed
 // (row count plus a SHA-256 fingerprint of every row; see
 // financial_snapshot_test.go), that no write-back command was queued, that the
@@ -105,7 +105,14 @@ func TestBrowserFulfillmentFullStack(t *testing.T) {
 		"CRM_OPS_CATALOG_DATABASE_URL":       catalog.Module,
 		"CRM_OPS_INTEGRATION_DATABASE_URL":   integration.Module,
 		"CRM_WRITEBACK_READ_DATABASE_URL":    integration.Module,
-	}, nil)
+	}, map[string]string{
+		// The smallest lifetime session.Config.Validate accepts, through the
+		// supported R1 overrides: the browser suite observes a real server-side
+		// expiry (no session row is edited). Every other test logs in afresh
+		// and finishes well inside one minute.
+		"CRM_AUTH_SESSION_IDLE":     "1m",
+		"CRM_AUTH_SESSION_ABSOLUTE": "1m",
+	})
 	web := serveSPA(t, filepath.Join(root, "web", "dist"), api)
 
 	before := schemaSnapshot(t, e.admin, guardedSchemas)
@@ -132,6 +139,13 @@ func TestBrowserFulfillmentFullStack(t *testing.T) {
 		"E2E_WORK_SERVICE_P":     sc.serviceP,
 	}
 	runPlaywright(t, root, "fulfillment-flags-on", env, x, y)
+
+	// Mixed: reads ON, the command flag OFF, the write-back flag ON on its own
+	// (it must enable nothing) and reconciliation OFF. Proves the feature gate
+	// and the capability gate answer independently per surface.
+	e.setFlags(t, map[string]bool{"fulfillment.work_read": true, "fulfillment.work_write": false,
+		"fulfillment.work_writeback": true, "integration.provider_reconcile": false})
+	runPlaywright(t, root, "fulfillment-flags-mixed", env, x, y)
 
 	// Every Slice 14 flag OFF (sessions stay ON), then prove the UI and the
 	// API answer the disabled contract.
