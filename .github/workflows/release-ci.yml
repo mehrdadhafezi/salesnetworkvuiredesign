@@ -132,10 +132,37 @@ jobs:
           docker run -d --name crm-prom-prefix --network crm-staging_internal -v "$prefix":/etc/prometheus:ro "$PROM_IMAGE" --config.file=/etc/prometheus/prometheus.yml
           q() { docker exec "$1" promtool query instant -o json http://localhost:9090 "$2"; }
           n() { q "$1" "$2" | jq -r 'if length == 0 then "none" else .[0].value[1] end'; }
-          for p in crm-prom crm-prom-prefix; do
-            for i in $(seq 1 45); do
-              [ "$(n "$p" 'count(crm_worker_job_state_paused)')" != none ] && [ "$(n "$p" 'up{job="crm-worker"}')" = 1 ] && break; sleep 2
+          # On failure, say WHY the API was not up: Prometheus' own view of the
+          # target (health, lastError, lastScrape), the container state, and a
+          # direct fetch of the metrics endpoint over the same network.
+          diag() {
+            rc=$?; [ "$rc" = 0 ] && return 0
+            echo "::group::Prometheus scrape diagnostics (exit $rc)"
+            for p in crm-prom crm-prom-prefix; do
+              echo "[$p] targets:"
+              docker exec "$p" wget -qO- -T 5 http://localhost:9090/api/v1/targets | jq -c '.data.activeTargets[] | {job: .labels.job, health, lastError, lastScrape, scrapeUrl}' || echo "[$p] targets API unavailable"
             done
+            docker inspect --format 'api container: status={{.State.Status}} health={{.State.Health.Status}} restarts={{.RestartCount}} started={{.State.StartedAt}}' crm-staging-api-1 || true
+            docker exec crm-prom wget -qO- -T 5 http://api:9090/metrics | grep -c '^[a-z]' | sed 's/^/api metrics samples via the scrape network: /' || echo "api metrics endpoint NOT reachable from Prometheus"
+            docker logs --tail 20 crm-staging-api-1 2>&1 || true
+            echo "::endgroup::"
+            return "$rc"
+          }
+          trap diag EXIT
+          # Bounded readiness (45 x 2s per instance): wait until each Prometheus
+          # has completed its FIRST scrape of the crm-api AND the crm-worker
+          # targets. Each target's first scrape lands at a per-target offset
+          # within scrape_interval (15s), so waiting on the worker alone let the
+          # assertions run before the api had ever been scraped ("api up: none").
+          # Only the series' PRESENCE is awaited, not its value: an api that is
+          # scraped and down (up == 0) still fails the assertion below.
+          for p in crm-prom crm-prom-prefix; do
+            ready=
+            for _ in $(seq 1 45); do
+              if [ "$(n "$p" 'count(crm_worker_job_state_paused)')" != none ] && [ "$(n "$p" 'up{job="crm-worker"}')" = 1 ] && [ "$(n "$p" 'count(up{job="crm-api"})')" != none ]; then ready=1; break; fi
+              sleep 2
+            done
+            [ -n "$ready" ] || echo "::warning::$p: first scrape of crm-api/crm-worker not seen within 90s"
           done
           jobs="$(n crm-prom 'count(crm_worker_job_state_paused)')"
           echo "worker jobs scraped: $jobs; api up: $(n crm-prom 'up{job="crm-api"}'); worker up: $(n crm-prom 'up{job="crm-worker"}')"
