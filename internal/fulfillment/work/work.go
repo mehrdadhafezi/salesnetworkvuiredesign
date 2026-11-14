@@ -72,6 +72,11 @@ var (
 	ErrInvalid = errors.New("fulfillment/work: invalid command")
 	// ErrNotFound reports an unknown case (404).
 	ErrNotFound = errors.New("fulfillment/work: case not found")
+	// ErrCaseIdentityConflict reports a stored work case whose case_id and
+	// item_id do not belong together (an integrity fault, never an existing
+	// case). The intake transaction rolls back and the message stays
+	// unconsumed.
+	ErrCaseIdentityConflict = errors.New("fulfillment/work: stored work case identity conflict")
 )
 
 func invalid(f string) error { return fmt.Errorf("%w: %s", ErrInvalid, f) }
@@ -157,15 +162,35 @@ func (s *Service) OnItemActivated(ctx context.Context, rec outbox.Record) (Intak
 			}
 			caseID := CaseID(ev.ItemID)
 			out.CaseID = &caseID
+			// case_id is CaseID(item_id), so one item conflicts on BOTH unique
+			// keys (case_id, item_id). No arbiter: a concurrent redelivery that
+			// reaches the primary key first must answer EXISTING_CASE, not fail
+			// with 23505. ON CONFLICT absorbs only unique violations (CHECK,
+			// NOT NULL and foreign keys still raise), and the stored row is
+			// verified below before EXISTING_CASE is answered.
 			tag, err := tx.Exec(ctx, `INSERT INTO fulfillment.work_case (case_id, item_id, subscription_id, customer_id, service_key, service_version,
 				workflow_key, origin_mode, state, assignee_user_id, version, source_message_id, correlation_id, created_at, updated_at)
-				VALUES ($1,$2,$3,$4,$5,$6,$7,'SHADOW_COMPARE','QUEUED',NULL,1,$8,$9,$10,$10) ON CONFLICT (item_id) DO NOTHING`,
+				VALUES ($1,$2,$3,$4,$5,$6,$7,'SHADOW_COMPARE','QUEUED',NULL,1,$8,$9,$10,$10) ON CONFLICT DO NOTHING`,
 				caseID, ev.ItemID, ev.SubscriptionID, ev.CustomerID, ev.ServiceKey, ev.ServiceVersion, sv.WorkflowKey, rec.ID, ev.CorrelationID, at)
 			if err != nil {
 				return err
 			}
 			decision := "CASE_CREATED"
 			if tag.RowsAffected() == 0 {
+				// The conflicting row is committed (DO NOTHING waits for a
+				// concurrent inserter) and visible to this statement. It is this
+				// item's case only if ONE row carries BOTH keys (both keys are
+				// unique, so no other row can then share either); a row matching
+				// only one key is an integrity fault and fails closed (rollback,
+				// message unconsumed).
+				var same bool
+				if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM fulfillment.work_case WHERE case_id = $1 AND item_id = $2)`,
+					caseID, ev.ItemID).Scan(&same); err != nil {
+					return err
+				}
+				if !same {
+					return ErrCaseIdentityConflict
+				}
 				decision = "EXISTING_CASE"
 			}
 			out.Decision, out.Reasons = decision, []string{}
