@@ -39,7 +39,7 @@ type reportingEnv struct {
 
 func setupReporting(t *testing.T) *reportingEnv {
 	t.Helper()
-	e := setupBilling(t)
+	e := setupBilling(t, reportingmigrations.Source())
 	if _, err := migrations.Up(context.Background(), e.DSN, reportingmigrations.Source()); err != nil {
 		t.Fatalf("reporting migrations: %v", err)
 	}

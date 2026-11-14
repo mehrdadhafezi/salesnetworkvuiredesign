@@ -353,9 +353,8 @@ var r75Orphans = []struct{ child, col, parent, pk string }{
 	{"reporting.payment_fact", "attempt_id", "payments.payment_attempt", "attempt_id"},
 }
 
-func TestR75IntegratedSeed(t *testing.T) {
-	e := setupIntegrated(t)
-	_, steps := e.seedIntegrated(t)
+func r75CheckSeed(t *testing.T, e *integratedEnv, steps []seedStep) {
+	t.Helper()
 	if !reflect.DeepEqual(steps, r75Steps) {
 		t.Fatalf("step outcomes:\n got %+v\nwant %+v", steps, r75Steps)
 	}
@@ -410,11 +409,8 @@ func TestR75IntegratedSeed(t *testing.T) {
 
 // Two fresh disposable databases receive the same logical records and
 // references (runtime UUIDs and UUID-derived hashes excluded).
-func TestR75IntegratedDeterministicAcrossDatabases(t *testing.T) {
-	a, b := setupIntegrated(t), setupIntegrated(t)
-	a.seedIntegrated(t)
-	b.seedIntegrated(t)
-	fa, fb := a.logical(t), b.logical(t)
+func r75CheckDeterministic(t *testing.T, fa, fb map[string]string) {
+	t.Helper()
 	if len(fa) < len(r75Written) || len(fa) != len(fb) {
 		t.Fatalf("fingerprinted %d and %d tables (pinned owner tables: %d)", len(fa), len(fb), len(r75Written))
 	}
@@ -467,9 +463,8 @@ func (e *integratedEnv) perRun(t *testing.T, tbl string, labels map[string]strin
 // authoritative record is duplicated. Only run metadata grows: one more
 // import_run row per module and one more reporting projection run with
 // identical content.
-func TestR75IntegratedRepeatRun(t *testing.T) {
-	e := setupIntegrated(t)
-	b, _ := e.seedIntegrated(t)
+func r75CheckRepeatRun(t *testing.T, e *integratedEnv, b *shadow.Batch) {
+	t.Helper()
 	before := e.logical(t)
 	counts := map[string]int64{}
 	for tbl := range before {
@@ -534,9 +529,8 @@ func TestR75IntegratedRepeatRun(t *testing.T) {
 
 // Reads over the seeded data keep their gates: feature disabled by default,
 // capability required, and reading changes no financial or source table.
-func TestR75IntegratedReadRefusals(t *testing.T) {
-	e := setupIntegrated(t)
-	e.seedIntegrated(t)
+func r75CheckReadRefusals(t *testing.T, e *integratedEnv) {
+	t.Helper()
 	guarded := schemaSnapshot(t, e.admin, []string{"billing", "payments", "finance", "commission", "customers", "cases", "custody", "identity"})
 	h := e.rep.server(t, e.rep.auditor(t))
 	if r := get(t, h, "/api/v1/reporting/metrics", "dev-user-001"); !strings.Contains(r.body, `"FEATURE_DISABLED"`) {
@@ -559,8 +553,8 @@ func TestR75IntegratedReadRefusals(t *testing.T) {
 }
 
 // The synthetic loader refuses the same rows under a non-synthetic origin.
-func TestR75IntegratedNonSyntheticIsBlocked(t *testing.T) {
-	e := setupIntegrated(t)
+func r75CheckNonSyntheticBlocked(t *testing.T, e *integratedEnv) {
+	t.Helper()
 	h := legacytest.Header("syn-r7-5-unclassified", t0)
 	h.DataOrigin = snapshot.OriginUnclassified
 	dir := filepath.Join(t.TempDir(), "snapshot")
@@ -578,6 +572,59 @@ func TestR75IntegratedNonSyntheticIsBlocked(t *testing.T) {
 	if n := e.count(t, `SELECT count(*) FROM integration.import_batch`); n != 0 {
 		t.Fatalf("a blocked package staged %d batches", n)
 	}
+}
+
+// TestR75Integrated runs every database-backed R7-5 scenario on TWO
+// databases and TWO seeds (CI-PERF-01; previously six databases and five
+// seeds). The scenarios run in this fixed order, never in parallel, and each
+// starts from a state that is either fresh or PROVEN equal to the pristine
+// seed by the logical fingerprint (labelled UUIDs, runtime columns excluded):
+//
+//	A: seed → baseline → Seed (read-only; A verified unchanged afterwards)
+//	B: fresh → NonSyntheticIsBlocked (no batch staged) → seed →
+//	   DeterministicAcrossDatabases (B == A's pristine baseline: two
+//	   independent databases, and proof the blocked attempt left nothing)
+//	B: ReadRefusals (B proven pristine by the previous comparison)
+//	A: RepeatRun, the only mutating scenario, last (A re-verified pristine)
+//
+// Every assertion of the five former top-level tests is unchanged in its
+// r75Check* function.
+func TestR75Integrated(t *testing.T) {
+	a := setupIntegrated(t)
+	batch, steps := a.seedIntegrated(t)
+	baseline := a.logical(t)
+	pristine := func(t *testing.T, e *integratedEnv, label string) {
+		t.Helper()
+		if got := e.logical(t); !reflect.DeepEqual(got, baseline) {
+			for tbl, h := range baseline {
+				if got[tbl] != h {
+					t.Errorf("%s: %s differs from the pristine seed", label, tbl)
+				}
+			}
+			t.Fatalf("%s: the database is not in the pristine seeded state (%d vs %d tables)", label, len(got), len(baseline))
+		}
+	}
+	t.Run("Seed", func(t *testing.T) {
+		r75CheckSeed(t, a, steps)
+		pristine(t, a, "after the Seed checks")
+	})
+	b := setupIntegrated(t)
+	t.Run("NonSyntheticIsBlocked", func(t *testing.T) { r75CheckNonSyntheticBlocked(t, b) })
+	t.Run("DeterministicAcrossDatabases", func(t *testing.T) {
+		_, bsteps := b.seedIntegrated(t)
+		if !reflect.DeepEqual(bsteps, r75Steps) {
+			t.Fatalf("second database step outcomes: got %+v, want %+v", bsteps, r75Steps)
+		}
+		r75CheckDeterministic(t, baseline, b.logical(t))
+	})
+	t.Run("ReadRefusals", func(t *testing.T) {
+		pristine(t, b, "before ReadRefusals")
+		r75CheckReadRefusals(t, b)
+	})
+	t.Run("RepeatRun", func(t *testing.T) {
+		pristine(t, a, "before RepeatRun")
+		r75CheckRepeatRun(t, a, batch)
+	})
 }
 
 // Opt-in export of the package for local use with the existing

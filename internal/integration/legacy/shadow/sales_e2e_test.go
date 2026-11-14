@@ -43,10 +43,11 @@ type salesEnv struct {
 	custIn   *custodyimports.Command
 }
 
-func setupSales(t *testing.T) *salesEnv {
+func setupSales(t *testing.T, extra ...migrations.Source) *salesEnv {
 	t.Helper()
-	e := setup(t)
-	for _, s := range []migrations.Source{casesmigrations.Source(), custodymigrations.Source()} {
+	own := []migrations.Source{casesmigrations.Source(), custodymigrations.Source()}
+	e := setup(t, append(own, extra...)...)
+	for _, s := range own {
 		if _, err := migrations.Up(context.Background(), e.DSN, s); err != nil {
 			t.Fatalf("sales migrations: %v", err)
 		}

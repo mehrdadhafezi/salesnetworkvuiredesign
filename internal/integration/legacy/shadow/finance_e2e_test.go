@@ -28,7 +28,7 @@ type financeEnv struct {
 
 func setupFinance(t *testing.T) *financeEnv {
 	t.Helper()
-	e := setupBilling(t)
+	e := setupBilling(t, financemigrations.Source())
 	if _, err := migrations.Up(context.Background(), e.DSN, financemigrations.Source()); err != nil {
 		t.Fatalf("finance migrations: %v", err)
 	}

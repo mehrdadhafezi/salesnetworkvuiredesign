@@ -49,7 +49,7 @@ type integratedEnv struct {
 
 func setupIntegrated(t *testing.T) *integratedEnv {
 	t.Helper()
-	bw := setupBiawin(t) // billing env + biawin + fulfillment migrations
+	bw := setupBiawin(t, financemigrations.Source(), commissionmigrations.Source(), reportingmigrations.Source()) // billing + biawin + fulfillment + these
 	e := bw.billingEnv
 	for _, s := range []migrations.Source{financemigrations.Source(), commissionmigrations.Source(), reportingmigrations.Source()} {
 		if _, err := migrations.Up(context.Background(), e.DSN, s); err != nil {

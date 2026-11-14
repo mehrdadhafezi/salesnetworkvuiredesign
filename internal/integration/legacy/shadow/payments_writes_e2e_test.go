@@ -144,8 +144,9 @@ type paymentsEnv struct {
 func setupPayments(t *testing.T) *paymentsEnv {
 	t.Helper()
 	ctx := context.Background()
-	be := setupBilling(t)
-	for _, src := range []migrations.Source{financemigrations.Source(), biawinmigrations.Source(), fulfillmentmigrations.Source()} {
+	own := []migrations.Source{financemigrations.Source(), biawinmigrations.Source(), fulfillmentmigrations.Source()}
+	be := setupBilling(t, own...)
+	for _, src := range own {
 		if _, err := migrations.Up(ctx, be.DSN, src); err != nil {
 			t.Fatal(err)
 		}

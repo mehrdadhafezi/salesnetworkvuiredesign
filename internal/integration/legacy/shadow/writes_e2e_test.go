@@ -52,10 +52,11 @@ func (h holders) Holder(ctx context.Context, caseID string) (casescommand.Holder
 func setupWrites(t *testing.T) *writesEnv {
 	t.Helper()
 	ctx := context.Background()
-	se := setupSales(t)
 	// Financial and Biawin owners exist (empty) so non-mutation is provable.
-	for _, src := range []migrations.Source{billingmigrations.Source(), paymentsmigrations.Source(), financemigrations.Source(),
-		biawinmigrations.Source(), fulfillmentmigrations.Source()} {
+	own := []migrations.Source{billingmigrations.Source(), paymentsmigrations.Source(), financemigrations.Source(),
+		biawinmigrations.Source(), fulfillmentmigrations.Source()}
+	se := setupSales(t, own...)
+	for _, src := range own {
 		if _, err := migrations.Up(ctx, se.DSN, src); err != nil {
 			t.Fatal(err)
 		}
