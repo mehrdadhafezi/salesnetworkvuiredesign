@@ -3,6 +3,11 @@
 Status: TEST-ONLY. No production code, migration, flag default, grant or
 business rule is changed. Production remains **NO-GO**.
 
+> **Follow-up (separate PR, branch `fix/def-hr-01-reviewer-cycle`):** the one
+> defect found here, DEF-HR-01, has a code fix in review. Its status is
+> tracked in the [Defect](#defect) section below; it is **not** resolved
+> until that PR is independently reviewed and merged.
+
 Baseline: `main` @ `038699df517c918bcf5bb2e7fc3fd862105421a1`.
 
 Scope (R7-A §R7-4): backend + disposable PostgreSQL depth for
@@ -25,7 +30,7 @@ real provider.
 |---|---|---|
 | `internal/integration/biawin/r7_4_fulfillment_hardening_test.go` | integration (PostgreSQL) + concurrent transactions | 7 |
 | `internal/integration/legacy/shadow/r7_4_hrrequest_hardening_test.go` | integration (PostgreSQL) + concurrent transactions + HTTP | 6 |
-| `internal/integration/legacy/shadow/r7_4_defects_test.go` | defect regressions, build tag `r74defects`, **fail today by design**, not run in CI | 2 |
+| `internal/integration/legacy/shadow/r7_4_def_hr_01_test.go` | DEF-HR-01 regressions, **default suite** since the fix (previously `r7_4_defects_test.go`, build tag `r74defects`, failing by design) | 2 original + 5 targeted |
 
 All default-suite tests run in the existing CI jobs (`go test ./...`,
 `go test -race ./...`, the Slice 14 job for `./internal/integration/biawin/`
@@ -149,36 +154,97 @@ Existing = `TestHRRequestCommands`, `TestWritesInvariants`, `TestWritesHTTP`
 | H29 | n × same key same body / different bodies | no | executed once; different body never answered with winner | replay / CONFLICT `CONTRACT_INVALID` | — |
 | H30 | n concurrent approve / reject on v1 | no | one event, version 2; loser answer depends on the winner | 1 SUCCESS; losers `STALE_STATE`, `ROW_SCOPE_DENIED` or HR-apply BLOCKED | **G-H3** |
 | H31 | Person-level separation of duties (one person, two accounts) | n/a | — | **BLOCKED — not testable** (no person identity model) | R5-SEC-01 |
-| H32 | Self-parent / cycle evidence makes the requester their own reviewer | no | defect regression (`r74defects`) | must be BLOCKED `LINKAGE_CONFLICT`; **is SUCCESS today** | **DEF-HR-01** |
+| H32 | Self-parent / cycle evidence makes the requester their own reviewer | no | defect regression, default suite after the fix | BLOCKED `LINKAGE_CONFLICT` (was SUCCESS on the R7-4 baseline) | **DEF-HR-01** (fix in review) |
 
 ## Defect
 
 **DEF-HR-01 — HR reviewer resolution accepts SELF_PARENT / CYCLE evidence.**
 Severity: Medium. Domain: organization / HR requests (OP-05).
 
-- Reproduction: `go test -tags r74defects -count=1 -run TestR74Defect ./internal/integration/legacy/shadow/`
-  (both tests fail on `main` @ baseline).
+| Status | State |
+|---|---|
+| FIXED IN CODE | **Yes**, on branch `fix/def-hr-01-reviewer-cycle` (separate PR). Not merged until independently reviewed. |
+| VERIFIED BY TESTS | **Yes**: 2 original regressions + 5 targeted tests in the default suite, disposable PostgreSQL; 8 of 8 mutations killed (below). |
+| NOT DEPLOYED | **Not deployed anywhere.** Production remains NO-GO. |
+| REMAINING GOVERNANCE BLOCKERS | R5-SEC-01 (person-level SoD), OPD-05 / SD-04 (HR apply), G-H2 (snapshot vs. live reviewer). See below. |
+
+**Defect (as found on the R7-4 baseline `038699d`).**
+- Reproduction then: `go test -tags r74defects -count=1 -run TestR74Defect ./internal/integration/legacy/shadow/`.
+  Both tests failed on `main` @ `038699d` and again @ `3406843` before the fix.
 - With an imported reporting line that points at its own employment
-  (SELF_PARENT) the requester is recorded as `current_reviewer_user_id` and
-  can record `approved_step` decisions on their own request indefinitely.
-  With a two-person cycle the request returns to the requester after one
-  step.
-- Impact today: no apply exists (OPD-05 / SD-04 block every final step), so
-  no employment, hierarchy or permission changes; the defect corrupts the
-  decision audit trail and defeats the requester ≠ reviewer property that
+  (SELF_PARENT), the requester was recorded as `current_reviewer_user_id`
+  and could record `approved_step` decisions on their own request
+  indefinitely. With a two-person cycle, the request returned to the
+  requester after one step.
+- Impact: no apply exists (OPD-05 / SD-04 block every final step), so no
+  employment, hierarchy or permission changed. The defect corrupted the
+  decision audit trail and defeated the requester ≠ reviewer property that
   the normal hierarchy provides.
 - Existing contract: `hrrequest` states "ambiguous or missing hierarchy
-  evidence is BLOCKED, never guessed"; the organization import already
+  evidence is BLOCKED, never guessed", and the organization import already
   classifies SELF_PARENT and CYCLE as `CONFLICT` findings
-  (`internal/organization/domain/hierarchy.go`). The fix therefore follows an
-  existing contract and adds no business rule.
-- Proposed smallest fix (**not applied; needs independent approval**): in
-  `parentOf`, treat a current parent equal to the child employment as
-  ambiguous; in `nextReviewer`, walk the reviewer's chain with the same
-  bounded walk as `descendant` and treat a return to the starting employment
-  as ambiguous. Both yield the existing `BLOCKED / LINKAGE_CONFLICT`. A
-  person-level rule "reviewer ≠ requester" is a separate SoD decision
-  (R5-SEC-01) and is NOT proposed here.
+  (`internal/organization/domain/hierarchy.go`). The fix follows that
+  contract and adds no business rule.
+
+**Root cause.** `nextReviewer` returned the actor's direct current parent
+without looking at the chain above it. The direct parent of a self-parent
+line is the requester. In a cycle, each step moves to the next parent until
+the request reaches the requester again.
+
+**Fix (`internal/organization/hrrequest/hrrequest.go`, `nextReviewer`).**
+The actor's current REPORTS_TO chain is walked with the existing
+`maxHierDepth` (12) bound. The direct parent counts as evidence only if:
+- the chain reaches a root within that bound; and
+- no ancestor is the request's requester, compared by user.
+
+Otherwise the result is the existing `BLOCKED / LINKAGE_CONFLICT`.
+- A self-parent line or a cycle never reaches a root, so it ends at the
+  bound, the same rule `descendant` already uses.
+- `DecideRequest` reads `requested_by_user_id` for the check.
+- No new reason code, status, policy, permission or apply was added.
+
+This differs from the fix first proposed above, which changed `parentOf`
+and tracked visited employments. Both of those guards proved redundant:
+weakening either changed no outcome, because the bound and the requester
+check already cover them. They were dropped to keep the change minimal.
+
+| Situation | Before | After |
+|---|---|---|
+| Requester's own line is self-parent | SUCCESS, reviewer = requester | BLOCKED `LINKAGE_CONFLICT` |
+| Self-parent above the requester | SUCCESS; the request stalls at that reviewer | BLOCKED `LINKAGE_CONFLICT` |
+| Cycle through the requester | SUCCESS; returns to the requester after one step | BLOCKED `LINKAGE_CONFLICT` at creation |
+| Cycle above the requester, not involving them | SUCCESS; reviewers alternate forever | BLOCKED `LINKAGE_CONFLICT` |
+| Hierarchy changed after creation, so the next reviewer would be the requester | SUCCESS, routed to the requester | Approve: BLOCKED, nothing written. Reject: unchanged (terminal) |
+| Another (non-PRESENT) employment of the requester above the chain | SUCCESS | BLOCKED `LINKAGE_CONFLICT` |
+| Chain of 13 or more ancestors | SUCCESS | BLOCKED `LINKAGE_CONFLICT` (same bound as `descendant`) |
+| Valid chain, step progression, root-level requester → `pending_hr`, rejection | unchanged | unchanged |
+
+**Tests (default suite, `r7_4_def_hr_01_test.go`).**
+- `TestR74DefectHRSelfParentReviewer` and `TestR74DefectHRCycleReturnsToRequester`: the original assertions, unchanged.
+- `TestDEFHR01CreationEvidence`, `TestDEFHR01HierarchyChangesBeforeDecision`, `TestDEFHR01ValidChainsUnchanged`, `TestDEFHR01DepthBoundary` (12 accepted / 13 refused) and `TestDEFHR01RequesterAboveOwnChain`.
+- Every refusal goes through `refusedCreate` / `refusedDecide`. These assert that the request, event, command-record, outbox and idempotency tables are byte-identical afterwards.
+- Each test ends with `noSideEffects`, which checks that identity, custody, cases, billing, payments, finance, commission, integration, fulfillment, biawin and the organization evidence are unchanged.
+- Fixtures are restored, and checked restored, by md5.
+
+**DEF-HR-01 mutation evidence.** Each change was made locally, one at a
+time, and never committed.
+
+| Mutation of the fix | Result | Failing tests |
+|---|---|---|
+| F1 requester check removed | killed | HierarchyChangesBeforeDecision |
+| F2 depth bound removed (1000) | killed | DepthBoundary |
+| F3 depth bound 11 | killed | DepthBoundary |
+| F4 depth bound 13 | killed | DepthBoundary |
+| F5 chain not walked (direct parent only) | killed | CreationEvidence, HierarchyChangesBeforeDecision, DepthBoundary, RequesterAboveOwnChain |
+| F6 decision ignores the requester | killed | HierarchyChangesBeforeDecision |
+| F7 creation ignores the requester | killed | RequesterAboveOwnChain |
+| F8 the original code (`main`) | killed | both originals + 4 targeted |
+
+**Not resolved by this fix.**
+- Person-level separation of duties (one person holding two accounts) remains **BLOCKED** under R5-SEC-01.
+- The check compares user IDs and does not invent a person model.
+- The reviewer snapshot (G-H2) is unchanged.
+- HR apply stays implementation-blocked (OPD-05 / SD-04).
 
 ## Governance questions (behaviour pinned as observed, not claimed correct)
 
