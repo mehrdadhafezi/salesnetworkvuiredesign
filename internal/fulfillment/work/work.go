@@ -157,9 +157,13 @@ func (s *Service) OnItemActivated(ctx context.Context, rec outbox.Record) (Intak
 			}
 			caseID := CaseID(ev.ItemID)
 			out.CaseID = &caseID
+			// case_id is CaseID(item_id), so one item conflicts on BOTH unique
+			// keys (case_id, item_id); either conflict means "this item already
+			// has its case". No arbiter: a concurrent redelivery that reaches the
+			// primary key first must answer EXISTING_CASE, not fail with 23505.
 			tag, err := tx.Exec(ctx, `INSERT INTO fulfillment.work_case (case_id, item_id, subscription_id, customer_id, service_key, service_version,
 				workflow_key, origin_mode, state, assignee_user_id, version, source_message_id, correlation_id, created_at, updated_at)
-				VALUES ($1,$2,$3,$4,$5,$6,$7,'SHADOW_COMPARE','QUEUED',NULL,1,$8,$9,$10,$10) ON CONFLICT (item_id) DO NOTHING`,
+				VALUES ($1,$2,$3,$4,$5,$6,$7,'SHADOW_COMPARE','QUEUED',NULL,1,$8,$9,$10,$10) ON CONFLICT DO NOTHING`,
 				caseID, ev.ItemID, ev.SubscriptionID, ev.CustomerID, ev.ServiceKey, ev.ServiceVersion, sv.WorkflowKey, rec.ID, ev.CorrelationID, at)
 			if err != nil {
 				return err
