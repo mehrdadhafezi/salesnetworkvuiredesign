@@ -38,12 +38,12 @@ func allShadowSources() []migrations.Source {
 		commissionmigrations.Source(), reportingmigrations.Source()}
 }
 
-// catalog returns a sorted, OID-free description of everything a migration
+// schemaCatalog returns a sorted, OID-free description of everything a migration
 // can create: schemas, relations (kind, owner, ACL, RLS), columns, constraints,
 // indexes, functions, triggers, policies, extensions, default privileges, and
 // the content of every non-empty table (migration bookkeeping and seeded
 // reference rows) with goose's applied-at timestamp excluded.
-func catalog(t *testing.T, dsn string) []string {
+func schemaCatalog(t *testing.T, dsn string) []string {
 	t.Helper()
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, dsn)
@@ -126,13 +126,13 @@ func TestPgtestTemplateCloneEqualsDirectMigration(t *testing.T) {
 		}
 	}
 	clone := pgtest.NewWith(t, allShadowSources()...)
-	a, b := catalog(t, direct.DSN), catalog(t, clone.DSN)
+	a, b := schemaCatalog(t, direct.DSN), schemaCatalog(t, clone.DSN)
 	if len(a) < 1000 {
 		t.Fatalf("catalog fingerprint too small (%d lines): the comparison would prove nothing", len(a))
 	}
 	// Sensitivity: a clone without the last module must NOT compare equal.
 	all := allShadowSources()
-	if fewer := catalog(t, pgtest.NewWith(t, all[:len(all)-1]...).DSN); strings.Join(fewer, "\n") == strings.Join(a, "\n") {
+	if fewer := schemaCatalog(t, pgtest.NewWith(t, all[:len(all)-1]...).DSN); strings.Join(fewer, "\n") == strings.Join(a, "\n") {
 		t.Fatal("the catalog comparison cannot tell a missing module apart")
 	}
 	if strings.Join(a, "\n") != strings.Join(b, "\n") {
