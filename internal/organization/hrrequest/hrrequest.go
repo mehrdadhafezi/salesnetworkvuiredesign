@@ -264,15 +264,36 @@ func descendant(ctx context.Context, tx db.Tx, childEmployment, ancestorEmployme
 
 // nextReviewer is the legacy next_reviewer_user_id rule: the actor's current
 // parent; none → pending_hr.
-func nextReviewer(ctx context.Context, tx db.Tx, actorEmployment string) (reviewer *string, status string, ambiguous bool, err error) {
-	p, none, amb, err := parentOf(ctx, tx, actorEmployment)
-	if err != nil || amb {
-		return nil, "", amb, err
+//
+// The parent is only evidence when the actor's whole current REPORTS_TO
+// chain is sound (DEF-HR-01): it reaches a root within maxHierDepth and
+// never reaches the requester. Otherwise the request would return to its
+// requester as reviewer, now or at a later step. A SELF_PARENT line or a
+// CYCLE never reaches a root (as in descendant), so it is ambiguous, never
+// guessed.
+func nextReviewer(ctx context.Context, tx db.Tx, actorEmployment, requesterUserID string) (reviewer *string, status string, ambiguous bool, err error) {
+	var first *employment
+	cur := actorEmployment
+	for depth := 0; ; depth++ {
+		p, none, amb, err := parentOf(ctx, tx, cur)
+		if err != nil || amb {
+			return nil, "", amb, err
+		}
+		if none {
+			break
+		}
+		if depth == maxHierDepth || p.UserID == requesterUserID {
+			return nil, "", true, nil // depth exceeded (cycle) or back to the requester
+		}
+		if first == nil {
+			first = p
+		}
+		cur = p.ID
 	}
-	if none {
+	if first == nil {
 		return nil, api.HRPendingHR, false, nil
 	}
-	u := p.UserID
+	u := first.UserID
 	return &u, api.HRPendingReview, false, nil
 }
 
@@ -418,7 +439,7 @@ func (s *Service) CreateRequest(ctx context.Context, mode rollout.Mode, c Create
 			}
 			targetEmp = &target.ID
 		}
-		reviewer, status, amb, err := nextReviewer(ctx, tx, actor.ID)
+		reviewer, status, amb, err := nextReviewer(ctx, tx, actor.ID, c.Actor.UserID)
 		if err != nil {
 			return err
 		}
@@ -539,9 +560,10 @@ func (s *Service) DecideRequest(ctx context.Context, mode rollout.Mode, d Decide
 		}
 		var status string
 		var reviewer *string
+		var requester string
 		var version int64
-		err := tx.QueryRow(ctx, `SELECT status, current_reviewer_user_id::text, version FROM organization.hr_request WHERE request_id = $1 FOR UPDATE`,
-			d.RequestID).Scan(&status, &reviewer, &version)
+		err := tx.QueryRow(ctx, `SELECT status, current_reviewer_user_id::text, requested_by_user_id::text, version FROM organization.hr_request WHERE request_id = $1 FOR UPDATE`,
+			d.RequestID).Scan(&status, &reviewer, &requester, &version)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -580,7 +602,7 @@ func (s *Service) DecideRequest(ctx context.Context, mode rollout.Mode, d Decide
 		var next *string
 		if d.Decision == api.HRDecisionApprove {
 			var amb bool
-			next, to, amb, err = nextReviewer(ctx, tx, e.ID)
+			next, to, amb, err = nextReviewer(ctx, tx, e.ID, requester)
 			if err != nil {
 				return err
 			}
