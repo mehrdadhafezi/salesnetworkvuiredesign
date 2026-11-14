@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 // R7 full-stack E2E. The Go orchestrators (internal/integration/legacy/shadow,
 // build tag e2e: TestBrowserFullStack for R7-1, TestBrowserPaymentsFullStack
-// for R7-2, TestBrowserFulfillmentFullStack for R7-3) start one disposable stack each and pass E2E_* variables; this
+// for R7-2, TestBrowserFulfillmentFullStack for R7-3, TestBrowserHRFullStack and TestBrowserHRReadOverlay for R7-6) start one disposable stack each and pass E2E_* variables; this
 // suite never starts servers and never runs against anything but that stack.
 // Each project belongs to exactly one orchestrator and one flag state.
 const baseURL = process.env.E2E_BASE_URL ?? ''
@@ -37,5 +37,10 @@ export default defineConfig({
     { name: 'fulfillment-flags-on', testMatch: 'fulfillment.spec.ts', grepInvert: /@flags-off|@flags-mixed/, use: { ...devices['Desktop Chrome'] } },
     { name: 'fulfillment-flags-mixed', testMatch: 'fulfillment.spec.ts', grep: /@flags-mixed/, use: { ...devices['Desktop Chrome'] } },
     { name: 'fulfillment-flags-off', testMatch: 'fulfillment.spec.ts', grep: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
+    // R7-6 (TestBrowserHRFullStack): HR reads and requests, production subject resolver.
+    { name: 'hr-flags-on', testMatch: 'hr.spec.ts', grepInvert: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'hr-flags-off', testMatch: 'hr.spec.ts', grep: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
+    // R7-6 (TestBrowserHRReadOverlay): HR reads through the TEST-ONLY dev auth stub (backend-only evidence).
+    { name: 'hr-read-overlay', testMatch: 'hr-read-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
   ],
 })
