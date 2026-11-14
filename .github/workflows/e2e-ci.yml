@@ -85,7 +85,7 @@ jobs:
         run: npm --prefix web run build
 
       - name: Full-stack E2E (fails on any database, API, frontend or acceptance failure)
-        run: go test -tags e2e -count=1 -v -run '^(TestBrowserFullStack|TestBrowserPaymentsFullStack|TestBrowserFulfillmentFullStack|TestFinancialSnapshotDetectsUpdate)$' ./internal/integration/legacy/shadow/
+        run: go test -tags e2e -count=1 -v -run '^(TestBrowserFullStack|TestBrowserPaymentsFullStack|TestBrowserFulfillmentFullStack|TestBrowserHRFullStack|TestBrowserHRReadOverlay|TestFinancialSnapshotDetectsUpdate)$' ./internal/integration/legacy/shadow/
 
       - name: Upload failure artifacts (screenshots and report only; no traces, no video)
         if: failure()
