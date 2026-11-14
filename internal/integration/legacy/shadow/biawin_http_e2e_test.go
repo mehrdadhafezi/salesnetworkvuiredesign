@@ -118,7 +118,7 @@ func summary(r resp) map[string]float64 {
 // Read-only proof over HTTP against the real owners: flag, capability,
 // run pinning, explicit states, filters, 405 / guessed routes, no GET write.
 func TestBiawinHTTPReadOnly(t *testing.T) {
-	e := setupBiawin(t)
+	e := setupBiawin(t, financemigrations.Source())
 	if _, err := migrations.Up(context.Background(), e.DSN, financemigrations.Source()); err != nil {
 		t.Fatal(err)
 	}

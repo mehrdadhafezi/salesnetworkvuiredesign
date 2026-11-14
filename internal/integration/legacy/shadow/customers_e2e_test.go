@@ -39,7 +39,7 @@ type custEnv struct {
 
 func setupCustomers(t *testing.T) *custEnv {
 	t.Helper()
-	e := setup(t)
+	e := setup(t, customersmigrations.Source())
 	if _, err := migrations.Up(context.Background(), e.DSN, customersmigrations.Source()); err != nil {
 		t.Fatalf("customers migrations: %v", err)
 	}

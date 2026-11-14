@@ -97,11 +97,7 @@ func CreateDatabase(t testing.TB) string {
 	admin := AdminURL(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	var b [6]byte
-	if _, err := rand.Read(b[:]); err != nil {
-		t.Fatal(err)
-	}
-	name := "crm_test_" + hex.EncodeToString(b[:])
+	name := "crm_test_" + randomHex(t, 6)
 	conn, err := pgx.Connect(ctx, admin)
 	if err != nil {
 		t.Fatalf("pgtest: connect admin: %v", err)
@@ -110,6 +106,23 @@ func CreateDatabase(t testing.TB) string {
 	if _, err := conn.Exec(ctx, "CREATE DATABASE "+pgx.Identifier{name}.Sanitize()); err != nil {
 		t.Fatalf("pgtest: create database: %v", err)
 	}
+	dropAtCleanup(t, admin, name)
+	return databaseDSN(t, admin, name)
+}
+
+// randomHex returns n random bytes, hex-encoded.
+func randomHex(t testing.TB, n int) string {
+	t.Helper()
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		t.Fatal(err)
+	}
+	return hex.EncodeToString(b)
+}
+
+// dropAtCleanup drops database name (forcing out sessions) when the test ends.
+func dropAtCleanup(t testing.TB, admin, name string) {
+	t.Helper()
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -123,12 +136,6 @@ func CreateDatabase(t testing.TB) string {
 			t.Logf("pgtest: drop database %s: %v", name, err)
 		}
 	})
-	u, err := url.Parse(admin)
-	if err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") {
-		t.Fatalf("pgtest: %s must be a postgres:// URL", EnvAdminURL)
-	}
-	u.Path = "/" + name
-	return u.String()
 }
 
 // New returns a migrated disposable database. The provisioning connection

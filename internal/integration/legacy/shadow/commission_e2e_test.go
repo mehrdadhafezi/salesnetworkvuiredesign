@@ -27,7 +27,7 @@ type commissionEnv struct {
 
 func setupCommission(t *testing.T) *commissionEnv {
 	t.Helper()
-	e := setupBilling(t)
+	e := setupBilling(t, commissionmigrations.Source())
 	if _, err := migrations.Up(context.Background(), e.DSN, commissionmigrations.Source()); err != nil {
 		t.Fatalf("commission migrations: %v", err)
 	}

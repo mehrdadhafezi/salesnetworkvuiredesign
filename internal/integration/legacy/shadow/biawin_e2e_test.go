@@ -30,10 +30,11 @@ type biawinEnv struct {
 	fR  *db.Runner
 }
 
-func setupBiawin(t *testing.T) *biawinEnv {
+func setupBiawin(t *testing.T, extra ...migrations.Source) *biawinEnv {
 	t.Helper()
-	e := setupBilling(t)
-	for _, s := range []migrations.Source{biawinmigrations.Source(), fulfillmentmigrations.Source()} {
+	own := []migrations.Source{biawinmigrations.Source(), fulfillmentmigrations.Source()}
+	e := setupBilling(t, append(own, extra...)...)
+	for _, s := range own {
 		if _, err := migrations.Up(context.Background(), e.DSN, s); err != nil {
 			t.Fatalf("biawin / fulfillment migrations: %v", err)
 		}

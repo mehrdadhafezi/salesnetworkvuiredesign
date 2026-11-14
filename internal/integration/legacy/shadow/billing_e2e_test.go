@@ -50,10 +50,11 @@ type billingEnv struct {
 	payIn     *paymentsimports.Command
 }
 
-func setupBilling(t *testing.T) *billingEnv {
+func setupBilling(t *testing.T, extra ...migrations.Source) *billingEnv {
 	t.Helper()
-	e := setupSales(t)
-	for _, s := range []migrations.Source{customersmigrations.Source(), billingmigrations.Source(), paymentsmigrations.Source()} {
+	own := []migrations.Source{customersmigrations.Source(), billingmigrations.Source(), paymentsmigrations.Source()}
+	e := setupSales(t, append(own, extra...)...)
+	for _, s := range own {
 		if _, err := migrations.Up(context.Background(), e.DSN, s); err != nil {
 			t.Fatalf("billing migrations: %v", err)
 		}

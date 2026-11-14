@@ -43,11 +43,15 @@ type env struct {
 	orgIn   *organizationimports.Command
 }
 
-func setup(t *testing.T) *env {
+// The disposable database is cloned from a pgtest template that already holds
+// these migrations plus extra (CI-PERF-01); the migrations.Up calls below are
+// then no-ops and still migrate when a caller does not pass its sources.
+func setup(t *testing.T, extra ...migrations.Source) *env {
 	t.Helper()
-	e := pgtest.New(t)
+	base := []migrations.Source{integrationmigrations.Source(), identitymigrations.Source(), organizationmigrations.Source()}
+	e := pgtest.NewWith(t, append(base, extra...)...)
 	ctx := context.Background()
-	for _, src := range []migrations.Source{integrationmigrations.Source(), identitymigrations.Source(), organizationmigrations.Source()} {
+	for _, src := range base {
 		if _, err := migrations.Up(ctx, e.DSN, src); err != nil {
 			t.Fatalf("migrations: %v", err)
 		}
