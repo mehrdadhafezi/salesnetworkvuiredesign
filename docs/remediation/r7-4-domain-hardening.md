@@ -231,7 +231,7 @@ time, and never committed.
 
 | Mutation of the fix | Result | Failing tests |
 |---|---|---|
-| F1 requester check removed | killed | HierarchyChangesBeforeDecision |
+| F1 requester check removed | killed | HierarchyChangesBeforeDecision, RequesterAboveOwnChain |
 | F2 depth bound removed (1000) | killed | DepthBoundary |
 | F3 depth bound 11 | killed | DepthBoundary |
 | F4 depth bound 13 | killed | DepthBoundary |
