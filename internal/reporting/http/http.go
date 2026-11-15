@@ -300,6 +300,9 @@ func (h *Handlers) GetCaseReport(ctx context.Context, req oapi.GetCaseReportRequ
 	if isInvalid(err) {
 		return oapi.GetCaseReport400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	}
+	if errors.Is(err, query.ErrNotFound) { // an explicit run_id that names no projection run (DEF-RP-01)
+		return oapi.GetCaseReport404ApplicationProblemPlusJSONResponse{Body: authzhttp.NotFound(ctx)}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -368,6 +371,9 @@ func (h *Handlers) GetCustodyReport(ctx context.Context, req oapi.GetCustodyRepo
 	res, pg, err := h.q.Report(ctx, spec, p.Cursor, p.Limit)
 	if isInvalid(err) {
 		return oapi.GetCustodyReport400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
+	}
+	if errors.Is(err, query.ErrNotFound) { // an explicit run_id that names no projection run (DEF-RP-01)
+		return oapi.GetCustodyReport404ApplicationProblemPlusJSONResponse{Body: authzhttp.NotFound(ctx)}, nil
 	}
 	if err != nil {
 		return nil, err
@@ -442,6 +448,9 @@ func (h *Handlers) GetInvoiceReport(ctx context.Context, req oapi.GetInvoiceRepo
 	if isInvalid(err) {
 		return oapi.GetInvoiceReport400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	}
+	if errors.Is(err, query.ErrNotFound) { // an explicit run_id that names no projection run (DEF-RP-01)
+		return oapi.GetInvoiceReport404ApplicationProblemPlusJSONResponse{Body: authzhttp.NotFound(ctx)}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -514,6 +523,9 @@ func (h *Handlers) GetPaymentReport(ctx context.Context, req oapi.GetPaymentRepo
 	res, pg, err := h.q.Report(ctx, spec, p.Cursor, p.Limit)
 	if isInvalid(err) {
 		return oapi.GetPaymentReport400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
+	}
+	if errors.Is(err, query.ErrNotFound) { // an explicit run_id that names no projection run (DEF-RP-01)
+		return oapi.GetPaymentReport404ApplicationProblemPlusJSONResponse{Body: authzhttp.NotFound(ctx)}, nil
 	}
 	if err != nil {
 		return nil, err
