@@ -29281,6 +29281,30 @@ func (response GetCaseReport403JSONResponse) VisitGetCaseReportResponse(w http.R
 	return err
 }
 
+type GetCaseReport404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCaseReport404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetCaseReport404ResponseHeaders
+}
+
+func (response GetCaseReport404ApplicationProblemPlusJSONResponse) VisitGetCaseReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetCaseReportdefaultResponseHeaders struct {
 	XCorrelationID *CorrelationID
 }
@@ -29488,6 +29512,30 @@ func (response GetCustodyReport403JSONResponse) VisitGetCustodyReportResponse(w 
 		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
 	}
 	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustodyReport404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetCustodyReport404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetCustodyReport404ResponseHeaders
+}
+
+func (response GetCustodyReport404ApplicationProblemPlusJSONResponse) VisitGetCustodyReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -29703,6 +29751,30 @@ func (response GetInvoiceReport403JSONResponse) VisitGetInvoiceReportResponse(w 
 	return err
 }
 
+type GetInvoiceReport404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetInvoiceReport404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetInvoiceReport404ResponseHeaders
+}
+
+func (response GetInvoiceReport404ApplicationProblemPlusJSONResponse) VisitGetInvoiceReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetInvoiceReportdefaultResponseHeaders struct {
 	XCorrelationID *CorrelationID
 }
@@ -29910,6 +29982,30 @@ func (response GetPaymentReport403JSONResponse) VisitGetPaymentReportResponse(w 
 		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
 	}
 	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPaymentReport404ResponseHeaders struct {
+	XCorrelationID *CorrelationID
+}
+
+type GetPaymentReport404ApplicationProblemPlusJSONResponse struct {
+	Body    Problem
+	Headers GetPaymentReport404ResponseHeaders
+}
+
+func (response GetPaymentReport404ApplicationProblemPlusJSONResponse) VisitGetPaymentReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.XCorrelationID != nil {
+		w.Header().Set("X-Correlation-ID", fmt.Sprint(*response.Headers.XCorrelationID))
+	}
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }

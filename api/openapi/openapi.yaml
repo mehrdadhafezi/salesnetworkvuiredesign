@@ -1404,6 +1404,7 @@ paths:
         Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
         Pagination limits rows only; the summary is the aggregate of the full membership.
         Unknown query parameters are 400 CONTRACT_INVALID.
+        An explicit run_id that names no projection run is 404 (as on the row reads); when no run can answer, the 200 envelope carries meta.available = false (UNKNOWN, never zero).
       parameters:
         - $ref: './components/parameters.yaml#/ReportScope'
         - $ref: './components/parameters.yaml#/ReportTimeBasis'
@@ -1432,6 +1433,8 @@ paths:
           $ref: './components/responses.yaml#/Problem'
         '403':
           $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
         default:
           $ref: './components/responses.yaml#/Problem'
   /api/v1/reports/cases/{case_id}:
@@ -1482,6 +1485,7 @@ paths:
         Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
         Pagination limits rows only; the summary is the aggregate of the full membership.
         Unknown query parameters are 400 CONTRACT_INVALID.
+        An explicit run_id that names no projection run is 404 (as on the row reads); when no run can answer, the 200 envelope carries meta.available = false (UNKNOWN, never zero).
       parameters:
         - $ref: './components/parameters.yaml#/ReportScope'
         - $ref: './components/parameters.yaml#/ReportTimeBasis'
@@ -1508,6 +1512,8 @@ paths:
           $ref: './components/responses.yaml#/Problem'
         '403':
           $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
         default:
           $ref: './components/responses.yaml#/Problem'
   /api/v1/reports/custody/{case_id}:
@@ -1556,6 +1562,7 @@ paths:
         Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
         Pagination limits rows only; the summary is the aggregate of the full membership.
         Unknown query parameters are 400 CONTRACT_INVALID.
+        An explicit run_id that names no projection run is 404 (as on the row reads); when no run can answer, the 200 envelope carries meta.available = false (UNKNOWN, never zero).
       parameters:
         - $ref: './components/parameters.yaml#/ReportScope'
         - $ref: './components/parameters.yaml#/ReportTimeBasis'
@@ -1586,6 +1593,8 @@ paths:
           $ref: './components/responses.yaml#/Problem'
         '403':
           $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
         default:
           $ref: './components/responses.yaml#/Problem'
   /api/v1/reports/invoices/{invoice_id}:
@@ -1638,6 +1647,7 @@ paths:
         Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
         Pagination limits rows only; the summary is the aggregate of the full membership.
         Unknown query parameters are 400 CONTRACT_INVALID.
+        An explicit run_id that names no projection run is 404 (as on the row reads); when no run can answer, the 200 envelope carries meta.available = false (UNKNOWN, never zero).
       parameters:
         - $ref: './components/parameters.yaml#/ReportScope'
         - $ref: './components/parameters.yaml#/ReportTimeBasis'
@@ -1668,6 +1678,8 @@ paths:
           $ref: './components/responses.yaml#/Problem'
         '403':
           $ref: './components/responses.yaml#/Denied'
+        '404':
+          $ref: './components/responses.yaml#/Problem'
         default:
           $ref: './components/responses.yaml#/Problem'
   /api/v1/reports/payments/{attempt_id}:
