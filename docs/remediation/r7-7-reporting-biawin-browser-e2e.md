@@ -43,7 +43,7 @@ Legend: **E2E-A** browser on the production resolver · **E2E-B** browser on the
 | Payments report | `?state=…` | `payment_fact` | BE | E2E-B | IRT sum and row count = DB; `UNMAPPED` rows = DB; `state=ACCEPTED` changes card, table and API together; `state=CANCELLED` is a real evaluated zero ("zero rows, real result") |
 | Invoices / custody reports | — | `invoice_fact`, `invoice_unit_fact`, `custody_fact` | BE | E2E-B | unknown main state shown as `raw (UNKNOWN)`; total classes `UNKNOWN` and `INCOMPLETE` shown; custody `CONFLICT` rows = DB |
 | Row detail | `GET /api/v1/reports/cases/{id}?run_id` | `case_fact` | Vitest | E2E-B | detail pinned to the answering run (`run_id` in URL); membership pill |
-| Unknown pinned run | `?run_id=<none>` on a report and on the subscription list | — | BE | E2E-B | no value and no table rendered (never 0). Reports: the API answers **500** today (DEF-RP-01). Biawin: `UNKNOWN` with no meta, counts or rows. An unknown row id answers 404 |
+| Unknown pinned run | `?run_id=<none>` on a report and on the subscription list | — | BE | E2E-B | no value and no table rendered (never 0). Reports: every list answers **404 problem+json** with no summary, items, meta, totals or amounts (DEF-RP-01, fixed in #62). Biawin: `UNKNOWN` with no meta, counts or rows. An unknown row id answers 404 |
 | `/biawin/subscriptions` | `GET /api/v1/biawin/subscriptions` | `biawin.subscription`, `import_run` | BE (`biawin_e2e_test.go`), Vitest | E2E-A, E2E-B | **B:** run id = DB; SHADOW banner; envelope `PARTIAL / STALE_STATE` and the "stale (older than 24h)" pill, never shown as fresh; state counts = DB (EMPTY is a real 0); rows = DB; unresolved invoice (`#2999`, a known-unresolved R7-5 reference) shown UNKNOWN with its key; unmapped state shown UNKNOWN with the raw value; limit-2 cursor walk |
 | Subscription filters | `?invoice_link_state=UNKNOWN`, `?state=EMPTY` | `biawin.subscription` | BE | E2E-B | unresolved filter = DB count; EMPTY shows the empty state, API `[]` |
 | `/biawin/subscriptions/:id` | `GET …/{id}`, `GET …/{id}/items` | `subscription`, `subscription_item` | BE, Vitest | E2E-A, E2E-B | **B:** link pins the run; item count and rows = DB; limit-5 item cursor walk; unresolved invoice link stays UNKNOWN with its key; unknown id 404 |
@@ -83,17 +83,17 @@ Before the browser runs, the orchestrator snapshots every row of `integration`, 
 
 The finance ledger, commission runs, payments and invoices are part of the snapshot, so no financial posting, payment mutation or commission credit can pass unnoticed. Flags are switched only inside the disposable database.
 
-## Defects found (recorded, not fixed here)
+## Defects found
 
-R7-7 is test-only, and the fix needs an API contract decision, so it is recorded rather than changed:
+| Id | Status | Finding | Resolution |
+|---|---|---|---|
+| DEF-RP-01 | **FIXED** in [#62](https://github.com/mehrdadhafezi/salesnetworkvuiredesign/pull/62) (merge `f3291dd`) | `GET /api/v1/reports/{cases,custody,invoices,payments}?run_id=<unknown>` answered **500** (`OUTCOME_UNKNOWN`). The list handlers did not map `query.ErrNotFound`, and the list contracts declared no 404, while the row and metric reads answered 404. | The four list reads now answer **404 problem+json**, the same as the row reads, and their contracts declare it. "No run can answer" keeps its 200 `meta.available = false` UNKNOWN answer. Authorization and the feature flag still run first. |
 
-| Id | Finding | Evidence | Effect | Proposed resolution (needs a contract decision) |
-|---|---|---|---|---|
-| DEF-RP-01 | `GET /api/v1/reports/{cases,custody,invoices,payments}?run_id=<unknown>` answers **500** | `internal/reporting/http/http.go`: the list handlers return `query.ErrNotFound` as an internal error; the row and metric handlers map it to 404; the list contracts define no 404 | Fails closed: no value, no table, no zero. But an operator sees a server error, and the error is logged as one | Map `ErrNotFound` on the list reads to 404, or to the existing `meta.available = false` answer that the SPA already renders as "unknown, not zero" |
+**Evidence that it is fixed:**
+- **Backend:** `TestReportingListUnknownRunIsNotFound` (default Go CI suite) covers the four lists: no run yet, a known run, an unknown run, a malformed id, no grant and flags off. It fails with the original 500 when the mapping is removed.
+- **Browser (this suite, class B):** every report list answers 404 problem+json with no `summary`, `items`, `meta`, `data` or `page`, and no total, amount, count or currency in the body. The page shows no value and no table.
 
-The Biawin subscription list does not have this defect: it answers an unknown run as `UNKNOWN` (no run), which the suite asserts.
-
-The overlay test pins today's status (500) with a comment naming the defect, so a fix makes it fail and forces the expectation to be updated in the same change.
+The Biawin subscription list never had this defect. It answers an unknown run as `UNKNOWN` ("no run", no meta, counts or rows), which the suite still asserts. That behaviour is unchanged.
 
 ## Remaining gaps and governance blockers
 

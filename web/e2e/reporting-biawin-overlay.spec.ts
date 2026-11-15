@@ -281,15 +281,19 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     await expect(page.getByText('عضو همین پرس‌وجو است (همان شرط کارت و جدول)')).toBeVisible()
     await expect(page.getByRole('list', { name: 'مقادیر ردیف' }).locator('li')).toHaveCount(6)
     // A pinned run that does not exist answers no value and the page shows none (never 0).
-    // DEF-RP-01 (recorded, not fixed here): the report list reads answer 500 instead of a contract
-    // answer, because their handlers do not map query.ErrNotFound and the list contracts define no
-    // 404 (the row reads map it to 404). When the defect is resolved, this expectation changes.
-    const rp = await page.request.get(`/api/v1/reports/cases?run_id=${unknownId}`)
-    expect(rp.status(), 'DEF-RP-01').toBe(500)
-    const rpBody = (await rp.json()) as { summary?: unknown; items?: unknown; meta?: unknown }
-    expect(rpBody.summary).toBeUndefined()
-    expect(rpBody.items).toBeUndefined()
-    expect(rpBody.meta).toBeUndefined()
+    // DEF-RP-01 (fixed in #62): every report list answers an explicit run_id that names no
+    // projection run with 404 problem+json, like the row reads, and carries no value of any kind.
+    for (const report of ['cases', 'custody', 'invoices', 'payments']) {
+      const path = `/api/v1/reports/${report}?run_id=${unknownId}`
+      const rp = await page.request.get(path)
+      expect(rp.status(), `${path} (DEF-RP-01)`).toBe(404)
+      expect(rp.headers()['content-type'], path).toContain('application/problem+json')
+      const raw = await rp.text()
+      const rpBody = JSON.parse(raw) as { status?: number; summary?: unknown; items?: unknown; meta?: unknown; data?: unknown; page?: unknown }
+      expect(rpBody.status, path).toBe(404)
+      for (const k of ['summary', 'items', 'meta', 'data', 'page'] as const) expect(rpBody[k], `${path} ${k}`).toBeUndefined()
+      for (const leak of ['"total"', '"amount"', '"money"', '"counts"', 'IRT', 'IRR']) expect(raw, `${path} carries ${leak}`).not.toContain(leak)
+    }
     // Biawin answers an unknown run as "no run": UNKNOWN, with no meta, counts or rows.
     const bw = await getJSON<{ outcome: string; meta?: unknown; summary?: unknown; items?: unknown }>(page, `/api/v1/biawin/subscriptions?run_id=${unknownId}`)
     expect(bw.outcome).toBe('UNKNOWN')
