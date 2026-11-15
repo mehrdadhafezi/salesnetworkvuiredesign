@@ -974,6 +974,7 @@ export interface paths {
          * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
          *     Pagination limits rows only; the summary is the aggregate of the full membership.
          *     Unknown query parameters are 400 CONTRACT_INVALID.
+         *     An explicit run_id that names no projection run is 404 (as on the row reads); when no run can answer, the 200 envelope carries meta.available = false (UNKNOWN, never zero).
          */
         get: operations["getCaseReport"];
         put?: never;
@@ -1017,6 +1018,7 @@ export interface paths {
          * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
          *     Pagination limits rows only; the summary is the aggregate of the full membership.
          *     Unknown query parameters are 400 CONTRACT_INVALID.
+         *     An explicit run_id that names no projection run is 404 (as on the row reads); when no run can answer, the 200 envelope carries meta.available = false (UNKNOWN, never zero).
          */
         get: operations["getCustodyReport"];
         put?: never;
@@ -1060,6 +1062,7 @@ export interface paths {
          * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
          *     Pagination limits rows only; the summary is the aggregate of the full membership.
          *     Unknown query parameters are 400 CONTRACT_INVALID.
+         *     An explicit run_id that names no projection run is 404 (as on the row reads); when no run can answer, the 200 envelope carries meta.available = false (UNKNOWN, never zero).
          */
         get: operations["getInvoiceReport"];
         put?: never;
@@ -1103,6 +1106,7 @@ export interface paths {
          * @description Requires reporting.metrics.read. Read-only (READ ONLY transaction over reporting projections); never refreshes, backfills, repairs or records.
          *     Pagination limits rows only; the summary is the aggregate of the full membership.
          *     Unknown query parameters are 400 CONTRACT_INVALID.
+         *     An explicit run_id that names no projection run is 404 (as on the row reads); when no run can answer, the 200 envelope carries meta.available = false (UNKNOWN, never zero).
          */
         get: operations["getPaymentReport"];
         put?: never;
@@ -7158,6 +7162,7 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -7244,6 +7249,7 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -7333,6 +7339,7 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -7427,6 +7434,7 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Denied"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
