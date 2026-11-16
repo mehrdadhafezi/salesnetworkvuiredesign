@@ -99,7 +99,8 @@ jobs:
 
   design-system:
     name: Design-system browser checks (RM-E01 dev showcase)
-    runs-on: ubuntu-latest
+    # Pinned like e2e-ci.yml: Playwright 1.56 ships Chromium for ubuntu-24.04, not ubuntu-latest (26.04).
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
