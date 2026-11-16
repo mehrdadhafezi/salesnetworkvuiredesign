@@ -530,9 +530,11 @@ paths:
       operationId: getEffectiveAccess
       summary: Effective access of the current principal
       description: |
-        Evaluates every Slice 4 capability for the caller with the same
-        evaluator that produces allowed_actions. Anonymous callers receive
-        an all-denied evaluation. Read-only.
+        Evaluates every registered capability for the caller with the same
+        evaluator that produces allowed_actions. Each capability is gated by
+        the feature flag of the guard that enforces it (never by another
+        module's flag; RM-ACCESS-01). Anonymous callers receive an all-denied
+        evaluation. Read-only; it grants nothing.
       responses:
         '200':
           description: Evaluation (always returned; denial is data here, not an error).

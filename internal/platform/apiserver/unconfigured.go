@@ -12,7 +12,8 @@ import (
 // unconfigured is the Slice 4 read surface when no module is wired (no
 // read databases configured): every operation is BLOCKED with
 // FEATURE_DISABLED, never an empty success, and nothing is evaluated as
-// allowed.
+// allowed. Its effective-access view lists every contract capability
+// (RM-ACCESS-01: all 43), each BLOCKED.
 type unconfigured struct{}
 
 var _ ReadAPI = unconfigured{}
@@ -32,7 +33,11 @@ func (unconfigured) GetEffectiveAccess(ctx context.Context, _ oapi.GetEffectiveA
 		oapi.BillingReconciliationRead, oapi.ReportingMetricsRead, oapi.ReportingMisRead, oapi.ReportingInvoiceReviewRead,
 		oapi.FinanceShadowRead, oapi.FinanceLedgerRead, oapi.FinanceReconciliationRead,
 		oapi.BiawinSubscriptionRead, oapi.FulfillmentCaseRead, oapi.BiawinParityRead,
-		oapi.CasesContactOutcomeRecord, oapi.OrgHrRequestCreate, oapi.OrgHrRequestReview, oapi.OrgHrRequestRead, oapi.IntegrationWritebackRead} {
+		oapi.CasesContactOutcomeRecord, oapi.OrgHrRequestCreate, oapi.OrgHrRequestReview, oapi.OrgHrRequestRead, oapi.IntegrationWritebackRead,
+		oapi.PaymentsUploadStage, oapi.PaymentsBatchSubmit, oapi.PaymentsSubmissionRead, oapi.PaymentsEvidenceRead, oapi.FinanceReviewRead,
+		oapi.CommissionShadowRead, oapi.CommissionPolicyRead, oapi.CommissionOwnRead,
+		oapi.FulfillmentWorkRead, oapi.FulfillmentWorkAssign, oapi.FulfillmentWorkExecute, oapi.BiawinActivationRead,
+		oapi.IntegrationProviderOperationRead, oapi.IntegrationProviderOperationReconcile} {
 		data.Decisions = append(data.Decisions, oapi.AccessDecision{Capability: c, Outcome: oapi.Outcome(result.Blocked.String()),
 			ReasonCode: &reason, Scope: oapi.AccessDecisionScopeNONE, MatchedRoles: []string{}})
 	}

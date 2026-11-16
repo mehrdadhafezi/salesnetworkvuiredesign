@@ -76,20 +76,43 @@ func BadRequest(ctx context.Context, detail string) oapi.ProblemApplicationProbl
 func NotFound(ctx context.Context) oapi.Problem { return httpx.ProblemNoRecord.BodyCtx(ctx) }
 
 // Handlers serves the authorization operations.
-type Handlers struct{ guard *authorization.Guard }
+type Handlers struct {
+	guard     *authorization.Guard
+	available authorization.Availability
+}
 
-// New returns the handlers.
-func New(guard *authorization.Guard) *Handlers { return &Handlers{guard: guard} }
+// New returns the handlers. guard is the Slice 4 HR read guard: it resolves
+// the caller and reports hr_read_enabled. available reports each
+// capability's own feature availability (RM-ACCESS-01); nil makes every
+// capability unavailable (fail closed).
+func New(guard *authorization.Guard, available authorization.Availability) *Handlers {
+	return &Handlers{guard: guard, available: available}
+}
 
 // GetEffectiveAccess evaluates every capability for the caller.
+//
+// Field meaning is unchanged; only the availability input is corrected
+// (RM-ACCESS-01): allowed is true only when the caller holds the capability
+// through a counting ACTIVE grant AND the feature that guards that
+// capability is enabled. A capability whose own feature is off is BLOCKED /
+// FEATURE_DISABLED with scope NONE. Before RM-ACCESS-01 the HR read flag
+// (organization.hr_read_shadow) was applied to every capability, so one HR
+// switch decided every module. hr_read_enabled still reports that HR flag.
 func (h *Handlers) GetEffectiveAccess(ctx context.Context, _ oapi.GetEffectiveAccessRequestObject) (oapi.GetEffectiveAccessResponseObject, error) {
-	enabled, authenticated, ds, err := h.guard.Effective(ctx)
+	hrEnabled, authenticated, ds, err := h.guard.Effective(ctx)
 	if err != nil {
 		return nil, err
 	}
-	data := oapi.EffectiveAccess{Authenticated: authenticated, HrReadEnabled: enabled, Decisions: []oapi.AccessDecision{}}
+	avail := map[identityapi.Capability]bool{}
+	if h.available != nil {
+		if avail, err = h.available(ctx); err != nil {
+			return nil, err
+		}
+	}
+	data := oapi.EffectiveAccess{Authenticated: authenticated, HrReadEnabled: hrEnabled, Decisions: []oapi.AccessDecision{}}
 	for _, c := range identityapi.Capabilities() {
 		d := ds[c.Key]
+		enabled := avail[c.Key]
 		ad := oapi.AccessDecision{Capability: oapi.Capability(c.Key), Allowed: d.Allowed && enabled, Outcome: Outcome(d.Outcome),
 			Scope: oapi.AccessDecisionScope(d.Scope), MatchedRoles: []string{}}
 		if d.Reason != nil {

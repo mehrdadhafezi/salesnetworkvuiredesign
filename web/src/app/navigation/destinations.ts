@@ -22,7 +22,13 @@ export type FeatureKey = keyof NonNullable<components['schemas']['SessionContext
  * How the destination's server capability is known:
  * - CONTRACT: the list endpoint's `Requires …` capability is in the OpenAPI enum.
  * - UNKNOWN: the server checks a capability that the OpenAPI `Capability` enum does not
- *   list (contract drift, see the RM-E02 report §4). Hidden from navigation (fail closed).
+ *   list (contract drift). Hidden from navigation (fail closed). Since RM-ACCESS-01 the
+ *   enum equals the backend registry (a Go contract test fails on drift), so no
+ *   destination is UNKNOWN today; the variant stays as the fail-closed rule for drift.
+ *
+ * Membership in the enum never shows a link by itself: the server's decision for that
+ * capability must be ALLOWED (which, since RM-ACCESS-01, already includes the capability's
+ * own feature flag) AND the session must report the destination's feature on.
  */
 export type CapabilityBasis =
   | { kind: 'CONTRACT'; capability: ContractCapability }
@@ -49,7 +55,6 @@ export interface Destination {
 }
 
 const c = (capability: ContractCapability): CapabilityBasis => ({ kind: 'CONTRACT', capability })
-const unknown = (serverCapability: string): CapabilityBasis => ({ kind: 'UNKNOWN', serverCapability, reason: 'NOT_IN_OPENAPI_ENUM' })
 
 export const MODULE_LABEL: Record<ModuleKey, string> = {
   hr: 'منابع انسانی',
@@ -94,16 +99,16 @@ export const DESTINATIONS: readonly Destination[] = [
   { id: 'biawin.subscriptions', to: '/biawin/subscriptions', label: 'اشتراک‌های بیاوین', short: 'اشتراک‌ها', icon: 'key', module: 'biawin', kind: 'READ', feature: 'biawin_fulfillment_read', capability: c('biawin.subscription.read') },
   { id: 'biawin.parity', to: '/biawin/parity', label: 'تطبیق اشتراک‌های فعال', short: 'تطبیق', icon: 'swap', module: 'biawin', kind: 'READ', feature: 'biawin_fulfillment_read', capability: c('biawin.parity.read') },
   { id: 'fulfillment.cases', to: '/fulfillment/cases', label: 'پرونده‌های اجرای خدمت', short: 'اجرای خدمت', icon: 'inbox', module: 'biawin', kind: 'READ', feature: 'biawin_fulfillment_read', capability: c('fulfillment.case.read') },
-  { id: 'commission.overview', to: '/commission', label: 'پورسانت · نمای سایه', short: 'پورسانت', icon: 'wallet', module: 'commission', kind: 'READ', feature: 'commission_read', capability: unknown('commission.shadow.read') },
-  { id: 'commission.calculations', to: '/commission/calculations', label: 'محاسبات سایه پورسانت', short: 'محاسبات', icon: 'file', module: 'commission', kind: 'READ', feature: 'commission_read', capability: unknown('commission.shadow.read') },
-  { id: 'commission.policies', to: '/commission/policies', label: 'نسخه‌های سیاست پورسانت', short: 'سیاست‌ها', icon: 'layers', module: 'commission', kind: 'READ', feature: 'commission_read', capability: unknown('commission.policy.read') },
-  { id: 'commission.me', to: '/commission/me', label: 'پورسانت‌های من', short: 'پورسانت من', icon: 'wallet', module: 'commission', kind: 'READ', feature: 'commission_read', capability: unknown('commission.own.read') },
-  { id: 'operations.work', to: '/operations/work', label: 'صف کار اجرای خدمت', short: 'صف کار', icon: 'inbox', module: 'operations', kind: 'CONTROLLED_WRITE', feature: 'fulfillment_work', capability: unknown('fulfillment.work.read') },
-  { id: 'operations.activations', to: '/operations/activations', label: 'تصمیم‌های فعال‌سازی اشتراک', short: 'فعال‌سازی', icon: 'key', module: 'operations', kind: 'READ', feature: 'fulfillment_work', capability: unknown('biawin.activation.read') },
-  { id: 'operations.providers', to: '/operations/provider-operations', label: 'عملیات ارائه‌دهنده خارجی', short: 'ارائه‌دهنده', icon: 'activity', module: 'operations', kind: 'CONTROLLED_WRITE', feature: 'fulfillment_work', capability: unknown('integration.provider_operation.read') },
+  { id: 'commission.overview', to: '/commission', label: 'پورسانت · نمای سایه', short: 'پورسانت', icon: 'wallet', module: 'commission', kind: 'READ', feature: 'commission_read', capability: c('commission.shadow.read') },
+  { id: 'commission.calculations', to: '/commission/calculations', label: 'محاسبات سایه پورسانت', short: 'محاسبات', icon: 'file', module: 'commission', kind: 'READ', feature: 'commission_read', capability: c('commission.shadow.read') },
+  { id: 'commission.policies', to: '/commission/policies', label: 'نسخه‌های سیاست پورسانت', short: 'سیاست‌ها', icon: 'layers', module: 'commission', kind: 'READ', feature: 'commission_read', capability: c('commission.policy.read') },
+  { id: 'commission.me', to: '/commission/me', label: 'پورسانت‌های من', short: 'پورسانت من', icon: 'wallet', module: 'commission', kind: 'READ', feature: 'commission_read', capability: c('commission.own.read') },
+  { id: 'operations.work', to: '/operations/work', label: 'صف کار اجرای خدمت', short: 'صف کار', icon: 'inbox', module: 'operations', kind: 'CONTROLLED_WRITE', feature: 'fulfillment_work', capability: c('fulfillment.work.read') },
+  { id: 'operations.activations', to: '/operations/activations', label: 'تصمیم‌های فعال‌سازی اشتراک', short: 'فعال‌سازی', icon: 'key', module: 'operations', kind: 'READ', feature: 'fulfillment_work', capability: c('biawin.activation.read') },
+  { id: 'operations.providers', to: '/operations/provider-operations', label: 'عملیات ارائه‌دهنده خارجی', short: 'ارائه‌دهنده', icon: 'activity', module: 'operations', kind: 'CONTROLLED_WRITE', feature: 'fulfillment_work', capability: c('integration.provider_operation.read') },
   { id: 'integration.writeback', to: '/writeback', label: 'بازنویسی به سامانه قدیمی', short: 'بازنویسی', icon: 'history', module: 'integration', kind: 'DIAGNOSTIC', feature: 'writeback_read', capability: c('integration.writeback.read') },
-  { id: 'payments.evidence', to: '/payments/evidence', label: 'شواهد پرداخت', short: 'شواهد', icon: 'receipt', module: 'payments', kind: 'DIAGNOSTIC', feature: 'payment_submission', capability: unknown('payments.evidence.read') },
-  { id: 'finance.review', to: '/finance/review', label: 'صف بررسی مالی (فقط خواندنی)', short: 'بررسی مالی', icon: 'checkCircle', module: 'finance', kind: 'READ', feature: 'finance_review_read', capability: unknown('finance.review.read') },
+  { id: 'payments.evidence', to: '/payments/evidence', label: 'شواهد پرداخت', short: 'شواهد', icon: 'receipt', module: 'payments', kind: 'DIAGNOSTIC', feature: 'payment_submission', capability: c('payments.evidence.read') },
+  { id: 'finance.review', to: '/finance/review', label: 'صف بررسی مالی (فقط خواندنی)', short: 'بررسی مالی', icon: 'checkCircle', module: 'finance', kind: 'READ', feature: 'finance_review_read', capability: c('finance.review.read') },
 ]
 
 /**

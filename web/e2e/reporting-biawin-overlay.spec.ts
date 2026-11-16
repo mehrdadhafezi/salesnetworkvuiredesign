@@ -1,5 +1,4 @@
 import type { Page } from '@playwright/test'
-import { expectFailClosedNavigation } from './fixtures'
 import { allReads, expect, expectDenied, expectNoData, NAV, PAGES, readOnly, REPORTS, required, T, unknownId } from './reporting-biawin-fixtures'
 
 // R7-7 class B — TEST-ONLY OVERLAY, BACKEND-ONLY AUTHORIZATION EVIDENCE.
@@ -92,7 +91,7 @@ const operator = readOnly
 operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay): pages render the seeded projections and shadow import', () => {
   operator.use({ extraHTTPHeaders: { 'X-Dev-User': 'dev-user-001' } })
 
-  operator('the session reports the dev stub; navigation follows the flags', async ({ page, blocked, writes }) => {
+  operator('the session reports the dev stub; navigation lists exactly the server-allowed, enabled reads', async ({ page, blocked, writes }) => {
     void blocked
     void writes
     const s = await getJSON<{ data: { auth_mode: string; authenticated: boolean; features: Record<string, boolean> } }>(page, '/api/v1/session')
@@ -100,11 +99,21 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     expect(s.data.authenticated).toBe(true)
     expect(s.data.features.reporting_read).toBe(true)
     expect(s.data.features.biawin_fulfillment_read).toBe(true)
-    // RM-E02: navigation follows effective-access, which this stack reports BLOCKED
-    // (organization.hr_read_shadow off). The synthetic read capabilities still work
-    // through every existing deep link below; only the links are withheld.
-    await expectFailClosedNavigation(page, 'BLOCKED')
-    for (const name of NAV) await expect(page.getByRole('link', { name, exact: true }), name).toHaveCount(0)
+    // RM-ACCESS-01: before the fix effective-access was BLOCKED here because the HR read flag
+    // (off on this stack) gated every capability, so these links were withheld. Each capability
+    // now carries its own flag: the reporting and Biawin reads (flags on, synthetic test-only
+    // grant) are ALLOWED and listed; HR (flag off) and every other module stay absent.
+    const ea = await getJSON<{ data: { hr_read_enabled: boolean; decisions: { capability: string; allowed: boolean; outcome: string; reason_code?: string }[] } }>(
+      page, '/api/v1/authorization/effective-access')
+    expect(ea.data.hr_read_enabled).toBe(false)
+    const decision = (c: string) => ea.data.decisions.find(d => d.capability === c)
+    for (const c of ['reporting.mis.read', 'reporting.metrics.read', 'biawin.subscription.read', 'biawin.parity.read']) expect(decision(c)?.allowed, c).toBe(true)
+    for (const c of ['org.person.read', 'customers.customer.read', 'finance.shadow.read', 'commission.shadow.read', 'fulfillment.work.read'])
+      expect({ c, allowed: decision(c)?.allowed, outcome: decision(c)?.outcome, reason: decision(c)?.reason_code }).toEqual({ c, allowed: false, outcome: 'BLOCKED', reason: 'FEATURE_DISABLED' })
+    await page.goto('/')
+    const home = page.locator('.role-entry-list')
+    for (const name of NAV) await expect(home.getByRole('link', { name, exact: true }), name).toBeVisible()
+    for (const name of ['نیروها', 'مشتریان', 'دفتر سایه مالی', 'صف کار اجرای خدمت']) await expect(page.getByRole('link', { name, exact: true }), name).toHaveCount(0)
   })
 
   operator('MIS overview: health, final metrics with their real values, deferred contracts without a value', async ({ page, blocked, writes }) => {
@@ -320,7 +329,7 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     expect(api.meta.query.run_id).toBe(DB.bwRun)
     expect(api.items.length).toBe(DB.subscriptions)
     for (const [k, n] of Object.entries(DB.states)) expect(api.summary.find(c => c.key === k)?.count ?? 0, k).toBe(n)
-    await page.goto('/biawin/subscriptions') // RM-E02: links withheld while effective-access is BLOCKED
+    await page.goto('/biawin/subscriptions') // deep link (the link itself is asserted in the navigation test)
     await expect(page.getByRole('heading', { name: T.subscriptions, exact: true })).toBeVisible()
     await expect(page.getByRole('note', { name: 'هشدار نمای سایه' })).toBeVisible()
     await expect(page.getByText(`run ${DB.bwRun.slice(0, 8)}`, { exact: false })).toBeVisible()
@@ -392,7 +401,7 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     expect({ outcome: api.outcome, reasons: api.reasons }).toEqual(STALE)
     expect(api.check.outcome).toBe(outcome)
     expect(api.check.rows.length).toBe(DB.parityRows)
-    await page.goto('/biawin/parity') // RM-E02: links withheld while effective-access is BLOCKED
+    await page.goto('/biawin/parity') // deep link (the link itself is asserted in the navigation test)
     await expect(page.getByRole('heading', { name: T.parity, exact: true })).toBeVisible()
     const label: Record<string, string> = { MATCH: 'منطبق', MISMATCH: 'مغایر', UNKNOWN: 'نامعلوم (صفر نیست)', INCOMPLETE: 'ناقص' }
     await expect(page.getByText(label[outcome ?? ''] ?? '', { exact: true })).toBeVisible()

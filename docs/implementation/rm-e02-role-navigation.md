@@ -33,8 +33,8 @@ All 46 existing routes, their URLs and their deep links work unchanged. Every pa
 
 Facts verified in code (not assumed):
 
-- `internal/authorization/http/http.go` `GetEffectiveAccess` sets `Allowed: d.Allowed && enabled`, where `enabled` is the **`organization.hr_read_shadow`** flag. When that flag is off, every decision comes back `BLOCKED / FEATURE_DISABLED`, including non-HR capabilities. RM-E02 renders this as the explicit "evaluation unavailable" state. It does not fall back to flags.
-- `internal/identity/api` holds 43 capabilities, but the OpenAPI `Capability` enum lists only **29**. The server returns all 43 at runtime. The 14 missing from the contract (commission, fulfillment work, activation, provider operations, payments upload/batch/submission/evidence, finance review) are **UNKNOWN** to the SPA: their 9 destinations never appear in navigation, though they still work by deep link.
+- **Resolved by RM-ACCESS-01** (`docs/remediation/rm-access-01-authorization-contract.md`): each capability is now gated by its own guard flag. Original finding: `internal/authorization/http/http.go` `GetEffectiveAccess` sets `Allowed: d.Allowed && enabled`, where `enabled` is the **`organization.hr_read_shadow`** flag. When that flag is off, every decision comes back `BLOCKED / FEATURE_DISABLED`, including non-HR capabilities. RM-E02 renders this as the explicit "evaluation unavailable" state. It does not fall back to flags.
+- **Resolved by RM-ACCESS-01**: the enum now lists all 43. Original finding: `internal/identity/api` holds 43 capabilities, but the OpenAPI `Capability` enum lists only **29**. The server returns all 43 at runtime. The 14 missing from the contract (commission, fulfillment work, activation, provider operations, payments upload/batch/submission/evidence, finance review) are **UNKNOWN** to the SPA: their 9 destinations never appear in navigation, though they still work by deep link.
 - Role bundles: only `hr` carries capabilities (6 HR reads). The other eight roles are empty. A subject holds only ACTIVE grants, and none exist (D-42).
 - `DevSubjects` (dev stub, refused in production) grants `dev-user-001` the HR role plus a direct synthetic capability set, which matches as `synthetic_dev_stub`. RM-E02 treats that as an **UNKNOWN** role context and names no role.
 
@@ -84,18 +84,18 @@ Generated from `web/src/app/navigation/destinations.ts`. Capabilities come from 
 | 25 | `/biawin/subscriptions` | اشتراک‌های بیاوین | READ | `biawin_fulfillment_read` | `biawin.subscription.read` | CONTRACT | feature ON **and** capability ALLOWED |
 | 26 | `/biawin/parity` | تطبیق اشتراک‌های فعال | READ | `biawin_fulfillment_read` | `biawin.parity.read` | CONTRACT | feature ON **and** capability ALLOWED |
 | 27 | `/fulfillment/cases` | پرونده‌های اجرای خدمت | READ | `biawin_fulfillment_read` | `fulfillment.case.read` | CONTRACT | feature ON **and** capability ALLOWED |
-| 28 | `/commission` | پورسانت · نمای سایه | READ | `commission_read` | `commission.shadow.read` | **UNKNOWN**: not in the OpenAPI `Capability` enum | **never** (fails closed; reachable by deep link only) |
-| 29 | `/commission/calculations` | محاسبات سایه پورسانت | READ | `commission_read` | `commission.shadow.read` | **UNKNOWN**: not in the OpenAPI `Capability` enum | **never** (fails closed; reachable by deep link only) |
-| 30 | `/commission/policies` | نسخه‌های سیاست پورسانت | READ | `commission_read` | `commission.policy.read` | **UNKNOWN**: not in the OpenAPI `Capability` enum | **never** (fails closed; reachable by deep link only) |
-| 31 | `/commission/me` | پورسانت‌های من | READ | `commission_read` | `commission.own.read` | **UNKNOWN**: not in the OpenAPI `Capability` enum | **never** (fails closed; reachable by deep link only) |
-| 32 | `/operations/work` | صف کار اجرای خدمت | CONTROLLED_WRITE | `fulfillment_work` | `fulfillment.work.read` | **UNKNOWN**: not in the OpenAPI `Capability` enum | **never** (fails closed; reachable by deep link only) |
-| 33 | `/operations/activations` | تصمیم‌های فعال‌سازی اشتراک | READ | `fulfillment_work` | `biawin.activation.read` | **UNKNOWN**: not in the OpenAPI `Capability` enum | **never** (fails closed; reachable by deep link only) |
-| 34 | `/operations/provider-operations` | عملیات ارائه‌دهنده خارجی | CONTROLLED_WRITE | `fulfillment_work` | `integration.provider_operation.read` | **UNKNOWN**: not in the OpenAPI `Capability` enum | **never** (fails closed; reachable by deep link only) |
+| 28 | `/commission` | پورسانت · نمای سایه | READ | `commission_read` | `commission.shadow.read` | CONTRACT (was UNKNOWN; resolved by RM-ACCESS-01) | feature ON **and** capability ALLOWED |
+| 29 | `/commission/calculations` | محاسبات سایه پورسانت | READ | `commission_read` | `commission.shadow.read` | CONTRACT (was UNKNOWN; resolved by RM-ACCESS-01) | feature ON **and** capability ALLOWED |
+| 30 | `/commission/policies` | نسخه‌های سیاست پورسانت | READ | `commission_read` | `commission.policy.read` | CONTRACT (was UNKNOWN; resolved by RM-ACCESS-01) | feature ON **and** capability ALLOWED |
+| 31 | `/commission/me` | پورسانت‌های من | READ | `commission_read` | `commission.own.read` | CONTRACT (was UNKNOWN; resolved by RM-ACCESS-01) | feature ON **and** capability ALLOWED |
+| 32 | `/operations/work` | صف کار اجرای خدمت | CONTROLLED_WRITE | `fulfillment_work` | `fulfillment.work.read` | CONTRACT (was UNKNOWN; resolved by RM-ACCESS-01) | feature ON **and** capability ALLOWED |
+| 33 | `/operations/activations` | تصمیم‌های فعال‌سازی اشتراک | READ | `fulfillment_work` | `biawin.activation.read` | CONTRACT (was UNKNOWN; resolved by RM-ACCESS-01) | feature ON **and** capability ALLOWED |
+| 34 | `/operations/provider-operations` | عملیات ارائه‌دهنده خارجی | CONTROLLED_WRITE | `fulfillment_work` | `integration.provider_operation.read` | CONTRACT (was UNKNOWN; resolved by RM-ACCESS-01) | feature ON **and** capability ALLOWED |
 | 35 | `/writeback` | بازنویسی به سامانه قدیمی | DIAGNOSTIC | `writeback_read` | `integration.writeback.read` | CONTRACT | feature ON **and** capability ALLOWED |
-| 36 | `/payments/evidence` | شواهد پرداخت | DIAGNOSTIC | `payment_submission` | `payments.evidence.read` | **UNKNOWN**: not in the OpenAPI `Capability` enum | **never** (fails closed; reachable by deep link only) |
-| 37 | `/finance/review` | صف بررسی مالی (فقط خواندنی) | READ | `finance_review_read` | `finance.review.read` | **UNKNOWN**: not in the OpenAPI `Capability` enum | **never** (fails closed; reachable by deep link only) |
+| 36 | `/payments/evidence` | شواهد پرداخت | DIAGNOSTIC | `payment_submission` | `payments.evidence.read` | CONTRACT (was UNKNOWN; resolved by RM-ACCESS-01) | feature ON **and** capability ALLOWED |
+| 37 | `/finance/review` | صف بررسی مالی (فقط خواندنی) | READ | `finance_review_read` | `finance.review.read` | CONTRACT (was UNKNOWN; resolved by RM-ACCESS-01) | feature ON **and** capability ALLOWED |
 
-28 of 37 destinations have a contract capability; 9 are UNKNOWN.
+28 of 37 destinations had a contract capability; 9 were UNKNOWN. **RM-ACCESS-01:** all 37 are CONTRACT now (the enum equals the backend registry).
 
 Safe destinations, always shown: `/` «خانه» (role entry, no business data) and `/system` «وضعیت سامانه» (technical health only). Logout stays in the header, unchanged.
 
@@ -114,7 +114,7 @@ Sources: `web/src/app/navigation/roles.ts` and R7 §4 (`docs/audit/r7-consolidat
 | Sales deputy (`sales_deputy`) | READY_FOR_REVIEW | diagnostics → `/mis/reconciliation` (PARTIAL) | ten sections: MISSING |
 | MIS (`mis`) | READY_FOR_REVIEW | today → `/mis` · custody → `/sales/custody` · reports & reconciliation → `/reports/*`, `/mis/reconciliation`, `/mis/source-quality` | import & data quality, lineage, planning, quick delivery, maintenance, diagnostics: MISSING |
 | HR (`hr`) | READY_FOR_REVIEW. **HR runtime NOT LIVE VERIFIED** | workforce → `/hr` · structure → `/hr/structure` · requests → `/hr/requests` · exceptions → `/hr/exceptions` | compensation: MISSING. Onboarding/transfer and termination: BLOCKED (OPD-05, SD-04). Structure & access, credentials: BLOCKED (D-34, R5-SEC-01) |
-| Finance (`finance`) | READY_FOR_REVIEW. **Finance runtime NOT LIVE VERIFIED** | review queue → `/finance/review` (capability UNKNOWN, never shown) · reconciliation → `/finance/reconciliation` · ledger → `/finance`, `/finance/ledger`, `/finance/balances` | rules, runs & posting: BLOCKED (D-37, D-38). Refund: BLOCKED (OPD-04). Reports, audit, configuration, maintenance: MISSING |
+| Finance (`finance`) | READY_FOR_REVIEW. **Finance runtime NOT LIVE VERIFIED** | review queue → `/finance/review` (capability UNKNOWN in RM-E02; CONTRACT since RM-ACCESS-01) · reconciliation → `/finance/reconciliation` · ledger → `/finance`, `/finance/ledger`, `/finance/balances` | rules, runs & posting: BLOCKED (D-37, D-38). Refund: BLOCKED (OPD-04). Reports, audit, configuration, maintenance: MISSING |
 | Invoice reviewer (`invoice_reviewer`) | NO_DESIGN | — | invoice review: BLOCKED (D-24, API only, no page) |
 
 What the role context does and does not do:
@@ -134,11 +134,11 @@ What the role context does and does not do:
 | Evaluation pending | — | safe only | «در حال بررسی دسترسی‌ها…» |
 | Evaluation failed | non-2xx, transport error or non-SUCCESS envelope | safe only | «ارزیابی دسترسی انجام نشد» with «بررسی دوباره» |
 | Evaluation contradicts the session | `authenticated:false` while the session is authenticated | safe only | CONFLICT state with retry |
-| Evaluation BLOCKED | every decision `BLOCKED` (today: `organization.hr_read_shadow` off) | safe only | «ارزیابی دسترسی در سرور در دسترس نیست» with the server reason code |
+| Evaluation BLOCKED | every decision `BLOCKED` (RM-E02: `organization.hr_read_shadow` off; since RM-ACCESS-01 only when every capability's own feature is off) | safe only | «ارزیابی دسترسی در سرور در دسترس نیست» with the server reason code |
 | No ACTIVE grant | every decision `UNAUTHORIZED` | safe only | «دسترسی فعالی برای شما ثبت نشده است» |
 | Allowed, but feature off | ALLOWED, feature `false` | safe only | «بخش‌های مجاز شما هنوز فعال نشده‌اند» |
 | Feature on, not allowed | — | that link hidden | — |
-| Capability outside the OpenAPI enum | ALLOWED at runtime | hidden (UNKNOWN) | — |
+| Capability outside the OpenAPI enum | ALLOWED at runtime | hidden (UNKNOWN; none today since RM-ACCESS-01) | — |
 | `allowed:true` without `SUCCESS`, or `SUCCESS` without `allowed` | — | hidden | — |
 | Direct URL to a hidden page | the page's own read answers 403 | no link is marked current | the page renders the server refusal; the route is not guarded client-side |
 | Session expires or is revoked mid-visit | 401/403 → session re-check → `invalid` | safe only | login page with the expiry notice; the previous evaluation is never reused for a new session answer |
@@ -175,9 +175,9 @@ Regenerate them with `RM_E02_EVIDENCE_DIR=../docs/evidence/rm-e02 npx playwright
 
 R7 browser specs updated. Each asserted the old flag-only navigation, which this task forbids. Every refusal, no-data and no-write assertion is kept:
 
-- `fulfillment.spec.ts`, `reporting-biawin.spec.ts`: links are absent and the home page shows BLOCKED (`organization.hr_read_shadow` is off on those stacks). Pages are reached by deep link and still show the server refusal.
+- `fulfillment.spec.ts`, `reporting-biawin.spec.ts`: links are absent and the home page shows BLOCKED (`organization.hr_read_shadow` is off on those stacks). *RM-ACCESS-01: now NO_GRANT (the modules' own flags are on; the users hold no grant).* Pages are reached by deep link and still show the server refusal.
 - `hr.spec.ts`: HR flags on and no grant, so home shows NO_GRANT and the links are absent; `/hr` and `/hr/requests` are reached by deep link.
-- `reporting-biawin-overlay.spec.ts`: the overlay grants are synthetic, but effective-access is BLOCKED (HR flag off), so links are withheld. All render-equals-API-equals-DB checks still run through deep links.
+- `reporting-biawin-overlay.spec.ts`: the overlay grants are synthetic, but effective-access is BLOCKED (HR flag off), so links are withheld. *RM-ACCESS-01: the reporting and Biawin links now appear (their own flags are on); HR and every other module stay absent.* All render-equals-API-equals-DB checks still run through deep links.
 - `hr-read-overlay.spec.ts`: unchanged. HR flags are on and `dev-user-001` is ALLOWED HR reads, so the links appear (role context UNKNOWN or MULTIPLE).
 - `e2e/fixtures.ts`: a new `expectFailClosedNavigation()` helper.
 
@@ -189,8 +189,8 @@ A passing navigation test is **not** evidence of business authorization. No gran
 
 ### RM-B02 / D-42: narrowly scoped proposal (documentation only, no change here)
 
-1. **Decouple effective-access from `organization.hr_read_shadow`.** Today one HR flag turns every decision into BLOCKED, so navigation fails closed for every module whenever that flag is off. Proposal: evaluate each capability on its own (the per-module flags are already separate). This needs an authorization-semantics review, so it is not changed here.
-2. **Complete the OpenAPI `Capability` enum** with the 14 capabilities the server already evaluates and returns: `payments.{upload.stage,batch.submit,submission.read,evidence.read}`, `finance.review.read`, `commission.{shadow,policy,own}.read`, `fulfillment.work.{read,assign,execute}`, `biawin.activation.read`, `integration.provider_operation.{read,reconcile}`. Until then 9 destinations stay UNKNOWN to the SPA.
+1. **RESOLVED by RM-ACCESS-01.** **Decouple effective-access from `organization.hr_read_shadow`.** Today one HR flag turns every decision into BLOCKED, so navigation fails closed for every module whenever that flag is off. Proposal: evaluate each capability on its own (the per-module flags are already separate). This needs an authorization-semantics review, so it is not changed here.
+2. **RESOLVED by RM-ACCESS-01.** **Complete the OpenAPI `Capability` enum** with the 14 capabilities the server already evaluates and returns: `payments.{upload.stage,batch.submit,submission.read,evidence.read}`, `finance.review.read`, `commission.{shadow,policy,own}.read`, `fulfillment.work.{read,assign,execute}`, `biawin.activation.read`, `integration.provider_operation.{read,reconcile}`. Until then 9 destinations stay UNKNOWN to the SPA.
 3. **Role context.** Expose an explicit, server-decided context: the active memberships and, if multiple, an approved selection policy. Do not derive one from `matched_roles`. Until then MULTIPLE stays neutral, with no switcher.
 4. **Role bundles and ACTIVE grants** (D-42, D-34, R5-SEC-01). With those decisions approved, users would see navigation; nothing in the SPA needs to change.
 
@@ -204,5 +204,5 @@ A passing navigation test is **not** evidence of business authorization. No gran
 ## 11. Dependencies for RM-E03 (Seller read screens)
 
 - Seller design is FROZEN, so presentation is not blocked.
-- **Blocking for any real user:** the seller bundle is empty and no ACTIVE grant exists (D-42). RM-E03 can only be tested with synthetic fixtures or the dev stub. With `organization.hr_read_shadow` off, effective-access is BLOCKED and the seller would see no navigation (RM-B02 item 1).
+- **Blocking for any real user:** the seller bundle is empty and no ACTIVE grant exists (D-42). RM-E03 can only be tested with synthetic fixtures or the dev stub. ~~With `organization.hr_read_shadow` off, effective-access is BLOCKED and the seller would see no navigation (RM-B02 item 1).~~ Resolved by RM-ACCESS-01: a seller capability is gated only by its own module flag.
 - RM-E03 must add its new destinations to `destinations.ts` with a **contract** capability, and map them in `roles.ts` (seller). The resolver and shell need no change.

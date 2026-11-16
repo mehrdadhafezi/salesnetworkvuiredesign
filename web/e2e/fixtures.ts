@@ -132,8 +132,9 @@ export async function expectActionDenied(r: APIResponse) {
  * RM-E02: navigation is server-authorised and fails closed. With no ACTIVE
  * grant (D-42) the home page explains it and the main navigation offers only
  * the safe destinations, whatever the feature flags say. `BLOCKED` is the
- * effective-access answer while organization.hr_read_shadow is off (the
- * evaluator is gated by that flag; see docs/implementation/rm-e02-role-navigation.md).
+ * effective-access answer when every capability's own feature flag is off;
+ * since RM-ACCESS-01 the HR read flag no longer gates the other modules
+ * (docs/remediation/rm-access-01-authorization-contract.md).
  */
 export const NAV_FAIL_CLOSED = {
   NO_GRANT: 'دسترسی فعالی برای شما ثبت نشده است',

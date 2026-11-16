@@ -14,6 +14,7 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization"
 	authzhttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization/http"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity"
+	identityapi "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/api"
 	identityhttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/http"
 	identityquery "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/query"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/integration/legacy/legacytest"
@@ -69,7 +70,21 @@ func (e *env) server(t *testing.T, env authstub.Environment, devAuth bool) http.
 	if err != nil {
 		t.Fatal(err)
 	}
-	read := readAPI{authorizationHandlers: authzhttp.New(guard),
+	// RM-ACCESS-01: only the HR read surface is composed here, so only the
+	// HR read capabilities have an availability source (their own HR flag);
+	// every other capability is unavailable on this server (fail closed).
+	available := func(ctx context.Context) (map[identityapi.Capability]bool, error) {
+		on, err := enabled(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out := map[identityapi.Capability]bool{}
+		for _, c := range identityapi.HRReadCapabilities() {
+			out[c.Key] = on
+		}
+		return out, nil
+	}
+	read := readAPI{authorizationHandlers: authzhttp.New(guard, available),
 		identityHandlers:     identityhttp.New(guard, identityquery.New(e.Runner(t, identity.Module))),
 		organizationHandlers: organizationhttp.New(guard, organizationquery.New(e.Runner(t, organization.Module))), guard: guard}
 	cfg := apiserver.DefaultConfig()
@@ -282,11 +297,21 @@ func TestReadAPIEndToEnd(t *testing.T) {
 		t.Fatalf("users: %s", r.body)
 	}
 
-	// Effective access: the same evaluator.
+	// Effective access: the same evaluator. RM-ACCESS-01: before the fix the
+	// HR flag alone allowed all 43 synthetic capabilities here, although this
+	// server composes only the HR read surface (every other capability's own
+	// flag is off and its endpoint answers BLOCKED). Now exactly the six HR
+	// read capabilities are allowed; customers.customer.read is still held by
+	// the synthetic grant (matched) but BLOCKED / FEATURE_DISABLED.
 	ea := get(t, h, "/api/v1/authorization/effective-access", "dev-user-001")
-	if strings.Count(ea.body, `"allowed":true`) != 43 || !strings.Contains(ea.body, `"matched_roles":["hr"]`) ||
-		!strings.Contains(ea.body, `"capability":"customers.customer.read","matched_roles":["synthetic_dev_stub"]`) {
+	if strings.Count(ea.body, `"allowed":true`) != 6 || !strings.Contains(ea.body, `"matched_roles":["hr"]`) ||
+		!strings.Contains(ea.body, `"allowed":false,"capability":"customers.customer.read","matched_roles":["synthetic_dev_stub"],"outcome":"BLOCKED","reason_code":"FEATURE_DISABLED","scope":"NONE"`) {
 		t.Fatalf("effective access: %s", ea.body)
+	}
+	for _, c := range identityapi.HRReadCapabilities() {
+		if !strings.Contains(ea.body, `"allowed":true,"capability":"`+string(c.Key)+`","matched_roles":["hr"],"outcome":"SUCCESS"`) {
+			t.Fatalf("effective access %s: %s", c.Key, ea.body)
+		}
 	}
 	if ea := get(t, h, "/api/v1/authorization/effective-access", "dev-user-002"); strings.Contains(ea.body, `"allowed":true`) {
 		t.Fatalf("viewer effective access: %s", ea.body)
