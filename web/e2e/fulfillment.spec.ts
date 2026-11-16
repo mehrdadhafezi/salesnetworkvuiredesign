@@ -400,7 +400,9 @@ test.describe('reads ON, commands OFF, write-back flag ON alone, reconciliation 
     await expect(page.getByRole('button', { name: 'خروج' })).toBeVisible()
     const s = (await (await sessionGet(page, '/api/v1/session')).json()) as SessionBody
     expect(s.data.features?.fulfillment_work).toBe(true)
-    for (const label of NAV) await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible()
+    // RM-E02: a read flag is not a capability; the navigation fails closed, pages stay reachable.
+    await expectFailClosedNavigation(page, 'BLOCKED')
+    for (const label of NAV) await expect(page.getByRole('link', { name: label, exact: true })).toHaveCount(0)
     for (const route of ['/operations/work', `/operations/work/${ops.caseA}`, '/operations/provider-operations', '/operations/activations']) {
       await page.goto(route)
       await expect(page.getByText(DENIED).first(), route).toBeVisible()

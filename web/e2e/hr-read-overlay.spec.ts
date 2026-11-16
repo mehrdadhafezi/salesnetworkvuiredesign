@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test'
 import { expect, guarded, required } from './fixtures'
 import { T } from './hr-fixtures'
 
@@ -10,6 +11,9 @@ import { T } from './hr-fixtures'
 // R7-5 integrated SYNTHETIC dataset: imported SHADOW organisation evidence,
 // not live HR data. Nothing here shows that production authorizes these
 // reads.
+
+/** RM-E02: the home page lists the same destinations; click the main navigation link. */
+const mainNav = (page: Page) => page.getByRole('navigation', { name: 'ناوبری اصلی' })
 
 const persons = Number(required('E2E_HR_PERSONS'))
 const cycles = Number(required('E2E_HR_CYCLE_FINDINGS'))
@@ -38,7 +42,7 @@ operator.describe('dev-user-001 (synthetic HR role, test-only overlay): the HR r
   operator('workforce: every imported person, read-only, with unresolved evidence shown as such', async ({ page, blocked }) => {
     void blocked
     await page.goto('/')
-    await page.getByRole('link', { name: T.workforce, exact: true }).click()
+    await mainNav(page).getByRole('link', { name: T.workforce, exact: true }).click()
     await expect(page.getByRole('heading', { name: T.workforce, exact: true })).toBeVisible()
     await expect(page.getByText('فقط خواندنی').first()).toBeVisible()
     const rows = page.locator('table.hr-table tbody tr')
@@ -88,10 +92,10 @@ operator.describe('dev-user-001 (synthetic HR role, test-only overlay): the HR r
   operator('structure and hierarchy exceptions (cycles and self-parent lines are listed, never auto-fixed)', async ({ page, blocked }) => {
     void blocked
     await page.goto('/')
-    await page.getByRole('link', { name: T.structure, exact: true }).click()
+    await mainNav(page).getByRole('link', { name: T.structure, exact: true }).click()
     await expect(page.getByRole('heading', { name: T.structure, exact: true })).toBeVisible()
     await expect(page.getByText(T.denied)).toHaveCount(0)
-    await page.getByRole('link', { name: T.exceptions, exact: true }).click()
+    await mainNav(page).getByRole('link', { name: T.exceptions, exact: true }).click()
     await expect(page.getByRole('heading', { name: T.exceptions, exact: true })).toBeVisible()
     const findings = page.locator('ul.hr-list')
     await expect(findings.getByText('چرخه در سلسله‌مراتب').first()).toBeVisible()
