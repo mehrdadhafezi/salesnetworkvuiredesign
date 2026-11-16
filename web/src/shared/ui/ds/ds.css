@@ -151,7 +151,7 @@
 .ds-banner .btn{flex:none;border-color:currentColor;color:inherit}
 
 /* ---------- Menu / Popover (styles.css .menu) ---------- */
-.ds-menu{position:fixed;z-index:80;min-width:220px;max-width:min(360px,calc(100vw - 16px));padding:8px;background:var(--raised);color:var(--text);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);animation:dsPop var(--dur) var(--ease)}
+.ds-menu{position:fixed;z-index:80;min-width:220px;max-width:min(360px,calc(100vw - 16px));overflow-y:auto;overscroll-behavior:contain;padding:8px;background:var(--raised);color:var(--text);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);animation:dsPop var(--dur) var(--ease)}
 @keyframes dsPop{from{transform:translateY(-4px)}to{transform:none}}
 .ds-menu hr{border:0;border-top:1px solid var(--border);margin:8px 2px}
 .ds-mh{padding:8px 12px 2px;font-size:var(--t-micro);color:var(--muted)}
@@ -254,7 +254,7 @@
   .ds-sheet-grip{display:block;width:40px;height:4px;margin:8px auto 0;border-radius:99px;background:var(--border-strong)}
   .ds-dr-foot .btn{flex:1;height:46px}
   .ds-dr-hint{display:none}
-  .ds-menu{right:8px!important;left:8px!important;top:auto!important;bottom:72px;max-width:none}
+  .ds-menu{right:8px!important;left:8px!important;top:auto!important;bottom:72px;max-width:none;max-height:calc(100dvh - 88px)!important}
   .ds-tooltip{right:auto;left:0}
 }
 

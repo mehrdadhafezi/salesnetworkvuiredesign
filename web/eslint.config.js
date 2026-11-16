@@ -5,7 +5,7 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   // Generated code is never linted or edited; CI regenerates it.
-  { ignores: ['dist', 'src/generated/**'] },
+  { ignores: ['dist', 'dist-nav', 'src/generated/**'] },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.strict],

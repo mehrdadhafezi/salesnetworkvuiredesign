@@ -30,8 +30,16 @@ function useAnchoredPosition(open: boolean, anchorRef: RefObject<HTMLElement | n
       const a = anchorRef.current, m = panelRef.current
       if (!a || !m) return
       const r = a.getBoundingClientRect()
-      let top = r.bottom + 6
-      if (top + m.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - m.offsetHeight - 6)
+      // A long menu (e.g. a role navigation overflow) must stay reachable: it never extends
+      // past the viewport; it scrolls inside (ds.css .ds-menu overflow-y) instead.
+      m.style.maxHeight = ''
+      const below = window.innerHeight - (r.bottom + 6) - 8
+      const above = r.top - 6 - 8
+      const fitsBelow = m.offsetHeight <= below
+      const useAbove = !fitsBelow && above > below
+      const room = Math.max(120, useAbove ? above : below)
+      if (m.offsetHeight > room) m.style.maxHeight = `${room}px`
+      const top = useAbove ? Math.max(8, r.top - 6 - Math.min(m.offsetHeight, room)) : r.bottom + 6
       m.style.top = `${top}px`
       m.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - m.offsetWidth - 8))}px`
     }

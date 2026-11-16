@@ -98,7 +98,7 @@ jobs:
           fi
 
   design-system:
-    name: Design-system browser checks (RM-E01 dev showcase)
+    name: Design-system and role-navigation browser checks (RM-E01, RM-E02)
     # Pinned like e2e-ci.yml: Playwright 1.56 ships Chromium for ubuntu-24.04, not ubuntu-latest (26.04).
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -123,8 +123,13 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Typecheck and lint browser tests
-        run: npm run typecheck:e2e && npx eslint e2e playwright.ds.config.ts
+        run: npm run typecheck:e2e && npx eslint e2e playwright.ds.config.ts playwright.nav.config.ts
 
       # Starts a local Vite dev server only; no API, database or stack. Desktop 1366 and mobile 390.
       - name: Shared component behaviour in a real browser
         run: npx playwright test -c playwright.ds.config.ts
+
+      # RM-E02: builds the PRODUCTION bundle and serves it with vite preview; every API answer is a
+      # synthetic fixture inside the test (presentation evidence, never business authorization).
+      - name: Role-oriented navigation in a real browser (production bundle)
+        run: npx playwright test -c playwright.nav.config.ts

@@ -127,3 +127,22 @@ export async function expectActionDenied(r: APIResponse) {
   expect(body.command).toBeUndefined()
 }
 
+
+/**
+ * RM-E02: navigation is server-authorised and fails closed. With no ACTIVE
+ * grant (D-42) the home page explains it and the main navigation offers only
+ * the safe destinations, whatever the feature flags say. `BLOCKED` is the
+ * effective-access answer while organization.hr_read_shadow is off (the
+ * evaluator is gated by that flag; see docs/implementation/rm-e02-role-navigation.md).
+ */
+export const NAV_FAIL_CLOSED = {
+  NO_GRANT: 'دسترسی فعالی برای شما ثبت نشده است',
+  BLOCKED: 'ارزیابی دسترسی در سرور در دسترس نیست',
+} as const
+
+export async function expectFailClosedNavigation(page: Page, expected: keyof typeof NAV_FAIL_CLOSED) {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: NAV_FAIL_CLOSED[expected], exact: true })).toBeVisible()
+  const nav = page.getByRole('navigation', { name: 'ناوبری اصلی' })
+  await expect(nav.getByRole('link')).toHaveText(['خانه', 'وضعیت سامانه'])
+}

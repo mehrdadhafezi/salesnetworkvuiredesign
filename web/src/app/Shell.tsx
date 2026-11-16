@@ -1,61 +1,69 @@
-import { Suspense, useState, type ReactNode } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router'
+import { Suspense, useCallback, type ReactNode } from 'react'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { useSession, useSessionActions } from '../shared/auth/currentSession'
 import { LoginPage } from '../shared/auth/LoginPage'
-import { Icon } from '../shared/ui/icons'
+import { AppHeader, DsAppShell, MobileBottomNavigation, RoleNavigation, type DsLinkRenderer, type DsNavItem } from '../shared/ui/ds'
 import { Button, StateBlock } from '../shared/ui/primitives'
+import { destinationForPath, type NavAccess } from './navigation/access'
+import { SAFE_DESTINATIONS } from './navigation/destinations'
+import { NavigationAccessProvider, useNavigationAccess } from './navigation/NavigationAccess'
+import { ROLE_CONTRACTS } from './navigation/roles'
 
-export interface NavItem {
-  to: string
-  label: string
-  dev?: boolean
-  /** Shown only when the server session reports this feature enabled (navigation hint only). */
-  feature?: 'hr_read' | 'customers_identity' | 'sales_read' | 'billing_read' | 'reporting_read' | 'finance_shadow_read' | 'biawin_fulfillment_read' | 'hr_request_write' | 'writeback_read' | 'payment_submission' | 'finance_review_read' | 'commission_read' | 'fulfillment_work'
+/** DEV-only tool links (never in production builds; see routes.tsx). */
+export interface DevNavItem { to: string; label: string }
+
+export const NAV_LABEL = 'ناوبری اصلی'
+
+/**
+ * RM-E02 AppShell on the RM-E01 design system: skip link → header → role
+ * navigation → main#ws → mobile bottom navigation. Business destinations come
+ * only from the fail-closed resolver (server session features AND server
+ * effective-access decisions); home and system status are always available.
+ * The server still authorises every request: hiding a link is presentation.
+ */
+export function Shell({ devNav = [] }: { devNav?: DevNavItem[] }) {
+  return (
+    <NavigationAccessProvider>
+      <ShellFrame devNav={devNav} />
+    </NavigationAccessProvider>
+  )
 }
 
-/** AppShell (SN-207 §2, §5): skip link → header → nav → main#ws. */
-export function Shell({ nav }: { nav: NavItem[] }) {
-  const [open, setOpen] = useState(false)
+/** Navigation items: safe entry → authorised destinations (role-mapped first) → safe status → DEV tools. */
+export function navItems(access: NavAccess, devNav: DevNavItem[]): DsNavItem[] {
+  const { home, system } = SAFE_DESTINATIONS
+  const entries = access.status === 'GRANTED' ? access.entries : []
+  return [
+    { id: home.id, href: home.to, label: home.label, mobileLabel: home.short, icon: home.icon, group: 'entry' },
+    ...entries.map(e => ({ id: e.id, href: e.to, label: e.label, mobileLabel: e.short, icon: e.icon, group: e.placement })),
+    { id: system.id, href: system.to, label: system.label, mobileLabel: system.short, icon: system.icon, group: 'safe' },
+    ...devNav.map(d => ({ id: `dev:${d.to}`, href: d.to, label: `${d.label} · DEV`, icon: 'grid' as const, group: 'dev' })),
+  ]
+}
+
+const renderLink: DsLinkRenderer = (item, props) => <Link to={item.href} {...props} />
+
+function ShellFrame({ devNav }: { devNav: DevNavItem[] }) {
+  const access = useNavigationAccess()
   const location = useLocation()
-  const session = useSession()
-  const features = session.status === 'ready' ? session.session.features : undefined
-  const visible = nav.filter(item => !item.feature || features?.[item.feature] === true)
-  const [lastPath, setLastPath] = useState(location.pathname)
-  if (lastPath !== location.pathname) { // close the mobile menu after navigation
-    setLastPath(location.pathname)
-    setOpen(false)
-  }
+  const navigate = useNavigate()
+  const items = navItems(access, devNav)
+  const current = destinationForPath(items.map(i => ({ id: i.id, to: i.href, label: i.label })), location.pathname)
+  // Link clicks route through <Link>; overflow-menu selections arrive without an event.
+  const onNavigate = useCallback((item: DsNavItem, e?: unknown) => { if (!e) void navigate(item.href) }, [navigate])
+  const crumb = access.status === 'GRANTED' && access.role.kind === 'SINGLE' ? `نقش: ${ROLE_CONTRACTS[access.role.role].label}` : undefined
   return (
-    <>
-      <a className="skip-link" href="#ws">پرش به محتوای اصلی</a>
-      <header className="hdr">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">C</span>
-          <b>CRM</b>
-        </div>
-        <span className="grow" />
-        <Identity />
-        <button type="button" className="btn btn-ghost btn-sm nav-toggle" aria-expanded={open} aria-controls="main-nav"
-          onClick={() => setOpen(o => !o)}>
-          <Icon name="menu" /><span>منو</span>
-        </button>
-      </header>
-      <nav id="main-nav" className="nav" aria-label="ناوبری اصلی" data-open={open}>
-        {visible.map(item => (
-          <NavLink key={item.to} to={item.to} end>
-            {item.label}
-            {item.dev ? <span className="demo-tag">DEV</span> : null}
-          </NavLink>
-        ))}
-      </nav>
-      <main id="ws" className="ws" tabIndex={-1}>
-        <Gate>
-          <Suspense fallback={<StateBlock kind="loading" title="در حال بارگذاری…" />}>
-            <Outlet />
-          </Suspense>
-        </Gate>
-      </main>
-    </>
+    <DsAppShell
+      header={<AppHeader brandMark="C" brandName="CRM" crumb={crumb} mobileTitle={current?.label ?? 'CRM'} actions={<Identity />} />}
+      nav={<RoleNavigation items={items} currentId={current?.id} label={NAV_LABEL} onNavigate={onNavigate} renderLink={renderLink} />}
+      bottomNav={<MobileBottomNavigation items={items} currentId={current?.id} onNavigate={onNavigate} renderLink={renderLink} />}
+    >
+      <Gate>
+        <Suspense fallback={<StateBlock kind="loading" title="در حال بارگذاری…" />}>
+          <Outlet />
+        </Suspense>
+      </Gate>
+    </DsAppShell>
   )
 }
 

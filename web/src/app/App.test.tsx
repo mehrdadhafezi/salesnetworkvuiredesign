@@ -26,14 +26,16 @@ describe('shell', () => {
     expect(screen.getByRole('navigation', { name: 'ناوبری اصلی' })).toBeTruthy()
     expect(screen.getByRole('main').id).toBe('ws')
     expect(screen.getByRole('link', { name: 'پرش به محتوای اصلی' }).getAttribute('href')).toBe('#ws')
-    expect(screen.getByRole('link', { name: 'خانه' }).getAttribute('aria-current')).toBe('page')
+    const nav = screen.getByRole('navigation', { name: 'ناوبری اصلی' })
+    expect(within(nav).getByRole('link', { name: 'خانه' }).getAttribute('aria-current')).toBe('page')
   })
 
   it('routes between pages and shows 404 for unknown paths', async () => {
     renderAt('/')
-    fireEvent.click(await screen.findByRole('link', { name: 'وضعیت سامانه' }))
+    const nav = await screen.findByRole('navigation', { name: 'ناوبری اصلی' })
+    fireEvent.click(within(nav).getByRole('link', { name: 'وضعیت سامانه' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'وضعیت سامانه' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'وضعیت سامانه' }).getAttribute('aria-current')).toBe('page')
+    expect(within(nav).getByRole('link', { name: 'وضعیت سامانه' }).getAttribute('aria-current')).toBe('page')
     renderAt('/api/v1/customers')
     expect(await screen.findByRole('heading', { level: 1, name: 'صفحه پیدا نشد' })).toBeTruthy()
   })
@@ -58,15 +60,11 @@ describe('shell', () => {
     expect(await screen.findByText('ارتباط با سرویس برقرار نشد')).toBeTruthy()
   })
 
-  it('collapses navigation behind an accessible toggle', async () => {
+  it('offers the mobile bottom navigation with the same safe destinations (RM-E02)', async () => {
     renderAt('/')
-    const toggle = await screen.findByRole('button', { name: 'منو' })
-    const nav = screen.getByRole('navigation', { name: 'ناوبری اصلی' })
-    expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    expect(toggle.getAttribute('aria-controls')).toBe(nav.id)
-    fireEvent.click(toggle)
-    expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    expect(nav.getAttribute('data-open')).toBe('true')
+    const bottom = await screen.findByRole('navigation', { name: 'ناوبری موبایل' })
+    expect(within(bottom).getByRole('link', { name: 'خانه' }).getAttribute('aria-current')).toBe('page')
+    expect(screen.queryByRole('button', { name: 'منو' })).toBeNull() // the old collapsible list is gone
   })
 })
 

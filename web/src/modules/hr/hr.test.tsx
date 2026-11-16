@@ -65,7 +65,8 @@ describe('HR read (Slice 4)', () => {
   it('lists persons through the generated client, with server filters and cursor pagination', async () => {
     const { calls } = renderAt('/hr', routes())
     expect(await screen.findByRole('link', { name: 'Synthetic Person 1' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'نیروها' })).toBeTruthy()
+    // RM-E02: the feature switch alone never shows the link (no effective-access ALLOWED decision here).
+    expect(within(screen.getByRole('navigation', { name: 'ناوبری اصلی' })).queryByRole('link', { name: 'نیروها' })).toBeNull()
     expect(screen.getByText('تعارض: چند مدیر جاری')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'صفحه بعد' }))
     expect(await screen.findByRole('link', { name: 'Synthetic Person 3' })).toBeTruthy()
