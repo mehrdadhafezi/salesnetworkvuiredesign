@@ -154,6 +154,16 @@ func (g *Guard) Effective(ctx context.Context) (enabled bool, authenticated bool
 	return on, s.PrincipalID != "", EvaluateAll(Runtime, s), nil
 }
 
+// Availability reports, for one request, whether the feature that guards
+// each capability is enabled (RM-ACCESS-01). It is availability only and
+// never authority: a capability absent from the map, or mapped to false, is
+// unavailable, and an error fails the whole evaluation closed. Each
+// capability's entry must be the flag of the guard that enforces it, so the
+// effective-access view never reports a capability as allowed whose own
+// endpoint answers BLOCKED / FEATURE_DISABLED, and one module's switch never
+// decides another module's capability.
+type Availability func(ctx context.Context) (map[identityapi.Capability]bool, error)
+
 // Subject returns the caller's subject for row-scope checks of a command
 // that has already passed Check. It grants nothing.
 func (g *Guard) Subject(ctx context.Context) Subject { return g.subjects.Subject(ctx) }

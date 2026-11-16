@@ -96,8 +96,14 @@ func NewReadAPI(identityRunner, organizationRunner, flags *db.Runner, devAuth bo
 	if err != nil {
 		return nil, err
 	}
+	// RM-ACCESS-01: each capability's availability is its own guard flag,
+	// not the HR read flag.
+	available, err := capabilityAvailability(flags)
+	if err != nil {
+		return nil, err
+	}
 	return readAPI{
-		authorizationHandlers: authzhttp.New(guard),
+		authorizationHandlers: authzhttp.New(guard, available),
 		identityHandlers:      identityhttp.New(guard, identityquery.New(identityRunner)),
 		organizationHandlers:  organizationhttp.New(guard, organizationquery.New(organizationRunner)),
 		guard:                 guard,

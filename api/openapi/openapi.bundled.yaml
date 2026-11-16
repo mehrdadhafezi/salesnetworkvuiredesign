@@ -546,9 +546,11 @@ paths:
       operationId: getEffectiveAccess
       summary: Effective access of the current principal
       description: |
-        Evaluates every Slice 4 capability for the caller with the same
-        evaluator that produces allowed_actions. Anonymous callers receive
-        an all-denied evaluation. Read-only.
+        Evaluates every registered capability for the caller with the same
+        evaluator that produces allowed_actions. Each capability is gated by
+        the feature flag of the guard that enforces it (never by another
+        module's flag; RM-ACCESS-01). Anonymous callers receive an all-denied
+        evaluation. Read-only; it grants nothing.
       responses:
         '200':
           description: Evaluation (always returned; denial is data here, not an error).
@@ -5605,7 +5607,14 @@ components:
           $ref: '#/components/schemas/AllowedActions'
     Capability:
       type: string
-      description: Slice 4 read capability vocabulary (<module>.<object>.<action>).
+      description: |
+        Capability vocabulary (<module>.<object>.<action>): exactly the backend
+        registry (internal/identity/api), in registry order. A value here is a
+        name, never a grant: listing a capability adds it to no role bundle and
+        makes nothing allowed. RM-ACCESS-01 added the 14 Slice 12-14 values the
+        server already evaluated and returned (payments.*, finance.review.read,
+        commission.*, fulfillment.work.*, biawin.activation.read,
+        integration.provider_operation.*); a contract test fails on any drift.
       enum:
         - identity.user.read
         - org.person.read
@@ -5636,6 +5645,20 @@ components:
         - org.hr_request.review
         - org.hr_request.read
         - integration.writeback.read
+        - payments.upload.stage
+        - payments.batch.submit
+        - payments.submission.read
+        - payments.evidence.read
+        - finance.review.read
+        - commission.shadow.read
+        - commission.policy.read
+        - commission.own.read
+        - fulfillment.work.read
+        - fulfillment.work.assign
+        - fulfillment.work.execute
+        - biawin.activation.read
+        - integration.provider_operation.read
+        - integration.provider_operation.reconcile
     AccessDecision:
       type: object
       required:
@@ -5667,7 +5690,14 @@ components:
             maxLength: 40
     EffectiveAccess:
       type: object
-      description: Server-authoritative evaluation for the current principal (same evaluator as allowed_actions).
+      description: |
+        Server-authoritative evaluation for the current principal (same evaluator
+        as allowed_actions), one decision per registered capability. A decision
+        is allowed only when an ACTIVE grant holds the capability AND the feature
+        flag of the guard that enforces that capability is on; a capability whose
+        own feature is off is BLOCKED / FEATURE_DISABLED with scope NONE. One
+        module's feature flag never decides another module's capability
+        (RM-ACCESS-01). hr_read_enabled reports only the Slice 4 HR read flag.
       required:
         - authenticated
         - hr_read_enabled

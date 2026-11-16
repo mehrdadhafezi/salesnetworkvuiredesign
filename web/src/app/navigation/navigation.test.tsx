@@ -23,6 +23,24 @@ const ALL_CAPS: ContractCapability[] = [
   'reporting.mis.read', 'reporting.invoice_review.read', 'finance.shadow.read', 'finance.ledger.read', 'finance.reconciliation.read',
   'biawin.subscription.read', 'fulfillment.case.read', 'biawin.parity.read', 'cases.contact_outcome.record', 'org.hr_request.create',
   'org.hr_request.review', 'org.hr_request.read', 'integration.writeback.read',
+  // RM-ACCESS-01: the 14 registry capabilities the contract previously omitted.
+  'payments.upload.stage', 'payments.batch.submit', 'payments.submission.read', 'payments.evidence.read', 'finance.review.read',
+  'commission.shadow.read', 'commission.policy.read', 'commission.own.read',
+  'fulfillment.work.read', 'fulfillment.work.assign', 'fulfillment.work.execute', 'biawin.activation.read',
+  'integration.provider_operation.read', 'integration.provider_operation.reconcile',
+]
+
+/** The nine destinations RM-E02 had to hide because their capability was missing from the contract. */
+const FORMERLY_HIDDEN: { id: string; capability: ContractCapability; feature: FeatureKey }[] = [
+  { id: 'commission.overview', capability: 'commission.shadow.read', feature: 'commission_read' },
+  { id: 'commission.calculations', capability: 'commission.shadow.read', feature: 'commission_read' },
+  { id: 'commission.policies', capability: 'commission.policy.read', feature: 'commission_read' },
+  { id: 'commission.me', capability: 'commission.own.read', feature: 'commission_read' },
+  { id: 'operations.work', capability: 'fulfillment.work.read', feature: 'fulfillment_work' },
+  { id: 'operations.activations', capability: 'biawin.activation.read', feature: 'fulfillment_work' },
+  { id: 'operations.providers', capability: 'integration.provider_operation.read', feature: 'fulfillment_work' },
+  { id: 'payments.evidence', capability: 'payments.evidence.read', feature: 'payment_submission' },
+  { id: 'finance.review', capability: 'finance.review.read', feature: 'finance_review_read' },
 ]
 
 const FEATURES_ON: Record<FeatureKey, boolean> = {
@@ -80,10 +98,45 @@ describe('RM-E02 resolver (pure)', () => {
     expect(a.status === 'GRANTED' && a.entries.map(e => e.id)).toEqual(['billing.invoices'])
   })
 
-  it('a capability outside the OpenAPI enum is UNKNOWN and never shows, even when the server allows it', () => {
-    const a = resolveNavigation(ready(sessionOn()), { state: 'READY', data: evaluation({ 'commission.shadow.read': ['finance'], 'fulfillment.work.read': ['finance'], 'finance.review.read': ['finance'] }) })
-    expect(a).toEqual({ status: 'NONE', reason: 'NO_GRANT' })
-    for (const d of DESTINATIONS.filter(x => x.capability.kind === 'UNKNOWN')) expect(['commission', 'operations', 'payments', 'finance']).toContain(d.module)
+  it('RM-ACCESS-01: every destination capability is in the contract enum (no UNKNOWN left)', () => {
+    expect(DESTINATIONS.filter(x => x.capability.kind === 'UNKNOWN')).toEqual([])
+    for (const d of DESTINATIONS) if (d.capability.kind === 'CONTRACT') expect(ALL_CAPS).toContain(d.capability.capability)
+    for (const h of FORMERLY_HIDDEN) {
+      const d = DESTINATIONS.find(x => x.id === h.id)
+      expect(d?.capability, h.id).toEqual({ kind: 'CONTRACT', capability: h.capability })
+      expect(d?.feature, h.id).toBe(h.feature)
+    }
+  })
+
+  it('M. the nine formerly hidden destinations: neither contract membership nor a feature flag alone shows them', () => {
+    for (const h of FORMERLY_HIDDEN) {
+      const ids = (a: ReturnType<typeof resolveNavigation>) => (a.status === 'GRANTED' ? a.entries.map(e => e.id) : [])
+      // Every feature on, capability not allowed (UNAUTHORIZED): hidden.
+      expect(ids(resolveNavigation(ready(sessionOn()), { state: 'READY', data: evaluation() })), h.id).not.toContain(h.id)
+      // Capability allowed, its own feature off (every other feature on): hidden.
+      const off = sessionOn({ ...FEATURES_ON, [h.feature]: false })
+      expect(ids(resolveNavigation(ready(off), { state: 'READY', data: evaluation({ [h.capability]: ['synthetic_dev_stub'] }) })), h.id).not.toContain(h.id)
+      // Server BLOCKED its capability (own flag off server-side) while the session says on: hidden.
+      const ev = evaluation({ 'cases.case.read': ['seller'] })
+      ev.decisions = ev.decisions.map(d => d.capability === h.capability ? { ...d, allowed: false, outcome: 'BLOCKED', reason_code: 'FEATURE_DISABLED' } : d)
+      expect(ids(resolveNavigation(ready(sessionOn()), { state: 'READY', data: ev })), h.id).not.toContain(h.id)
+      // Allowed by the server AND feature on: the existing route link appears.
+      expect(ids(resolveNavigation(ready(sessionOn({ [h.feature]: true })), { state: 'READY', data: evaluation({ [h.capability]: ['synthetic_dev_stub'] }) })), h.id).toContain(h.id)
+    }
+  })
+
+  it('a capability string outside the contract never shows anything, even when ALLOWED', () => {
+    const ev = evaluation()
+    ev.decisions = [...ev.decisions, { capability: 'org.assignment.apply' as ContractCapability, allowed: true, outcome: 'SUCCESS', scope: 'ORGANIZATION', matched_roles: ['hr'] }]
+    expect(resolveNavigation(ready(sessionOn()), { state: 'READY', data: ev })).toEqual({ status: 'NONE', reason: 'NO_GRANT' })
+  })
+
+  it('B (navigation). HR flag off server-side: HR decisions BLOCKED, another module still allowed → only that module links', () => {
+    const hr = ['identity.user.read', 'org.person.read', 'org.employment.read', 'org.position.read', 'org.unit.read', 'org.assignment.read']
+    const ev = evaluation({ 'customers.customer.read': ['synthetic_dev_stub'], 'org.person.read': ['hr'] }, { hr_read_enabled: false })
+    ev.decisions = ev.decisions.map(d => hr.includes(d.capability) ? { ...d, allowed: false, outcome: 'BLOCKED', reason_code: 'FEATURE_DISABLED', scope: 'NONE' } : d)
+    const a = resolveNavigation(ready(sessionOn({ customers_identity: true, hr_read: false })), { state: 'READY', data: ev })
+    expect(a.status === 'GRANTED' && a.entries.map(e => e.id)).toEqual(['customers.list'])
   })
 
   it('an ALLOWED flag without outcome SUCCESS, or SUCCESS without allowed, never counts', () => {
@@ -92,7 +145,7 @@ describe('RM-E02 resolver (pure)', () => {
     expect(resolveNavigation(ready(sessionOn()), { state: 'READY', data: ev })).toEqual({ status: 'NONE', reason: 'NO_GRANT' })
   })
 
-  it('every decision BLOCKED (effective-access is gated by organization.hr_read_shadow) fails closed with its reason', () => {
+  it('every decision BLOCKED (e.g. every guarded feature off) fails closed with its reason', () => {
     expect(resolveNavigation(ready(sessionOn()), { state: 'READY', data: blocked() })).toEqual({ status: 'BLOCKED', reasons: ['FEATURE_DISABLED'] })
   })
 
@@ -197,7 +250,7 @@ describe('RM-E02 fail-closed shell', () => {
     expect(navLabels()).toEqual(SAFE)
   })
 
-  it('4d. effective-access BLOCKED (HR read flag off) shows the server reason and no business link', async () => {
+  it('4d. effective-access BLOCKED for every capability (every feature off) shows the server reason and no business link', async () => {
     renderAt('/', { 'GET /api/v1/session': () => json(sessionOn()), 'GET /api/v1/authorization/effective-access': () => envelope(blocked()) })
     expect(await screen.findByText('ارزیابی دسترسی در سرور در دسترس نیست')).toBeTruthy()
     expect(screen.getByText('FEATURE_DISABLED')).toBeTruthy()

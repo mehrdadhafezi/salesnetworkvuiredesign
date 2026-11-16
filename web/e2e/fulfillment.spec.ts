@@ -53,7 +53,10 @@ test.describe('R1 login, navigation and session on the operations stack', () => 
     // The flag is on, but a flag is not a capability (RM-E02): with no ACTIVE grant the
     // navigation fails closed and offers none of the operations links.
     expect(s.data.features?.fulfillment_work).toBe(true)
-    await expectFailClosedNavigation(page, 'BLOCKED') // organization.hr_read_shadow is off on this stack
+    // RM-ACCESS-01: was BLOCKED (the HR read flag, off on this stack, gated every capability). Each
+    // capability now carries its own flag: fulfillment.work_read is on, so the server answers
+    // UNAUTHORIZED (no ACTIVE grant) and the home page states NO_GRANT. Still no operations link.
+    await expectFailClosedNavigation(page, 'NO_GRANT')
     for (const label of NAV) await expect(page.getByRole('link', { name: label, exact: true })).toHaveCount(0)
 
     // The existing deep link still reaches the queue, which shows the server's refusal.
@@ -401,7 +404,8 @@ test.describe('reads ON, commands OFF, write-back flag ON alone, reconciliation 
     const s = (await (await sessionGet(page, '/api/v1/session')).json()) as SessionBody
     expect(s.data.features?.fulfillment_work).toBe(true)
     // RM-E02: a read flag is not a capability; the navigation fails closed, pages stay reachable.
-    await expectFailClosedNavigation(page, 'BLOCKED')
+    // RM-ACCESS-01: NO_GRANT (was BLOCKED only because the HR read flag gated every capability).
+    await expectFailClosedNavigation(page, 'NO_GRANT')
     for (const label of NAV) await expect(page.getByRole('link', { name: label, exact: true })).toHaveCount(0)
     for (const route of ['/operations/work', `/operations/work/${ops.caseA}`, '/operations/provider-operations', '/operations/activations']) {
       await page.goto(route)

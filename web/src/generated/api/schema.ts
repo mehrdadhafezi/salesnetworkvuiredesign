@@ -338,9 +338,11 @@ export interface paths {
         };
         /**
          * Effective access of the current principal
-         * @description Evaluates every Slice 4 capability for the caller with the same
-         *     evaluator that produces allowed_actions. Anonymous callers receive
-         *     an all-denied evaluation. Read-only.
+         * @description Evaluates every registered capability for the caller with the same
+         *     evaluator that produces allowed_actions. Each capability is gated by
+         *     the feature flag of the guard that enforces it (never by another
+         *     module's flag; RM-ACCESS-01). Anonymous callers receive an all-denied
+         *     evaluation. Read-only; it grants nothing.
          */
         get: operations["getEffectiveAccess"];
         put?: never;
@@ -2726,10 +2728,16 @@ export interface components {
             allowed_actions?: components["schemas"]["AllowedActions"];
         };
         /**
-         * @description Slice 4 read capability vocabulary (<module>.<object>.<action>).
+         * @description Capability vocabulary (<module>.<object>.<action>): exactly the backend
+         *     registry (internal/identity/api), in registry order. A value here is a
+         *     name, never a grant: listing a capability adds it to no role bundle and
+         *     makes nothing allowed. RM-ACCESS-01 added the 14 Slice 12-14 values the
+         *     server already evaluated and returned (payments.*, finance.review.read,
+         *     commission.*, fulfillment.work.*, biawin.activation.read,
+         *     integration.provider_operation.*); a contract test fails on any drift.
          * @enum {string}
          */
-        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read" | "reporting.metrics.read" | "reporting.mis.read" | "reporting.invoice_review.read" | "finance.shadow.read" | "finance.ledger.read" | "finance.reconciliation.read" | "biawin.subscription.read" | "fulfillment.case.read" | "biawin.parity.read" | "cases.contact_outcome.record" | "org.hr_request.create" | "org.hr_request.review" | "org.hr_request.read" | "integration.writeback.read";
+        Capability: "identity.user.read" | "org.person.read" | "org.employment.read" | "org.position.read" | "org.unit.read" | "org.assignment.read" | "customers.customer.read" | "customers.merge_case.read" | "customers.identity_report.read" | "cases.case.read" | "custody.custody.read" | "sales.report.read" | "billing.invoice.read" | "payments.attempt.read" | "billing.reconciliation.read" | "reporting.metrics.read" | "reporting.mis.read" | "reporting.invoice_review.read" | "finance.shadow.read" | "finance.ledger.read" | "finance.reconciliation.read" | "biawin.subscription.read" | "fulfillment.case.read" | "biawin.parity.read" | "cases.contact_outcome.record" | "org.hr_request.create" | "org.hr_request.review" | "org.hr_request.read" | "integration.writeback.read" | "payments.upload.stage" | "payments.batch.submit" | "payments.submission.read" | "payments.evidence.read" | "finance.review.read" | "commission.shadow.read" | "commission.policy.read" | "commission.own.read" | "fulfillment.work.read" | "fulfillment.work.assign" | "fulfillment.work.execute" | "biawin.activation.read" | "integration.provider_operation.read" | "integration.provider_operation.reconcile";
         AccessDecision: {
             capability: components["schemas"]["Capability"];
             allowed: boolean;
@@ -2739,7 +2747,15 @@ export interface components {
             scope: "NONE" | "ORGANIZATION";
             matched_roles: string[];
         };
-        /** @description Server-authoritative evaluation for the current principal (same evaluator as allowed_actions). */
+        /**
+         * @description Server-authoritative evaluation for the current principal (same evaluator
+         *     as allowed_actions), one decision per registered capability. A decision
+         *     is allowed only when an ACTIVE grant holds the capability AND the feature
+         *     flag of the guard that enforces that capability is on; a capability whose
+         *     own feature is off is BLOCKED / FEATURE_DISABLED with scope NONE. One
+         *     module's feature flag never decides another module's capability
+         *     (RM-ACCESS-01). hr_read_enabled reports only the Slice 4 HR read flag.
+         */
         EffectiveAccess: {
             authenticated: boolean;
             hr_read_enabled: boolean;

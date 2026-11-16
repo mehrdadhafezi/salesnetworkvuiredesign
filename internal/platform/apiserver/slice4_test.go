@@ -86,7 +86,7 @@ func TestSlice4UnconfiguredAndReadOnly(t *testing.T) {
 			t.Fatal(err)
 		}
 		if path == "/api/v1/authorization/effective-access" {
-			if env.Data == nil || env.Data.HRReadEnabled || len(env.Data.Decisions) != 29 {
+			if env.Data == nil || env.Data.HRReadEnabled || len(env.Data.Decisions) != 43 { // RM-ACCESS-01: was 29 (14 registry capabilities missing from the contract)
 				t.Fatalf("effective access = %s", rec.Body.String())
 			}
 			for _, d := range env.Data.Decisions {

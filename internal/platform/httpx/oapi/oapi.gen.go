@@ -378,40 +378,56 @@ func (e BiawinSubscriptionProductVersionState) Valid() bool {
 
 // Defines values for Capability.
 const (
-	BiawinParityRead            Capability = "biawin.parity.read"
-	BiawinSubscriptionRead      Capability = "biawin.subscription.read"
-	BillingInvoiceRead          Capability = "billing.invoice.read"
-	BillingReconciliationRead   Capability = "billing.reconciliation.read"
-	CasesCaseRead               Capability = "cases.case.read"
-	CasesContactOutcomeRecord   Capability = "cases.contact_outcome.record"
-	CustodyCustodyRead          Capability = "custody.custody.read"
-	CustomersCustomerRead       Capability = "customers.customer.read"
-	CustomersIdentityReportRead Capability = "customers.identity_report.read"
-	CustomersMergeCaseRead      Capability = "customers.merge_case.read"
-	FinanceLedgerRead           Capability = "finance.ledger.read"
-	FinanceReconciliationRead   Capability = "finance.reconciliation.read"
-	FinanceShadowRead           Capability = "finance.shadow.read"
-	FulfillmentCaseRead         Capability = "fulfillment.case.read"
-	IdentityUserRead            Capability = "identity.user.read"
-	IntegrationWritebackRead    Capability = "integration.writeback.read"
-	OrgAssignmentRead           Capability = "org.assignment.read"
-	OrgEmploymentRead           Capability = "org.employment.read"
-	OrgHrRequestCreate          Capability = "org.hr_request.create"
-	OrgHrRequestRead            Capability = "org.hr_request.read"
-	OrgHrRequestReview          Capability = "org.hr_request.review"
-	OrgPersonRead               Capability = "org.person.read"
-	OrgPositionRead             Capability = "org.position.read"
-	OrgUnitRead                 Capability = "org.unit.read"
-	PaymentsAttemptRead         Capability = "payments.attempt.read"
-	ReportingInvoiceReviewRead  Capability = "reporting.invoice_review.read"
-	ReportingMetricsRead        Capability = "reporting.metrics.read"
-	ReportingMisRead            Capability = "reporting.mis.read"
-	SalesReportRead             Capability = "sales.report.read"
+	BiawinActivationRead                  Capability = "biawin.activation.read"
+	BiawinParityRead                      Capability = "biawin.parity.read"
+	BiawinSubscriptionRead                Capability = "biawin.subscription.read"
+	BillingInvoiceRead                    Capability = "billing.invoice.read"
+	BillingReconciliationRead             Capability = "billing.reconciliation.read"
+	CasesCaseRead                         Capability = "cases.case.read"
+	CasesContactOutcomeRecord             Capability = "cases.contact_outcome.record"
+	CommissionOwnRead                     Capability = "commission.own.read"
+	CommissionPolicyRead                  Capability = "commission.policy.read"
+	CommissionShadowRead                  Capability = "commission.shadow.read"
+	CustodyCustodyRead                    Capability = "custody.custody.read"
+	CustomersCustomerRead                 Capability = "customers.customer.read"
+	CustomersIdentityReportRead           Capability = "customers.identity_report.read"
+	CustomersMergeCaseRead                Capability = "customers.merge_case.read"
+	FinanceLedgerRead                     Capability = "finance.ledger.read"
+	FinanceReconciliationRead             Capability = "finance.reconciliation.read"
+	FinanceReviewRead                     Capability = "finance.review.read"
+	FinanceShadowRead                     Capability = "finance.shadow.read"
+	FulfillmentCaseRead                   Capability = "fulfillment.case.read"
+	FulfillmentWorkAssign                 Capability = "fulfillment.work.assign"
+	FulfillmentWorkExecute                Capability = "fulfillment.work.execute"
+	FulfillmentWorkRead                   Capability = "fulfillment.work.read"
+	IdentityUserRead                      Capability = "identity.user.read"
+	IntegrationProviderOperationRead      Capability = "integration.provider_operation.read"
+	IntegrationProviderOperationReconcile Capability = "integration.provider_operation.reconcile"
+	IntegrationWritebackRead              Capability = "integration.writeback.read"
+	OrgAssignmentRead                     Capability = "org.assignment.read"
+	OrgEmploymentRead                     Capability = "org.employment.read"
+	OrgHrRequestCreate                    Capability = "org.hr_request.create"
+	OrgHrRequestRead                      Capability = "org.hr_request.read"
+	OrgHrRequestReview                    Capability = "org.hr_request.review"
+	OrgPersonRead                         Capability = "org.person.read"
+	OrgPositionRead                       Capability = "org.position.read"
+	OrgUnitRead                           Capability = "org.unit.read"
+	PaymentsAttemptRead                   Capability = "payments.attempt.read"
+	PaymentsBatchSubmit                   Capability = "payments.batch.submit"
+	PaymentsEvidenceRead                  Capability = "payments.evidence.read"
+	PaymentsSubmissionRead                Capability = "payments.submission.read"
+	PaymentsUploadStage                   Capability = "payments.upload.stage"
+	ReportingInvoiceReviewRead            Capability = "reporting.invoice_review.read"
+	ReportingMetricsRead                  Capability = "reporting.metrics.read"
+	ReportingMisRead                      Capability = "reporting.mis.read"
+	SalesReportRead                       Capability = "sales.report.read"
 )
 
 // Valid indicates whether the value is a known member of the Capability enum.
 func (e Capability) Valid() bool {
 	switch e {
+	case BiawinActivationRead:
+		return true
 	case BiawinParityRead:
 		return true
 	case BiawinSubscriptionRead:
@@ -423,6 +439,12 @@ func (e Capability) Valid() bool {
 	case CasesCaseRead:
 		return true
 	case CasesContactOutcomeRecord:
+		return true
+	case CommissionOwnRead:
+		return true
+	case CommissionPolicyRead:
+		return true
+	case CommissionShadowRead:
 		return true
 	case CustodyCustodyRead:
 		return true
@@ -436,11 +458,23 @@ func (e Capability) Valid() bool {
 		return true
 	case FinanceReconciliationRead:
 		return true
+	case FinanceReviewRead:
+		return true
 	case FinanceShadowRead:
 		return true
 	case FulfillmentCaseRead:
 		return true
+	case FulfillmentWorkAssign:
+		return true
+	case FulfillmentWorkExecute:
+		return true
+	case FulfillmentWorkRead:
+		return true
 	case IdentityUserRead:
+		return true
+	case IntegrationProviderOperationRead:
+		return true
+	case IntegrationProviderOperationReconcile:
 		return true
 	case IntegrationWritebackRead:
 		return true
@@ -461,6 +495,14 @@ func (e Capability) Valid() bool {
 	case OrgUnitRead:
 		return true
 	case PaymentsAttemptRead:
+		return true
+	case PaymentsBatchSubmit:
+		return true
+	case PaymentsEvidenceRead:
+		return true
+	case PaymentsSubmissionRead:
+		return true
+	case PaymentsUploadStage:
 		return true
 	case ReportingInvoiceReviewRead:
 		return true
@@ -5543,7 +5585,13 @@ func (e GetPaymentReportRowParamsUnit) Valid() bool {
 type AccessDecision struct {
 	Allowed bool `json:"allowed"`
 
-	// Capability Slice 4 read capability vocabulary (<module>.<object>.<action>).
+	// Capability Capability vocabulary (<module>.<object>.<action>): exactly the backend
+	// registry (internal/identity/api), in registry order. A value here is a
+	// name, never a grant: listing a capability adds it to no role bundle and
+	// makes nothing allowed. RM-ACCESS-01 added the 14 Slice 12-14 values the
+	// server already evaluated and returned (payments.*, finance.review.read,
+	// commission.*, fulfillment.work.*, biawin.activation.read,
+	// integration.provider_operation.*); a contract test fails on any drift.
 	Capability   Capability `json:"capability"`
 	MatchedRoles []string   `json:"matched_roles"`
 
@@ -6151,7 +6199,13 @@ type BlockedCommand struct {
 	Command   string   `json:"command"`
 }
 
-// Capability Slice 4 read capability vocabulary (<module>.<object>.<action>).
+// Capability Capability vocabulary (<module>.<object>.<action>): exactly the backend
+// registry (internal/identity/api), in registry order. A value here is a
+// name, never a grant: listing a capability adds it to no role bundle and
+// makes nothing allowed. RM-ACCESS-01 added the 14 Slice 12-14 values the
+// server already evaluated and returned (payments.*, finance.review.read,
+// commission.*, fulfillment.work.*, biawin.activation.read,
+// integration.provider_operation.*); a contract test fails on any drift.
 type Capability string
 
 // CaseAlias An explicit native link between representations. Never a merge; continuation vs related-distinct is OPD-01.
@@ -7282,7 +7336,13 @@ type CustomerSummarySubjectKind string
 // Derivation defines model for Derivation.
 type Derivation string
 
-// EffectiveAccess Server-authoritative evaluation for the current principal (same evaluator as allowed_actions).
+// EffectiveAccess Server-authoritative evaluation for the current principal (same evaluator
+// as allowed_actions), one decision per registered capability. A decision
+// is allowed only when an ACTIVE grant holds the capability AND the feature
+// flag of the guard that enforces that capability is on; a capability whose
+// own feature is off is BLOCKED / FEATURE_DISABLED with scope NONE. One
+// module's feature flag never decides another module's capability
+// (RM-ACCESS-01). hr_read_enabled reports only the Slice 4 HR read flag.
 type EffectiveAccess struct {
 	Authenticated bool             `json:"authenticated"`
 	Decisions     []AccessDecision `json:"decisions"`
@@ -7294,7 +7354,13 @@ type EffectiveAccessEnvelope struct {
 	// CorrelationId Opaque request correlation identifier.
 	CorrelationId CorrelationID `json:"correlation_id"`
 
-	// Data Server-authoritative evaluation for the current principal (same evaluator as allowed_actions).
+	// Data Server-authoritative evaluation for the current principal (same evaluator
+	// as allowed_actions), one decision per registered capability. A decision
+	// is allowed only when an ACTIVE grant holds the capability AND the feature
+	// flag of the guard that enforces that capability is on; a capability whose
+	// own feature is off is BLOCKED / FEATURE_DISABLED with scope NONE. One
+	// module's feature flag never decides another module's capability
+	// (RM-ACCESS-01). hr_read_enabled reports only the Slice 4 HR read flag.
 	Data EffectiveAccess `json:"data"`
 
 	// Outcome The seven frozen Slice 0 result outcomes (E0 §9A). UNKNOWN is never

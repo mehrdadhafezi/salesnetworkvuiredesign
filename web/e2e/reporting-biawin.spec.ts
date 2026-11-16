@@ -41,10 +41,11 @@ test.describe('reporting / MIS and Biawin reads (flags ON in the disposable data
     expect(s.data.authenticated).toBe(true)
     expect(s.data.session?.user_id).toBe(userA.userId)
     // The flags are on, but a flag is not a capability (RM-E02): the navigation fails
-    // closed (organization.hr_read_shadow is off here, so effective-access is BLOCKED).
+    // closed. RM-ACCESS-01: NO_GRANT, not BLOCKED: the reporting and Biawin capabilities carry
+    // their own (on) flags, so the server answers UNAUTHORIZED for this grant-less user.
     expect(s.data.features?.reporting_read).toBe(true)
     expect(s.data.features?.biawin_fulfillment_read).toBe(true)
-    await expectFailClosedNavigation(page, 'BLOCKED')
+    await expectFailClosedNavigation(page, 'NO_GRANT')
     for (const name of NAV) await expect(page.getByRole('link', { name, exact: true }), name).toHaveCount(0)
     await page.goto('/mis')
     await expect(page.getByRole('heading', { name: T.mis, exact: true })).toBeVisible()
