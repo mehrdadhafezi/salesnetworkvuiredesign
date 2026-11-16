@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { expectFailClosedNavigation } from './fixtures'
 import { allReads, expect, expectDenied, expectNoData, NAV, PAGES, readOnly, REPORTS, required, T, unknownId } from './reporting-biawin-fixtures'
 
 // R7-7 class B — TEST-ONLY OVERLAY, BACKEND-ONLY AUTHORIZATION EVIDENCE.
@@ -99,8 +100,11 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     expect(s.data.authenticated).toBe(true)
     expect(s.data.features.reporting_read).toBe(true)
     expect(s.data.features.biawin_fulfillment_read).toBe(true)
-    await page.goto('/')
-    for (const name of NAV) await expect(page.getByRole('link', { name, exact: true }), name).toBeVisible()
+    // RM-E02: navigation follows effective-access, which this stack reports BLOCKED
+    // (organization.hr_read_shadow off). The synthetic read capabilities still work
+    // through every existing deep link below; only the links are withheld.
+    await expectFailClosedNavigation(page, 'BLOCKED')
+    for (const name of NAV) await expect(page.getByRole('link', { name, exact: true }), name).toHaveCount(0)
   })
 
   operator('MIS overview: health, final metrics with their real values, deferred contracts without a value', async ({ page, blocked, writes }) => {
@@ -109,8 +113,7 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     const api = await getJSON<Envelope<{ freshness: string; coverage: string; run: { run_id: string } | null; metrics: Metric[]; deferred: { metric_id: string; status: string }[] }>>(page, '/api/v1/mis/overview')
     expect(api.outcome).toBe('SUCCESS')
     expect(api.data.run?.run_id).toBe(DB.rpRun)
-    await page.goto('/')
-    await page.getByRole('link', { name: T.mis, exact: true }).click()
+    await page.goto('/mis')
     await expect(page.getByRole('heading', { name: T.mis, exact: true })).toBeVisible()
     await expect(page.getByText(T.readOnly).first()).toBeVisible()
     const freshness: Record<string, string> = { FRESH: 'تازه', STALE: 'کهنه (قدیمی‌تر از قرارداد)', UNKNOWN: 'تازگی نامعلوم' }

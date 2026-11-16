@@ -1,4 +1,4 @@
-import { csrfToken, expectActionDenied, loginUI, sessionGet, sessionHeaders, type Envelope } from './fixtures'
+import { csrfToken, expectActionDenied, expectFailClosedNavigation, loginUI, sessionGet, sessionHeaders, type Envelope } from './fixtures'
 import {
   createRequest, decide, expect, expectContractInvalid, expectFeatureDisabled, expectNoRequestControls, hrReads, idemKey, rawPost,
   requestReads, T, terminate, test, transfer, unknownRequest,
@@ -32,10 +32,13 @@ test.describe('HR reads (flags ON in the disposable database)', () => {
     const s = (await (await sessionGet(page, '/api/v1/session')).json()) as SessionBody
     expect(s.data.authenticated).toBe(true)
     expect(s.data.session?.user_id).toBe(hr.supervisor.userId)
-    // Navigation hints follow the flags; they grant nothing.
+    // The flags are on, but a flag is not a capability (RM-E02): with no ACTIVE grant
+    // the navigation fails closed; the existing deep link still reaches the page.
     expect(s.data.features?.hr_read).toBe(true)
     expect(s.data.features?.hr_request_write).toBe(true)
-    await page.getByRole('link', { name: T.workforce, exact: true }).click()
+    await expectFailClosedNavigation(page, 'NO_GRANT')
+    await expect(page.getByRole('link', { name: T.workforce, exact: true })).toHaveCount(0)
+    await page.goto('/hr')
     await expect(page.getByRole('heading', { name: T.workforce, exact: true })).toBeVisible()
     for (const [path, heading] of PAGES) {
       await page.goto(path)
@@ -69,7 +72,9 @@ test.describe('HR requests (flags ON, CONTROLLED_WRITEBACK mode)', () => {
     void blocked
     await loginUI(page, hr.senior.login, hr.senior.password)
     await expect(page.getByRole('button', { name: T.logout })).toBeVisible()
-    await page.getByRole('link', { name: T.requestsNav, exact: true }).click()
+    await expectFailClosedNavigation(page, 'NO_GRANT') // RM-E02: no grant, no link
+    await expect(page.getByRole('link', { name: T.requestsNav, exact: true })).toHaveCount(0)
+    await page.goto('/hr/requests')
     await expect(page.getByRole('heading', { name: T.requests, exact: true })).toBeVisible()
     await expect(page.getByText(T.denied).first()).toBeVisible()
     await expectNoRequestControls(page)

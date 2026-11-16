@@ -140,3 +140,5 @@ auth.json
 web/test-results/
 web/playwright-report/
 web/test-results-ds/
+web/test-results-nav/
+web/dist-nav/

@@ -70,7 +70,8 @@ describe('Customer identity read (Slice 5)', () => {
   it('lists customers through the generated client with server filters and cursor pagination', async () => {
     const { calls } = renderAt('/customers', routes())
     expect(await screen.findByRole('link', { name: 'Sy********1' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'مشتریان' })).toBeTruthy()
+    // RM-E02: the feature switch alone never shows the link (no effective-access ALLOWED decision here).
+    expect(within(screen.getByRole('navigation', { name: 'ناوبری اصلی' })).queryByRole('link', { name: 'مشتریان' })).toBeNull()
     expect(screen.getAllByText('تعارض').length).toBeGreaterThan(0) // conflicts stay visible
     fireEvent.click(screen.getByRole('button', { name: 'صفحه بعد' }))
     expect(await screen.findByRole('link', { name: 'Sy********3' })).toBeTruthy()

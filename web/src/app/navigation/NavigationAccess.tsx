@@ -1,0 +1,44 @@
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useApi } from '../../shared/api'
+import { useSession } from '../../shared/auth/currentSession'
+import { resolveNavigation, type Evaluation, type NavAccess } from './access'
+
+/**
+ * Loads the server's effective-access evaluation for the authenticated
+ * principal (one read-only GET; never a write) and resolves the navigation
+ * with it. It re-evaluates whenever the session answer changes (login, logout,
+ * expiry, revocation) and never caches across identities. Anonymous visitors
+ * never trigger the call.
+ */
+const Ctx = createContext<NavAccess>({ status: 'LOADING' })
+
+export function NavigationAccessProvider({ children }: { children: ReactNode }) {
+  const api = useApi()
+  const session = useSession()
+  const ready = session.status === 'ready' ? session.session : undefined
+  const authenticated = ready?.authenticated === true
+  // Keyed on the session answer object: a new session answer always re-evaluates.
+  const [result, setResult] = useState<{ for: unknown; ev: Evaluation }>({ for: null, ev: { state: 'IDLE' } })
+
+  useEffect(() => {
+    if (!ready || !authenticated) return
+    let live = true
+    api.GET('/api/v1/authorization/effective-access').then(({ data }) => {
+      if (live) setResult({ for: ready, ev: data && data.outcome === 'SUCCESS' ? { state: 'READY', data: data.data } : { state: 'FAILED' } })
+    }, () => {
+      if (live) setResult({ for: ready, ev: { state: 'FAILED' } })
+    })
+    return () => { live = false }
+  }, [api, ready, authenticated])
+
+  // An evaluation made for an earlier session answer is never reused.
+  const access = useMemo(() => {
+    const evaluation: Evaluation = !authenticated ? { state: 'IDLE' } : result.for === ready ? result.ev : { state: 'LOADING' }
+    return resolveNavigation(session, evaluation)
+  }, [session, authenticated, ready, result])
+  return <Ctx.Provider value={access}>{children}</Ctx.Provider>
+}
+
+export function useNavigationAccess(): NavAccess {
+  return useContext(Ctx)
+}

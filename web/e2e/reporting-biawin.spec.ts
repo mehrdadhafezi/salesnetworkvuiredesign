@@ -1,4 +1,4 @@
-import { csrfToken, loginUI, sessionGet, sessionHeaders } from './fixtures'
+import { csrfToken, expectFailClosedNavigation, loginUI, sessionGet, sessionHeaders } from './fixtures'
 import { allReads, expect, expectDenied, expectDisabled, expectNoData, NAV, PAGES, readOnly, required, T, unknownId, type RowIds } from './reporting-biawin-fixtures'
 
 // R7-7 class A — PRODUCTION-EQUIVALENT: real browser → real SPA → real
@@ -40,11 +40,13 @@ test.describe('reporting / MIS and Biawin reads (flags ON in the disposable data
     const s = (await (await sessionGet(page, '/api/v1/session')).json()) as SessionBody
     expect(s.data.authenticated).toBe(true)
     expect(s.data.session?.user_id).toBe(userA.userId)
-    // The hints follow the flags; they grant nothing.
+    // The flags are on, but a flag is not a capability (RM-E02): the navigation fails
+    // closed (organization.hr_read_shadow is off here, so effective-access is BLOCKED).
     expect(s.data.features?.reporting_read).toBe(true)
     expect(s.data.features?.biawin_fulfillment_read).toBe(true)
-    for (const name of NAV) await expect(page.getByRole('link', { name, exact: true }), name).toBeVisible()
-    await page.getByRole('link', { name: T.mis, exact: true }).click()
+    await expectFailClosedNavigation(page, 'BLOCKED')
+    for (const name of NAV) await expect(page.getByRole('link', { name, exact: true }), name).toHaveCount(0)
+    await page.goto('/mis')
     await expect(page.getByRole('heading', { name: T.mis, exact: true })).toBeVisible()
     for (const [path, heading] of [...PAGES, [`/biawin/subscriptions/${ids.subscription}`, T.subscription] as [string, string]]) {
       await page.goto(path)

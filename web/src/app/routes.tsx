@@ -1,57 +1,18 @@
 import type { RouteObject } from 'react-router'
 import type { AppConfig } from './config'
-import { Shell, type NavItem } from './Shell'
+import { Shell, type DevNavItem } from './Shell'
 
 /**
- * Shell routes (home, system status, 404), the Slice 4 HR read routes, the
- * Slice 5 customer identity read routes, and a
- * DEV-only primitives route that production builds never mount. Pages load
- * lazily. HR navigation is shown only when the server reports the HR read
- * feature enabled; the routes themselves render the server's BLOCKED /
- * UNAUTHORIZED answer, so hiding the link is a convenience, not security.
+ * Every existing route (URLs unchanged since RM-E02; bookmarks and deep links
+ * keep working) under the role-oriented Shell. Navigation links are NOT listed
+ * here: the Shell builds them from navigation/destinations.ts, showing a
+ * destination only when the server reports its feature on AND its capability
+ * ALLOWED (effective-access). Routes are never guarded client-side: every page
+ * renders the server's own BLOCKED / UNAUTHORIZED answer, so hiding a link is
+ * presentation, not security. DEV-only routes are never mounted in production.
  */
 export function buildRoutes(config: AppConfig): RouteObject[] {
-  const nav: NavItem[] = [
-    { to: '/', label: 'خانه' },
-    { to: '/hr', label: 'نیروها', feature: 'hr_read' },
-    { to: '/hr/structure', label: 'ساختار سازمانی', feature: 'hr_read' },
-    { to: '/hr/exceptions', label: 'استثناهای سلسله‌مراتب', feature: 'hr_read' },
-    { to: '/customers', label: 'مشتریان', feature: 'customers_identity' },
-    { to: '/customers/merge-cases', label: 'پرونده‌های تطبیق', feature: 'customers_identity' },
-    { to: '/customers/identity-report', label: 'گزارش تطبیق هویت', feature: 'customers_identity' },
-    { to: '/sales/cases', label: 'پرونده‌های فروش', feature: 'sales_read' },
-    { to: '/sales/custody', label: 'نگهداری پرونده‌ها', feature: 'sales_read' },
-    { to: '/sales/report', label: 'گزارش پوشش فروش', feature: 'sales_read' },
-    { to: '/billing/invoices', label: 'فاکتورها', feature: 'billing_read' },
-    { to: '/billing/attempts', label: 'تلاش‌های پرداخت', feature: 'billing_read' },
-    { to: '/billing/report', label: 'گزارش تطبیق صورت‌حساب', feature: 'billing_read' },
-    { to: '/mis', label: 'امروز MIS', feature: 'reporting_read' },
-    { to: '/mis/source-quality', label: 'کیفیت منبع', feature: 'reporting_read' },
-    { to: '/mis/reconciliation', label: 'تطبیق و پوشش', feature: 'reporting_read' },
-    { to: '/reports/cases', label: 'گزارش پرونده‌ها', feature: 'reporting_read' },
-    { to: '/reports/custody', label: 'گزارش نگهداری', feature: 'reporting_read' },
-    { to: '/reports/invoices', label: 'گزارش فاکتورها', feature: 'reporting_read' },
-    { to: '/reports/payments', label: 'گزارش پرداخت‌ها', feature: 'reporting_read' },
-    { to: '/finance', label: 'دفتر سایه مالی', feature: 'finance_shadow_read' },
-    { to: '/finance/ledger', label: 'دفتر روزنامه سایه', feature: 'finance_shadow_read' },
-    { to: '/finance/balances', label: 'مانده‌های سایه', feature: 'finance_shadow_read' },
-    { to: '/finance/reconciliation', label: 'تطبیق سایه', feature: 'finance_shadow_read' },
-    { to: '/biawin/subscriptions', label: 'اشتراک‌های بیاوین', feature: 'biawin_fulfillment_read' },
-    { to: '/biawin/parity', label: 'تطبیق اشتراک‌های فعال', feature: 'biawin_fulfillment_read' },
-    { to: '/fulfillment/cases', label: 'پرونده‌های اجرای خدمت', feature: 'biawin_fulfillment_read' },
-    { to: '/commission', label: 'پورسانت · نمای سایه', feature: 'commission_read' },
-    { to: '/commission/calculations', label: 'محاسبات سایه پورسانت', feature: 'commission_read' },
-    { to: '/commission/policies', label: 'نسخه‌های سیاست پورسانت', feature: 'commission_read' },
-    { to: '/commission/me', label: 'پورسانت‌های من', feature: 'commission_read' },
-    { to: '/operations/work', label: 'صف کار اجرای خدمت', feature: 'fulfillment_work' },
-    { to: '/operations/activations', label: 'تصمیم‌های فعال‌سازی اشتراک', feature: 'fulfillment_work' },
-    { to: '/operations/provider-operations', label: 'عملیات ارائه‌دهنده خارجی', feature: 'fulfillment_work' },
-    { to: '/hr/requests', label: 'درخواست‌های منابع انسانی', feature: 'hr_request_write' },
-    { to: '/writeback', label: 'بازنویسی به سامانه قدیمی', feature: 'writeback_read' },
-    { to: '/payments/evidence', label: 'شواهد پرداخت', feature: 'payment_submission' },
-    { to: '/finance/review', label: 'صف بررسی مالی (فقط خواندنی)', feature: 'finance_review_read' },
-    { to: '/system', label: 'وضعیت سامانه' },
-  ]
+  const devNav: DevNavItem[] = []
   const children: RouteObject[] = [
     { index: true, lazy: async () => ({ Component: (await import('../routes/HomePage')).HomePage }) },
     { path: 'system', lazy: async () => ({ Component: (await import('../routes/SystemPage')).SystemPage }) },
@@ -112,12 +73,12 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
   ]
   // import.meta.env.DEV is a build-time constant: production bundles drop this branch entirely.
   if (import.meta.env.DEV && config.devTools) {
-    nav.push({ to: '/dev/primitives', label: 'نمونه اجزا', dev: true })
-    nav.push({ to: '/dev/design-system', label: 'سامانه طراحی', dev: true })
+    devNav.push({ to: '/dev/primitives', label: 'نمونه اجزا' })
+    devNav.push({ to: '/dev/design-system', label: 'سامانه طراحی' })
     children.push({ path: 'dev/primitives', lazy: async () => ({ Component: (await import('../routes/dev/PrimitivesPage')).PrimitivesPage }) })
   }
   children.push({ path: '*', lazy: async () => ({ Component: (await import('../routes/NotFoundPage')).NotFoundPage }) })
-  const routes: RouteObject[] = [{ path: '/', element: <Shell nav={nav} />, children }]
+  const routes: RouteObject[] = [{ path: '/', element: <Shell devNav={devNav} />, children }]
   // RM-E01 design-system showcase: DEV-only, synthetic, rendered outside the module Shell so it can
   // show the full shared shell (its own header, nav, main, drawer, bottom nav). Same build-time guard.
   if (import.meta.env.DEV && config.devTools) {

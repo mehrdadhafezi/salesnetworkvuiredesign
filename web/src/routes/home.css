@@ -1,0 +1,9 @@
+/* RM-E02 role entry: a destination list on the RM-E01 tokens (no new tokens, no raw colours). */
+.role-entry{display:grid;gap:var(--gap)}
+.role-entry .ds-panel + .ds-panel,.role-entry .ds-banner{margin:0}
+.role-entry-list{list-style:none;margin:0;padding:0}
+.role-entry-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid var(--border)}
+.role-entry-list li:first-child{border-top:0}
+.role-entry-list a{display:inline-flex;align-items:center;gap:8px;min-height:40px;color:var(--text);font-weight:600;text-decoration:none}
+.role-entry-list a:hover{color:var(--primary)}
+.role-entry-list a svg{width:18px;height:18px;color:var(--text-2)}

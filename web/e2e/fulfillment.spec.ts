@@ -1,4 +1,4 @@
-import { csrfToken, expectActionDenied, loginUI, sessionGet, sessionHeaders, type Envelope } from './fixtures'
+import { csrfToken, expectActionDenied, expectFailClosedNavigation, loginUI, sessionGet, sessionHeaders, type Envelope } from './fixtures'
 import {
   caseReads, collectionReads, commandBody, expect, expectCommandDisabled, expectContractInvalid, expectFeatureDisabled, idemKey, rawCommand,
   resolveOperation, test, unknownCase, workCommand, workCommands,
@@ -50,12 +50,14 @@ test.describe('R1 login, navigation and session on the operations stack', () => 
     const s = (await (await sessionGet(page, '/api/v1/session')).json()) as SessionBody
     expect(s.data.authenticated).toBe(true)
     expect(s.data.session?.user_id).toBe(ops.userX.userId)
-    // The navigation hint follows fulfillment.work_read only; it grants nothing.
+    // The flag is on, but a flag is not a capability (RM-E02): with no ACTIVE grant the
+    // navigation fails closed and offers none of the operations links.
     expect(s.data.features?.fulfillment_work).toBe(true)
-    for (const label of NAV) await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible()
+    await expectFailClosedNavigation(page, 'BLOCKED') // organization.hr_read_shadow is off on this stack
+    for (const label of NAV) await expect(page.getByRole('link', { name: label, exact: true })).toHaveCount(0)
 
-    // Navigation reaches the queue through the real link.
-    await page.getByRole('link', { name: QUEUE, exact: true }).click()
+    // The existing deep link still reaches the queue, which shows the server's refusal.
+    await page.goto('/operations/work')
     await expect(page).toHaveURL(/\/operations\/work$/)
     await expect(page.getByRole('heading', { name: QUEUE, exact: true })).toBeVisible()
     await expect(page.getByText(DENIED).first()).toBeVisible()
