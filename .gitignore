@@ -139,3 +139,4 @@ auth.json
 # R7-1 Playwright full-stack E2E output (never committed)
 web/test-results/
 web/playwright-report/
+web/test-results-ds/
