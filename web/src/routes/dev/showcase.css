@@ -1,0 +1,17 @@
+/* DEV-ONLY layout for the RM-E01 showcase page (not part of the design system). Tokens only. */
+.ds-showcase-root{color-scheme:light}
+.ds-showcase-root[data-theme="dim"],.ds-showcase-root[data-theme="dark"]{color-scheme:dark}
+.ds-showcase-root .ds-panel{margin-bottom:var(--gap)}
+.ds-demo-body{padding:12px 16px;display:grid;gap:12px}
+.ds-demo-h{margin:0;font-size:var(--fs);font-weight:600}
+.ds-row-wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ds-state-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.ds-state-cell{border-bottom:1px solid var(--border);border-left:1px solid var(--border)}
+.ds-state-cell .ds-state{padding:24px 12px}
+.ds-status-line{margin:0 0 var(--gap);padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text-2);font-size:var(--fs-sm)}
+.ds-field{flex:1;min-width:200px;max-width:320px}
+.ds-field .input{margin-top:0}
+.ds-showcase-root .btn[aria-pressed="true"]{background:var(--primary-soft);border-color:var(--primary-line);color:var(--primary);font-weight:600}
+.ds-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.ds-swatches li{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--r);background:var(--sbg);color:var(--sfg)}
+.ds-swatch{width:14px;height:14px;border-radius:99px;background:var(--sdot);flex:none}

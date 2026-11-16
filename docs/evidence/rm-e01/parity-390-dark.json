@@ -1,0 +1,424 @@
+[
+  {
+    "label": "header",
+    "prototype": {
+      "height": "52px",
+      "backgroundColor": "rgb(22, 27, 35)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "12px",
+      "paddingRight": "12px",
+      "borderBottomColor": "rgb(41, 49, 62)"
+    },
+    "react": {
+      "height": "52px",
+      "backgroundColor": "rgb(22, 27, 35)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "12px",
+      "paddingRight": "12px",
+      "borderBottomColor": "rgb(41, 49, 62)"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "role navigation",
+    "prototype": null,
+    "react": null,
+    "comparable": false,
+    "identical": false,
+    "diffs": []
+  },
+  {
+    "label": "current nav item",
+    "prototype": null,
+    "react": null,
+    "comparable": false,
+    "identical": false,
+    "diffs": []
+  },
+  {
+    "label": "nav item",
+    "prototype": null,
+    "react": null,
+    "comparable": false,
+    "identical": false,
+    "diffs": []
+  },
+  {
+    "label": "queue bar",
+    "prototype": {
+      "height": "52px",
+      "backgroundColor": "rgb(24, 29, 38)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "8px",
+      "paddingRight": "8px",
+      "borderBottomColor": "rgb(41, 49, 62)"
+    },
+    "react": {
+      "height": "52px",
+      "backgroundColor": "rgb(24, 29, 38)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "8px",
+      "paddingRight": "8px",
+      "borderBottomColor": "rgb(41, 49, 62)"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "pressed queue",
+    "prototype": {
+      "height": "40px",
+      "backgroundColor": "rgba(150, 162, 182, 0.11)",
+      "color": "rgb(169, 178, 192)",
+      "fontSize": "15px",
+      "fontWeight": "600",
+      "borderRadius": "8px",
+      "paddingLeft": "12px",
+      "paddingRight": "12px",
+      "borderBottomColor": "color(srgb 0.498039 0.541176 0.615686 / 0.45)"
+    },
+    "react": {
+      "height": "40px",
+      "backgroundColor": "rgba(150, 162, 182, 0.11)",
+      "color": "rgb(169, 178, 192)",
+      "fontSize": "15px",
+      "fontWeight": "600",
+      "borderRadius": "8px",
+      "paddingLeft": "12px",
+      "paddingRight": "12px",
+      "borderBottomColor": "color(srgb 0.498039 0.541176 0.615686 / 0.45)"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "queue",
+    "prototype": {
+      "height": "40px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(185, 194, 207)",
+      "fontSize": "15px",
+      "fontWeight": "500",
+      "borderRadius": "8px",
+      "paddingLeft": "12px",
+      "paddingRight": "12px",
+      "borderBottomColor": "rgba(0, 0, 0, 0)"
+    },
+    "react": {
+      "height": "40px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(185, 194, 207)",
+      "fontSize": "15px",
+      "fontWeight": "500",
+      "borderRadius": "8px",
+      "paddingLeft": "12px",
+      "paddingRight": "12px",
+      "borderBottomColor": "rgba(0, 0, 0, 0)"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "metric strip",
+    "prototype": {
+      "height": "61px",
+      "backgroundColor": "rgb(24, 29, 38)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "12px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(41, 49, 62)"
+    },
+    "react": {
+      "height": "61px",
+      "backgroundColor": "rgb(24, 29, 38)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "12px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(41, 49, 62)"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "metric",
+    "prototype": {
+      "height": "59px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "16px",
+      "paddingRight": "16px",
+      "borderBottomColor": "rgb(220, 226, 234)"
+    },
+    "react": {
+      "height": "59px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "16px",
+      "paddingRight": "16px",
+      "borderBottomColor": "rgb(220, 226, 234)"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "page title",
+    "prototype": null,
+    "react": {
+      "height": "1px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "17px",
+      "fontWeight": "600",
+      "borderRadius": "0px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(220, 226, 234)"
+    },
+    "comparable": false,
+    "identical": false,
+    "diffs": []
+  },
+  {
+    "label": "brand mark",
+    "prototype": {
+      "height": "28px",
+      "backgroundColor": "rgb(111, 152, 226)",
+      "color": "rgb(15, 21, 32)",
+      "fontSize": "13.5px",
+      "fontWeight": "700",
+      "borderRadius": "8px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(15, 21, 32)"
+    },
+    "react": {
+      "height": "28px",
+      "backgroundColor": "rgb(111, 152, 226)",
+      "color": "rgb(15, 21, 32)",
+      "fontSize": "13.5px",
+      "fontWeight": "700",
+      "borderRadius": "8px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(15, 21, 32)"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "search trigger",
+    "prototype": null,
+    "react": null,
+    "comparable": false,
+    "identical": false,
+    "diffs": []
+  },
+  {
+    "label": "bottom nav",
+    "prototype": {
+      "height": "62px",
+      "backgroundColor": "rgb(22, 27, 35)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(220, 226, 234)"
+    },
+    "react": {
+      "height": "62px",
+      "backgroundColor": "rgb(22, 27, 35)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(220, 226, 234)"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "bottom nav current",
+    "prototype": {
+      "height": "61px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(111, 152, 226)",
+      "fontSize": "11px",
+      "fontWeight": "600",
+      "borderRadius": "0px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(111, 152, 226)"
+    },
+    "react": {
+      "height": "61px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(111, 152, 226)",
+      "fontSize": "11px",
+      "fontWeight": "600",
+      "borderRadius": "0px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(111, 152, 226)"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "drawer",
+    "prototype": {
+      "height": "776px",
+      "backgroundColor": "rgb(24, 29, 38)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "16px 16px 0px 0px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(220, 226, 234)",
+      "width": "390px"
+    },
+    "react": {
+      "height": "776px",
+      "backgroundColor": "rgb(24, 29, 38)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "16px 16px 0px 0px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(220, 226, 234)",
+      "width": "390px"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "drawer top bar",
+    "prototype": {
+      "height": "57px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(138, 149, 166)",
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "12px",
+      "paddingRight": "12px",
+      "borderBottomColor": "rgb(41, 49, 62)",
+      "width": "390px"
+    },
+    "react": {
+      "height": "57px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(138, 149, 166)",
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "12px",
+      "paddingRight": "12px",
+      "borderBottomColor": "rgb(41, 49, 62)",
+      "width": "390px"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "drawer footer",
+    "prototype": {
+      "height": "71px",
+      "backgroundColor": "rgb(24, 29, 38)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "16px",
+      "paddingRight": "16px",
+      "borderBottomColor": "rgb(220, 226, 234)",
+      "width": "390px"
+    },
+    "react": {
+      "height": "71px",
+      "backgroundColor": "rgb(24, 29, 38)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "0px",
+      "paddingLeft": "16px",
+      "paddingRight": "16px",
+      "borderBottomColor": "rgb(220, 226, 234)",
+      "width": "390px"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  },
+  {
+    "label": "sheet grip",
+    "prototype": {
+      "height": "4px",
+      "backgroundColor": "rgb(54, 64, 79)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "99px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(220, 226, 234)",
+      "width": "40px"
+    },
+    "react": {
+      "height": "4px",
+      "backgroundColor": "rgb(54, 64, 79)",
+      "color": "rgb(220, 226, 234)",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "borderRadius": "99px",
+      "paddingLeft": "0px",
+      "paddingRight": "0px",
+      "borderBottomColor": "rgb(220, 226, 234)",
+      "width": "40px"
+    },
+    "comparable": true,
+    "identical": true,
+    "diffs": []
+  }
+]

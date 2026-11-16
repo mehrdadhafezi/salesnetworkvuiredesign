@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { fakeApi, healthy, json, session } from '../test/fakeApi'
@@ -111,5 +111,40 @@ describe('dev primitives route', () => {
   it('is not mounted in production', async () => {
     renderAt('/dev/primitives', prodConfig)
     await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'صفحه پیدا نشد' })).toBeTruthy())
+  })
+})
+
+describe('dev design-system showcase route (RM-E01)', () => {
+  it('renders the shared shell with synthetic content in development only', async () => {
+    renderAt('/dev/design-system', devConfig)
+    expect(await screen.findByRole('heading', { level: 1, name: 'سامانه طراحی CRM — نمونه اجزا' })).toBeTruthy()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(screen.getAllByRole('main')).toHaveLength(1)
+    expect(screen.getByRole('navigation', { name: 'بخش‌های پنل نمونه' })).toBeTruthy()
+    expect(screen.getByRole('navigation', { name: 'ناوبری موبایل' })).toBeTruthy()
+    // The module Shell's navigation is not mounted around the showcase.
+    expect(screen.queryByRole('navigation', { name: 'ناوبری اصلی' })).toBeNull()
+  })
+
+  it('is linked from the dev navigation and is not mounted in production', async () => {
+    renderAt('/', devConfig)
+    expect((await screen.findByRole('link', { name: /سامانه طراحی/ })).getAttribute('href')).toBe('/dev/design-system')
+    renderAt('/dev/design-system', prodConfig)
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'صفحه پیدا نشد' })).toBeTruthy())
+  })
+
+  it('makes no business API call: interacting with every demo control sends nothing but the session read', async () => {
+    const { calls } = renderAt('/dev/design-system', devConfig)
+    await screen.findByRole('heading', { level: 1, name: 'سامانه طراحی CRM — نمونه اجزا' })
+    fireEvent.click(screen.getByRole('button', { name: 'باز کردن کشو' }))
+    fireEvent.click(screen.getByRole('button', { name: /جواب نداده/ }))
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'بخش‌های پنل نمونه' })).getByRole('link', { name: /فاکتورها/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'اقدام‌های ردیف نمونه' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /اقدام بدون مجوز/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'اقدام نمونه' }))
+    expect(screen.getByRole('button', { name: 'ثبت نتیجه' }).hasAttribute('disabled')).toBe(true)
+    await waitFor(() => expect(calls.length).toBeGreaterThan(0))
+    expect(calls.every(c => c.method === 'GET')).toBe(true)
+    expect([...new Set(calls.map(c => c.url))]).toEqual(['/api/v1/session'])
   })
 })

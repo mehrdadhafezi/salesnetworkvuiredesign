@@ -113,8 +113,15 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
   // import.meta.env.DEV is a build-time constant: production bundles drop this branch entirely.
   if (import.meta.env.DEV && config.devTools) {
     nav.push({ to: '/dev/primitives', label: 'نمونه اجزا', dev: true })
+    nav.push({ to: '/dev/design-system', label: 'سامانه طراحی', dev: true })
     children.push({ path: 'dev/primitives', lazy: async () => ({ Component: (await import('../routes/dev/PrimitivesPage')).PrimitivesPage }) })
   }
   children.push({ path: '*', lazy: async () => ({ Component: (await import('../routes/NotFoundPage')).NotFoundPage }) })
-  return [{ path: '/', element: <Shell nav={nav} />, children }]
+  const routes: RouteObject[] = [{ path: '/', element: <Shell nav={nav} />, children }]
+  // RM-E01 design-system showcase: DEV-only, synthetic, rendered outside the module Shell so it can
+  // show the full shared shell (its own header, nav, main, drawer, bottom nav). Same build-time guard.
+  if (import.meta.env.DEV && config.devTools) {
+    routes.push({ path: '/dev/design-system', lazy: async () => ({ Component: (await import('../routes/dev/DesignSystemPage')).DesignSystemPage }) })
+  }
+  return routes
 }

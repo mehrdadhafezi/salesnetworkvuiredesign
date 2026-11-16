@@ -90,6 +90,40 @@ jobs:
       - name: Production bundle carries no dev auth or dev routes
         shell: bash
         run: |
-          if grep -l -E 'X-Dev-User|dev-user-|PrimitivesPage' dist/assets/*.js; then
+          if grep -l -E 'X-Dev-User|dev-user-|PrimitivesPage|DesignSystemPage' dist/assets/*.js; then
             echo "Development-only code leaked into the production bundle"; exit 1
           fi
+          if ls dist/assets | grep -E 'PrimitivesPage|DesignSystemPage|showcase'; then
+            echo "Development-only chunk emitted into the production build"; exit 1
+          fi
+
+  design-system:
+    name: Design-system browser checks (RM-E01 dev showcase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Typecheck and lint browser tests
+        run: npm run typecheck:e2e && npx eslint e2e playwright.ds.config.ts
+
+      # Starts a local Vite dev server only; no API, database or stack. Desktop 1366 and mobile 390.
+      - name: Shared component behaviour in a real browser
+        run: npx playwright test -c playwright.ds.config.ts
