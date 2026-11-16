@@ -124,6 +124,9 @@ Every decision identifier cited in the RM-B02 documents, with its status in `doc
 | D-33 | D-33 | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, role-capability-matrix |
 | D-34 | D-34 | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, executive-summary.fa, role-capability-matrix, separation-of-duties |
 | D-35a | D-35a | `DRAFT` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, separation-of-duties |
+| D-35b | D-35b | `DRAFT` | `NOT_STARTED` | role-capability-matrix |
+| D-35c | D-35c | `DRAFT` | `NOT_STARTED` | role-capability-matrix |
+| D-35d | D-35d | `DRAFT` | `NOT_STARTED` | role-capability-matrix |
 | D-35e | D-35e | `DRAFT` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, separation-of-duties |
 | D-36 | D-36 | `EVIDENCE_MISSING` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, separation-of-duties |
 | D-38 | D-38 | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, separation-of-duties |
@@ -132,11 +135,15 @@ Every decision identifier cited in the RM-B02 documents, with its status in `doc
 | D-43 | D-43 | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, scope-and-ownership, separation-of-duties |
 | D-44 | D-44 | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, separation-of-duties |
 | D-45 | D-45 | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, role-capability-matrix |
-| E-3 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | separation-of-duties |
+| E-3 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | role-capability-matrix, separation-of-duties |
 | E-7 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | d42-decision-package, executive-summary.fa, role-capability-matrix, scope-and-ownership, separation-of-duties |
 | F01 | F01 | `EVIDENCE_MISSING` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, scope-and-ownership, separation-of-duties |
+| F02 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | role-capability-matrix |
+| F03 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | role-capability-matrix |
+| F04 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | role-capability-matrix |
 | F06 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | separation-of-duties |
 | F08 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | role-capability-matrix |
+| F09 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | role-capability-matrix |
 | OPD-01 | OPD-01 | `EVIDENCE_MISSING` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, separation-of-duties |
 | OPD-02 | OPD-02 | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, role-capability-matrix |
 | OPD-03 | OPD-03 | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, scope-and-ownership, separation-of-duties |
@@ -151,6 +158,7 @@ Every decision identifier cited in the RM-B02 documents, with its status in `doc
 | REJECT-VOCAB | REJECT-VOCAB (R4 gap) | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, role-capability-matrix |
 | SD-01 | alias of OPD-10 (R5 inventory) | `READY_FOR_REVIEW` | `NOT_STARTED` | role-capability-matrix, separation-of-duties |
 | SD-04 | SD-04 | `READY_FOR_REVIEW` | `NOT_STARTED` | d42-decision-package, role-capability-matrix, scope-and-ownership, separation-of-duties |
+| TAD #19 | not a tracker record (R5 inventory: engineering prerequisite, finding or deferred item) | — | — | role-capability-matrix |
 
 ## 5. Proposed records without decision IDs
 
