@@ -4,13 +4,25 @@
 |---|---|
 | Mode | **READ-ONLY AUDIT.** No code, schema, OpenAPI, migration, grant, bundle, flag or data change |
 | Branch | `docs/rm-e04a-seller-scoped-read-contract` |
-| Baseline | `main` @ `d85b770028aaa206b678a47d31db35c3be418500` (PR #68, RM-E03, merged) — verified |
+| Baseline | `main` @ `d85b770028aaa206b678a47d31db35c3be418500` (PR #68, RM-E03, merged) — verified. Revision 2 re-checked at `e5fabbe` (PR #69 merge; docs only, no code change) |
 | Production | **NO-GO** (unchanged) |
 | Status of every proposal below | **DRAFT — NOT APPROVED. No option selected.** |
 
 This document closes the open item in RM-E03 §11: "the Seller-scoped reads have no contract". It records the server facts that exist today and the security architecture that any Seller-scoped read must follow. It also lists the business decisions that must be made before any of it can be built.
 
-It does **not** decide which capabilities the Seller holds, which rows the Seller sees, or who may grant. Those are D-42, M2 proposed record 1 (eligibility) and M2 proposed record 2 (read scope). All three stay open. Per AGENTS.md, scope predicates in §4 are presented as **options with consequences**. They are not selected rules.
+It does **not** decide which capabilities the Seller holds (**M2 proposed record 1**, eligibility), which rows the Seller sees (**M2 proposed record 2**, read-scope policy), or who may grant, edit and revoke (**D-42**, grant administration authority). Account provisioning (**D-34**), person identity / SoD (**R5-SEC-01**) and real-data authority (**ADR #18**) are further separate decisions. D-42 does not approve Seller data access. All six stay open; see [`../governance/proposals/rm-e04a-seller-decisions.md`](../governance/proposals/rm-e04a-seller-decisions.md). Per AGENTS.md, scope predicates in §4 are presented as **options with consequences**. They are not selected rules.
+
+### Document set (revision 2)
+
+| Document | Content |
+|---|---|
+| this file | findings F-01 … F-09, security requirements SR-01 … SR-16, contract options |
+| [`../security/rm-e04a-seller-row-scope.md`](../security/rm-e04a-seller-row-scope.md) | seven-screen contracts S1 … S7 |
+| [`../security/rm-e04a-seller-leak-surface-audit.md`](../security/rm-e04a-seller-leak-surface-audit.md) | 105-operation leak-surface inventory |
+| [`../security/rm-e04a-seller-negative-test-plan.md`](../security/rm-e04a-seller-negative-test-plan.md) | NT-01 … NT-24 (supersets T1 … T14) |
+| [`../governance/proposals/rm-e04a-seller-decisions.md`](../governance/proposals/rm-e04a-seller-decisions.md) | decision separation and precision corrections |
+| [`rm-e04a-execution-plan.md`](rm-e04a-execution-plan.md) | future PR groups A … D |
+| [`rm-e04a-executive-summary.fa.md`](rm-e04a-executive-summary.fa.md) | Persian executive summary |
 
 Naming note: the R7 audit row `RM-E04` is "shared read components (MetricCoverage, LinkConfidence, …)" and is still **NEEDS DESIGN FREEZE**. RM-E04A is a separate, prerequisite security contract for the Seller reads. It does not unblock RM-E04's design freeze.
 
@@ -55,10 +67,13 @@ Other handlers check only `Gate` (flag plus `Allowed`). They then run the organi
 | billing (invoices, items, stages, totals, reconciliation) | `internal/billing/http/http.go:125-140` |
 | payments (attempts, receipts, history) | `internal/payments/http/http.go:103` |
 | customers, organization, identity, provider-ops, write-back reads | `internal/{customers,organization,identity}/http`, `internal/integration/{providerops,writeback}/http` |
+| finance review queue, biawin activation decisions, fulfillment work cases, HR requests, payment submission / batch / evidence reads (revision 2) | `finance/http/review.go`, `biawin/http/activation.go`, `fulfillment/http/work.go`, `organization/http/hrrequest.go`, `payments/http/write.go` — guarded by their own `Check` calls, outside the package `guardOp` that asserts scope |
 
 **Today this is safe,** because `Evaluate` can never return `Allowed=true` with any scope other than `ORGANIZATION`. **It becomes a data leak** as soon as the evaluator learns a narrower scope. Suppose a Seller is given `cases.case.read` with an "own" scope. `GET /api/v1/cases` would then return every case in the organisation, because the handler never looks at `Decision.Scope`. These are exactly the endpoints the Seller panel needs (cases, custody, billing, payments).
 
-**Required before any non-ORGANIZATION scope exists (engineering, no business decision needed):** every data-returning handler must make an exhaustive decision on `Decision.Scope`. It serves ORGANIZATION queries only for `ORGANIZATION`, serves scoped queries only for a scope it explicitly implements, and denies anything else (`ROW_SCOPE_DENIED`). Add a regression test per module that injects an allowed decision with an unknown scope and expects 403 with no rows. This change has no behaviour impact today. It is the first follow-up in §7.
+**Scale (revision 2, reconciled against all 105 OpenAPI operations):** **51 GET handlers** have no scope assertion; 37 of them return organisation-wide Seller-relevant rows or aggregates. See the leak-surface audit §2–§3.
+
+**Required before any non-ORGANIZATION scope exists (engineering, no business decision needed):** the guard must be applied on **every** data-returning operation — not only the endpoints a Seller screen uses — because a capability could later be granted with a narrower scope on any of them. Every data-returning handler must make an exhaustive decision on `Decision.Scope`. It serves ORGANIZATION queries only for `ORGANIZATION`, serves scoped queries only for a scope it explicitly implements, and denies anything else (`ROW_SCOPE_DENIED`). Add a regression test per module that injects an allowed decision with an unknown scope and expects 403 with no rows. This change has no behaviour impact today. It is the first follow-up in §7.
 
 ### F-03 — Precedents for own-row scope already exist and agree
 
@@ -92,14 +107,21 @@ The phone is not a key anywhere in these tables (`cases` migration header: "Phon
 
 Detail endpoints answer a missing row with `404` + `authzhttp.NotFound(ctx)` (e.g. `cases/http/http.go:158,197,229`). M2 §5 requires an out-of-scope row to be **indistinguishable** from a missing one. A scoped handler must therefore apply the predicate **inside** the lookup query, so that out-of-scope rows produce the same `404` body. It must not load the row and then refuse with 403, because a 403 here would confirm the row exists.
 
-### F-07 — Data responses carry no `Cache-Control: no-store` — **MEDIUM**
+### F-07 — Data responses carry no `Cache-Control: no-store` — **MEDIUM (hardening; no active leak claimed)**
 
-`no-store` is set only on problem responses (`platform/httpx/problem.go:106`), auth (`apiserver/auth.go:142`) and metrics. Successful JSON data responses set no cache header in `internal/`. The deployment proxy configuration was **NOT VERIFIED**. Per-user responses (own scope) must not be stored by shared caches or reused after logout. The Seller read family should send `Cache-Control: no-store` and `Vary: Cookie`, or the same must be proved at the proxy.
+| Evidence class | Finding |
+|---|---|
+| **Verified application behaviour** | `no-store` is set only on problem responses (`platform/httpx/problem.go:106`), auth responses (`apiserver/auth.go:142`) and metrics (`apiserver/metrics.go:229`, `worker/metrics.go:142,150`). No middleware in `internal/platform/httpx` or the `apiserver` chain sets a cache header (the only middlewares set the correlation header and record metrics). Successful JSON data responses carry **no** `Cache-Control`, `ETag` or `Last-Modified`. The session cookie is `__Host-`, `Secure`, `HttpOnly`, `SameSite=Strict` (`platform/websession/websession.go:136`). The SPA fetches with `credentials: 'same-origin'` and sets no `cache` mode (`web/src/shared/api/client.ts:57`). |
+| **Verified deployment configuration (staging only)** | `deploy/staging/nginx/nginx.conf` proxies `/api/` to the API with **no** `proxy_cache` directive (nginx does not cache unless configured) and adds HSTS / nosniff / Referrer-Policy / CSP but **no** `Cache-Control`. |
+| **Deployment behaviour not verified** | No production proxy / CDN configuration exists in the repository. Browser heuristic caching, back/forward cache and any intermediary in production are **NOT VERIFIED**. |
+
+Because responses carry no validators and staging has no proxy cache, **no active cache leak is claimed**. Own-scope responses would make the gap material, so the hardening (execution plan A2: one middleware + NT-17) should land before any Seller-scoped read.
 
 ### F-08 — Seller destinations versus server data that exists
 
 | RM-E03 destination | Server data today | Status |
 |---|---|---|
+| (full per-screen contracts: [`../security/rm-e04a-seller-row-scope.md`](../security/rm-e04a-seller-row-scope.md)) | | |
 | S1 My numbers (leads + queues + counts) | `cases.work_case` / `cases.lead` + custody holder; contact outcomes (`cases.contact_outcome_*`) | data exists; **no scoped read**; queue definitions are not a server contract |
 | S2 Ready for conversion | case attribution + invoices linked by `case_id` | partial; "ready for conversion" has **no server status** (must not be invented) |
 | S3 Repeat action | invoice stages + custody | **no hand-off model**; issuer versus current custody versus next actor not modelled as a read |
@@ -107,6 +129,10 @@ Detail endpoints answer a missing row with `404` + `authzhttp.NotFound(ctx)` (e.
 | S5 Customer behaviour | none (link opened, visit, paid after visit) | **no source** |
 | S6 Extra-number request | none | **BLOCKED on OPD-10** |
 | S7 Wallet | `commission.historical_entitlement` via `commission.own.read` | own read **exists** (historical, shadow); confirmed / pending / settleable semantics blocked on D-41 / OPD-09 / ADR #18 |
+
+### F-09 — Payment submission context is an existence oracle — **LOW–MEDIUM** (revision 2)
+
+`GET /api/v1/payments/invoices/{invoice_id}/submission` (`payments/http/write.go:142`) returns 404 only when the invoice does not exist (`payments/command/read.go:67-104`). For an existing invoice owned by another seller it returns **200** with `eligible:false` and `ROW_SCOPE_DENIED`. Amounts and attempts are correctly withheld for a non-owner (`read.go:84-97`). This confirms that a given invoice ID exists, which SR-06 forbids. Reachable only with `payments.submission.read`, which no one holds today. Remediation: execution plan A3; test NT-03.
 
 ---
 
@@ -167,6 +193,8 @@ Each Seller-scoped endpoint must specify the following before implementation: ca
 
 ## 5. Required negative test matrix (extends M2 N1–N8)
 
+Revision 2: T1–T14 are kept below unchanged as the summary. The detailed specifications (invariant, fixture, actor, request, status, outcome, body, SQL assertions, source) and ten additional scenarios are in [`../security/rm-e04a-seller-negative-test-plan.md`](../security/rm-e04a-seller-negative-test-plan.md) as NT-01 … NT-24. **They are future tests; none has run.**
+
 Seller X; row Y owned by Seller Z; row U whose ownership fact is UNKNOWN.
 
 | # | Test | Expected |
@@ -194,7 +222,7 @@ All tests run against synthetic data on the R7 harness (real browser → SPA →
 
 | Item | Blocks | State |
 |---|---|---|
-| D-42 (grant authority) | any ACTIVE Seller grant | READY_FOR_REVIEW, not closable (RM-B02 §6) |
+| D-42 (grant administration authority only) | issuing any ACTIVE Seller grant through a production path | READY_FOR_REVIEW, not closable (RM-B02 §6) |
 | M2 proposed record 1 (Seller eligibility) | which reads the Seller holds; option A capabilities | proposed, no ID |
 | M2 proposed record 2 (Seller read scope) | every predicate in §4.2 | proposed, no ID |
 | D-34 (accounts), R5-SEC-01 (person identity) | real Seller login; person-level guarantees | open |
@@ -209,9 +237,11 @@ All tests run against synthetic data on the R7 harness (real browser → SPA →
 
 ## 7. Follow-ups (bounded; none executed here)
 
-1. **RM-E04B — scope-assertion hardening (F-02 + F-07).** Engineering only, no decision needed, no behaviour change today. Add an exhaustive scope check to every data-returning handler, add T7 per module, and add `no-store` on data responses (or prove it at the proxy). Safe to do now.
+Revision 2: the detailed, ordered plan with dependencies, code areas, tests, rollback boundaries and approval needs is [`rm-e04a-execution-plan.md`](rm-e04a-execution-plan.md) (Groups A–D). The list below is the original summary.
+
+1. **RM-E04B — scope-assertion hardening (F-02); F-07 and F-09 as separate small PRs (plan A2, A3).** Engineering only, no decision needed, no behaviour change today. Add an exhaustive scope check to every data-returning handler, add T7 per module, and add `no-store` on data responses (or prove it at the proxy). Safe to do now.
 2. **Scope model ADR** (Codex): option A versus B (§4.1), the scope vocabulary, and where scope is stored. This is input for the M2 record 1 and 2 sessions.
-3. After D-42 + M2 records 1–2 are `APPROVED_VERIFIED`: build Seller reads one destination at a time (S1 first, then S4), each with the §4.3 contract and the §5 tests, then wire RM-E03 screens to them behind the existing fail-closed navigation.
+3. After M2 records 1–2 are `APPROVED_VERIFIED` (eligibility and scope; tested with synthetic grants), and later D-42 + D-34 for real grants and accounts and ADR #18 for real data: build Seller reads one destination at a time (S1 first, then S4), each with the §4.3 contract and the §5 tests, then wire RM-E03 screens to them behind the existing fail-closed navigation.
 4. Product / workflow contracts for S2, S3, S5 and S6 before any API is designed for them.
 
 Not allowed before the decisions: any grant, bundle change, scope implementation presented as approved, client-side scoping, or use of real data.
@@ -222,5 +252,5 @@ Not allowed before the decisions: any grant, bundle change, scope implementation
 
 - Baseline `main` = `d85b770028aaa206b678a47d31db35c3be418500` confirmed with `git rev-parse`.
 - Every code claim cites a file and line at that baseline. F-02 was established by listing the `guardOp` / `Check` call sites per module and grepping for `ScopeOrganization`. F-07 was established by grepping `Cache-Control` under `internal/`.
-- The only change is this document. No test was needed for a docs-only change. `docs/governance` tests are unaffected (no governance file was touched).
+- Revision 1: the only change was this document. Revision 2: documentation only (`docs/`); no file under `internal/`, `cmd/`, `api/`, `web/`, `deploy/` or any migration changed. No test was needed for a docs-only change. `docs/governance` tests are unaffected (no governance file was touched).
 - HR and Finance runtime remain **NOT LIVE VERIFIED**.
