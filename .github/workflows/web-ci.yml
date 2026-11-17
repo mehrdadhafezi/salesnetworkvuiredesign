@@ -90,15 +90,15 @@ jobs:
       - name: Production bundle carries no dev auth or dev routes
         shell: bash
         run: |
-          if grep -l -E 'X-Dev-User|dev-user-|PrimitivesPage|DesignSystemPage' dist/assets/*.js; then
+          if grep -l -E 'X-Dev-User|dev-user-|PrimitivesPage|DesignSystemPage|SellerPreviewPage|RM-E03-SYNTHETIC-SELLER-FIXTURE|0900000[0-9]{4}' dist/assets/*.js; then
             echo "Development-only code leaked into the production bundle"; exit 1
           fi
-          if ls dist/assets | grep -E 'PrimitivesPage|DesignSystemPage|showcase'; then
+          if ls dist/assets | grep -E 'PrimitivesPage|DesignSystemPage|showcase|SellerPreview|seller'; then
             echo "Development-only chunk emitted into the production build"; exit 1
           fi
 
   design-system:
-    name: Design-system and role-navigation browser checks (RM-E01, RM-E02)
+    name: Design-system, role-navigation and Seller preview browser checks (RM-E01, RM-E02, RM-E03)
     # Pinned like e2e-ci.yml: Playwright 1.56 ships Chromium for ubuntu-24.04, not ubuntu-latest (26.04).
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -123,7 +123,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Typecheck and lint browser tests
-        run: npm run typecheck:e2e && npx eslint e2e playwright.ds.config.ts playwright.nav.config.ts
+        run: npm run typecheck:e2e && npx eslint e2e playwright.ds.config.ts playwright.nav.config.ts playwright.seller.config.ts
 
       # Starts a local Vite dev server only; no API, database or stack. Desktop 1366 and mobile 390.
       - name: Shared component behaviour in a real browser
@@ -133,3 +133,8 @@ jobs:
       # synthetic fixture inside the test (presentation evidence, never business authorization).
       - name: Role-oriented navigation in a real browser (production bundle)
         run: npx playwright test -c playwright.nav.config.ts
+
+      # RM-E03: DEV/TEST-only Seller V1 preview on a local Vite dev server; every /api request is
+      # answered and recorded inside the test (no business endpoint, no write). 1366 / 1920 / 768 / 390.
+      - name: Seller V1 preview in a real browser (synthetic fixtures)
+        run: npx playwright test -c playwright.seller.config.ts

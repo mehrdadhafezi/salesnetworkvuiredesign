@@ -187,6 +187,12 @@ test.describe('desktop', () => {
     await expect(nav).not.toContainText('DEV')
     await page.goto('/dev/design-system')
     await expect(page.getByRole('heading', { level: 1, name: 'صفحه پیدا نشد' })).toBeVisible()
+    // RM-E03: the DEV/TEST-only Seller preview is not mounted in the production bundle either.
+    for (const path of ['/dev/seller', '/dev/seller/leads', '/dev/seller/wallet']) {
+      await page.goto(path)
+      await expect(page.getByRole('heading', { level: 1, name: 'صفحه پیدا نشد' })).toBeVisible()
+      await expect(page.locator('[data-preview]')).toHaveCount(0)
+    }
     expect(log.filter(l => l.method !== 'GET')).toEqual([])
     expect(log.some(l => l.devHeader)).toBe(false)
   })
