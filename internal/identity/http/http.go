@@ -37,7 +37,7 @@ func user(u store.User) oapi.UserSummary {
 
 // ListIdentityUsers lists shadow accounts.
 func (h *Handlers) ListIdentityUsers(ctx context.Context, req oapi.ListIdentityUsersRequestObject) (oapi.ListIdentityUsersResponseObject, error) {
-	c, err := h.guard.Check(ctx, api.CapUserRead)
+	c, err := h.guard.CheckRead(ctx, api.CapUserRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (h *Handlers) ListIdentityUsers(ctx context.Context, req oapi.ListIdentityU
 
 // GetIdentityUser returns one shadow account.
 func (h *Handlers) GetIdentityUser(ctx context.Context, req oapi.GetIdentityUserRequestObject) (oapi.GetIdentityUserResponseObject, error) {
-	c, err := h.guard.Check(ctx, api.CapUserRead)
+	c, err := h.guard.CheckRead(ctx, api.CapUserRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}

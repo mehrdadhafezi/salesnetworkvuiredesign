@@ -140,7 +140,7 @@ func attemptsOf(as []command.AttemptView) []oapi.SubmittedAttempt {
 // GetPaymentSubmission reads the submission context with allowed_actions
 // from the command's own evaluator.
 func (h *WriteHandlers) GetPaymentSubmission(ctx context.Context, req oapi.GetPaymentSubmissionRequestObject) (oapi.GetPaymentSubmissionResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapPaymentSubmissionRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapPaymentSubmissionRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +300,7 @@ func (h *WriteHandlers) SubmitPaymentBatch(ctx context.Context, req oapi.SubmitP
 
 // GetPaymentBatch reads one of the caller's committed batches.
 func (h *WriteHandlers) GetPaymentBatch(ctx context.Context, req oapi.GetPaymentBatchRequestObject) (oapi.GetPaymentBatchResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapPaymentSubmissionRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapPaymentSubmissionRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +327,7 @@ func (h *WriteHandlers) GetPaymentBatch(ctx context.Context, req oapi.GetPayment
 
 // GetPaymentEvidence reads the evidence diagnostics.
 func (h *WriteHandlers) GetPaymentEvidence(ctx context.Context, _ oapi.GetPaymentEvidenceRequestObject) (oapi.GetPaymentEvidenceResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapPaymentEvidenceRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapPaymentEvidenceRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}

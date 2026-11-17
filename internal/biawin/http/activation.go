@@ -28,7 +28,7 @@ func NewActivation(guard *authorization.Guard, svc *activation.Service) *Activat
 
 // ListBiawinActivationDecisions lists SHADOW activation decisions.
 func (h *ActivationHandlers) ListBiawinActivationDecisions(ctx context.Context, req oapi.ListBiawinActivationDecisionsRequestObject) (oapi.ListBiawinActivationDecisionsResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapActivationRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapActivationRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}

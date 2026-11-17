@@ -83,9 +83,10 @@ type gate[R any] struct {
 	denied   func(d oapi.DeniedJSONResponse) R
 }
 
-// guard runs flag + evaluator and returns a terminal response when blocked.
+// guard runs flag + evaluator + supported-scope check (CheckRead, RM-E04B:
+// ORGANIZATION only) and returns a terminal response when blocked.
 func guardOp[R any](ctx context.Context, h *Handlers, cp identityapi.Capability, g gate[R]) (authorization.Check, *R, error) {
-	c, err := h.guard.Check(ctx, cp)
+	c, err := h.guard.CheckRead(ctx, cp, authorization.ScopeOrganization)
 	if err != nil {
 		return c, nil, err
 	}

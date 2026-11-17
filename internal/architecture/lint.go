@@ -332,6 +332,11 @@ const (
 	// D-41 are open. The Finance decision contract (EvaluateDecision) is
 	// called only inside internal/finance/review and tests.
 	RuleR4EvaluatorWiring = "r4-evaluator-wiring"
+	// RM-E04B: authorization.NewGuardWithDecider is a test seam that hands
+	// a handler a synthetic decision (NT-07). It is called only from
+	// _test.go files; production composition always uses NewGuard, so the
+	// evaluator stays the only source of a runtime decision.
+	RuleAuthzDecisionSeam = "authz-decision-seam"
 )
 
 // r4TestOnly are the R4 evaluator / contract packages.
@@ -643,6 +648,8 @@ const (
 	refsDir        = "internal/kernel/refs"
 	legacyInteg    = "internal/integration/legacy"
 	legacyRefMaker = "NewLegacyRef"
+	// authzDecisionSeam is the RM-E04B test-only guard constructor.
+	authzDecisionSeam = "NewGuardWithDecider"
 )
 
 // skipDirs are never scanned: VCS data, the legacy plugin snapshot, docs,
@@ -965,6 +972,9 @@ func checkFile(path, rel, modulePath string) ([]Violation, error) {
 		case *ast.SelectorExpr:
 			if x.Sel.Name == "EvaluateDecision" && !isTest && !under(rel, "internal/finance/review") {
 				add(RuleR4EvaluatorWiring, x.Pos(), "Finance decision contract called outside internal/finance/review (decision-gated; tests only)")
+			}
+			if x.Sel.Name == authzDecisionSeam && !isTest {
+				add(RuleAuthzDecisionSeam, x.Pos(), authzDecisionSeam+" (test-only decision seam) called from production code")
 			}
 			if x.Sel.Name == legacyRefMaker && !under(rel, legacyInteg) && !under(rel, refsDir) {
 				add(RuleLegacyRefFactory, x.Pos(), legacyRefMaker+" called outside "+legacyInteg)

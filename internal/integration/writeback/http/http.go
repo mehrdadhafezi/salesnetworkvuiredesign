@@ -41,7 +41,7 @@ type gated struct {
 }
 
 func (h *Handlers) gate(ctx context.Context) (gated, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapWritebackRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapWritebackRead, authorization.ScopeOrganization)
 	if err != nil {
 		return gated{}, err
 	}

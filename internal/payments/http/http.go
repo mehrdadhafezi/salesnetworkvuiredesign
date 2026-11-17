@@ -101,7 +101,7 @@ type gate[R any] struct {
 }
 
 func guardOp[R any](ctx context.Context, h *Handlers, gt gate[R]) (authorization.Check, *R, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapPaymentAttemptRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapPaymentAttemptRead, authorization.ScopeOrganization)
 	if err != nil {
 		return c, nil, err
 	}

@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	identityapi "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/api"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/reasoncodes"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/result"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/platform/authstub"
 )
 
@@ -99,7 +101,11 @@ const (
 type Guard struct {
 	enabled  FlagFunc
 	subjects SubjectResolver
+	decide   Decider
 }
+
+// Decider decides one request. Every production guard uses Evaluate.
+type Decider func(Mode, Subject, Request) Decision
 
 // ErrNoFlag reports a guard without a flag source.
 var ErrNoFlag = errors.New("authorization: guard requires a flag source")
@@ -112,7 +118,29 @@ func NewGuard(enabled FlagFunc, subjects SubjectResolver) (*Guard, error) {
 	if subjects == nil {
 		subjects = Anonymous{}
 	}
-	return &Guard{enabled: enabled, subjects: subjects}, nil
+	return &Guard{enabled: enabled, subjects: subjects, decide: Evaluate}, nil
+}
+
+// ErrNoDecider reports a seam guard without a decider.
+var ErrNoDecider = errors.New("authorization: guard requires a decider")
+
+// NewGuardWithDecider returns a guard whose per-request decision comes from
+// decide instead of Evaluate. It is a TEST SEAM ONLY (RM-E04B, NT-07): it
+// lets a test hand a handler a synthetic decision, e.g. an allowed decision
+// with a scope the evaluator cannot produce, to prove that the handler
+// refuses it before any query. The architecture lint (authz-decision-seam)
+// allows a call only from _test.go files; production composition always
+// uses NewGuard. allowed_actions hints keep using Evaluate.
+func NewGuardWithDecider(enabled FlagFunc, subjects SubjectResolver, decide Decider) (*Guard, error) {
+	if decide == nil {
+		return nil, ErrNoDecider
+	}
+	g, err := NewGuard(enabled, subjects)
+	if err != nil {
+		return nil, err
+	}
+	g.decide = decide
+	return g, nil
 }
 
 // Check is the outcome of guarding one request.
@@ -136,12 +164,60 @@ func (g *Guard) Check(ctx context.Context, capability identityapi.Capability) (C
 	}
 	s := g.subjects.Subject(ctx)
 	all := EvaluateAll(Runtime, s)
-	d := Evaluate(Runtime, s, Request{Capability: capability})
+	d := g.decide(Runtime, s, Request{Capability: capability})
 	gate := GateDenied
 	if d.Allowed {
 		gate = GateAllowed
 	}
 	return Check{Gate: gate, Decision: d, Decisions: all}, nil
+}
+
+// CheckRead guards one data-returning read (RM-E04B, SR-03, closes F-02).
+// It is Check followed by RequireScope: supported lists the evaluator
+// scopes the calling handler explicitly implements. Today every reader
+// implements ORGANIZATION only. An allowed decision with any other scope
+// becomes GateDenied with UNAUTHORIZED / ROW_SCOPE_DENIED, so the handler's
+// existing denied branch answers 403 before any module query runs. An
+// empty supported list refuses every allowed decision (fail closed).
+func (g *Guard) CheckRead(ctx context.Context, capability identityapi.Capability, supported ...Scope) (Check, error) {
+	c, err := g.Check(ctx, capability)
+	if err != nil {
+		return c, err
+	}
+	return RequireScope(c, supported...), nil
+}
+
+// RequireScope enforces the supported-scope contract on one check. It
+// never broadens: a disabled or denied check is returned unchanged; an
+// allowed check passes only when its decision is allowed and its scope is
+// one of supported. NONE and the empty scope never pass, even if listed,
+// because they grant no rows. Nothing is coerced to ORGANIZATION. The
+// refusal keeps the established read convention (UNAUTHORIZED /
+// ROW_SCOPE_DENIED, scope NONE). allowed_actions hints are untouched.
+func RequireScope(c Check, supported ...Scope) Check {
+	if c.Gate != GateAllowed {
+		return c
+	}
+	if c.Decision.Allowed && scopeSupported(c.Decision.Scope, supported) {
+		return c
+	}
+	code := reasoncodes.RowScopeDenied
+	d := c.Decision
+	d.Allowed, d.Outcome, d.Reason, d.Scope = false, result.Unauthorized, &code, ScopeNone
+	c.Gate, c.Decision = GateDenied, d
+	return c
+}
+
+func scopeSupported(s Scope, supported []Scope) bool {
+	if s == ScopeNone || s == "" {
+		return false
+	}
+	for _, x := range supported {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }
 
 // Effective evaluates every capability for the caller.

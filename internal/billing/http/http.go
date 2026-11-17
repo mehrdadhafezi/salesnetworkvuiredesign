@@ -123,7 +123,7 @@ type gate[R any] struct {
 }
 
 func guardOp[R any](ctx context.Context, g *authorization.Guard, cp identityapi.Capability, gt gate[R]) (authorization.Check, *R, error) {
-	c, err := g.Check(ctx, cp)
+	c, err := g.CheckRead(ctx, cp, authorization.ScopeOrganization)
 	if err != nil {
 		return c, nil, err
 	}

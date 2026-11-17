@@ -52,7 +52,7 @@ func blockedCaseActions() []oapi.BlockedAction {
 // GetCaseContactOutcomes reads the contact outcome facts and computes the
 // record action with the command's own evaluator.
 func (h *WriteHandlers) GetCaseContactOutcomes(ctx context.Context, req oapi.GetCaseContactOutcomesRequestObject) (oapi.GetCaseContactOutcomesResponseObject, error) {
-	c, err := h.read.Check(ctx, identityapi.CapCaseRead)
+	c, err := h.read.CheckRead(ctx, identityapi.CapCaseRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}

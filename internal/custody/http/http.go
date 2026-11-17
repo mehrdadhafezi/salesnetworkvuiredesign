@@ -66,7 +66,7 @@ func assignment(a store.Assignment) oapi.CustodyAssignment {
 }
 
 func blocked(ctx context.Context, h *Handlers, cp identityapi.Capability) (authorization.Check, bool, *oapi.DeniedJSONResponse, error) {
-	c, err := h.guard.Check(ctx, cp)
+	c, err := h.guard.CheckRead(ctx, cp, authorization.ScopeOrganization)
 	if err != nil {
 		return c, false, nil, err
 	}

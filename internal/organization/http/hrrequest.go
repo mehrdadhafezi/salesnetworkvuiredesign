@@ -68,7 +68,7 @@ func requestOf(q hrrequest.Request, c authorization.Check, actorUserID string) o
 }
 
 func (h *HRRequestHandlers) readGate(ctx context.Context) (authorization.Check, *oapi.Outcome, []oapi.ReasonCode, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapHRRequestRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapHRRequestRead, authorization.ScopeOrganization)
 	if err != nil {
 		return c, nil, nil, err
 	}

@@ -58,10 +58,13 @@ type gate[R any] struct {
 	denied   func(d oapi.DeniedJSONResponse) R
 }
 
-// guardOp checks flag + capability. Organization reads need ORGANIZATION
-// scope (never broadened); the own read is row-filtered by the caller.
+// guardOp checks flag + capability + supported scope (authorization.CheckRead,
+// RM-E04B). Every commission read, the own read included, implements only
+// the ORGANIZATION decision scope today; any other allowed scope is refused
+// with ROW_SCOPE_DENIED, never broadened. The own read (own=true) is in
+// addition row-filtered to the caller's proven user id.
 func guardOp[R any](ctx context.Context, h *Handlers, cp identityapi.Capability, own bool, g gate[R]) (authorization.Check, *R, error) {
-	c, err := h.guard.Check(ctx, cp)
+	c, err := h.guard.CheckRead(ctx, cp, authorization.ScopeOrganization)
 	if err != nil {
 		return c, nil, err
 	}
@@ -72,13 +75,6 @@ func guardOp[R any](ctx context.Context, h *Handlers, cp identityapi.Capability,
 		return c, &res, nil
 	case authorization.GateDenied:
 		res := g.denied(authzhttp.Denied(ctx, c.Decision))
-		return c, &res, nil
-	}
-	if !own && c.Decision.Scope != authorization.ScopeOrganization {
-		d := c.Decision
-		code := reasoncodes.RowScopeDenied
-		d.Allowed, d.Outcome, d.Reason = false, result.Unauthorized, &code
-		res := g.denied(authzhttp.Denied(ctx, d))
 		return c, &res, nil
 	}
 	return c, nil, nil

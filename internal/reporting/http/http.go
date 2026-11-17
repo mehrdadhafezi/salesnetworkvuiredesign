@@ -89,11 +89,11 @@ type gate[R any] struct {
 	denied   func(d oapi.DeniedJSONResponse) R
 }
 
-// guardOp checks flag + capability and the evaluator scope. Only
-// ORGANIZATION has frozen authority; anything narrower is denied rather than
-// broadened (no row-scope resolver exists for reporting yet).
+// guardOp checks flag + capability and the evaluator scope through the
+// shared authorization.CheckRead (RM-E04B). Only ORGANIZATION is supported;
+// anything else is denied ROW_SCOPE_DENIED, never broadened (no row-scope resolver exists for reporting yet).
 func guardOp[R any](ctx context.Context, h *Handlers, cp identityapi.Capability, g gate[R]) (authorization.Check, *R, error) {
-	c, err := h.guard.Check(ctx, cp)
+	c, err := h.guard.CheckRead(ctx, cp, authorization.ScopeOrganization)
 	if err != nil {
 		return c, nil, err
 	}
@@ -104,13 +104,6 @@ func guardOp[R any](ctx context.Context, h *Handlers, cp identityapi.Capability,
 		return c, &res, nil
 	case authorization.GateDenied:
 		res := g.denied(authzhttp.Denied(ctx, c.Decision))
-		return c, &res, nil
-	}
-	if c.Decision.Scope != authorization.ScopeOrganization {
-		d := c.Decision
-		code := reasoncodes.RowScopeDenied
-		d.Allowed, d.Outcome, d.Reason = false, result.Unauthorized, &code
-		res := g.denied(authzhttp.Denied(ctx, d))
 		return c, &res, nil
 	}
 	return c, nil, nil

@@ -109,6 +109,7 @@ func TestViolatingFixtureFails(t *testing.T) {
 		RuleR2Network:          3,  // http.NewRequest in integration/writeback; http.Get in cmd/crm-worker; net.Dial in the S12 gateway fixture
 		RuleR2WorkerSQL:        2,  // INSERT / SELECT literals in cmd/crm-worker
 		RuleR4EvaluatorWiring:  2,  // cmd/crm-r4 imports finance/posting and calls review.EvaluateDecision
+		RuleAuthzDecisionSeam:  1,  // cmd/crm-seam wires authorization.NewGuardWithDecider
 	}
 	for rule, n := range want {
 		if hits[rule] != n {

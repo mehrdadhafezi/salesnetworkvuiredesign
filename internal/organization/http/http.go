@@ -15,6 +15,7 @@ import (
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization"
 	authzhttp "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/authorization/http"
 	identityapi "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/identity/api"
+	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/reasoncodes"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/result"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/domain"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/organization/query"
@@ -151,7 +152,7 @@ func lookup(l store.Lookup) oapi.Lookup {
 
 // ListOrganizationPersons lists persons.
 func (h *Handlers) ListOrganizationPersons(ctx context.Context, req oapi.ListOrganizationPersonsRequestObject) (oapi.ListOrganizationPersonsResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapPersonRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapPersonRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +198,7 @@ func (h *Handlers) ListOrganizationPersons(ctx context.Context, req oapi.ListOrg
 
 // GetOrganizationPerson returns one person.
 func (h *Handlers) GetOrganizationPerson(ctx context.Context, req oapi.GetOrganizationPersonRequestObject) (oapi.GetOrganizationPersonResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapPersonRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapPersonRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -237,24 +238,35 @@ func (h *Handlers) GetOrganizationPerson(ctx context.Context, req oapi.GetOrgani
 		Data: &data, AllowedActions: authzhttp.AllowedActions(c.Decisions)}}, nil
 }
 
-func (h *Handlers) lookups(ctx context.Context, which string, cursor *string, limit *int) (oapi.LookupListEnvelope, int, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapPositionRead)
+// lookupDenial is the decision rendered for a refused lookup read. An
+// evaluator denial keeps the historical body (an empty decision, rendered
+// ACTION_DENIED); only the RM-E04B unsupported-scope refusal carries its own
+// reason (ROW_SCOPE_DENIED), which the evaluator itself never produces.
+func lookupDenial(c authorization.Check) authorization.Decision {
+	if r := c.Decision.Reason; r != nil && *r == reasoncodes.RowScopeDenied {
+		return c.Decision
+	}
+	return authorization.Decision{}
+}
+
+func (h *Handlers) lookups(ctx context.Context, which string, cursor *string, limit *int) (oapi.LookupListEnvelope, int, authorization.Decision, error) {
+	c, err := h.guard.CheckRead(ctx, identityapi.CapPositionRead, authorization.ScopeOrganization)
 	if err != nil {
-		return oapi.LookupListEnvelope{}, 0, err
+		return oapi.LookupListEnvelope{}, 0, authorization.Decision{}, err
 	}
 	switch c.Gate {
 	case authorization.GateDisabled:
 		o, r := authzhttp.Disabled()
-		return oapi.LookupListEnvelope{Outcome: o, Reasons: r, CorrelationId: httpx.CorrelationID(ctx)}, 200, nil
+		return oapi.LookupListEnvelope{Outcome: o, Reasons: r, CorrelationId: httpx.CorrelationID(ctx)}, 200, authorization.Decision{}, nil
 	case authorization.GateDenied:
-		return oapi.LookupListEnvelope{}, 403, nil
+		return oapi.LookupListEnvelope{}, 403, lookupDenial(c), nil
 	}
 	res, err := h.q.ListLookups(ctx, which, cursor, limit)
 	if errors.Is(err, query.ErrInvalidQuery) {
-		return oapi.LookupListEnvelope{}, 400, err
+		return oapi.LookupListEnvelope{}, 400, authorization.Decision{}, err
 	}
 	if err != nil {
-		return oapi.LookupListEnvelope{}, 0, err
+		return oapi.LookupListEnvelope{}, 0, authorization.Decision{}, err
 	}
 	items := make([]oapi.Lookup, 0, len(res.Items))
 	for _, l := range res.Items {
@@ -262,40 +274,40 @@ func (h *Handlers) lookups(ctx context.Context, which string, cursor *string, li
 	}
 	o, r := ok()
 	return oapi.LookupListEnvelope{Outcome: o, Reasons: r, CorrelationId: httpx.CorrelationID(ctx), Items: &items, Page: page(res.NextCursor),
-		AllowedActions: authzhttp.AllowedActions(c.Decisions)}, 200, nil
+		AllowedActions: authzhttp.AllowedActions(c.Decisions)}, 200, authorization.Decision{}, nil
 }
 
 // ListOrganizationPositions lists positions.
 func (h *Handlers) ListOrganizationPositions(ctx context.Context, req oapi.ListOrganizationPositionsRequestObject) (oapi.ListOrganizationPositionsResponseObject, error) {
-	env, code, err := h.lookups(ctx, "position", req.Params.Cursor, req.Params.Limit)
+	env, code, denial, err := h.lookups(ctx, "position", req.Params.Cursor, req.Params.Limit)
 	switch {
 	case code == 400:
 		return oapi.ListOrganizationPositions400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	case err != nil:
 		return nil, err
 	case code == 403:
-		return oapi.ListOrganizationPositions403JSONResponse{DeniedJSONResponse: authzhttp.Denied(ctx, authorization.Decision{})}, nil
+		return oapi.ListOrganizationPositions403JSONResponse{DeniedJSONResponse: authzhttp.Denied(ctx, denial)}, nil
 	}
 	return oapi.ListOrganizationPositions200JSONResponse{Body: env}, nil
 }
 
 // ListOrganizationLevels lists levels.
 func (h *Handlers) ListOrganizationLevels(ctx context.Context, req oapi.ListOrganizationLevelsRequestObject) (oapi.ListOrganizationLevelsResponseObject, error) {
-	env, code, err := h.lookups(ctx, "level", req.Params.Cursor, req.Params.Limit)
+	env, code, denial, err := h.lookups(ctx, "level", req.Params.Cursor, req.Params.Limit)
 	switch {
 	case code == 400:
 		return oapi.ListOrganizationLevels400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	case err != nil:
 		return nil, err
 	case code == 403:
-		return oapi.ListOrganizationLevels403JSONResponse{DeniedJSONResponse: authzhttp.Denied(ctx, authorization.Decision{})}, nil
+		return oapi.ListOrganizationLevels403JSONResponse{DeniedJSONResponse: authzhttp.Denied(ctx, denial)}, nil
 	}
 	return oapi.ListOrganizationLevels200JSONResponse{Body: env}, nil
 }
 
 // ListOrganizationOrgUnits lists the org unit tree.
 func (h *Handlers) ListOrganizationOrgUnits(ctx context.Context, req oapi.ListOrganizationOrgUnitsRequestObject) (oapi.ListOrganizationOrgUnitsResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapUnitRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapUnitRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +343,7 @@ func (h *Handlers) ListOrganizationOrgUnits(ctx context.Context, req oapi.ListOr
 
 // ListOrganizationAssignments lists reporting assignments.
 func (h *Handlers) ListOrganizationAssignments(ctx context.Context, req oapi.ListOrganizationAssignmentsRequestObject) (oapi.ListOrganizationAssignmentsResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapAssignmentRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapAssignmentRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +382,7 @@ func (h *Handlers) ListOrganizationAssignments(ctx context.Context, req oapi.Lis
 
 // ListOrganizationHierarchyFindings lists hierarchy findings.
 func (h *Handlers) ListOrganizationHierarchyFindings(ctx context.Context, req oapi.ListOrganizationHierarchyFindingsRequestObject) (oapi.ListOrganizationHierarchyFindingsResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapAssignmentRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapAssignmentRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
