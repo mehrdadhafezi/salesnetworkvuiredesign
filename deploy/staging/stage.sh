@@ -55,6 +55,23 @@ isolation_probe() {
   esac
 }
 
+# RM-E04B / A2 (NT-17): the API cache policy must survive the reverse proxy.
+# Prints "ok" when the response for $1 through nginx has exactly one
+# Cache-Control line equal to no-store and a Vary carrying Cookie;
+# "static-ok" for $1 = "/" when the SPA shell is NOT marked no-store.
+cache_probe() {
+  local hdrs; hdrs="$(curl -sk -D - -o /dev/null "https://127.0.0.1:${CRM_STAGING_HTTPS_PORT:-8443}$1" | tr -d '\r' || true)"
+  local cc vary; cc="$(grep -i '^cache-control:' <<< "$hdrs" || true)"
+  vary="$(grep -i '^vary:' <<< "$hdrs" || true)"
+  if [ "$1" = "/" ]; then
+    if ! grep -qE '^HTTP/[0-9.]+ 200' <<< "$hdrs"; then echo "static-unreachable"
+    elif grep -qi 'no-store' <<< "$cc"; then echo "static-no-store"; else echo "static-ok"; fi
+  elif [ "$(grep -c . <<< "$cc")" = "1" ] && grep -qix 'cache-control: no-store' <<< "$cc" && grep -qiw 'cookie' <<< "$vary"; then
+    echo "ok"
+  else
+    echo "missing"
+  fi
+}
 commit_of() { sed -n 's/.*"commit": "\([0-9a-f]\{40\}\)".*/\1/p' "$1/manifest.json"; }
 
 cmd="${1:-}"; shift || true
@@ -142,10 +159,14 @@ verify)
   wstate="$(docker run --rm --network "${project}_internal" alpine:3.20 wget -q -T 3 -O - http://worker:9091/health/ready 2>/dev/null || true)"
   paused="$(grep -o '"state":"paused"' <<< "$wstate" | wc -l | tr -d ' ')"
   blocked="$(grep -o '"state":"blocked"' <<< "$wstate" | wc -l | tr -d ' ')"
+  cache_session="$(cache_probe /api/v1/session)"
+  cache_problem="$(cache_probe /api/v1/zz-not-a-route)"
+  cache_static="$(cache_probe /)"
   amet="$(docker run --rm --network "${project}_internal" alpine:3.20 wget -q -T 3 -O - http://api:9090/metrics 2>/dev/null | grep -c '^crm_api_requests_total' || true)"
-  printf '{"release":"%s","unhealthy_services":%s,"tls_ready_status":"%s","hsts":%s,"internal_egress":"%s","worker_jobs_paused":%s,"worker_jobs_blocked":%s,"api_metric_series":%s,"at":"%s"}\n' \
-    "$tag" "$unhealthy" "$ready" "$hdr" "$egress" "$paused" "$blocked" "${amet:-0}" "$(now)" | tee -a "$state/events.jsonl"
+  printf '{"release":"%s","unhealthy_services":%s,"tls_ready_status":"%s","hsts":%s,"internal_egress":"%s","worker_jobs_paused":%s,"worker_jobs_blocked":%s,"api_metric_series":%s,"cache_api_session":"%s","cache_api_problem":"%s","cache_static":"%s","at":"%s"}\n' \
+    "$tag" "$unhealthy" "$ready" "$hdr" "$egress" "$paused" "$blocked" "${amet:-0}" "$cache_session" "$cache_problem" "$cache_static" "$(now)" | tee -a "$state/events.jsonl"
   [ "$unhealthy" = "0" ] && [ "$ready" = "200" ] && [ "$egress" = "blocked" ] || exit 1
+  [ "$cache_session" = "ok" ] && [ "$cache_problem" = "ok" ] && [ "$cache_static" = "static-ok" ] || { echo "stage: API cache policy did not survive the proxy" >&2; exit 1; }
   ;;
 rollback)
   [ -f "$state/previous" ] || die "no previous release recorded"

@@ -625,7 +625,8 @@ func NewHandler(cfg Config, clock timeutil.Clock, logger *slog.Logger) (http.Han
 }
 
 // NewHandlerWith builds the full handler chain:
-// Correlation → Recover → LimitBody → (dev auth stub) → query allowlist → routes.
+// CachePolicy → Correlation → Recover → LimitBody → (session auth / cross-site
+// guard) → (dev auth stub) → body / query allowlist → routes.
 // read and customers may be nil (their operations are then BLOCKED /
 // FEATURE_DISABLED).
 func NewHandlerWith(cfg Config, clock timeutil.Clock, logger *slog.Logger, read ReadAPI, customers CustomersAPI) (http.Handler, error) {
@@ -727,9 +728,10 @@ func NewHandlerWithSurfaces(cfg Config, clock timeutil.Clock, logger *slog.Logge
 		h = sessionAuth(auth, logger)(h)
 	}
 	h = limitBody(cfg.MaxBodyBytes)(h)
-	h = noStore(h)
 	h = httpx.Recover(logger)(h)
 	h = httpx.Correlation(h)
+	// Outside every middleware that can answer early (RM-E04B / A2).
+	h = httpx.CachePolicy(h)
 	if sf.Metrics != nil {
 		h = sf.Metrics.Middleware(h)
 	}

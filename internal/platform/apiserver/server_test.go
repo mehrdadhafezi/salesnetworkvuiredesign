@@ -292,9 +292,4 @@ func TestSessionSensitiveResponsesAreNoStore(t *testing.T) {
 			}
 		}
 	}
-	for _, p := range []string{"/api/v1/sessionx", "/api/v1/authx", "/api/v1/identityx"} {
-		if sessionSensitive(p) {
-			t.Fatalf("%s matched by prefix only", p)
-		}
-	}
 }
