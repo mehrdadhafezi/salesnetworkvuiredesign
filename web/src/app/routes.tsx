@@ -83,6 +83,11 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
   // show the full shared shell (its own header, nav, main, drawer, bottom nav). Same build-time guard.
   if (import.meta.env.DEV && config.devTools) {
     routes.push({ path: '/dev/design-system', lazy: async () => ({ Component: (await import('../routes/dev/DesignSystemPage')).DesignSystemPage }) })
+    // RM-E03 Seller V1 preview: DEV/TEST-only, synthetic fixtures, own preview shell. Development-preview
+    // URLs, NOT approved business URLs; never added to the role navigation or the production bundle.
+    const seller = async () => ({ Component: (await import('../modules/seller/SellerPreviewPage')).SellerPreviewPage })
+    routes.push({ path: '/dev/seller', lazy: seller })
+    routes.push({ path: '/dev/seller/:section', lazy: seller })
   }
   return routes
 }
