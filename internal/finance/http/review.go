@@ -53,7 +53,7 @@ func (h *ReviewHandlers) view(a paymentsapi.ReviewAttempt, reviewer string) oapi
 }
 
 func (h *ReviewHandlers) gate(ctx context.Context) (authorization.Check, error) {
-	return h.guard.Check(ctx, identityapi.CapFinanceReviewRead)
+	return h.guard.CheckRead(ctx, identityapi.CapFinanceReviewRead, authorization.ScopeOrganization)
 }
 
 // ListFinanceReviewQueue lists attempts awaiting review with their gates.

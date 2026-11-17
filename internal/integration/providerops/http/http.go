@@ -40,7 +40,7 @@ func opOf(o providerops.Operation) oapi.ProviderOperation {
 
 // ListProviderOperations lists external operations.
 func (h *Handlers) ListProviderOperations(ctx context.Context, req oapi.ListProviderOperationsRequestObject) (oapi.ListProviderOperationsResponseObject, error) {
-	c, err := h.read.Check(ctx, identityapi.CapProviderOperationRead)
+	c, err := h.read.CheckRead(ctx, identityapi.CapProviderOperationRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}

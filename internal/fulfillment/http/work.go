@@ -105,7 +105,7 @@ func (h *WorkHandlers) caseOf(ctx context.Context, c work.CaseView, userID strin
 
 // ListFulfillmentWorkCases lists the caller's per-service queue.
 func (h *WorkHandlers) ListFulfillmentWorkCases(ctx context.Context, req oapi.ListFulfillmentWorkCasesRequestObject) (oapi.ListFulfillmentWorkCasesResponseObject, error) {
-	c, err := h.read.Check(ctx, identityapi.CapWorkRead)
+	c, err := h.read.CheckRead(ctx, identityapi.CapWorkRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (h *WorkHandlers) ListFulfillmentWorkCases(ctx context.Context, req oapi.Li
 
 // GetFulfillmentWorkCase returns one case of a service in the caller's scope.
 func (h *WorkHandlers) GetFulfillmentWorkCase(ctx context.Context, req oapi.GetFulfillmentWorkCaseRequestObject) (oapi.GetFulfillmentWorkCaseResponseObject, error) {
-	c, err := h.read.Check(ctx, identityapi.CapWorkRead)
+	c, err := h.read.CheckRead(ctx, identityapi.CapWorkRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}

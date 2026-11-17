@@ -91,7 +91,7 @@ func idp(v *openapi_types.UUID) *string {
 
 // ListCustomers lists shadow customers.
 func (h *Handlers) ListCustomers(ctx context.Context, req oapi.ListCustomersRequestObject) (oapi.ListCustomersResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapCustomerRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapCustomerRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (h *Handlers) ListCustomers(ctx context.Context, req oapi.ListCustomersRequ
 
 // GetCustomer returns one customer with identifiers and candidate cases.
 func (h *Handlers) GetCustomer(ctx context.Context, req oapi.GetCustomerRequestObject) (oapi.GetCustomerResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapCustomerRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapCustomerRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (h *Handlers) GetCustomer(ctx context.Context, req oapi.GetCustomerRequestO
 
 // ListCustomerContactPoints lists masked contact points.
 func (h *Handlers) ListCustomerContactPoints(ctx context.Context, req oapi.ListCustomerContactPointsRequestObject) (oapi.ListCustomerContactPointsResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapCustomerRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapCustomerRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (h *Handlers) ListCustomerContactPoints(ctx context.Context, req oapi.ListC
 
 // ListCustomerEvidence lists evidence about a customer.
 func (h *Handlers) ListCustomerEvidence(ctx context.Context, req oapi.ListCustomerEvidenceRequestObject) (oapi.ListCustomerEvidenceResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapCustomerRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapCustomerRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ func (h *Handlers) ListCustomerEvidence(ctx context.Context, req oapi.ListCustom
 
 // ListMergeCases lists the read-only candidate queue.
 func (h *Handlers) ListMergeCases(ctx context.Context, req oapi.ListMergeCasesRequestObject) (oapi.ListMergeCasesResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapMergeCaseRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapMergeCaseRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (h *Handlers) ListMergeCases(ctx context.Context, req oapi.ListMergeCasesRe
 
 // GetMergeCase returns one candidate.
 func (h *Handlers) GetMergeCase(ctx context.Context, req oapi.GetMergeCaseRequestObject) (oapi.GetMergeCaseResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapMergeCaseRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapMergeCaseRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +287,7 @@ func ints(m map[string]int64) map[string]int {
 
 // GetCustomerResolutionReport returns the resolution projection report.
 func (h *Handlers) GetCustomerResolutionReport(ctx context.Context, _ oapi.GetCustomerResolutionReportRequestObject) (oapi.GetCustomerResolutionReportResponseObject, error) {
-	c, err := h.guard.Check(ctx, identityapi.CapIdentityReportRead)
+	c, err := h.guard.CheckRead(ctx, identityapi.CapIdentityReportRead, authorization.ScopeOrganization)
 	if err != nil {
 		return nil, err
 	}
