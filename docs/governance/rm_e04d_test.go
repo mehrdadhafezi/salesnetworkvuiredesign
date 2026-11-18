@@ -276,8 +276,10 @@ func TestRME04DGrantConstraintRules(t *testing.T) {
 // gate only when the S4 readiness manifest (rm-e04d-s4-readiness.json) carries three independent proofs:
 //   1. contract   — an approved, verified conversion-payment data-contract decision (R6 rules, Finance + Security);
 //   2. schema     — the declared billing column exists NOT NULL with a CHECK listing an explicit unknown state;
-//   3. enforcement — named tests exist for every I-L case (seller/issuer mismatch, unknown conversion state, …)
-//                    and exercise the declared column.
+//   3. enforcement — (a) static registration: a named, non-empty test per I-L case that uses the declared column in
+//                    code and reports failures (necessary, NOT sufficient: source text proves no runtime behaviour);
+//                    (b) execution evidence: verified CI execution of those tests plus independent Security review —
+//                    PENDING by construction, because no such mechanism exists yet (no manifest field can satisfy it).
 // Each proof is checked by its own function; the gate rule requires all of them.
 
 var s4Operations = map[string]bool{"listMyInvoices": true, "getMyInvoice": true, "listMyInvoiceStages": true, "getMyInvoiceTotals": true, "listMyInvoicePayments": true}
@@ -378,8 +380,46 @@ func s4SchemaProblems(m s4Manifest, billing map[string]string) []string {
 	return p
 }
 
-// s4EnforcementProblems — proof 3: every I-L case names an existing Go test that references the declared column.
-func s4EnforcementProblems(m s4Manifest, readFile func(path string) (string, bool)) []string {
+// Source-text checks below are STATIC REGISTRATION only: they show that a named test exists and is not trivially
+// empty. Reading source never proves that the test asserts the I-L ownership policy, that it ran, or that it passed.
+// That is the job of the execution-evidence proof (s4ExecutionEvidenceProblems), which is PENDING by construction.
+
+var goLineComment = regexp.MustCompile(`//[^\n]*`)
+var goBlockComment = regexp.MustCompile(`(?s)/\*.*?\*/`)
+
+// goCode strips Go comments (conservatively: a "//" inside a string literal also truncates, which can only make a
+// pre-check fail, never pass).
+func goCode(src string) string {
+	return goLineComment.ReplaceAllString(goBlockComment.ReplaceAllString(src, " "), " ")
+}
+
+// goFuncBody returns the body of `func name(t *testing.T) { … }` in comment-stripped code, by brace matching.
+func goFuncBody(code, name string) (string, bool) {
+	loc := regexp.MustCompile(`func ` + regexp.QuoteMeta(name) + `\(t \*testing\.T\)\s*\{`).FindStringIndex(code)
+	if loc == nil {
+		return "", false
+	}
+	depth, start := 1, loc[1]
+	for i := start; i < len(code); i++ {
+		switch code[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return code[start:i], true
+			}
+		}
+	}
+	return "", false
+}
+
+// A failure-reporting call on the test's *testing.T. Its presence says nothing about WHAT is asserted.
+var goTestFailureCall = regexp.MustCompile(`\bt\.(Error|Errorf|Fatal|Fatalf|Fail|FailNow)\(`)
+
+// s4StaticRegistrationProblems — proof 3a (necessary, NOT sufficient): every I-L case names its own existing Go test
+// whose comment-stripped body is non-empty, uses the declared column in code and contains a failure-reporting call.
+func s4StaticRegistrationProblems(m s4Manifest, readFile func(path string) (string, bool)) []string {
 	var p []string
 	seen := map[string]string{}
 	for _, cat := range s4EnforcementCategories {
@@ -402,11 +442,19 @@ func s4EnforcementProblems(m s4Manifest, readFile func(path string) (string, boo
 			p = append(p, cat+": "+path+" does not exist")
 			continue
 		}
-		if !regexp.MustCompile(`func ` + regexp.QuoteMeta(name) + `\(t \*testing\.T\)`).MatchString(src) {
+		body, ok := goFuncBody(goCode(src), name)
+		switch {
+		case !ok:
 			p = append(p, fmt.Sprintf("%s: %s does not define %s", cat, path, name))
-		}
-		if m.Schema.Column == "" || !strings.Contains(src, m.Schema.Column) {
-			p = append(p, fmt.Sprintf("%s: %s does not exercise the declared column %q", cat, path, m.Schema.Column))
+		case strings.TrimSpace(body) == "":
+			p = append(p, fmt.Sprintf("%s: %s is empty", cat, name))
+		default:
+			if m.Schema.Column == "" || !regexp.MustCompile(`\b`+regexp.QuoteMeta(m.Schema.Column)+`\b`).MatchString(body) {
+				p = append(p, fmt.Sprintf("%s: %s does not use the declared column %q in code (comments do not count)", cat, name, m.Schema.Column))
+			}
+			if !goTestFailureCall.MatchString(body) {
+				p = append(p, fmt.Sprintf("%s: %s never reports a failure (no t.Error/t.Fatal…)", cat, name))
+			}
 		}
 	}
 	for cat := range m.EnforcementTests {
@@ -415,6 +463,20 @@ func s4EnforcementProblems(m s4Manifest, readFile func(path string) (string, boo
 		}
 	}
 	return p
+}
+
+// s4ExecutionEvidencePending is the reason proof 3b cannot be satisfied today.
+const s4ExecutionEvidencePending = "execution evidence PENDING: no mechanism in this repository verifies that the named S4 tests " +
+	"actually assert the I-L policy, ran in CI against the implementing commit and passed, and no independent Security " +
+	"review of them exists. Static registration is not proof. S4 stays blocked until that mechanism is built and approved " +
+	"(rm-e04d-codex-security-review-package.md §7)"
+
+// s4ExecutionEvidenceProblems — proof 3b (required): verified execution of the enforcement tests plus independent
+// Security review. There is deliberately NO manifest field that can satisfy it: the offline governance framework can
+// read source text but cannot verify a CI run or a test result, so this proof is PENDING by construction. Opening it
+// requires a reviewed change to this function together with the mechanism it checks (see §7 of the review package).
+func s4ExecutionEvidenceProblems(m s4Manifest) []string {
+	return []string{s4ExecutionEvidencePending}
 }
 
 func slicesContains(xs []string, x string) bool {
@@ -440,8 +502,11 @@ func s4ReadinessProblems(g rmE04CGate, m s4Manifest, recs map[string]trackerReco
 	for _, x := range s4SchemaProblems(m, billing) {
 		p = append(p, "schema: "+x)
 	}
-	for _, x := range s4EnforcementProblems(m, readFile) {
-		p = append(p, "enforcement: "+x)
+	for _, x := range s4StaticRegistrationProblems(m, readFile) {
+		p = append(p, "enforcement (static registration): "+x)
+	}
+	for _, x := range s4ExecutionEvidenceProblems(m) {
+		p = append(p, "enforcement (execution evidence): "+x)
 	}
 	if len(p) > 0 {
 		p = append([]string{fmt.Sprintf("S4 %v listed in the Group B gate without the three S4 readiness proofs", listed)}, p...)
@@ -512,11 +577,12 @@ func s4FxManifest(contractID string) s4Manifest {
 const s4FxSchema = "ALTER TABLE billing.invoice ADD COLUMN conversion_payment_state text NOT NULL DEFAULT 'UNKNOWN',\n" +
 	"  ADD CONSTRAINT invoice_conversion_payment_state CHECK (conversion_payment_state IN ('CONVERSION_PAYMENT', 'NOT_CONVERSION_PAYMENT', 'UNKNOWN'));"
 
-func s4FxTests() func(string) (string, bool) {
+// s4FxTestFile builds a synthetic test file with one function per I-L case; body(i) supplies each body.
+func s4FxTestFile(body func(i int) string) func(string) (string, bool) {
 	var b strings.Builder
-	b.WriteString("package http_test\n// synthetic seller ≠ issuer and conversion_payment_state UNKNOWN fixtures\n")
+	b.WriteString("package http_test\n\n")
 	for i := range s4EnforcementCategories {
-		fmt.Fprintf(&b, "func TestMeInvoices%d(t *testing.T) {}\n", i)
+		fmt.Fprintf(&b, "func TestMeInvoices%d(t *testing.T) {\n%s\n}\n\n", i, body(i))
 	}
 	src := b.String()
 	return func(p string) (string, bool) {
@@ -525,6 +591,14 @@ func s4FxTests() func(string) (string, bool) {
 		}
 		return "", false
 	}
+}
+
+// s4FxTests: statically well-formed tests (non-empty, column used in code, failures reported). Synthetic text only.
+func s4FxTests() func(string) (string, bool) {
+	return s4FxTestFile(func(i int) string {
+		return fmt.Sprintf("\trows := listMyInvoices(t, sellerX, invoiceFixture{seller: sellerX, issuer: sellerZ, conversion_payment_state: state%d})\n"+
+			"\tif got := len(rows); got != want%d {\n\t\tt.Fatalf(\"case %d: %%d rows\", got)\n\t}", i, i, i)
+	})
 }
 
 func TestRME04DS4ContractRules(t *testing.T) {
@@ -561,7 +635,7 @@ func TestRME04DS4ContractRules(t *testing.T) {
 			m.Schema.Migration, m.Schema.Column = "00021_note.sql", "conversion_payment_note"
 			return m
 		}(), goodRecs, goodLoad, map[string]string{"00021_note.sql": "ALTER TABLE billing.invoice ADD COLUMN conversion_payment_note text;"}, s4FxTests(), false},
-		{"S4 with all three proofs", s4Gate, full, goodRecs, goodLoad, withSchema, s4FxTests(), true},
+		{"S4 with contract, schema and static registration: still blocked (execution evidence PENDING)", s4Gate, full, goodRecs, goodLoad, withSchema, s4FxTests(), false},
 		{"contract not approved (READY_FOR_REVIEW)", s4Gate, full, map[string]trackerRecord{cid: rmFxTracker(cid, "READY_FOR_REVIEW", "", "NOT_STARTED")}, goodLoad, withSchema, s4FxTests(), false},
 		{"contract approval unverified", s4Gate, full, goodRecs, loaderOf(rmFxDecision(t, cid, "APPROVED", "", s4ContractFloorRoles)), withSchema, s4FxTests(), false},
 		{"contract approved without Security", s4Gate, full, goodRecs, loaderOf(rmFxDecision(t, cid, "APPROVED", "VERIFIED", []string{"Finance owner"})), withSchema, s4FxTests(), false},
@@ -586,6 +660,10 @@ func TestRME04DS4ContractRules(t *testing.T) {
 			src, ok := s4FxTests()(p)
 			return strings.ReplaceAll(src, "conversion_payment_state", "something_else"), ok
 		}, false},
+		{"empty test functions", s4Gate, full, goodRecs, goodLoad, withSchema, s4FxTestFile(func(int) string { return "" }), false},
+		{"column only in comments", s4Gate, full, goodRecs, goodLoad, withSchema, s4FxTestFile(func(int) string {
+			return "\t// conversion_payment_state UNKNOWN, seller ≠ issuer\n\t/* conversion_payment_state */\n\tif false {\n\t\tt.Fatal(\"x\")\n\t}"
+		}), false},
 	}
 	for _, c := range cases {
 		if p := s4ReadinessProblems(c.g, c.m, c.recs, titles, c.load, false, c.billing, c.files); (len(p) == 0) != c.ok {
@@ -629,5 +707,78 @@ func TestRME04DNoClaimedSignOff(t *testing.T) {
 	}
 	if !claimedSignOff.MatchString("Codex signed off the contract") || claimedSignOff.MatchString("Codex review requested") {
 		t.Error("sign-off detector is miscalibrated")
+	}
+}
+
+// Static registration (proof 3a) on its own: what source text can and cannot show.
+func TestRME04DS4StaticRegistrationRules(t *testing.T) {
+	m := s4FxManifest("S4-CONTRACT-FIXTURE")
+	unrelated := s4FxTestFile(func(i int) string {
+		// Non-empty, uses the column, reports failures — but asserts nothing about who may see the invoice.
+		return fmt.Sprintf("\t_ = conversion_payment_state\n\tif 1+1 != 2 {\n\t\tt.Fatalf(\"arithmetic %d\")\n\t}", i)
+	})
+	cases := []struct {
+		name  string
+		files func(string) (string, bool)
+		ok    bool
+	}{
+		{"well-formed tests pass the static pre-check", s4FxTests(), true},
+		{"empty test functions", s4FxTestFile(func(int) string { return "" }), false},
+		{"whitespace-only bodies", s4FxTestFile(func(int) string { return "\n\t\n" }), false},
+		{"column mentioned only in comments", s4FxTestFile(func(int) string {
+			return "\t// conversion_payment_state UNKNOWN, seller ≠ issuer\n\t/* conversion_payment_state */\n\tif false {\n\t\tt.Fatal(\"never\")\n\t}"
+		}), false},
+		{"column in code but no failure is ever reported", s4FxTestFile(func(int) string {
+			return "\trows := listMyInvoices(t, invoiceFixture{conversion_payment_state: \"UNKNOWN\"})\n\t_ = rows"
+		}), false},
+		{"failure call only inside a comment", s4FxTestFile(func(int) string {
+			return "\t_ = conversion_payment_state\n\t// t.Fatalf(\"foreign conversion visible\")"
+		}), false},
+		{"test defined only inside a comment", func(p string) (string, bool) {
+			src, ok := s4FxTests()(p)
+			return "/*\n" + src + "\n*/\npackage http_test\n", ok
+		}, false},
+		// Documented limit: a non-empty test that never asserts ownership passes STATIC registration. That is
+		// exactly why static registration is not proof and execution evidence (3b) is separately required.
+		{"no ownership assertion (static pre-check cannot tell)", unrelated, true},
+	}
+	for _, c := range cases {
+		if p := s4StaticRegistrationProblems(m, c.files); (len(p) == 0) != c.ok {
+			t.Errorf("%s: accepted=%v, want %v (%v)", c.name, len(p) == 0, c.ok, p)
+		}
+	}
+}
+
+// Execution evidence (proof 3b) is PENDING by construction: nothing in a manifest or in source can satisfy it, so
+// S4 readiness fails even with a verified contract, a valid schema and statically well-formed tests.
+func TestRME04DS4ExecutionEvidencePending(t *testing.T) {
+	m := s4FxManifest("S4-CONTRACT-FIXTURE")
+	if p := s4ExecutionEvidenceProblems(m); len(p) != 1 || p[0] != s4ExecutionEvidencePending {
+		t.Fatalf("execution evidence must stay PENDING: %v", p)
+	}
+	if p := s4ExecutionEvidenceProblems(s4Manifest{}); len(p) == 0 {
+		t.Fatal("an empty manifest satisfied execution evidence")
+	}
+	const cid = "S4-CONTRACT-FIXTURE"
+	recs := map[string]trackerRecord{cid: rmFxTracker(cid, "APPROVED_VERIFIED", rmFxRecordPath, "VERIFIED")}
+	titles := map[string]string{cid: "Conversion-payment data contract"}
+	load := loaderOf(rmFxDecision(t, cid, "APPROVED", "VERIFIED", s4ContractFloorRoles))
+	schema := map[string]string{"00020_conversion.sql": s4FxSchema}
+	gate := rmE04CGate{ApprovedSellerCapabilities: []string{"billing.own.read"}, ApprovedMeOperations: []string{"listMyInvoices"}}
+	p := s4ReadinessProblems(gate, m, recs, titles, load, false, schema, s4FxTests())
+	if len(p) == 0 {
+		t.Fatal("S4 became ready without verified execution evidence")
+	}
+	only := true
+	for _, x := range p[1:] {
+		if !strings.Contains(x, "execution evidence PENDING") {
+			only = false
+		}
+	}
+	if !only {
+		t.Errorf("with contract, schema and static registration satisfied, the only blocker must be execution evidence: %v", p)
+	}
+	if !strings.Contains(s4ExecutionEvidencePending, "Static registration is not proof") {
+		t.Error("the pending reason must say that static registration is not proof")
 	}
 }
