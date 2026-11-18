@@ -1,0 +1,1328 @@
+# RM-E04B / A4 (NT-22) — API operation scope registry.
+#
+# One entry per OpenAPI operation of api/openapi/openapi.bundled.yaml. This
+# file is test data only: no runtime code reads it, and it grants nothing.
+# It is validated, in both directions, against the contract and against the
+# composed handlers by internal/authorization/http/operation_registry_test.go
+# (go test ./...). An operation that is not listed here fails CI.
+#
+# Format and vocabulary: docs/remediation/rm-e04b-operation-scope-inventory.md.
+#
+#   category  PUBLIC_HEALTH | SESSION_READ | SESSION_COMMAND | ORG_READ |
+#             OWN_READ | REVIEW_READ | BUSINESS_COMMAND
+#   scope     ORGANIZATION | OWN:<basis> | COMMAND:<basis> | SESSION_SELF |
+#             NOT_APPLICABLE   (bases are closed lists in the test)
+#   subject   NONE | SESSION_PRINCIPAL | ANONYMOUS_CREDENTIAL_EXCHANGE |
+#             AUTHENTICATED_PRINCIPAL | AUTHENTICATED_USER_ID
+#   nt07      REQUIRED (NT-07 runs) | EXEMPT (approved list in the test) |
+#             NOT_A_READ (command; NT-07 does not apply)
+#   unproven_user (OWN_READ only, observed by the test):
+#             REFUSED_ROW_SCOPE_DENIED | NOT_FOUND_WITHOUT_QUERY |
+#             EMPTY_WITHOUT_QUERY | QUERY_BEFORE_IDENTITY
+#   also_requires  further gate capabilities, in order (observed)
+#   field_capabilities  capabilities that only mask fields (reviewer-verified)
+#   tests     <repo-relative _test.go file>:<TestName> (must exist)
+#
+# Adding, removing or relabelling an entry is a security change and needs
+# review. Labels do not grant anything and cannot hide handler behaviour:
+# capability, NT-07 coverage and unproven-user behaviour are observed.
+
+schema_version: 1
+baseline: c8a490c3a40c5a08266573c41b68b156a1d1a49e
+operations:
+  - operation_id: getHealthLive
+    method: GET
+    path: /health/live
+    category: PUBLIC_HEALTH
+    scope: NOT_APPLICABLE
+    subject: NONE
+    enforcement: internal/platform/apiserver/server.go
+    nt07: EXEMPT
+    exemption_reason: public liveness probe; no data
+    tests: [internal/platform/apiserver/server_test.go:TestHealth]
+
+  - operation_id: getHealthReady
+    method: GET
+    path: /health/ready
+    category: PUBLIC_HEALTH
+    scope: NOT_APPLICABLE
+    subject: NONE
+    enforcement: internal/platform/apiserver/server.go
+    nt07: EXEMPT
+    exemption_reason: public readiness probe; no data
+    tests: [internal/platform/apiserver/server_test.go:TestHealth]
+
+  - operation_id: getSession
+    method: GET
+    path: /api/v1/session
+    category: SESSION_READ
+    scope: SESSION_SELF
+    subject: SESSION_PRINCIPAL
+    enforcement: internal/platform/apiserver/server.go
+    nt07: EXEMPT
+    exemption_reason: 'session-only: the caller''s own principal and feature switches'
+    tests: [internal/platform/apiserver/server_test.go:TestSessionInProductionIgnoresDevHeader, internal/platform/apiserver/server_test.go:TestSessionWithDevStub]
+
+  - operation_id: loginWithPassword
+    method: POST
+    path: /api/v1/auth/login
+    category: SESSION_COMMAND
+    feature_flag: identity.session_auth
+    scope: SESSION_SELF
+    subject: ANONYMOUS_CREDENTIAL_EXCHANGE
+    enforcement: internal/identity/http/auth.go
+    nt07: NOT_A_READ
+    exemption_reason: "credential exchange; creates only the caller's own session"
+    tests: [internal/identity/http/auth_http_test.go:TestHTTPLoginCookieAndSession, internal/identity/http/auth_http_test.go:TestHTTPLoginFailures]
+    governance: [D-34]
+
+  - operation_id: logout
+    method: POST
+    path: /api/v1/auth/logout
+    category: SESSION_COMMAND
+    feature_flag: identity.session_auth
+    scope: SESSION_SELF
+    subject: SESSION_PRINCIPAL
+    enforcement: internal/identity/http/auth.go
+    nt07: NOT_A_READ
+    exemption_reason: "ends only the caller's own session"
+    tests: [internal/identity/http/auth_http_test.go:TestHTTPCSRF, internal/identity/http/auth_http_test.go:TestHTTPConcurrentLogout]
+    governance: [D-34]
+
+  - operation_id: logoutAll
+    method: POST
+    path: /api/v1/auth/logout-all
+    category: SESSION_COMMAND
+    feature_flag: identity.session_auth
+    scope: SESSION_SELF
+    subject: SESSION_PRINCIPAL
+    enforcement: internal/identity/http/auth.go
+    nt07: NOT_A_READ
+    exemption_reason: "ends only the caller's own sessions"
+    tests: [internal/identity/http/auth_http_test.go:TestHTTPCSRF, internal/identity/http/auth_http_test.go:TestHTTPConcurrentLogout]
+    governance: [D-34]
+
+  - operation_id: listIdentityUsers
+    method: GET
+    path: /api/v1/identity/users
+    category: ORG_READ
+    capability: identity.user.read
+    feature_flag: organization.hr_read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/identity/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 1]
+
+  - operation_id: getIdentityUser
+    method: GET
+    path: /api/v1/identity/users/{user_id}
+    category: ORG_READ
+    capability: identity.user.read
+    feature_flag: organization.hr_read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/identity/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 1]
+
+  - operation_id: listOrganizationPersons
+    method: GET
+    path: /api/v1/organization/persons
+    category: ORG_READ
+    capability: org.person.read
+    feature_flag: organization.hr_read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/organization/http/http.go
+    field_capabilities: [org.assignment.read, org.employment.read, org.position.read, org.unit.read]
+    nt07: REQUIRED
+    governance: [M2 rec. 1, GAP-01]
+
+  - operation_id: getOrganizationPerson
+    method: GET
+    path: /api/v1/organization/persons/{person_id}
+    category: ORG_READ
+    capability: org.person.read
+    feature_flag: organization.hr_read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/organization/http/http.go
+    field_capabilities: [org.assignment.read, org.employment.read, org.position.read, org.unit.read]
+    nt07: REQUIRED
+    governance: [M2 rec. 1, GAP-01]
+
+  - operation_id: listOrganizationPositions
+    method: GET
+    path: /api/v1/organization/positions
+    category: ORG_READ
+    capability: org.position.read
+    feature_flag: organization.hr_read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/organization/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-01]
+
+  - operation_id: listOrganizationLevels
+    method: GET
+    path: /api/v1/organization/levels
+    category: ORG_READ
+    capability: org.position.read
+    feature_flag: organization.hr_read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/organization/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-01]
+
+  - operation_id: listOrganizationOrgUnits
+    method: GET
+    path: /api/v1/organization/org-units
+    category: ORG_READ
+    capability: org.unit.read
+    feature_flag: organization.hr_read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/organization/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-01]
+
+  - operation_id: listOrganizationAssignments
+    method: GET
+    path: /api/v1/organization/assignments
+    category: ORG_READ
+    capability: org.assignment.read
+    feature_flag: organization.hr_read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/organization/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 1, GAP-01]
+
+  - operation_id: listOrganizationHierarchyFindings
+    method: GET
+    path: /api/v1/organization/hierarchy-findings
+    category: ORG_READ
+    capability: org.assignment.read
+    feature_flag: organization.hr_read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/organization/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 1, GAP-01]
+
+  - operation_id: getEffectiveAccess
+    method: GET
+    path: /api/v1/authorization/effective-access
+    category: SESSION_READ
+    scope: SESSION_SELF
+    subject: SESSION_PRINCIPAL
+    enforcement: internal/authorization/http/http.go
+    nt07: EXEMPT
+    exemption_reason: 'session-only: the caller''s own decisions, from the same evaluator'
+    tests: [internal/authorization/http/http_test.go:TestG_NoActiveGrant, internal/authorization/http/http_test.go:TestH_AnonymousNothingAllowed]
+
+  - operation_id: listCustomers
+    method: GET
+    path: /api/v1/customers
+    category: ORG_READ
+    capability: customers.customer.read
+    feature_flag: customers.identity_shadow_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/customers/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-04, D-30]
+
+  - operation_id: getCustomer
+    method: GET
+    path: /api/v1/customers/{customer_id}
+    category: ORG_READ
+    capability: customers.customer.read
+    feature_flag: customers.identity_shadow_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/customers/http/http.go
+    field_capabilities: [customers.merge_case.read]
+    nt07: REQUIRED
+    governance: [GAP-04, D-30]
+
+  - operation_id: listCustomerContactPoints
+    method: GET
+    path: /api/v1/customers/{customer_id}/contact-points
+    category: ORG_READ
+    capability: customers.customer.read
+    feature_flag: customers.identity_shadow_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/customers/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-04, D-30, D-45]
+
+  - operation_id: listCustomerEvidence
+    method: GET
+    path: /api/v1/customers/{customer_id}/evidence
+    category: ORG_READ
+    capability: customers.customer.read
+    feature_flag: customers.identity_shadow_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/customers/http/http.go
+    nt07: REQUIRED
+    governance: [D-30]
+
+  - operation_id: listMergeCases
+    method: GET
+    path: /api/v1/customer-identity/merge-cases
+    category: ORG_READ
+    capability: customers.merge_case.read
+    feature_flag: customers.identity_shadow_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/customers/http/http.go
+    nt07: REQUIRED
+    governance: [D-30]
+
+  - operation_id: getMergeCase
+    method: GET
+    path: /api/v1/customer-identity/merge-cases/{merge_case_id}
+    category: ORG_READ
+    capability: customers.merge_case.read
+    feature_flag: customers.identity_shadow_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/customers/http/http.go
+    nt07: REQUIRED
+    governance: [D-30]
+
+  - operation_id: getCustomerResolutionReport
+    method: GET
+    path: /api/v1/customer-identity/resolution-report
+    category: ORG_READ
+    capability: customers.identity_report.read
+    feature_flag: customers.identity_shadow_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/customers/http/http.go
+    nt07: REQUIRED
+    governance: [D-30]
+
+  - operation_id: listCases
+    method: GET
+    path: /api/v1/cases
+    category: ORG_READ
+    capability: cases.case.read
+    feature_flag: sales.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/cases/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: getCase
+    method: GET
+    path: /api/v1/cases/{case_id}
+    category: ORG_READ
+    capability: cases.case.read
+    feature_flag: sales.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/cases/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: listCaseHistory
+    method: GET
+    path: /api/v1/cases/{case_id}/history
+    category: ORG_READ
+    capability: cases.case.read
+    feature_flag: sales.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/cases/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: listCaseAttribution
+    method: GET
+    path: /api/v1/cases/{case_id}/attribution
+    category: ORG_READ
+    capability: cases.case.read
+    feature_flag: sales.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/cases/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: listCustodyAssignments
+    method: GET
+    path: /api/v1/custody/assignments
+    category: ORG_READ
+    capability: custody.custody.read
+    feature_flag: sales.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/custody/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: getCaseCustody
+    method: GET
+    path: /api/v1/custody/cases/{case_id}
+    category: ORG_READ
+    capability: custody.custody.read
+    feature_flag: sales.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/custody/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: getSalesCoverageReport
+    method: GET
+    path: /api/v1/sales/coverage-report
+    category: ORG_READ
+    capability: sales.report.read
+    feature_flag: sales.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/cases/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 1]
+
+  - operation_id: getCustodyParityReport
+    method: GET
+    path: /api/v1/sales/custody-parity
+    category: ORG_READ
+    capability: sales.report.read
+    feature_flag: sales.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/custody/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 1]
+
+  - operation_id: listInvoices
+    method: GET
+    path: /api/v1/invoices
+    category: ORG_READ
+    capability: billing.invoice.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/billing/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2 (S4 predicate)]
+
+  - operation_id: getInvoice
+    method: GET
+    path: /api/v1/invoices/{invoice_id}
+    category: ORG_READ
+    capability: billing.invoice.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/billing/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: listInvoiceItems
+    method: GET
+    path: /api/v1/invoices/{invoice_id}/items
+    category: ORG_READ
+    capability: billing.invoice.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/billing/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: listInvoiceStages
+    method: GET
+    path: /api/v1/invoices/{invoice_id}/stages
+    category: ORG_READ
+    capability: billing.invoice.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/billing/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: getInvoiceTotals
+    method: GET
+    path: /api/v1/invoices/{invoice_id}/totals
+    category: ORG_READ
+    capability: billing.invoice.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/billing/http/http.go
+    also_requires: [payments.attempt.read]
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: listInvoicePaymentAttempts
+    method: GET
+    path: /api/v1/invoices/{invoice_id}/payments
+    category: ORG_READ
+    capability: payments.attempt.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/payments/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: listInvoiceReceipts
+    method: GET
+    path: /api/v1/invoices/{invoice_id}/receipts
+    category: ORG_READ
+    capability: payments.attempt.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/payments/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2]
+
+  - operation_id: listPaymentAttempts
+    method: GET
+    path: /api/v1/payments/attempts
+    category: ORG_READ
+    capability: payments.attempt.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/payments/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2, GAP-03]
+
+  - operation_id: getPaymentAttempt
+    method: GET
+    path: /api/v1/payments/attempts/{attempt_id}
+    category: ORG_READ
+    capability: payments.attempt.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/payments/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2, GAP-03]
+
+  - operation_id: listPaymentAttemptHistory
+    method: GET
+    path: /api/v1/payments/attempts/{attempt_id}/history
+    category: ORG_READ
+    capability: payments.attempt.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/payments/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2, GAP-03]
+
+  - operation_id: getReceiptReference
+    method: GET
+    path: /api/v1/payments/receipts/{receipt_id}
+    category: ORG_READ
+    capability: payments.attempt.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/payments/http/http.go
+    nt07: REQUIRED
+    governance: [M2 rec. 2, GAP-03]
+
+  - operation_id: getBillingReconciliationReport
+    method: GET
+    path: /api/v1/billing/reconciliation-report
+    category: ORG_READ
+    capability: billing.reconciliation.read
+    feature_flag: billing_payments.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/billing/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-03]
+
+  - operation_id: listReportingMetrics
+    method: GET
+    path: /api/v1/reporting/metrics
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getReportingMetric
+    method: GET
+    path: /api/v1/reporting/metrics/{metric_id}
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getCaseReport
+    method: GET
+    path: /api/v1/reports/cases
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getCaseReportRow
+    method: GET
+    path: /api/v1/reports/cases/{case_id}
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getCustodyReport
+    method: GET
+    path: /api/v1/reports/custody
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getCustodyReportRow
+    method: GET
+    path: /api/v1/reports/custody/{case_id}
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getInvoiceReport
+    method: GET
+    path: /api/v1/reports/invoices
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getInvoiceReportRow
+    method: GET
+    path: /api/v1/reports/invoices/{invoice_id}
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getPaymentReport
+    method: GET
+    path: /api/v1/reports/payments
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getPaymentReportRow
+    method: GET
+    path: /api/v1/reports/payments/{attempt_id}
+    category: ORG_READ
+    capability: reporting.metrics.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-07]
+
+  - operation_id: getMisOverview
+    method: GET
+    path: /api/v1/mis/overview
+    category: ORG_READ
+    capability: reporting.mis.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-07, D-23, D-24]
+
+  - operation_id: getMisSourceQuality
+    method: GET
+    path: /api/v1/mis/source-quality
+    category: ORG_READ
+    capability: reporting.mis.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-07, D-23, D-24]
+
+  - operation_id: getMisReconciliation
+    method: GET
+    path: /api/v1/mis/reconciliation
+    category: ORG_READ
+    capability: reporting.mis.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-07, D-23, D-24]
+
+  - operation_id: listInvoiceReview
+    method: GET
+    path: /api/v1/invoice-review
+    category: ORG_READ
+    capability: reporting.invoice_review.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-07, D-23, D-24]
+
+  - operation_id: getInvoiceReview
+    method: GET
+    path: /api/v1/invoice-review/{invoice_id}
+    category: ORG_READ
+    capability: reporting.invoice_review.read
+    feature_flag: reporting.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/reporting/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-07, D-23, D-24]
+
+  - operation_id: listFinanceShadowRuns
+    method: GET
+    path: /api/v1/finance/shadow-runs
+    category: ORG_READ
+    capability: finance.shadow.read
+    feature_flag: finance.shadow_ledger_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-03]
+
+  - operation_id: getFinanceShadowRun
+    method: GET
+    path: /api/v1/finance/shadow-runs/{run_id}
+    category: ORG_READ
+    capability: finance.shadow.read
+    feature_flag: finance.shadow_ledger_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-03]
+
+  - operation_id: listFinanceAccounts
+    method: GET
+    path: /api/v1/finance/accounts
+    category: ORG_READ
+    capability: finance.shadow.read
+    feature_flag: finance.shadow_ledger_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-03]
+
+  - operation_id: getFinanceAccount
+    method: GET
+    path: /api/v1/finance/accounts/{account_id}
+    category: ORG_READ
+    capability: finance.shadow.read
+    feature_flag: finance.shadow_ledger_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-03]
+
+  - operation_id: listFinanceLedger
+    method: GET
+    path: /api/v1/finance/ledger
+    category: ORG_READ
+    capability: finance.ledger.read
+    feature_flag: finance.shadow_ledger_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-03]
+
+  - operation_id: getFinanceLedgerEntry
+    method: GET
+    path: /api/v1/finance/ledger/{entry_id}
+    category: ORG_READ
+    capability: finance.ledger.read
+    feature_flag: finance.shadow_ledger_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-03]
+
+  - operation_id: listFinanceBalances
+    method: GET
+    path: /api/v1/finance/balances
+    category: ORG_READ
+    capability: finance.shadow.read
+    feature_flag: finance.shadow_ledger_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-03]
+
+  - operation_id: listFinanceReconciliation
+    method: GET
+    path: /api/v1/finance/reconciliation
+    category: ORG_READ
+    capability: finance.reconciliation.read
+    feature_flag: finance.shadow_ledger_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-03]
+
+  - operation_id: listBiawinSubscriptions
+    method: GET
+    path: /api/v1/biawin/subscriptions
+    category: ORG_READ
+    capability: biawin.subscription.read
+    feature_flag: biawin_fulfillment.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/biawin/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-06]
+
+  - operation_id: getBiawinSubscription
+    method: GET
+    path: /api/v1/biawin/subscriptions/{subscription_id}
+    category: ORG_READ
+    capability: biawin.subscription.read
+    feature_flag: biawin_fulfillment.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/biawin/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-06]
+
+  - operation_id: listBiawinSubscriptionItems
+    method: GET
+    path: /api/v1/biawin/subscriptions/{subscription_id}/items
+    category: ORG_READ
+    capability: biawin.subscription.read
+    feature_flag: biawin_fulfillment.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/biawin/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-06]
+
+  - operation_id: getBiawinParity
+    method: GET
+    path: /api/v1/biawin/parity
+    category: ORG_READ
+    capability: biawin.parity.read
+    feature_flag: biawin_fulfillment.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/biawin/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-06]
+
+  - operation_id: getCommissionOverview
+    method: GET
+    path: /api/v1/commission/overview
+    category: ORG_READ
+    capability: commission.shadow.read
+    feature_flag: commission.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/commission/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-09]
+
+  - operation_id: listCommissionRuns
+    method: GET
+    path: /api/v1/commission/runs
+    category: ORG_READ
+    capability: commission.shadow.read
+    feature_flag: commission.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/commission/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-09]
+
+  - operation_id: listCommissionCalculations
+    method: GET
+    path: /api/v1/commission/calculations
+    category: ORG_READ
+    capability: commission.shadow.read
+    feature_flag: commission.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/commission/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-09]
+
+  - operation_id: listCommissionFindings
+    method: GET
+    path: /api/v1/commission/findings
+    category: ORG_READ
+    capability: commission.shadow.read
+    feature_flag: commission.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/commission/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-09]
+
+  - operation_id: listCommissionPolicies
+    method: GET
+    path: /api/v1/commission/policies
+    category: ORG_READ
+    capability: commission.policy.read
+    feature_flag: commission.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/commission/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-09]
+
+  - operation_id: listCommissionHistoricalRuns
+    method: GET
+    path: /api/v1/commission/historical-runs
+    category: ORG_READ
+    capability: commission.shadow.read
+    feature_flag: commission.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/commission/http/http.go
+    nt07: REQUIRED
+    governance: [OPD-09]
+
+  - operation_id: listMyCommissionEarnings
+    method: GET
+    path: /api/v1/commission/me/earnings
+    category: OWN_READ
+    capability: commission.own.read
+    feature_flag: commission.read_shadow
+    scope: OWN:commission_holder_user_id
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/commission/http/http.go
+    nt07: REQUIRED
+    unproven_user: REFUSED_ROW_SCOPE_DENIED
+    governance: [D-41, OPD-09]
+
+  - operation_id: listFulfillmentWorkCases
+    method: GET
+    path: /api/v1/fulfillment/work-cases
+    category: OWN_READ
+    capability: fulfillment.work.read
+    feature_flag: fulfillment.work_read
+    scope: OWN:fulfillment_service_scope
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/fulfillment/http/work.go
+    nt07: REQUIRED
+    unproven_user: REFUSED_ROW_SCOPE_DENIED
+    governance: [GAP-06]
+
+  - operation_id: getFulfillmentWorkCase
+    method: GET
+    path: /api/v1/fulfillment/work-cases/{case_id}
+    category: OWN_READ
+    capability: fulfillment.work.read
+    feature_flag: fulfillment.work_read
+    scope: OWN:fulfillment_service_scope
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/fulfillment/http/work.go
+    nt07: REQUIRED
+    unproven_user: QUERY_BEFORE_IDENTITY
+    governance: [GAP-06]
+
+  - operation_id: assignFulfillmentWorkCase
+    method: POST
+    path: /api/v1/fulfillment/work-cases/{case_id}/assignment
+    category: BUSINESS_COMMAND
+    capability: fulfillment.work.assign
+    feature_flag: fulfillment.work_write
+    scope: COMMAND:fulfillment_supervisor_service_scope
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/fulfillment/http/work.go
+    nt07: NOT_A_READ
+    row_authorization: Actor must be in the service supervisor scope and the assignee in the executor scope (fulfillment/work/work.go decide); in-progress reassignment BLOCKED (OPD-05).
+    separation_of_duties: NOT_ENFORCED_IN_COMMAND
+    tests: [internal/integration/biawin/r7_4_fulfillment_hardening_test.go:TestR74FulfillmentAssignmentScope, internal/integration/biawin/ops_http_e2e_test.go:TestOperationsHTTP]
+    governance: [GAP-06]
+
+  - operation_id: recordFulfillmentWorkAction
+    method: POST
+    path: /api/v1/fulfillment/work-cases/{case_id}/operational-actions
+    category: BUSINESS_COMMAND
+    capability: fulfillment.work.execute
+    feature_flag: fulfillment.work_write
+    scope: COMMAND:fulfillment_assignee_executor_scope
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/fulfillment/http/work.go
+    nt07: NOT_A_READ
+    row_authorization: Actor must be the current assignee and in the service executor scope (fulfillment/work/work.go decide).
+    separation_of_duties: NOT_ENFORCED_IN_COMMAND
+    tests: [internal/integration/biawin/r7_4_fulfillment_hardening_test.go:TestR74FulfillmentOperationalActions]
+    governance: [GAP-06]
+
+  - operation_id: attachFulfillmentWorkEvidence
+    method: POST
+    path: /api/v1/fulfillment/work-cases/{case_id}/evidence-records
+    category: BUSINESS_COMMAND
+    capability: fulfillment.work.execute
+    feature_flag: fulfillment.work_write
+    scope: COMMAND:fulfillment_assignee_executor_scope
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/fulfillment/http/work.go
+    nt07: NOT_A_READ
+    row_authorization: Actor must be the current assignee and in the service executor scope (fulfillment/work/work.go decide).
+    separation_of_duties: NOT_ENFORCED_IN_COMMAND
+    tests: [internal/integration/biawin/r7_4_fulfillment_hardening_test.go:TestR74FulfillmentEvidence]
+    governance: [GAP-06]
+
+  - operation_id: completeFulfillmentWorkCase
+    method: POST
+    path: /api/v1/fulfillment/work-cases/{case_id}/outcome
+    category: BUSINESS_COMMAND
+    capability: fulfillment.work.execute
+    feature_flag: fulfillment.work_write
+    scope: COMMAND:fulfillment_assignee_executor_scope
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/fulfillment/http/work.go
+    nt07: NOT_A_READ
+    row_authorization: Actor must be the current assignee and in the service executor scope (fulfillment/work/work.go decide).
+    separation_of_duties: NOT_ENFORCED_IN_COMMAND
+    tests: [internal/integration/biawin/r7_4_fulfillment_hardening_test.go:TestR74FulfillmentCompletion, internal/integration/biawin/r7_4_fulfillment_hardening_test.go:TestR74FulfillmentOutcomeUnknownIsNotRetriedBlindly]
+    governance: [GAP-06]
+
+  - operation_id: listBiawinActivationDecisions
+    method: GET
+    path: /api/v1/biawin/activation-decisions
+    category: ORG_READ
+    capability: biawin.activation.read
+    feature_flag: fulfillment.work_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/biawin/http/activation.go
+    nt07: REQUIRED
+    governance: [GAP-06]
+
+  - operation_id: listProviderOperations
+    method: GET
+    path: /api/v1/integration/provider-operations
+    category: ORG_READ
+    capability: integration.provider_operation.read
+    feature_flag: fulfillment.work_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/integration/providerops/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-06]
+
+  - operation_id: resolveProviderOperation
+    method: POST
+    path: /api/v1/integration/provider-operations/{operation_id}/resolution
+    category: BUSINESS_COMMAND
+    capability: integration.provider_operation.reconcile
+    feature_flag: integration.provider_reconcile
+    scope: COMMAND:no_row_predicate
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/integration/providerops/http/http.go
+    nt07: NOT_A_READ
+    row_authorization: 'UNRESOLVED: no row predicate beyond the reconcile capability and a proven user id (refused ROW_SCOPE_DENIED without one, providerops/http/http.go); evidence-only transition, recorded as user:<id>.'
+    separation_of_duties: NOT_ENFORCED_IN_COMMAND
+    tests: [internal/integration/biawin/r7_4_fulfillment_hardening_test.go:TestR74FulfillmentProviderBoundary, internal/integration/biawin/ops_http_e2e_test.go:TestOperationsHTTP]
+    governance: [GAP-06]
+
+  - operation_id: listFulfillmentCases
+    method: GET
+    path: /api/v1/fulfillment/cases
+    category: ORG_READ
+    capability: fulfillment.case.read
+    feature_flag: biawin_fulfillment.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/fulfillment/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-06]
+
+  - operation_id: getFulfillmentCase
+    method: GET
+    path: /api/v1/fulfillment/cases/{case_id}
+    category: ORG_READ
+    capability: fulfillment.case.read
+    feature_flag: biawin_fulfillment.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/fulfillment/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-06]
+
+  - operation_id: listFulfillmentCaseHistory
+    method: GET
+    path: /api/v1/fulfillment/cases/{case_id}/history
+    category: ORG_READ
+    capability: fulfillment.case.read
+    feature_flag: biawin_fulfillment.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/fulfillment/http/http.go
+    nt07: REQUIRED
+    governance: [GAP-06]
+
+  - operation_id: getCaseContactOutcomes
+    method: GET
+    path: /api/v1/cases/{case_id}/contact-outcomes
+    category: ORG_READ
+    capability: cases.case.read
+    feature_flag: sales.read_shadow
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/cases/http/write.go
+    nt07: REQUIRED
+    governance: [M2 rec. 1, rec. 2]
+
+  - operation_id: recordContactOutcome
+    method: POST
+    path: /api/v1/cases/{case_id}/contact-outcomes
+    category: BUSINESS_COMMAND
+    capability: cases.contact_outcome.record
+    feature_flag: cases.nonfinancial_write
+    scope: COMMAND:case_current_holder
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/cases/http/write.go
+    nt07: NOT_A_READ
+    row_authorization: Only the current custody holder of the lead may record (cases/command/contact_outcome.go Holders); unknown holder fails closed.
+    separation_of_duties: NOT_ENFORCED_IN_COMMAND
+    tests: [internal/integration/legacy/shadow/writes_e2e_test.go:TestContactOutcomeCommand, internal/integration/legacy/shadow/writes_http_e2e_test.go:TestWritesHTTP]
+    governance: [M2 rec. 1]
+
+  - operation_id: listHRRequests
+    method: GET
+    path: /api/v1/hr/requests
+    category: OWN_READ
+    capability: org.hr_request.read
+    feature_flag: organization.hr_request_write
+    scope: OWN:hr_request_participant
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/organization/http/hrrequest.go
+    nt07: REQUIRED
+    unproven_user: EMPTY_WITHOUT_QUERY
+    governance: [OPD-05]
+
+  - operation_id: createHRRequest
+    method: POST
+    path: /api/v1/hr/requests
+    category: BUSINESS_COMMAND
+    capability: org.hr_request.create
+    feature_flag: organization.hr_request_write
+    scope: COMMAND:hr_subject_descendant_of_actor
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/organization/http/hrrequest.go
+    nt07: NOT_A_READ
+    row_authorization: Actor holds one linked active creator employment and the subject is a current REPORTS_TO descendant (organization/hrrequest/hrrequest.go); HR creator and every apply effect BLOCKED (OPD-05, SD-04).
+    separation_of_duties: 'APPLIES: the computed next reviewer is never the requester (DEF-HR-01, hrrequest.nextReviewer).'
+    tests: [internal/integration/legacy/shadow/writes_e2e_test.go:TestHRRequestCommands, internal/integration/legacy/shadow/r7_4_hrrequest_hardening_test.go:TestHRRequestR74Creation, internal/integration/legacy/shadow/r7_4_hrrequest_hardening_test.go:TestHRRequestR74HTTPCapability]
+    governance: [OPD-05]
+
+  - operation_id: getHRRequest
+    method: GET
+    path: /api/v1/hr/requests/{request_id}
+    category: OWN_READ
+    capability: org.hr_request.read
+    feature_flag: organization.hr_request_write
+    scope: OWN:hr_request_participant
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/organization/http/hrrequest.go
+    nt07: REQUIRED
+    unproven_user: NOT_FOUND_WITHOUT_QUERY
+    governance: [OPD-05]
+
+  - operation_id: decideHRRequest
+    method: POST
+    path: /api/v1/hr/requests/{request_id}/decisions
+    category: BUSINESS_COMMAND
+    capability: org.hr_request.review
+    feature_flag: organization.hr_request_write
+    scope: COMMAND:hr_request_next_reviewer
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/organization/http/hrrequest.go
+    nt07: NOT_A_READ
+    row_authorization: Actor must equal the request next_reviewer_user_id with an active employment; pending_hr and HR finalisation BLOCKED (OPD-05, SD-04).
+    separation_of_duties: 'APPLIES: reviewer is the snapshotted next reviewer, never the requester (DEF-HR-01).'
+    tests: [internal/integration/legacy/shadow/r7_4_hrrequest_hardening_test.go:TestHRRequestR74Decisions, internal/integration/legacy/shadow/r7_4_hrrequest_hardening_test.go:TestHRRequestR74NoApplyEffects, internal/integration/legacy/shadow/r7_4_def_hr_01_test.go:TestR74DefectHRSelfParentReviewer, internal/integration/legacy/shadow/r7_4_def_hr_01_test.go:TestDEFHR01HierarchyChangesBeforeDecision]
+    governance: [OPD-05]
+
+  - operation_id: getWritebackSummary
+    method: GET
+    path: /api/v1/writeback/summary
+    category: ORG_READ
+    capability: integration.writeback.read
+    feature_flag: integration.writeback_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/integration/writeback/http/http.go
+    nt07: REQUIRED
+
+  - operation_id: listWritebackCommands
+    method: GET
+    path: /api/v1/writeback/commands
+    category: ORG_READ
+    capability: integration.writeback.read
+    feature_flag: integration.writeback_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/integration/writeback/http/http.go
+    nt07: REQUIRED
+
+  - operation_id: getWritebackCommand
+    method: GET
+    path: /api/v1/writeback/commands/{command_id}
+    category: ORG_READ
+    capability: integration.writeback.read
+    feature_flag: integration.writeback_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/integration/writeback/http/http.go
+    nt07: REQUIRED
+
+  - operation_id: stagePaymentUpload
+    method: POST
+    path: /api/v1/payments/uploads
+    category: BUSINESS_COMMAND
+    capability: payments.upload.stage
+    feature_flag: payments.manual_write
+    scope: COMMAND:upload_actor_user_id
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/payments/http/write.go
+    nt07: NOT_A_READ
+    row_authorization: Upload is bound to the proven actor user id (payments/command/upload.go); no row of another user is read.
+    separation_of_duties: NOT_ENFORCED_IN_COMMAND
+    tests: [internal/integration/legacy/shadow/payments_http_e2e_test.go:TestPaymentsHTTP, internal/integration/legacy/shadow/payments_upload_lifecycle_e2e_test.go:TestUploadRevivalRace]
+    governance: [M2 rec. 1]
+
+  - operation_id: getPaymentSubmission
+    method: GET
+    path: /api/v1/payments/invoices/{invoice_id}/submission
+    category: OWN_READ
+    capability: payments.submission.read
+    feature_flag: payments.manual_write
+    scope: OWN:invoice_seller_and_issuer_user_id
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/payments/http/write.go
+    nt07: REQUIRED
+    unproven_user: NOT_FOUND_WITHOUT_QUERY
+    tests: [internal/integration/legacy/shadow/payments_submission_nonenum_e2e_test.go:TestPaymentSubmissionNonEnumeration]
+    governance: [M2 rec. 2]
+
+  - operation_id: submitPaymentBatch
+    method: POST
+    path: /api/v1/payments/invoices/{invoice_id}/batches
+    category: BUSINESS_COMMAND
+    capability: payments.batch.submit
+    feature_flag: payments.manual_write
+    scope: COMMAND:invoice_seller_and_issuer_user_id
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/payments/http/write.go
+    nt07: NOT_A_READ
+    row_authorization: Actor must be both invoice seller_user_id and issued_by_user_id; NULL never owns (payments/command/command.go evaluateTarget, OPD-10).
+    separation_of_duties: 'NOT_ENFORCED_IN_COMMAND: Finance review is a separate read surface (finance.review.read); no review decision command exists.'
+    tests: [internal/integration/legacy/shadow/payments_writes_e2e_test.go:TestPaymentBatchCommand, internal/payments/command/ownership_test.go:TestOwnsTargetMatchesCommandPredicate]
+    governance: [OPD-10]
+
+  - operation_id: getPaymentBatch
+    method: GET
+    path: /api/v1/payments/batches/{batch_id}
+    category: OWN_READ
+    capability: payments.submission.read
+    feature_flag: payments.manual_write
+    scope: OWN:payment_batch_actor_user_id
+    subject: AUTHENTICATED_USER_ID
+    enforcement: internal/payments/http/write.go
+    nt07: REQUIRED
+    unproven_user: NOT_FOUND_WITHOUT_QUERY
+
+  - operation_id: getPaymentEvidence
+    method: GET
+    path: /api/v1/payments/evidence
+    category: ORG_READ
+    capability: payments.evidence.read
+    feature_flag: payments.manual_write
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/payments/http/write.go
+    nt07: REQUIRED
+    governance: [D-44]
+
+  - operation_id: listFinanceReviewQueue
+    method: GET
+    path: /api/v1/finance/review/attempts
+    category: REVIEW_READ
+    capability: finance.review.read
+    feature_flag: finance.review_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/review.go
+    nt07: REQUIRED
+    governance: [GAP-03, OPD-08]
+
+  - operation_id: getFinanceReviewAttempt
+    method: GET
+    path: /api/v1/finance/review/attempts/{attempt_id}
+    category: REVIEW_READ
+    capability: finance.review.read
+    feature_flag: finance.review_read
+    scope: ORGANIZATION
+    subject: AUTHENTICATED_PRINCIPAL
+    enforcement: internal/finance/http/review.go
+    nt07: REQUIRED
+    governance: [GAP-03, OPD-08]

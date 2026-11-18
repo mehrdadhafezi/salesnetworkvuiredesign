@@ -60,30 +60,19 @@ import (
 
 const bundledSpec = "../../../api/openapi/openapi.bundled.yaml"
 
-// notScopeGuarded are the GET operations that are deliberately NOT guarded
-// by a business capability, so a business scope guard does not apply to
-// them (leak-surface audit §2, "NOT APPLICABLE"). Adding to this list is a
-// security decision and needs review.
-var notScopeGuarded = map[string]string{
-	"GetHealthLive":      "public liveness probe; no data",
-	"GetHealthReady":     "public readiness probe; no data",
-	"GetSession":         "session-only: the caller's own principal and feature switches",
-	"GetEffectiveAccess": "session-only: the caller's own decisions, from the same evaluator",
-}
-
-// ownRowFiltered are guarded reads that refuse an allowed decision without
-// a proven identity user BEFORE any query (existing behaviour, unchanged).
+// The GET operations exempt from NT-07 (not guarded by a business
+// capability) and the own reads that refuse an unproven user before any
+// query are no longer hand-maintained here: both are derived from the
+// committed operation scope registry (testdata/operation_scope_registry.yaml,
+// RM-E04B / A4, NT-22), whose exemptions must also match the approved list
+// in operation_registry_test.go and whose unproven-user behaviour is
+// observed, not declared. See notScopeGuarded and ownRowFiltered there.
 //
-// Not listed, by design (existing behaviour, recorded as RM-E04B remaining
-// risk R-2): GetFulfillmentWorkCase reads the case, then resolves the
-// caller's service scope; an unproven user has an empty scope and gets 404,
-// so nothing is returned, but the detail query runs before identity is
-// proven. The HR request reads filter by the caller and return nothing for
-// an unproven user without a query (hrrequest.Service.List / Get).
-var ownRowFiltered = map[string]bool{
-	"ListMyCommissionEarnings": true,
-	"ListFulfillmentWorkCases": true,
-}
+// Recorded as RM-E04B remaining risk R-2 (existing behaviour, unchanged):
+// GetFulfillmentWorkCase reads the case, then resolves the caller's service
+// scope; an unproven user has an empty scope and gets 404, so nothing is
+// returned, but the detail query runs before identity is proven (registry
+// unproven_user: QUERY_BEFORE_IDENTITY).
 
 // platformStub serves the operations that the API server composes itself.
 // They are never reached by NT-07 (classified above).
@@ -281,48 +270,70 @@ func sample(p *openapi3.Parameter) string {
 	return synID
 }
 
-func getOperations(t *testing.T) []getOp {
+// specOp is one operation of the contract, with a request URL whose path
+// and required query parameters carry well-formed synthetic values.
+type specOp struct {
+	operationID, method, path, url string
+}
+
+// goID is the Go method name of the strict handler: the operationId with
+// its first letter upper-cased.
+func goID(operationID string) string {
+	return strings.ToUpper(operationID[:1]) + operationID[1:]
+}
+
+// specOperations enumerates every operation (paths x methods) of the
+// bundled contract. NT-07 and the NT-22 registry guard share this one
+// inventory, so the two cannot drift.
+func specOperations(t *testing.T) []specOp {
 	t.Helper()
 	doc, err := openapi3.NewLoader().LoadFromFile(bundledSpec)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var out []getOp
-	total := 0
+	var out []specOp
 	for path, item := range doc.Paths.Map() {
-		total += len(item.Operations())
-		op := item.Get
-		if op == nil {
-			continue
-		}
-		params := append(openapi3.Parameters{}, item.Parameters...)
-		params = append(params, op.Parameters...)
-		url := path
-		var q []string
-		for _, pr := range params {
-			p := pr.Value
-			switch p.In {
-			case "path":
-				url = strings.ReplaceAll(url, "{"+p.Name+"}", sample(p))
-			case "query":
-				if p.Required {
-					q = append(q, p.Name+"="+sample(p))
+		for method, op := range item.Operations() {
+			params := append(openapi3.Parameters{}, item.Parameters...)
+			params = append(params, op.Parameters...)
+			url := path
+			var q []string
+			for _, pr := range params {
+				p := pr.Value
+				switch p.In {
+				case "path":
+					url = strings.ReplaceAll(url, "{"+p.Name+"}", sample(p))
+				case "query":
+					if p.Required {
+						q = append(q, p.Name+"="+sample(p))
+					}
 				}
 			}
+			if pathParam.MatchString(url) {
+				t.Fatalf("%s: unresolved path parameter in %s", op.OperationID, url)
+			}
+			if len(q) > 0 {
+				url += "?" + strings.Join(q, "&")
+			}
+			out = append(out, specOp{operationID: op.OperationID, method: method, path: path, url: url})
 		}
-		if pathParam.MatchString(url) {
-			t.Fatalf("%s: unresolved path parameter in %s", op.OperationID, url)
-		}
-		if len(q) > 0 {
-			url += "?" + strings.Join(q, "&")
-		}
-		// Go method name of the strict handler = operationId, first letter upper.
-		id := strings.ToUpper(op.OperationID[:1]) + op.OperationID[1:]
-		out = append(out, getOp{id: id, path: path, url: url})
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].id < out[j].id })
-	if total != 105 {
-		t.Errorf("contract has %d operations, the reconciled inventory has 105; re-run the RM-E04B reconciliation", total)
+	sort.Slice(out, func(i, j int) bool { return out[i].operationID < out[j].operationID })
+	return out
+}
+
+func getOperations(t *testing.T) []getOp {
+	t.Helper()
+	all := specOperations(t)
+	var out []getOp
+	for _, op := range all {
+		if op.method != http.MethodGet {
+			continue
+		}
+		out = append(out, getOp{id: goID(op.operationID), path: op.path, url: op.url})
+	}
+	if len(all) != 105 {
+		t.Errorf("contract has %d operations, the reconciled inventory has 105; re-run the RM-E04B reconciliation", len(all))
 	}
 	return out
 }
@@ -379,8 +390,9 @@ func assertRefused(t *testing.T, op getOp, o outcome, reason reasoncodes.Code) {
 
 func guardedOps(t *testing.T) []getOp {
 	var out []getOp
+	skip := notScopeGuarded(t)
 	for _, op := range getOperations(t) {
-		if _, skip := notScopeGuarded[op.id]; !skip {
+		if _, exempt := skip[op.id]; !exempt {
 			out = append(out, op)
 		}
 	}
@@ -400,12 +412,13 @@ func TestNT07Inventory(t *testing.T) {
 	for _, op := range ops {
 		seen[op.id] = true
 	}
-	for id := range notScopeGuarded {
+	exempt := notScopeGuarded(t)
+	for id := range exempt {
 		if !seen[id] {
 			t.Errorf("classified operation %s is not a GET operation of the contract", id)
 		}
 	}
-	if g := len(ops) - len(notScopeGuarded); g != 88 {
+	if g := len(ops) - len(exempt); g != 88 {
 		t.Errorf("%d capability-guarded GET operations, want 88 (51 previously MISSING + 37 PRESENT)", g)
 	}
 }
@@ -510,15 +523,19 @@ func TestNT07GuardError(t *testing.T) {
 func TestNT07MissingIdentity(t *testing.T) {
 	h := compose(seamGuard(t, flagOn, withoutUser, allowWith(authorization.ScopeOrganization)))
 	n := 0
+	own := ownRowFiltered(t)
+	if len(own) == 0 {
+		t.Fatal("registry declares no own read that refuses an unproven user; NT-07 missing-identity coverage would be vacuous")
+	}
 	for _, op := range guardedOps(t) {
-		if !ownRowFiltered[op.id] {
+		if !own[op.id] {
 			continue
 		}
 		n++
 		assertRefused(t, op, serve(h, op.url), reasoncodes.RowScopeDenied)
 	}
-	if n != len(ownRowFiltered) {
-		t.Fatalf("checked %d own-filtered operations, want %d", n, len(ownRowFiltered))
+	if n != len(own) {
+		t.Fatalf("checked %d own-filtered operations, want %d", n, len(own))
 	}
 }
 
