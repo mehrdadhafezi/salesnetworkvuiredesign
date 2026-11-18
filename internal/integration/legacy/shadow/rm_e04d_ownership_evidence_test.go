@@ -7,9 +7,10 @@ package shadow_test
 // excludes, or leaves UNKNOWN. It is NOT real-data evidence: rates on synthetic fixtures say nothing about
 // production volumes (ADR #18 governs real data). It changes no row, grant, flag or status.
 //
-// Opt-in output: CRM_RME04D_EVIDENCE=1 prints the measured table (go test -v). The assertions only pin
-// that the synthetic dataset still contains every category the decision sheet relies on, so the sheet's
-// claims stay reproducible.
+// Opt-in output: CRM_RME04D_EVIDENCE=1 prints the measured table (go test -v). Every value is PINNED to the
+// number quoted in docs/implementation/rm-e04d-codex-security-review-package.md §2: the R7-5 dataset is
+// deterministic, so an empty or changed seed fails here instead of passing vacuously on zero rows, and the
+// documents cannot drift from the fixture without a reviewed change to both.
 
 import (
 	"context"
@@ -85,24 +86,25 @@ func TestRME04DOwnershipPredicateEvidence(t *testing.T) {
 		}
 		t.Logf("RM-E04D synthetic ownership evidence (R7-5 %s):\n%s", "syn-r7-5-integrated-v1", b.String())
 	}
-	// Invariants the decision sheet relies on (they hold by construction, whatever the counts are).
-	n := func(k string) int {
-		var x int
-		if _, err := fmt.Sscan(got[k], &x); err != nil {
-			t.Fatalf("%s: %q", k, got[k])
+	// Exact population quoted in the review package §2 (RM-E04D). Non-zero categories are the ones the decision
+	// sheet relies on; a missing seed makes every one of them fail.
+	want := map[string]string{
+		"case.total_assignments": "6", "case.present": "6",
+		"case.P1_derived_holder_known": "3", "case.P2_legacy_holder_guarded_known": "4", "case.P2_legacy_holder_unguarded_known": "5",
+		"case.P1_and_P2_agree": "2", "case.P1_P2_both_known_but_differ": "1", "case.legacy_holder_unresolved": "1",
+		"case.historical_reassigned": "1", "case.events_unknown_kind": "1",
+		"inv.total": "4", "inv.seller_null": "0", "inv.issuer_null": "0", "inv.seller_eq_issuer": "0", "inv.seller_ne_issuer": "4",
+		"inv.case_link_resolved": "1", "inv.case_link_not_resolved": "3", "inv.via_case_holder_eq_seller": "1", "inv.via_case_holder_ne_seller": "0",
+		"attr.facet_resolution":      "CREDIT_OWNER:UNKNOWN=4, ORIGINAL_OWNER:NOT_RECOVERABLE=2, ORIGINAL_OWNER:RESOLVED=4, ORIGINAL_SELLER:NOT_RECOVERABLE=2, ORIGINAL_SELLER:RESOLVED=3, ORIGINAL_SELLER:UNKNOWN=1",
+		"attr.resolved_without_user": "0",
+		"com.entitlements":           "19", "com.holder_null": "0", "com.holder_ne_invoice_seller": "4", "com.invoice_unlinked": "0",
+	}
+	if len(want) != len(rmE04DQueries) {
+		t.Fatalf("%d queries but %d pinned values; pin every measure", len(rmE04DQueries), len(want))
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s = %s, want %s (R7-5 population changed or missing; update the review package §2 with it)", k, got[k], v)
 		}
-		return x
-	}
-	if n("case.P1_and_P2_agree") > n("case.P1_derived_holder_known") || n("case.P1_and_P2_agree") > n("case.P2_legacy_holder_guarded_known") {
-		t.Errorf("agreement cannot exceed either predicate")
-	}
-	if n("case.P2_legacy_holder_guarded_known") > n("case.P2_legacy_holder_unguarded_known") {
-		t.Errorf("the guard can only remove rows")
-	}
-	if n("inv.seller_eq_issuer")+n("inv.seller_ne_issuer") > n("inv.total") {
-		t.Errorf("invoice partition exceeds total")
-	}
-	if n("inv.case_link_resolved")+n("inv.case_link_not_resolved") != n("inv.total") {
-		t.Errorf("case-link partition does not cover all invoices")
 	}
 }

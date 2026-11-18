@@ -128,7 +128,12 @@ Every predicate excludes NULL, UNKNOWN, CONFLICT, MULTIPLE and NOT_RECOVERABLE o
 | `TestM2TrackerUnchanged` | any status change of D-42 / D-34 / R5-SEC-01 failed | baseline with nothing recorded, or a valid repository-mode R6 record with every R5 role |
 | `TestR6BTrackerUnchanged` | ADR #18 / P-GOV frozen, and global counts 26/30/5 pinned (this also blocked registering a record) | same rule per record; counts replaced by the existing per-record R5-baseline test |
 | `TestR6ZeroRecordedApprovals` | any file under `approvals/` failed | every file must be a valid repository-mode record, correctly named, for a tracked decision |
-| new `TestRME04DNoActiveGrantPathWithoutD42` | — | `role_grant_shadow_only` must stay defined, and may be dropped only when D-42 is `APPROVED_VERIFIED` |
+| new `TestRME04DNoActiveGrantPathWithoutD42` | — | `00001_identity.sql` must keep `role_grant_shadow_only`; no other migration may touch `identity.role_grant` in code (comments ignored, quoted identifiers normalised) until D-42 is `APPROVED_VERIFIED` |
+| `validateApprovalRecord` (final review) | one person could sign under several roles; verifier / recorder compared without normalisation | one person = one approver (case and spacing normalised); verifier must differ from every approver and the recorder after normalisation |
+| RM-E04C Group B gate (final review) | opened by a Security-only approval; any approved id could be named | approver floor Product + Sales + Security; each gate id must be an R5 inventory row titled as Seller record 1 (capability) / 2 (scope) |
+| new `TestRME04DS4NeedsConversionPaymentContract` | — | no S4 operation or capability in the gate until the billing schema defines the conversion-payment fact |
+| new `TestRME04DNoClaimedSignOff` | — | no Codex / Security sign-off claimed in the RM-E04B/C/D documents; this package stays PENDING |
+| `TestRME04DOwnershipPredicateEvidence` (final review) | invariants only (passed on an empty seed) | every measure pinned to the §2 value; an empty seed fails 18 pins |
 | unchanged | — | `TestR6NoStatusOrOutcomeWithoutApprovalRecord`, `TestApprovalRecordsAppendOnly`, `TestR6TrackerAccountsForEveryR5Record` (41-record tripwire, updated deliberately by the registering PR), RM-E04C Group B gate |
 
 Negative controls (synthetic fixtures in code, plus temporary real-file mutations, restored): a forged status without a record fails; a record without human verification, with `INCONCLUSIVE`, or missing a required role fails; a fixture record fails in repository mode; a wrongly named or untracked approval file fails; dropping the SHADOW-only constraint while D-42 is open fails; a legitimate, verified, role-complete D-42 record **passes** the whole suite.

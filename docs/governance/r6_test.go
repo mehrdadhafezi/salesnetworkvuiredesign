@@ -439,6 +439,11 @@ func isoDate(name, v string) []string {
 
 // recordFileName is the only accepted file name under docs/governance/approvals/. Distinct record types and
 // versions get distinct files, so a new record never overwrites an earlier one.
+// personKey normalises a person's name for identity comparisons (case, surrounding and repeated spaces).
+func personKey(name string) string {
+	return strings.ToLower(strings.Join(strings.Fields(name), " "))
+}
+
 func recordFileName(r approvalRecord) string {
 	id := regexp.MustCompile(`[^A-Za-z0-9-]+`).ReplaceAllString(r.DecisionID, "_")
 	return fmt.Sprintf("%s-v%s-%s.json", strings.Trim(id, "_"), r.DecisionVersion, r.RecordType)
@@ -525,7 +530,13 @@ func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []stri
 		if !a.complete() {
 			p = append(p, fmt.Sprintf("approver %d lacks name, role or authority evidence", i))
 		}
-		names[strings.ToLower(a.Name)] = true
+		// RM-E04D: one person (one account) signing under several roles is one approver, not several
+		// (M2 intake §6; standard §4 "matched by its own approver").
+		if k := personKey(a.Name); k != "" && names[k] {
+			p = append(p, fmt.Sprintf("approver %d: %q already signed under another role; each role needs a different person", i, a.Name))
+		} else {
+			names[k] = true
+		}
 		roles[a.Role] = true
 	}
 	for _, role := range r.IndependentApprovals {
@@ -544,8 +555,8 @@ func validateApprovalRecord(r approvalRecord, inRepository bool) (string, []stri
 		p = append(p, "human verification lacks verifier or method")
 	}
 	p = append(p, isoDate("human_verification.date", h.Date)...)
-	v := strings.ToLower(h.VerifierName)
-	if names[v] || v == strings.ToLower(r.RecordedBy.Name) {
+	v := personKey(h.VerifierName)
+	if names[v] || v == personKey(r.RecordedBy.Name) {
 		p = append(p, "verifier must not be an approver or the recorder")
 	}
 	for _, bot := range []string{"bot", "automation", "ci", "claude", "codex", "github-actions"} {
@@ -751,23 +762,36 @@ func TestApprovalValidatorRules(t *testing.T) {
 		return r
 	}
 	bad := map[string]func(*approvalRecord){
-		"no decision text":          func(r *approvalRecord) { r.DecisionText = "" },
-		"no approver":               func(r *approvalRecord) { r.Approvers = nil },
-		"no authority evidence":     func(r *approvalRecord) { r.Approvers[0].AuthorityEvidence.Reference = "" },
-		"missing independent role":  func(r *approvalRecord) { r.IndependentApprovals = append(r.IndependentApprovals, "Legal owner") },
-		"bad date":                  func(r *approvalRecord) { r.DecisionDate = "next week" },
-		"effective before decision": func(r *approvalRecord) { r.EffectiveDate = "2029-12-31" },
-		"unknown outcome":           func(r *approvalRecord) { r.Outcome = "APPROVED_VERIFIED" },
-		"deferral outcome":          func(r *approvalRecord) { r.Outcome = "DEFERRED" },
-		"superseded without target": func(r *approvalRecord) { r.Outcome, r.Supersedes = "SUPERSEDED", nil },
-		"no immutable reference":    func(r *approvalRecord) { r.ImmutableRef = "" },
-		"no conditions statement":   func(r *approvalRecord) { r.Conditions = "" },
-		"no recorder":               func(r *approvalRecord) { r.RecordedBy = person{} },
-		"unknown record type":       func(r *approvalRecord) { r.RecordType = "" },
-		"carries notice fields":     func(r *approvalRecord) { r.NoticeDate = "2030-01-01" },
-		"verifier is an approver":   func(r *approvalRecord) { *r = verified("Fixture Approver") },
-		"verifier is the recorder":  func(r *approvalRecord) { *r = verified("Fixture Recorder") },
-		"verifier is automation":    func(r *approvalRecord) { *r = verified("github-actions[bot]") },
+		"no decision text":                  func(r *approvalRecord) { r.DecisionText = "" },
+		"no approver":                       func(r *approvalRecord) { r.Approvers = nil },
+		"no authority evidence":             func(r *approvalRecord) { r.Approvers[0].AuthorityEvidence.Reference = "" },
+		"missing independent role":          func(r *approvalRecord) { r.IndependentApprovals = append(r.IndependentApprovals, "Legal owner") },
+		"bad date":                          func(r *approvalRecord) { r.DecisionDate = "next week" },
+		"effective before decision":         func(r *approvalRecord) { r.EffectiveDate = "2029-12-31" },
+		"unknown outcome":                   func(r *approvalRecord) { r.Outcome = "APPROVED_VERIFIED" },
+		"deferral outcome":                  func(r *approvalRecord) { r.Outcome = "DEFERRED" },
+		"superseded without target":         func(r *approvalRecord) { r.Outcome, r.Supersedes = "SUPERSEDED", nil },
+		"no immutable reference":            func(r *approvalRecord) { r.ImmutableRef = "" },
+		"no conditions statement":           func(r *approvalRecord) { r.Conditions = "" },
+		"no recorder":                       func(r *approvalRecord) { r.RecordedBy = person{} },
+		"unknown record type":               func(r *approvalRecord) { r.RecordType = "" },
+		"carries notice fields":             func(r *approvalRecord) { r.NoticeDate = "2030-01-01" },
+		"verifier is an approver":           func(r *approvalRecord) { *r = verified("Fixture Approver") },
+		"verifier is the recorder":          func(r *approvalRecord) { *r = verified("Fixture Recorder") },
+		"verifier is automation":            func(r *approvalRecord) { *r = verified("github-actions[bot]") },
+		"verifier is an approver (spacing)": func(r *approvalRecord) { *r = verified("  fixture   APPROVER ") },
+		"one person under two roles": func(r *approvalRecord) {
+			a := r.Approvers[0]
+			a.Role = "Legal owner"
+			r.Approvers = append(r.Approvers, a)
+			r.IndependentApprovals = append(r.IndependentApprovals, "Legal owner")
+		},
+		"one person under two roles (case and spacing)": func(r *approvalRecord) {
+			a := r.Approvers[0]
+			a.Name, a.Role = " fixture  approver", "Legal owner"
+			r.Approvers = append(r.Approvers, a)
+			r.IndependentApprovals = append(r.IndependentApprovals, "Legal owner")
+		},
 		"unknown verification result": func(r *approvalRecord) {
 			*r = verified("Fixture Verifier")
 			r.HumanVerification.Result = "AUTO_APPROVED"

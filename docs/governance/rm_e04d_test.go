@@ -71,25 +71,38 @@ func approvalFilesProblems(names []string, load func(name string) (approvalRecor
 }
 
 var shadowOnlyCheck = regexp.MustCompile(`CONSTRAINT role_grant_shadow_only CHECK \(status = 'SHADOW'\)`)
-var shadowOnlyDrop = regexp.MustCompile(`(?i)DROP\s+CONSTRAINT\s+(IF\s+EXISTS\s+)?role_grant_shadow_only`)
 
-// grantConstraintProblems: the DB keeps refusing ACTIVE grants unless D-42 is APPROVED_VERIFIED.
+// grantDefiningMigration is the only migration allowed to define identity.role_grant (RM-E04D).
+const grantDefiningMigration = "00001_identity.sql"
+
+var sqlLineComment = regexp.MustCompile(`--[^\n]*`)
+var sqlBlockComment = regexp.MustCompile(`(?s)/\*.*?\*/`)
+
+// sqlCode strips comments and identifier quotes so `"role_grant_shadow_only"` and role_grant_shadow_only match alike.
+func sqlCode(sql string) string {
+	return strings.ToLower(strings.ReplaceAll(sqlLineComment.ReplaceAllString(sqlBlockComment.ReplaceAllString(sql, " "), " "), `"`, ""))
+}
+
+// grantConstraintProblems: the DB keeps refusing ACTIVE grants unless D-42 is APPROVED_VERIFIED. The defining
+// migration must still carry the SHADOW-only CHECK, and no other migration may touch identity.role_grant or its
+// constraint in code (drop, rename, re-create, alter, a new permissive CHECK, …) while D-42 is not verified.
+// Comments are ignored, so a note such as "role_grant_shadow_only stays" is fine.
 func grantConstraintProblems(migrations map[string]string, d42 trackerRecord) []string {
 	var p []string
-	defined, dropped := false, ""
+	def, ok := migrations[grantDefiningMigration]
+	if !ok || !shadowOnlyCheck.MatchString(def) {
+		p = append(p, grantDefiningMigration+" no longer defines role_grant_shadow_only")
+	}
+	if d42.Status == "APPROVED_VERIFIED" {
+		return p
+	}
 	for name, sql := range migrations {
-		if shadowOnlyCheck.MatchString(sql) {
-			defined = true
+		if name == grantDefiningMigration {
+			continue
 		}
-		if shadowOnlyDrop.MatchString(sql) {
-			dropped = name
+		if strings.Contains(sqlCode(sql), "role_grant") {
+			p = append(p, fmt.Sprintf("%s touches identity.role_grant while D-42 is %s", name, d42.Status))
 		}
-	}
-	if !defined {
-		p = append(p, "identity migrations no longer define role_grant_shadow_only")
-	}
-	if dropped != "" && d42.Status != "APPROVED_VERIFIED" {
-		p = append(p, fmt.Sprintf("%s drops role_grant_shadow_only while D-42 is %s", dropped, d42.Status))
 	}
 	return p
 }
@@ -228,20 +241,142 @@ func TestRME04DApprovalFileRules(t *testing.T) {
 func withID(r approvalRecord, id string) approvalRecord { r.DecisionID = id; return r }
 
 func TestRME04DGrantConstraintRules(t *testing.T) {
-	base := map[string]string{"00001_identity.sql": "CONSTRAINT role_grant_shadow_only CHECK (status = 'SHADOW'),"}
-	dropping := map[string]string{"00001_identity.sql": base["00001_identity.sql"], "00099_grants.sql": "ALTER TABLE identity.role_grant DROP CONSTRAINT role_grant_shadow_only;"}
+	def := "CREATE TABLE identity.role_grant (\n status text NOT NULL,\n CONSTRAINT role_grant_shadow_only CHECK (status = 'SHADOW'),\n);"
+	with := func(extra string) map[string]string {
+		return map[string]string{grantDefiningMigration: def, "00012_identity_authentication.sql": "-- no role grant becomes ACTIVE (role_grant_shadow_only stays)\n/* role_grant untouched */ SELECT 1;", "00099_x.sql": extra}
+	}
 	open := rmFxTracker("D-42", "READY_FOR_REVIEW", "", "NOT_STARTED")
 	approved := rmFxTracker("D-42", "APPROVED_VERIFIED", rmFxRecordPath, "VERIFIED")
-	if p := grantConstraintProblems(base, open); len(p) != 0 {
-		t.Errorf("baseline refused: %v", p)
+	cases := []struct {
+		name string
+		m    map[string]string
+		d42  trackerRecord
+		ok   bool
+	}{
+		{"baseline (comments mentioning the constraint are fine)", with("SELECT 1;"), open, true},
+		{"drop constraint", with("ALTER TABLE identity.role_grant DROP CONSTRAINT role_grant_shadow_only;"), open, false},
+		{"drop constraint, quoted identifiers", with(`ALTER TABLE "identity"."role_grant" DROP CONSTRAINT "role_grant_shadow_only";`), open, false},
+		{"rename constraint", with("ALTER TABLE identity.role_grant RENAME CONSTRAINT role_grant_shadow_only TO x;"), open, false},
+		{"drop and re-create the table", with("DROP TABLE identity.role_grant; CREATE TABLE identity.role_grant (status text);"), open, false},
+		{"add a permissive CHECK", with("ALTER TABLE IDENTITY.ROLE_GRANT ADD CONSTRAINT g CHECK (status IN ('SHADOW','ACTIVE'));"), open, false},
+		{"defining migration redefined", map[string]string{grantDefiningMigration: "CHECK (status IN ('SHADOW','ACTIVE'))"}, open, false},
+		{"grant migration after D-42 is APPROVED_VERIFIED", with("ALTER TABLE identity.role_grant DROP CONSTRAINT role_grant_shadow_only;"), approved, true},
 	}
-	if p := grantConstraintProblems(dropping, open); len(p) == 0 {
-		t.Error("dropping the SHADOW-only constraint while D-42 is open was accepted")
+	for _, c := range cases {
+		if p := grantConstraintProblems(c.m, c.d42); (len(p) == 0) != c.ok {
+			t.Errorf("%s: accepted=%v, want %v (%v)", c.name, len(p) == 0, c.ok, p)
+		}
 	}
-	if p := grantConstraintProblems(dropping, approved); len(p) != 0 {
-		t.Errorf("approved D-42 still blocks the grant migration: %v", p)
+}
+
+// ---------------- S4 readiness: no invoice /me operation without the conversion-payment contract (RM-E04D)
+
+var s4Operations = map[string]bool{"listMyInvoices": true, "getMyInvoice": true, "listMyInvoiceStages": true, "getMyInvoiceTotals": true, "listMyInvoicePayments": true}
+var s4Capabilities = map[string]bool{"billing.own.read": true, "payments.own.read": true}
+
+// conversionPaymentFact: the billing schema carries the legacy conversion-payment link (sn_dot_invoice_links
+// flow_kind) as a fact. Comments do not count.
+var conversionPaymentFact = regexp.MustCompile(`conversion_payment|flow_kind`)
+
+// s4ContractProblems refuses an S4 invoice operation or capability in the Group B gate until the billing
+// migrations define the conversion-payment fact the recommended S4 predicate (I-L) depends on. Without it the
+// predicate collapses to seller AND issuer, which on the synthetic dataset admits no invoice.
+func s4ContractProblems(g rmE04CGate, billing map[string]string) []string {
+	var listed []string
+	for _, o := range g.ApprovedMeOperations {
+		if s4Operations[o] {
+			listed = append(listed, o)
+		}
 	}
-	if p := grantConstraintProblems(map[string]string{"00001_identity.sql": "CHECK (status IN ('SHADOW','ACTIVE'))"}, open); len(p) == 0 {
-		t.Error("a redefined constraint while D-42 is open was accepted")
+	for _, c := range g.ApprovedSellerCapabilities {
+		if s4Capabilities[c] {
+			listed = append(listed, c)
+		}
+	}
+	if len(listed) == 0 {
+		return nil
+	}
+	for _, sql := range billing {
+		if conversionPaymentFact.MatchString(sqlCode(sql)) {
+			return nil
+		}
+	}
+	return []string{fmt.Sprintf("S4 %v listed in the Group B gate, but billing has no conversion-payment fact (B-PR4 data contract)", listed)}
+}
+
+func billingMigrations(t *testing.T) map[string]string {
+	t.Helper()
+	entries, err := os.ReadDir(filepath.Join(root, "internal/billing/migrations/sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[string]string{}
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".sql") {
+			out[e.Name()] = read(t, "internal/billing/migrations/sql/"+e.Name())
+		}
+	}
+	return out
+}
+
+func TestRME04DS4NeedsConversionPaymentContract(t *testing.T) {
+	for _, x := range s4ContractProblems(loadRMEGate(t), billingMigrations(t)) {
+		t.Error(x)
+	}
+}
+
+func TestRME04DS4ContractRules(t *testing.T) {
+	without := map[string]string{"00001_billing.sql": "CREATE TABLE billing.invoice (seller_user_id uuid); -- flow_kind is not imported"}
+	with := map[string]string{"00001_billing.sql": without["00001_billing.sql"], "00020_x.sql": "ALTER TABLE billing.invoice ADD COLUMN conversion_payment_state text;"}
+	cases := []struct {
+		name string
+		g    rmE04CGate
+		m    map[string]string
+		ok   bool
+	}{
+		{"closed gate", rmE04CGate{}, without, true},
+		{"S1 only, no contract needed", rmE04CGate{ApprovedSellerCapabilities: []string{"cases.own.read"}, ApprovedMeOperations: []string{"listMyCases"}}, without, true},
+		{"S4 operation without the contract (a comment does not count)", rmE04CGate{ApprovedMeOperations: []string{"listMyInvoices"}}, without, false},
+		{"S4 capability without the contract", rmE04CGate{ApprovedSellerCapabilities: []string{"billing.own.read"}}, without, false},
+		{"S4 with the contract", rmE04CGate{ApprovedSellerCapabilities: []string{"billing.own.read"}, ApprovedMeOperations: []string{"listMyInvoices"}}, with, true},
+	}
+	for _, c := range cases {
+		if p := s4ContractProblems(c.g, c.m); (len(p) == 0) != c.ok {
+			t.Errorf("%s: accepted=%v, want %v (%v)", c.name, len(p) == 0, c.ok, p)
+		}
+	}
+}
+
+// ---------------- no claimed sign-off (RM-E04D)
+
+// claimedSignOff matches wording that would claim a Codex or Security review that was never recorded.
+var claimedSignOff = regexp.MustCompile(`(?i)(codex|security)[^|\n]{0,40}(signed[ -]off|sign-off (obtained|received|recorded|done|granted)|approved (the|this))|(signed[ -]off|approved) by (codex|security)`)
+
+func TestRME04DNoClaimedSignOff(t *testing.T) {
+	docs := []string{
+		"docs/implementation/rm-e04d-codex-security-review-package.md",
+		"docs/governance/proposals/rm-e04d-seller-governance-readiness.fa.md",
+		"docs/implementation/rm-e04c-seller-authorization-adr-PROPOSED.md",
+		"docs/implementation/rm-e04c-seller-implementation-roadmap.md",
+		"docs/remediation/rm-e04b-payment-submission-non-enumeration.md",
+	}
+	for _, f := range docs {
+		for i, l := range strings.Split(read(t, f), "\n") {
+			if claimedSignOff.MatchString(l) && !regexp.MustCompile(`(?i)pending|not (obtained|recorded|claimed)|no .*(sign-off|review)|required|owed|requested`).MatchString(l) {
+				t.Errorf("%s:%d claims a sign-off: %s", f, i+1, strings.TrimSpace(l))
+			}
+		}
+	}
+	pkg := read(t, "docs/implementation/rm-e04d-codex-security-review-package.md")
+	if !strings.Contains(pkg, "| Status | **REVIEW REQUESTED — PENDING.**") {
+		t.Error("the review package must state PENDING until a review is actually recorded")
+	}
+	for _, s := range []string{"Codex sign-off: APPROVED", "Security sign-off: APPROVED"} {
+		if strings.Contains(pkg, s) {
+			t.Errorf("review package claims %q", s)
+		}
+	}
+	if !claimedSignOff.MatchString("Codex signed off the contract") || claimedSignOff.MatchString("Codex review requested") {
+		t.Error("sign-off detector is miscalibrated")
 	}
 }
