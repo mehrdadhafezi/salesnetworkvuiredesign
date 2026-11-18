@@ -204,7 +204,7 @@ func rmE04CRuntimeProblems(open bool, g rmE04CGate, known func(identityapi.Capab
 		}
 	}
 	for _, o := range rmE04CMeOperations {
-		if regexp.MustCompile(`\boperationId: ` + o + `\b`).MatchString(spec) && !ops[o] {
+		if regexp.MustCompile(`\boperationId: `+o+`\b`).MatchString(spec) && !ops[o] {
 			p = append(p, fmt.Sprintf("operation %s is in the contract without an open Group B gate listing it", o))
 		}
 	}
