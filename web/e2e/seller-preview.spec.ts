@@ -427,6 +427,16 @@ test.describe('A7 states', () => {
     await a7snap(page, info, 'a7-unknown')
   })
 
+  test('A7: FIELD_DENIED leaves no phone or name in attributes or accessible names (S6 timelines included)', async ({ page }) => {
+    await guard(page)
+    await open(page, 'request?sim=field_denied')
+    for (const b of await page.getByRole('button', { name: /^روند/ }).all()) await b.click()
+    const attrs = await page.evaluate(() => Array.from(document.querySelectorAll('*')).flatMap(el => Array.from(el.attributes).map(a => a.value)).join('\n'))
+    expect(attrs).not.toMatch(/0900000\d{4}|۰۹۰۰۰۰۰[۰-۹]{4}|مشتری نمونه/)
+    await expect(page.locator('body')).not.toContainText(/0900000|۰۹۰۰۰۰۰|مشتری نمونه/)
+    await expect(page.getByRole('list', { name: /روند درخواست ثبت‌شده در/ }).first()).toBeAttached()
+  })
+
   test('A7: missing and out-of-scope detail render the same «یافت نشد»', async ({ page }, info) => {
     await guard(page)
     await open(page, 'invoices?inv=TST-9999')

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NOT_FOUND_DETAIL, NOT_FOUND_TITLE, SETTLEMENT_UNDEFINED } from './components/states'
-import { BEHAVIOR, CONVERSIONS, INVOICES, LEADS, REPEAT_ITEMS } from './fixtures/sellerFixtures'
+import { BEHAVIOR, CONVERSIONS, EXTRA_REQUESTS, INVOICES, LEADS, REPEAT_ITEMS } from './fixtures/sellerFixtures'
 import { SellerPreviewPage } from './SellerPreviewPage'
 import { SIMS } from './state/uiState'
 
@@ -247,5 +247,54 @@ describe('S2 / S3 / S5 / S6 previews', () => {
     fireEvent.click(screen.getByRole('button', { name: 'بررسی فرم (نمایشی)' }))
     expect(document.querySelector('.sl-toast')?.textContent).toContain('درخواست ثبت نشد')
     expect(document.querySelectorAll('.sl-mini-list > li')).toHaveLength(3)
+  })
+})
+
+describe('FIELD_DENIED leaves no identity anywhere in the DOM (attributes, accessible names, hidden nodes, palette)', () => {
+  const fa = (s: string) => s.replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)] ?? d)
+  const names = [...ALL_NAMES, ...EXTRA_REQUESTS.map(r => r.name)].filter(n => n !== '—')
+  const phones = [...LEADS, ...INVOICES, ...CONVERSIONS, ...REPEAT_ITEMS, ...BEHAVIOR, ...EXTRA_REQUESTS].map(x => x.phone)
+  const tokens = Array.from(new Set([...names, ...phones, ...phones.map(fa)]))
+
+  /** Every attribute value and every text node (hidden ones included) of the whole document. */
+  function leaks(): string[] {
+    const found: string[] = []
+    for (const el of Array.from(document.querySelectorAll('*'))) {
+      for (const a of Array.from(el.attributes)) {
+        for (const t of tokens) if (a.value.includes(t)) found.push(`<${el.tagName.toLowerCase()} ${a.name}="${a.value}">`)
+      }
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+        for (const t of tokens) if (el.value.includes(t)) found.push(`<${el.tagName.toLowerCase()}> value`)
+      }
+    }
+    const text = document.body.textContent ?? ''
+    for (const t of tokens) if (text.includes(t)) found.push(`text: ${t}`)
+    return found
+  }
+
+  const SCREENS = [
+    'leads?queue=all&lead=900104', 'invoices?inv=TST-1003', 'conversions?case=104', 'repeat?item=301',
+    'behavior?b=b1', 'request', 'wallet',
+  ]
+  it.each(SCREENS)('%s', async path => {
+    renderAt(`/dev/seller/${path}&sim=field_denied`.replace('request&', 'request?').replace('wallet&', 'wallet?'))
+    await screen.findByRole('heading', { level: 1 })
+    // Expand every collapsible timeline so hidden and shown states are both covered.
+    for (const b of screen.queryAllByRole('button', { name: /^روند/ })) fireEvent.click(b)
+    // The detail drawer must really be open on screens that have one (otherwise the scan proves little).
+    if (/[?&](lead|inv|case|item|b)=/.test(path)) expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(leaks()).toEqual([])
+    // The command palette's labels, metadata and search keywords.
+    fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
+    await screen.findByRole('dialog', { name: /فرمان|جستجو/ })
+    expect(leaks()).toEqual([])
+  })
+
+  it('without FIELD_DENIED the synthetic preview still shows identity (control: the scanner sees it)', async () => {
+    renderAt('/dev/seller/request')
+    await screen.findByRole('heading', { level: 1 })
+    expect(leaks().length).toBeGreaterThan(0)
+    const tl = document.querySelector('[aria-label^="روند درخواست"]')
+    expect(tl?.getAttribute('aria-label')).toMatch(/[۰-۹]{11}/)
   })
 })

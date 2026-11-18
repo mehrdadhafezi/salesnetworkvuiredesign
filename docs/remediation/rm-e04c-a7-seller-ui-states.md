@@ -94,6 +94,8 @@ Blocking states (7, 8, 9, 11, 12) also hide header data: nav counts, the open-wo
 
 No security finding against shipped code. One preview defect (S2 invented `0`) was fixed (§3).
 
+**Review follow-up — FIELD_DENIED accessibility leak (fixed).** The S6 request timelines kept the customer phone in their `aria-label` (`روند درخواست ۰۹۰۰…`) while the visible text showed «محدود». Under FIELD_DENIED the label is now `روند درخواست ثبت‌شده در <date>`; it is unchanged when fields are not restricted. A DOM-wide audit of all seven screens (detail drawers open, collapsible timelines expanded, command palette open) scans **every attribute value** (`aria-*`, `title`, `data-*`, `id`, `href`, `placeholder`, …), input values and all text nodes including hidden ones, for every synthetic customer name and phone in ASCII and Persian digits. Before the fix it found exactly these three labels and nothing else; after the fix it finds none. Timeline event text names only synthetic staff roles, never the customer. A control test proves the scanner does see identity when fields are not restricted. Browser test: the same attribute check on all four viewports.
+
 ## 6. Tests and actual results
 
 Run in the worktree at the branch head (Node 22, Vitest 5, Playwright 1.56.1 with the container's Chromium):
@@ -101,12 +103,12 @@ Run in the worktree at the branch head (Node 22, Vitest 5, Playwright 1.56.1 wit
 | Suite | Command | Result |
 |---|---|---|
 | Unit (all web) | `npx vitest run` | **19 files, 229 tests passed** |
-| Seller unit (incl. new) | `npx vitest run src/modules/seller` | **50 passed** (14 existing, 16 `state/uiState.test.ts`, 20 `seller.ui-states.test.tsx`) |
+| Seller unit (incl. new) | `npx vitest run src/modules/seller` | **58 passed** (14 existing, 16 `state/uiState.test.ts`, 28 `seller.ui-states.test.tsx`) |
 | Typecheck | `npm run typecheck`, `npm run typecheck:e2e` | pass |
 | Lint | `npx eslint .`, `npx eslint e2e playwright.seller.config.ts` | pass |
 | Production build | `npm run build` | pass |
 | Bundle isolation | web-ci grep + A7 markers | pass (no leak, no dev chunk) |
-| Seller browser E2E (4 viewports) | `playwright.seller.config.ts` | **57 passed, 23 skipped** (skips are the viewport-specific tests outside their viewport, by design) |
+| Seller browser E2E (4 viewports) | `playwright.seller.config.ts` | **61 passed, 23 skipped** (skips are the viewport-specific tests outside their viewport, by design) |
 | Role navigation E2E (production build) | `playwright.nav.config.ts` | **9 passed, 9 skipped** (viewport-specific) |
 | Governance | `go test ./docs/governance/` | pass |
 | Mutation checks | break FIELD_DENIED in `Who`; make `ScreenFrame` never block; make the classifier fail open; restore the S2 `0` | each caught (1, 6, 1, 1 failing tests); restored tree green |

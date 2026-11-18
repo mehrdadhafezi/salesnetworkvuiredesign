@@ -81,7 +81,7 @@ export function RequestPage() {
                       روند<DsIcon name="chev" className={expanded ? 'sl-rot180' : undefined} />
                     </button>
                   </div>
-                  <div id={`sl-rq-tl-${r.id}`} hidden={!expanded}><Timeline events={r.timeline} label={`روند درخواست ${toFaDigits(r.phone)}`} /></div>
+                  <div id={`sl-rq-tl-${r.id}`} hidden={!expanded}><Timeline events={r.timeline} label={ui.policy.fieldsRestricted ? `روند درخواست ثبت‌شده در ${r.when}` : `روند درخواست ${toFaDigits(r.phone)}`} /></div>
                 </li>
               )
             })}
