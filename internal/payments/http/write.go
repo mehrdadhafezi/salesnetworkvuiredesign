@@ -157,6 +157,9 @@ func (h *WriteHandlers) GetPaymentSubmission(ctx context.Context, req oapi.GetPa
 		return nil, err
 	}
 	if !found {
+		// Missing, not provably owned (another seller, NULL / unknown seller
+		// or issuer, seller ≠ issuer) and no proven user id all read the same
+		// generic 404 (SR-06, RM-E04B / A3, F-09): no invoice-specific body.
 		return oapi.GetPaymentSubmission404ApplicationProblemPlusJSONResponse{Body: authzhttp.NotFound(ctx)}, nil
 	}
 	mode, err := h.mode(ctx)
