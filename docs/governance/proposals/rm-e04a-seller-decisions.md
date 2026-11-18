@@ -41,3 +41,9 @@ These fall **inside** M2 rec. 1 / rec. 2 or existing gaps. They are not new deci
 ## 4. What may proceed without any of these decisions
 
 Execution plan **Group A** only: scope-assertion hardening (F-02), `no-store` (F-07), 404 parity for the submission context (F-09), and the inventory guard test. They change no authority, add no capability and need no approval. Everything else waits.
+
+## 5. Addendum — RM-E04C (baseline `c0d7f4b`)
+
+Group A (§4) is complete: PRs #71, #72, #73, #74 are merged. Nothing in §1–§4 above changes; no status changes.
+
+The next documentation set is RM-E04C: a Persian decision package with an engineering / security recommendation per open decision (recommendations, **not selections**) in [`rm-e04c-seller-decision-package.fa.md`](rm-e04c-seller-decision-package.fa.md); the proposed architecture answer to RM-E04A-Q1 (dedicated `/me/...` operations with a capability-derived `OWN` scope; not accepted) in [`../../implementation/rm-e04c-seller-authorization-adr-PROPOSED.md`](../../implementation/rm-e04c-seller-authorization-adr-PROPOSED.md); and the regrouped roadmap in [`../../implementation/rm-e04c-seller-implementation-roadmap.md`](../../implementation/rm-e04c-seller-implementation-roadmap.md).
