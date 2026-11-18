@@ -23,6 +23,7 @@ package governance
 // PR updates deliberately together with the new inventory rows.
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -269,19 +270,46 @@ func TestRME04DGrantConstraintRules(t *testing.T) {
 	}
 }
 
-// ---------------- S4 readiness: no invoice /me operation without the conversion-payment contract (RM-E04D)
+// ---------------- S4 readiness: fail closed until contract, schema and enforcement are all proven (RM-E04D)
+//
+// A token in a migration (e.g. a column named conversion_payment_note) proves nothing. S4 may enter the Group B
+// gate only when the S4 readiness manifest (rm-e04d-s4-readiness.json) carries three independent proofs:
+//   1. contract   — an approved, verified conversion-payment data-contract decision (R6 rules, Finance + Security);
+//   2. schema     — the declared billing column exists NOT NULL with a CHECK listing an explicit unknown state;
+//   3. enforcement — named tests exist for every I-L case (seller/issuer mismatch, unknown conversion state, …)
+//                    and exercise the declared column.
+// Each proof is checked by its own function; the gate rule requires all of them.
 
 var s4Operations = map[string]bool{"listMyInvoices": true, "getMyInvoice": true, "listMyInvoiceStages": true, "getMyInvoiceTotals": true, "listMyInvoicePayments": true}
 var s4Capabilities = map[string]bool{"billing.own.read": true, "payments.own.read": true}
 
-// conversionPaymentFact: the billing schema carries the legacy conversion-payment link (sn_dot_invoice_links
-// flow_kind) as a fact. Comments do not count.
-var conversionPaymentFact = regexp.MustCompile(`conversion_payment|flow_kind`)
+// Approver floor of the conversion-payment contract: roadmap B5 "Security + Finance review".
+var s4ContractFloorRoles = []string{"Finance owner", "Security owner"}
+var s4ContractTitle = regexp.MustCompile(`(?i)conversion[- ]payment`)
 
-// s4ContractProblems refuses an S4 invoice operation or capability in the Group B gate until the billing
-// migrations define the conversion-payment fact the recommended S4 predicate (I-L) depends on. Without it the
-// predicate collapses to seller AND issuer, which on the synthetic dataset admits no invoice.
-func s4ContractProblems(g rmE04CGate, billing map[string]string) []string {
+// The I-L cases every future S4 implementation must prove with synthetic fixtures.
+var s4EnforcementCategories = []string{
+	"foreign_conversion_hidden",            // seller = me, conversion payment, issuer ≠ me → invisible, not counted
+	"own_conversion_visible",               // seller = me, conversion payment, issuer = me → visible
+	"non_conversion_mismatch_visible",      // seller = me, NOT conversion, issuer ≠ me → visible (legacy 2.0.160)
+	"unknown_conversion_state_fail_closed", // seller = me, conversion state UNKNOWN, issuer ≠ me → invisible
+	"null_owner_hidden",                    // seller or conversion fact NULL → invisible for everyone
+	"out_of_scope_not_found_parity",        // hidden invoice ≡ missing invoice (same 404 body)
+}
+
+type s4Manifest struct {
+	Purpose            string `json:"purpose"`
+	ContractDecisionID string `json:"contract_decision_id"`
+	Schema             struct {
+		Migration    string `json:"migration"`
+		Table        string `json:"table"`
+		Column       string `json:"column"`
+		UnknownState string `json:"unknown_state"`
+	} `json:"schema"`
+	EnforcementTests map[string]string `json:"enforcement_tests"`
+}
+
+func s4Listed(g rmE04CGate) []string {
 	var listed []string
 	for _, o := range g.ApprovedMeOperations {
 		if s4Operations[o] {
@@ -293,15 +321,143 @@ func s4ContractProblems(g rmE04CGate, billing map[string]string) []string {
 			listed = append(listed, c)
 		}
 	}
+	return listed
+}
+
+var sqlIdent = regexp.MustCompile(`^[a-z_][a-z0-9_]*$`)
+
+// s4ContractApprovalProblems — proof 1: the contract decision is registered, is the conversion-payment contract,
+// and is APPROVED_VERIFIED through a valid repository-mode R6 record with the Finance and Security roles.
+func s4ContractApprovalProblems(m s4Manifest, recs map[string]trackerRecord, titles map[string]string, load approvalLoader, inRepo bool) []string {
+	id := m.ContractDecisionID
+	if id == "" {
+		return []string{"no conversion-payment contract decision named"}
+	}
+	var p []string
+	if title, ok := titles[id]; !ok {
+		p = append(p, id+" has no R5 inventory row")
+	} else if !s4ContractTitle.MatchString(title) {
+		p = append(p, fmt.Sprintf("%s (%q) is not the conversion-payment data contract", id, title))
+	}
+	r, ok := recs[id]
+	if !ok {
+		return append(p, id+" is not in the R6 tracker")
+	}
+	if r.Status != "APPROVED_VERIFIED" {
+		return append(p, fmt.Sprintf("%s is %s, not APPROVED_VERIFIED", id, r.Status))
+	}
+	return append(p, rmE04CDecisionProblems(r, "", s4ContractFloorRoles, load, inRepo)...)
+}
+
+// s4SchemaProblems — proof 2: the declared column exists in the declared billing migration, NOT NULL, with a CHECK
+// that lists the explicit unknown state. A column that merely contains a token does not qualify.
+func s4SchemaProblems(m s4Manifest, billing map[string]string) []string {
+	sc := m.Schema
+	col, tbl, unk := strings.ToLower(sc.Column), strings.ToLower(sc.Table), sc.UnknownState
+	if sc.Migration == "" || col == "" || tbl == "" || unk == "" {
+		return []string{"schema proof incomplete (migration, table, column and unknown_state are all required)"}
+	}
+	if !sqlIdent.MatchString(col) || !regexp.MustCompile(`^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$`).MatchString(tbl) {
+		return []string{"schema proof: table must be schema.table and column a plain identifier"}
+	}
+	sql, ok := billing[sc.Migration]
+	if !ok {
+		return []string{sc.Migration + " is not a billing migration"}
+	}
+	code := sqlCode(sql)
+	var p []string
+	if !strings.Contains(code, tbl) {
+		p = append(p, fmt.Sprintf("%s does not touch %s", sc.Migration, tbl))
+	}
+	if !regexp.MustCompile(`\b` + col + `\b[^,;]*\bnot null\b`).MatchString(code) {
+		p = append(p, fmt.Sprintf("%s does not define %s NOT NULL (unknown must be explicit, never NULL)", sc.Migration, col))
+	}
+	if !regexp.MustCompile(`check\s*\([^;]*\b` + col + `\b[^;]*'` + regexp.QuoteMeta(strings.ToLower(unk)) + `'`).MatchString(code) {
+		p = append(p, fmt.Sprintf("%s has no CHECK on %s listing the unknown state %q", sc.Migration, col, unk))
+	}
+	return p
+}
+
+// s4EnforcementProblems — proof 3: every I-L case names an existing Go test that references the declared column.
+func s4EnforcementProblems(m s4Manifest, readFile func(path string) (string, bool)) []string {
+	var p []string
+	seen := map[string]string{}
+	for _, cat := range s4EnforcementCategories {
+		ref := m.EnforcementTests[cat]
+		path, name, ok := strings.Cut(ref, ":")
+		if ref == "" || !ok || name == "" {
+			p = append(p, cat+": no enforcement test named (want path_test.go:TestName)")
+			continue
+		}
+		if prev, dup := seen[ref]; dup {
+			p = append(p, fmt.Sprintf("%s: same test as %s; each case needs its own test", cat, prev))
+		}
+		seen[ref] = cat
+		if !strings.HasPrefix(path, "internal/") || !strings.HasSuffix(path, "_test.go") {
+			p = append(p, cat+": test must be a _test.go file under internal/")
+			continue
+		}
+		src, ok := readFile(path)
+		if !ok {
+			p = append(p, cat+": "+path+" does not exist")
+			continue
+		}
+		if !regexp.MustCompile(`func ` + regexp.QuoteMeta(name) + `\(t \*testing\.T\)`).MatchString(src) {
+			p = append(p, fmt.Sprintf("%s: %s does not define %s", cat, path, name))
+		}
+		if m.Schema.Column == "" || !strings.Contains(src, m.Schema.Column) {
+			p = append(p, fmt.Sprintf("%s: %s does not exercise the declared column %q", cat, path, m.Schema.Column))
+		}
+	}
+	for cat := range m.EnforcementTests {
+		if !slicesContains(s4EnforcementCategories, cat) {
+			p = append(p, "unknown enforcement category "+cat)
+		}
+	}
+	return p
+}
+
+func slicesContains(xs []string, x string) bool {
+	for _, v := range xs {
+		if v == x {
+			return true
+		}
+	}
+	return false
+}
+
+// s4ReadinessProblems — the gate rule: S4 in the gate requires all three proofs; otherwise nothing is required.
+func s4ReadinessProblems(g rmE04CGate, m s4Manifest, recs map[string]trackerRecord, titles map[string]string, load approvalLoader, inRepo bool,
+	billing map[string]string, readFile func(string) (string, bool)) []string {
+	listed := s4Listed(g)
 	if len(listed) == 0 {
 		return nil
 	}
-	for _, sql := range billing {
-		if conversionPaymentFact.MatchString(sqlCode(sql)) {
-			return nil
-		}
+	var p []string
+	for _, x := range s4ContractApprovalProblems(m, recs, titles, load, inRepo) {
+		p = append(p, "contract: "+x)
 	}
-	return []string{fmt.Sprintf("S4 %v listed in the Group B gate, but billing has no conversion-payment fact (B-PR4 data contract)", listed)}
+	for _, x := range s4SchemaProblems(m, billing) {
+		p = append(p, "schema: "+x)
+	}
+	for _, x := range s4EnforcementProblems(m, readFile) {
+		p = append(p, "enforcement: "+x)
+	}
+	if len(p) > 0 {
+		p = append([]string{fmt.Sprintf("S4 %v listed in the Group B gate without the three S4 readiness proofs", listed)}, p...)
+	}
+	return p
+}
+
+func loadS4Manifest(t *testing.T) s4Manifest {
+	t.Helper()
+	var m s4Manifest
+	dec := json.NewDecoder(strings.NewReader(read(t, "docs/governance/rm-e04d-s4-readiness.json")))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&m); err != nil {
+		t.Fatal(err)
+	}
+	return m
 }
 
 func billingMigrations(t *testing.T) map[string]string {
@@ -319,31 +475,126 @@ func billingMigrations(t *testing.T) map[string]string {
 	return out
 }
 
+func repoFile(path string) (string, bool) {
+	b, err := os.ReadFile(filepath.Join(root, filepath.Clean(path)))
+	return string(b), err == nil
+}
+
 func TestRME04DS4NeedsConversionPaymentContract(t *testing.T) {
-	for _, x := range s4ContractProblems(loadRMEGate(t), billingMigrations(t)) {
+	m := loadS4Manifest(t)
+	// The manifest's categories are exactly the required I-L cases (no silent removal of a case).
+	if len(m.EnforcementTests) != len(s4EnforcementCategories) {
+		t.Errorf("manifest has %d enforcement categories, want %d", len(m.EnforcementTests), len(s4EnforcementCategories))
+	}
+	for _, c := range s4EnforcementCategories {
+		if _, ok := m.EnforcementTests[c]; !ok {
+			t.Errorf("manifest lacks enforcement category %s", c)
+		}
+	}
+	for _, x := range s4ReadinessProblems(loadRMEGate(t), m, trackerByID(t), r5Titles(t), repoLoader, true, billingMigrations(t), repoFile) {
 		t.Error(x)
 	}
 }
 
+// ---------------- S4 fixtures (synthetic, in code)
+
+func s4FxManifest(contractID string) s4Manifest {
+	var m s4Manifest
+	m.ContractDecisionID = contractID
+	m.Schema.Migration, m.Schema.Table, m.Schema.Column, m.Schema.UnknownState = "00020_conversion.sql", "billing.invoice", "conversion_payment_state", "UNKNOWN"
+	m.EnforcementTests = map[string]string{}
+	for i, c := range s4EnforcementCategories {
+		m.EnforcementTests[c] = fmt.Sprintf("internal/billing/http/me_invoices_test.go:TestMeInvoices%d", i)
+	}
+	return m
+}
+
+const s4FxSchema = "ALTER TABLE billing.invoice ADD COLUMN conversion_payment_state text NOT NULL DEFAULT 'UNKNOWN',\n" +
+	"  ADD CONSTRAINT invoice_conversion_payment_state CHECK (conversion_payment_state IN ('CONVERSION_PAYMENT', 'NOT_CONVERSION_PAYMENT', 'UNKNOWN'));"
+
+func s4FxTests() func(string) (string, bool) {
+	var b strings.Builder
+	b.WriteString("package http_test\n// synthetic seller ≠ issuer and conversion_payment_state UNKNOWN fixtures\n")
+	for i := range s4EnforcementCategories {
+		fmt.Fprintf(&b, "func TestMeInvoices%d(t *testing.T) {}\n", i)
+	}
+	src := b.String()
+	return func(p string) (string, bool) {
+		if p == "internal/billing/http/me_invoices_test.go" {
+			return src, true
+		}
+		return "", false
+	}
+}
+
 func TestRME04DS4ContractRules(t *testing.T) {
-	without := map[string]string{"00001_billing.sql": "CREATE TABLE billing.invoice (seller_user_id uuid); -- flow_kind is not imported"}
-	with := map[string]string{"00001_billing.sql": without["00001_billing.sql"], "00020_x.sql": "ALTER TABLE billing.invoice ADD COLUMN conversion_payment_state text;"}
-	cases := []struct {
-		name string
-		g    rmE04CGate
-		m    map[string]string
-		ok   bool
-	}{
-		{"closed gate", rmE04CGate{}, without, true},
-		{"S1 only, no contract needed", rmE04CGate{ApprovedSellerCapabilities: []string{"cases.own.read"}, ApprovedMeOperations: []string{"listMyCases"}}, without, true},
-		{"S4 operation without the contract (a comment does not count)", rmE04CGate{ApprovedMeOperations: []string{"listMyInvoices"}}, without, false},
-		{"S4 capability without the contract", rmE04CGate{ApprovedSellerCapabilities: []string{"billing.own.read"}}, without, false},
-		{"S4 with the contract", rmE04CGate{ApprovedSellerCapabilities: []string{"billing.own.read"}, ApprovedMeOperations: []string{"listMyInvoices"}}, with, true},
+	base := map[string]string{"00001_billing.sql": "CREATE TABLE billing.invoice (seller_user_id uuid); -- flow_kind / conversion_payment not imported"}
+	withSchema := map[string]string{"00001_billing.sql": base["00001_billing.sql"], "00020_conversion.sql": s4FxSchema}
+	const cid = "S4-CONTRACT-FIXTURE"
+	titles := map[string]string{cid: "Conversion-payment data contract (sn_dot_invoice_links flow_kind)", "D-42": "Can HR edit sales capabilities?"}
+	approved := func(id string, roles []string, verification string) (map[string]trackerRecord, approvalLoader) {
+		return map[string]trackerRecord{id: rmFxTracker(id, "APPROVED_VERIFIED", rmFxRecordPath, "VERIFIED")}, loaderOf(rmFxDecision(t, id, "APPROVED", verification, roles))
+	}
+	goodRecs, goodLoad := approved(cid, s4ContractFloorRoles, "VERIFIED")
+	s4Gate := rmE04CGate{ApprovedSellerCapabilities: []string{"billing.own.read"}, ApprovedMeOperations: []string{"listMyInvoices"}}
+	full := s4FxManifest(cid)
+
+	type tc struct {
+		name    string
+		g       rmE04CGate
+		m       s4Manifest
+		recs    map[string]trackerRecord
+		load    approvalLoader
+		billing map[string]string
+		files   func(string) (string, bool)
+		ok      bool
+	}
+	none := func(string) (string, bool) { return "", false }
+	cases := []tc{
+		{"closed gate needs nothing", rmE04CGate{}, s4Manifest{}, nil, goodLoad, base, none, true},
+		{"S1 only needs nothing", rmE04CGate{ApprovedSellerCapabilities: []string{"cases.own.read"}, ApprovedMeOperations: []string{"listMyCases"}}, s4Manifest{}, nil, goodLoad, base, none, true},
+		{"S4 with an empty manifest (today)", s4Gate, s4Manifest{}, nil, goodLoad, base, none, false},
+		{"S4 with an unrelated column that merely contains the token", s4Gate, s4Manifest{}, nil, goodLoad,
+			map[string]string{"00001_billing.sql": base["00001_billing.sql"], "00021_note.sql": "ALTER TABLE billing.invoice ADD COLUMN conversion_payment_note text;"}, none, false},
+		{"S4 with a token-only manifest pointing at the unrelated column", s4Gate, func() s4Manifest {
+			m := full
+			m.Schema.Migration, m.Schema.Column = "00021_note.sql", "conversion_payment_note"
+			return m
+		}(), goodRecs, goodLoad, map[string]string{"00021_note.sql": "ALTER TABLE billing.invoice ADD COLUMN conversion_payment_note text;"}, s4FxTests(), false},
+		{"S4 with all three proofs", s4Gate, full, goodRecs, goodLoad, withSchema, s4FxTests(), true},
+		{"contract not approved (READY_FOR_REVIEW)", s4Gate, full, map[string]trackerRecord{cid: rmFxTracker(cid, "READY_FOR_REVIEW", "", "NOT_STARTED")}, goodLoad, withSchema, s4FxTests(), false},
+		{"contract approval unverified", s4Gate, full, goodRecs, loaderOf(rmFxDecision(t, cid, "APPROVED", "", s4ContractFloorRoles)), withSchema, s4FxTests(), false},
+		{"contract approved without Security", s4Gate, full, goodRecs, loaderOf(rmFxDecision(t, cid, "APPROVED", "VERIFIED", []string{"Finance owner"})), withSchema, s4FxTests(), false},
+		{"an unrelated approved decision named as the contract", s4Gate, s4FxManifest("D-42"), func() map[string]trackerRecord { r, _ := approved("D-42", s4ContractFloorRoles, "VERIFIED"); return r }(),
+			loaderOf(rmFxDecision(t, "D-42", "APPROVED", "VERIFIED", s4ContractFloorRoles)), withSchema, s4FxTests(), false},
+		{"schema missing", s4Gate, full, goodRecs, goodLoad, base, s4FxTests(), false},
+		{"schema column nullable", s4Gate, full, goodRecs, goodLoad, map[string]string{"00020_conversion.sql": strings.Replace(s4FxSchema, "NOT NULL ", "", 1)}, s4FxTests(), false},
+		{"schema CHECK without the unknown state", s4Gate, full, goodRecs, goodLoad, map[string]string{"00020_conversion.sql": strings.Replace(s4FxSchema, ", 'UNKNOWN'))", "))", 1)}, s4FxTests(), false},
+		{"schema only in a comment", s4Gate, full, goodRecs, goodLoad, map[string]string{"00020_conversion.sql": "-- " + strings.ReplaceAll(s4FxSchema, "\n", "\n-- ")}, s4FxTests(), false},
+		{"enforcement tests missing", s4Gate, full, goodRecs, goodLoad, withSchema, none, false},
+		{"one enforcement category missing", s4Gate, func() s4Manifest {
+			m := s4FxManifest(cid)
+			delete(m.EnforcementTests, "unknown_conversion_state_fail_closed")
+			return m
+		}(), goodRecs, goodLoad, withSchema, s4FxTests(), false},
+		{"two categories share one test", s4Gate, func() s4Manifest {
+			m := s4FxManifest(cid)
+			m.EnforcementTests["own_conversion_visible"] = m.EnforcementTests["foreign_conversion_hidden"]
+			return m
+		}(), goodRecs, goodLoad, withSchema, s4FxTests(), false},
+		{"enforcement tests that never touch the column", s4Gate, full, goodRecs, goodLoad, withSchema, func(p string) (string, bool) {
+			src, ok := s4FxTests()(p)
+			return strings.ReplaceAll(src, "conversion_payment_state", "something_else"), ok
+		}, false},
 	}
 	for _, c := range cases {
-		if p := s4ContractProblems(c.g, c.m); (len(p) == 0) != c.ok {
+		if p := s4ReadinessProblems(c.g, c.m, c.recs, titles, c.load, false, c.billing, c.files); (len(p) == 0) != c.ok {
 			t.Errorf("%s: accepted=%v, want %v (%v)", c.name, len(p) == 0, c.ok, p)
 		}
+	}
+	// In repository mode the synthetic contract approval can never satisfy proof 1.
+	if p := s4ReadinessProblems(s4Gate, full, goodRecs, titles, goodLoad, true, withSchema, s4FxTests()); len(p) == 0 {
+		t.Error("a synthetic contract approval satisfied the S4 rule in repository mode")
 	}
 }
 

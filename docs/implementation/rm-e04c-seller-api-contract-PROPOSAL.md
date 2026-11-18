@@ -38,7 +38,7 @@ Architecture: [`rm-e04c-seller-authorization-adr-PROPOSED.md`](rm-e04c-seller-au
 
 Not proposed (no server source / contract): S2 list, S3, S5, S6. Not proposed until GAP-04: `/me/cases/{case_id}/customer-contact`.
 
-**RM-E04D correction:** the S4 basis `INVOICE_SELLER_AND_ISSUER` above is withdrawn as the recommendation. The legacy-equivalent I-L basis is recommended instead (see `rm-e04d-codex-security-review-package.md` §3). No S4 operation may enter the Group B gate before the billing schema carries the conversion-payment fact; `TestRME04DS4NeedsConversionPaymentContract` enforces this.
+**RM-E04D correction:** the S4 basis `INVOICE_SELLER_AND_ISSUER` above is withdrawn as the recommendation. The legacy-equivalent I-L basis is recommended instead (see `rm-e04d-codex-security-review-package.md` §3). No S4 operation may enter the Group B gate before the three readiness proofs exist: an approved contract, the schema fact with an explicit unknown state, and the I-L enforcement tests (`docs/governance/rm-e04d-s4-readiness.json`). `TestRME04DS4NeedsConversionPaymentContract` enforces this.
 
 ## 3. OpenAPI 3.0 fragment
 
