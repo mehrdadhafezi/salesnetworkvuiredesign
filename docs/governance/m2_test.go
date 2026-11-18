@@ -22,27 +22,19 @@ var m2Approvers = map[string][]string{
 	"R5-SEC-01 (proposed ADR)": {"Security owner", "HR owner", "Legal owner", "Product owner"},
 }
 
+// M2 decisions stay at READY_FOR_REVIEW in meeting M2 with nothing recorded, unless a valid R6 approval
+// record with every R5 approver role justifies a later status (RM-E04D: no freeze of legitimate approvals).
 func TestM2TrackerUnchanged(t *testing.T) {
-	seen := map[string]bool{}
-	for _, r := range loadTracker(t).Records {
-		if _, ok := m2Approvers[r.ID]; !ok {
-			continue
-		}
-		seen[r.ID] = true
-		if r.Status != "READY_FOR_REVIEW" || r.ApprovalRecord != "" || r.Verification != "NOT_STARTED" || r.Meeting != "M2" {
-			t.Errorf("%s: status %s, record %q, verification %s, meeting %s; want READY_FOR_REVIEW, none, NOT_STARTED, M2",
-				r.ID, r.Status, r.ApprovalRecord, r.Verification, r.Meeting)
-		}
-		for k, v := range r.Outcome {
-			if v != "" {
-				t.Errorf("%s: outcome %s is filled", r.ID, k)
-			}
+	recs := trackerByID(t)
+	base := map[string]string{}
+	for id := range m2Approvers {
+		base[id] = "READY_FOR_REVIEW"
+		if r, ok := recs[id]; ok && r.Meeting != "M2" {
+			t.Errorf("%s: meeting %s, want M2", id, r.Meeting)
 		}
 	}
-	for id := range m2Approvers {
-		if !seen[id] {
-			t.Errorf("%s missing from the tracker", id)
-		}
+	for _, x := range baselineOrVerifiedProblems(recs, base, repoLoader, true) {
+		t.Error(x)
 	}
 }
 

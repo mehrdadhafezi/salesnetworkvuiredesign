@@ -43,6 +43,8 @@ Mapping to the RM-E04A plan: A1–A4 = A1–A4 · B1 = B1 · B2 = B2 · B3 = B3 
 
 S2 list, S3, S5, S6: **no PR** until their workflow / data contracts exist (Codex / Product).
 
+**RM-E04D update (baseline `a053a95`):** B5 gains a prerequisite data-contract PR (import of the legacy conversion-payment link `sn_dot_invoice_links.flow_kind` and `sn_invoices.original_seller_id` into billing as facts with a link state; Codex + Finance), because the recommended S4 basis is now the legacy-equivalent I-L. The grouping into the fewest reviewable PRs (B-PR1 … B-PR5) is in [`../governance/proposals/rm-e04d-seller-governance-readiness.fa.md`](../governance/proposals/rm-e04d-seller-governance-readiness.fa.md) §12.
+
 ### B2a — why it is not Group A
 
 The earlier draft of this roadmap called the scope-class change "behaviour-neutral" with "no OpenAPI diff". That was wrong. Verified at `c0d7f4b`:

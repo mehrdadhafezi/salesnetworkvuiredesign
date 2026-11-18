@@ -907,14 +907,23 @@ func TestR6ZeroRecordedApprovals(t *testing.T) {
 			}
 		}
 	}
-	// R6 baseline: no real approval exists. A future PR that commits a verified record updates this check
-	// together with the record and its human verification.
-	if err == nil && len(entries) > 0 {
-		t.Errorf("R6 baseline expects zero approval records, found %d", len(entries))
-	}
-	for _, r := range loadTracker(t).Records {
-		if needsRecord[r.Status] {
-			t.Errorf("%s: R6 baseline has no recorded decision, but status is %s", r.ID, r.Status)
+	// RM-E04D: no freeze. Every committed approval file must be a valid repository-mode record for a tracked
+	// decision (synthetic or placeholder records are refused). Statuses are checked record by record in
+	// TestR6NoStatusOrOutcomeWithoutApprovalRecord.
+	if err == nil {
+		names := make([]string, 0, len(entries))
+		for _, e := range entries {
+			names = append(names, e.Name())
+		}
+		tracked := map[string]bool{}
+		for _, r := range loadTracker(t).Records {
+			tracked[r.ID] = true
+		}
+		load := func(n string) (approvalRecord, error) {
+			return loadApproval(filepath.Join(root, "docs/governance/approvals", n))
+		}
+		for _, x := range approvalFilesProblems(names, load, tracked) {
+			t.Error(x)
 		}
 	}
 	// Templates are blank and therefore never valid records.
