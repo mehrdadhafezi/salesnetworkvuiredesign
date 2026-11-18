@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	billingapi "github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/billing/api"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/reasoncodes"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/kernel/result"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/api"
@@ -62,17 +63,39 @@ type SubmissionContext struct {
 	Attempts          []AttemptView      `json:"attempts"`
 }
 
+// ownsTarget is the payment submission row-scope predicate restated for
+// reads (RM-E04B / A3, F-09): the actor is a proven user AND is both the
+// invoice's seller AND its issuer (evaluateTarget, 2.0.160). A NULL / unknown
+// seller or issuer, a mismatch on either side, or an actor without a user id
+// is never ownership. Hierarchy, Finance and administrators never substitute
+// (OPD-10, OPD-08). It must stay equivalent to the ownership refusals of
+// evaluateTarget (ownership_test.go pins that).
+func ownsTarget(t billingapi.PaymentTarget, actor Actor) bool {
+	return actor.UserID != "" && t.SellerUserID != nil && t.IssuedByUserID != nil &&
+		*t.SellerUserID == actor.UserID && *t.IssuedByUserID == actor.UserID
+}
+
 // Context evaluates the submission context for actor. ok is false for an
-// unknown invoice. It runs in a payments READ ONLY transaction.
+// unknown invoice AND for an invoice the actor does not provably own
+// (ownsTarget): out of scope reads exactly like missing (SR-06, F-09), and
+// nothing of a non-owned invoice (eligibility, reasons, stage, amounts,
+// collection version, attempts, receipts) is evaluated or returned. Only an
+// owner reaches the evaluator, so the owner's business outcomes (BLOCKED,
+// UNKNOWN facts, ...) are unchanged. It runs in a payments READ ONLY
+// transaction.
 func (s *Service) Context(ctx context.Context, invoiceID string, actor Actor) (SubmissionContext, bool, error) {
-	if !uuidPattern.MatchString(invoiceID) {
+	if !uuidPattern.MatchString(invoiceID) || actor.UserID == "" {
 		return SubmissionContext{}, false, nil
 	}
 	out := SubmissionContext{InvoiceID: invoiceID, Reasons: []reasoncodes.Code{}, BlockedBy: []string{}, Attempts: []AttemptView{}}
 	found := false
 	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
-		e, ok, err := s.evaluate(ctx, tx, invoiceID, actor)
-		if err != nil || !ok {
+		t, ok, err := s.targets.PaymentTarget(ctx, invoiceID)
+		if err != nil || !ok || !ownsTarget(t, actor) {
+			return err
+		}
+		e, err := s.evaluateTarget(ctx, tx, t, actor)
+		if err != nil {
 			return err
 		}
 		found = true

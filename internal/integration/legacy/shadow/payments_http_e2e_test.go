@@ -129,10 +129,11 @@ func TestPaymentsHTTP(t *testing.T) {
 		t.Fatalf("context: %s", ctxView.body)
 	}
 	for _, who := range []string{"7", "2"} { // another seller; the manager above
+		// Out of scope reads as missing (RM-E04B / A3, F-09): 404, no
+		// invoice-specific body (NT-03; TestPaymentSubmissionNonEnumeration).
 		v := call(t, h, http.MethodGet, "/api/v1/payments/invoices/"+inv+"/submission", who, "", nil)
-		a := v.json["allowed_actions"].(map[string]any)["payments.batch.submit"].(map[string]any)
-		if a["allowed"] != false || a["reason_code"] != "ROW_SCOPE_DENIED" || len(dataOf(v)["attempts"].([]any)) != 0 {
-			t.Fatalf("context for %s: %s", who, v.body)
+		if v.code != 404 || v.json["data"] != nil || v.json["allowed_actions"] != nil || strings.Contains(v.body, "ROW_SCOPE_DENIED") {
+			t.Fatalf("context for %s: %d %s", who, v.code, v.body)
 		}
 	}
 	body := fmt.Sprintf(`{"stage_no":1,"entry_mode":"RECEIPT","items":[{"item_key":"a","amount":400,"unit":"IRT","receipts":[{"upload_id":"%s","content_sha256":"%s"}]}]}`,
