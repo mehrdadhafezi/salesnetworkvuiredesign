@@ -81,8 +81,8 @@ Accepted cost: duplicated read queries per module. Mitigation: each module expos
 - Add `ScopeOwn Scope = "OWN"`.
 - The vocabulary marks each capability with a scope class (`ORGANIZATION` or `OWN`). `Evaluate` returns the class of the requested capability on an allow. Nothing in grant data can change it (C4 already discards direct capability sets).
 - `/me` handlers call `CheckRead(ctx, cap, ScopeOwn)`; org handlers keep `CheckRead(ctx, cap, ScopeOrganization)` (unchanged).
-- `commission.own.read` moves from `ORGANIZATION` to `OWN` in a separate, behaviour-neutral PR (its SQL already filters by holder). The registry entry keeps `OWN:commission_holder_user_id`.
-- `EvaluateAll` / effective-access output show the scope class per capability.
+- `commission.own.read` (and the other `OWN_READ` capabilities: `fulfillment.work.read`, `org.hr_request.read`, `payments.submission.read`) move from `ORGANIZATION` to `OWN`. Their rows do not change (the SQL already filters), but this is **not behaviour-neutral**: `Decision.Scope` is served by `GET /api/v1/authorization/effective-access` as `AccessDecision.scope`, whose OpenAPI enum is `[NONE, ORGANIZATION]`, and NT-07 pins the own read at `ORGANIZATION`. It is a contract and authorization change, scheduled as roadmap **B2a** (Group B: after this ADR is accepted and M2 rec. 1 + 2 are `APPROVED_VERIFIED`), with the compatibility tests listed there.
+- `EvaluateAll` / effective-access output show the scope class per capability (part of the same B2a contract change).
 
 ### 4.2 Capability candidates (engineering proposal only; names **not** registered; eligibility is M2 proposed record 1)
 

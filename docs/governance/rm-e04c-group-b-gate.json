@@ -1,0 +1,7 @@
+{
+  "purpose": "RM-E04C Group B gate. Closed while either M2 record id is empty. It may be opened only by a reviewed change that names the inventory ids of M2 proposed record 1 (Seller capability eligibility) and M2 proposed record 2 (Seller read scope) once both are APPROVED_VERIFIED in the R6 tracker through valid approval records, and that lists exactly the approved Seller capabilities and /me operation ids. docs/governance/rm_e04c_test.go enforces this. Editing this file never approves anything.",
+  "m2_record_1_id": "",
+  "m2_record_2_id": "",
+  "approved_seller_capabilities": [],
+  "approved_me_operations": []
+}
