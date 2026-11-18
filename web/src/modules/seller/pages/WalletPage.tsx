@@ -1,45 +1,61 @@
-import { useMemo, useState } from 'react'
-import { Banner, ContextHint, PageHead, Panel, StatePanel, StatusIndicator, TonePill, Toolbar, formatFaNumber, toFaDigits } from '../../../shared/ui/ds'
-import { FilterChip, Money, TableFoot, Tag, useListState } from '../components/bits'
+import { useState } from 'react'
+import { Banner, ContextHint, PageHead, Panel, StatePanel, StatusIndicator, TonePill, Toolbar, toFaDigits } from '../../../shared/ui/ds'
+import { FilterChip, Money, StatusPill, TableFoot, Tag, useListState } from '../components/bits'
+import { SETTLEMENT_UNDEFINED, ScreenFrame, Withheld, useStatePresentation } from '../components/states'
 import { WALLET } from '../fixtures/sellerFixtures'
 import { WALLET_STATE } from '../labels'
-import { filterWallet, paginate, walletTotals } from '../state/selectors'
-import { useSellerPreview } from '../state/SellerPreviewContext'
-import type { WalletChannel, WalletTxState } from '../types'
+import { filterWallet, paginate, unitOf, walletTotals } from '../state/selectors'
+import type { MoneyUnit, WalletChannel, WalletTxState } from '../types'
 
 /*
  * S7 — کیف پول من (prototype V.wallet). SYNTHETIC lines only.
  * The preview does not claim a settleable balance or entitlement: it shows confirmed and pending
  * sums separately, keeps unknown lines out of both (and says the total is incomplete), and offers no
  * payout, withdrawal, settlement or credit action. The «پروژه‌ها» wallet is not defined for Seller V1.
+ * A7 (ADR §13): lines are historical commission credit from a stored run — never withdrawable cash;
+ * sums are per unit (never added across units); settlement stays «— تعریف نشده»; an unknown run or a
+ * PARTIAL answer shows no sum.
  */
+
+/** Per-unit sums; `withheld` (PARTIAL) and `unknown` (unknown run) show no number at all. */
+function UnitSums({ sums, mode }: { sums: { unit: MoneyUnit; value: number }[]; mode: 'ok' | 'withheld' | 'unknown' }) {
+  if (mode === 'withheld') return <b><Withheld /></b>
+  if (mode === 'unknown') return <b><Money value={null} /><small>نامعلوم</small></b>
+  if (!sums.length) return <b><Money value={0} /></b>
+  return <>{sums.map(x => <b key={x.unit} data-unit={x.unit}><Money value={x.value} unit={x.unit} /></b>)}</>
+}
 
 const PER_PAGE = 10
 const STATES: { id: WalletTxState; label: string }[] = [{ id: 'confirmed', label: 'تایید شده' }, { id: 'pending', label: 'در انتظار تایید' }, { id: 'unknown', label: 'نامعلوم' }]
 
 export function WalletPage() {
-  const { setSim } = useSellerPreview()
+  const sp = useStatePresentation()
+  const tx = sp.data(WALLET.tx)
   const [wallet, setWallet] = useState<'sales' | 'projects'>('sales')
   const [channel, setChannel] = useState<'all' | WalletChannel>('all')
   const [state, setState] = useState<WalletTxState | null>(null)
   const [page, setPage] = useState(1)
-  const totals = walletTotals(WALLET.tx)
-  const list = useMemo(() => filterWallet(WALLET.tx, channel, state ?? 'all'), [channel, state])
+  const totals = walletTotals(tx)
+  const list = filterWallet(tx, channel, state ?? 'all')
+  const mode = sp.policy.dependentAmountsWithheld ? 'withheld' : sp.policy.statusUnknown ? 'unknown' : 'ok'
   const pg = paginate(list, page, PER_PAGE)
   const stateEl = useListState({
-    count: pg.items.length, noResult: channel !== 'all' || state !== null, onClear: () => { setChannel('all'); setState(null) }, onRetry: () => setSim('none'),
+    count: pg.items.length, noResult: channel !== 'all' || state !== null, onClear: () => { setChannel('all'); setState(null) },
     emptyTitle: 'در این بازه تراکنشی ثبت نشده است', emptyDetail: 'بازه تاریخ یا نوع پرداخت را تغییر دهید.',
   })
 
   return (
-    <>
-      <PageHead title="کیف پول من" sub="فروش و پورسانت — همه ارقام ساختگی‌اند و ادعای مالی نیستند" />
+    <ScreenFrame title="کیف پول من" head={<PageHead title="کیف پول من" sub="فروش و پورسانت — همه ارقام ساختگی‌اند و ادعای مالی نیستند" />}>
+      {mode === 'unknown'
+        ? <Banner kind="unknown">نتیجه اجرای پورسانت مبنا نامعلوم است؛ هیچ جمعی محاسبه یا نمایش داده نمی‌شود.</Banner>
+        : null}
       <div className="sl-wallet-sum">
         <div className="sl-wcard sl-hero">
-          <span>پورسانت تایید‌شده (نمونه)</span>
-          <b><span className="num">{formatFaNumber(totals.confirmed)}</span><small>تومان</small></b>
+          <span>اعتبار تاریخی تایید‌شده (نمونه)</span>
+          <UnitSums mode={mode} sums={totals.byUnit.map(u => ({ unit: u.unit, value: u.confirmed }))} />
+          <span className="sl-micro" data-testid="wallet-not-cash">اعتبار تاریخی پورسانت است، نه وجه نقد قابل برداشت.</span>
           <div className="sl-foot">
-            <span>آخرین بستانکاری: {WALLET.lastCredit}</span>
+            <span>آخرین بستانکاری: {tx.length ? WALLET.lastCredit : '—'}</span>
             <span className="sl-seg" role="group" aria-label="کیف پول">
               <button type="button" aria-pressed={wallet === 'sales'} onClick={() => setWallet('sales')}>فروش و پورسانت</button>
               <button type="button" aria-pressed={wallet === 'projects'} onClick={() => setWallet('projects')}>پروژه‌ها</button>
@@ -48,12 +64,12 @@ export function WalletPage() {
         </div>
         <div className="sl-wcard">
           <span>در انتظار تایید</span>
-          <b><span className="num">{formatFaNumber(totals.pending)}</span><small>تومان</small></b>
+          <UnitSums mode={mode} sums={totals.byUnit.map(u => ({ unit: u.unit, value: u.pending }))} />
           <div className="sl-foot"><span>تا تایید مالی، قابل تسویه حساب نمی‌شود</span></div>
         </div>
         <div className="sl-wcard">
           <span>برداشت / تسویه</span>
-          <b><span className="sl-na">—</span><small>تعریف نشده</small></b>
+          <b data-testid="wallet-settlement"><span className="sl-na">{SETTLEMENT_UNDEFINED}</span></b>
           <div className="sl-foot"><span>تسویه در Seller V1 تعریف نشده است؛ «—» به معنی صفر نیست</span></div>
         </div>
       </div>
@@ -74,7 +90,7 @@ export function WalletPage() {
             </div>
             <FilterChip label="وضعیت" value={state} options={STATES} onChange={s => { setState(s); setPage(1) }} />
             <span className="ds-grow" />
-            <span className="muted sl-desk" role="status">{toFaDigits(list.length)} ردیف</span>
+            <span className="muted sl-desk" role="status">{sp.countText(list.length)} ردیف</span>
           </Toolbar>
           {stateEl ?? (
             <>
@@ -90,8 +106,8 @@ export function WalletPage() {
                           <td data-l="نوع"><TonePill tone="green" icon="plus" label="بستانکار" /></td>
                           <td data-l="کانال پرداخت فروش"><Tag teal={t.channel === 'online'}>{t.channel === 'online' ? 'آنلاین' : 'کارت به کارت'}</Tag></td>
                           <td data-l="شرح">پورسانت فاکتور <span className="mono">{t.invoice}</span><div className="muted sl-micro">{t.rule}</div></td>
-                          <td data-l="وضعیت">{t.state === 'unknown' ? <StatusIndicator state="unknown" /> : <TonePill tone={p.tone} icon={p.icon} label={p.label} />}</td>
-                          <td data-l="مبلغ پورسانت" className="sl-end">{t.amount === null ? <Money value={null} /> : <span className={t.state === 'confirmed' ? 'sl-credit' : 'sl-pending'}>+<Money value={t.amount} /></span>}</td>
+                          <td data-l="وضعیت">{t.state === 'unknown' ? <StatusIndicator state="unknown" /> : <StatusPill tone={p.tone} icon={p.icon} label={p.label} />}</td>
+                          <td data-l="مبلغ پورسانت" className="sl-end">{t.amount === null ? <Money value={null} /> : <span className={t.state === 'confirmed' ? 'sl-credit' : 'sl-pending'}>+<Money value={t.amount} unit={unitOf(t)} /></span>}</td>
                         </tr>
                       )
                     })}
@@ -103,6 +119,6 @@ export function WalletPage() {
           )}
         </Panel>
       )}
-    </>
+    </ScreenFrame>
   )
 }

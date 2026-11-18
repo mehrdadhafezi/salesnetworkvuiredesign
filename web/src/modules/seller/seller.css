@@ -259,3 +259,9 @@ table.sl-tbl{width:100%;border-collapse:separate;border-spacing:0}
   .sl-palette-wrap{padding-top:8px}
 }
 @media (prefers-reduced-motion:reduce){ .sl-details>summary .sl-chev{transition:none} }
+
+/* RM-E04C / A7 — presentation states */
+.sl-wcard>.sl-micro{display:block;margin-top:6px}
+.sl-wcard b+b{margin-top:2px}
+.sl-restricted{white-space:nowrap;align-self:flex-start;max-width:max-content}
+.sl-frame-body{display:contents}

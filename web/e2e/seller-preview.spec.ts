@@ -111,15 +111,15 @@ test.describe('all viewports', () => {
     const log = await guard(page)
     await open(page, 'request')
     const phone = page.getByLabel(/شماره موبایل مشتری/)
-    await page.getByRole('button', { name: 'ثبت درخواست (نمایشی)' }).click()
+    await page.getByRole('button', { name: 'بررسی فرم (نمایشی)' }).click()
     await expect(page.getByText('شماره موبایل مشتری الزامی است.')).toBeVisible()
     await expect(phone).toHaveAttribute('aria-invalid', 'true')
     await expect(phone).toBeFocused()
     await phone.fill('12345')
-    await page.getByRole('button', { name: 'ثبت درخواست (نمایشی)' }).click()
+    await page.getByRole('button', { name: 'بررسی فرم (نمایشی)' }).click()
     await expect(page.getByText('شماره باید ۱۱ رقم و با ۰۹ شروع شود.')).toBeVisible()
     await phone.fill('۰۹۰۰۰۰۰۱۲۳۴')
-    await page.getByRole('button', { name: 'ثبت درخواست (نمایشی)' }).click()
+    await page.getByRole('button', { name: 'بررسی فرم (نمایشی)' }).click()
     await expect(phone).not.toHaveAttribute('aria-invalid', 'true')
     await expect(page.locator('.sl-toast').filter({ hasText: 'OPD-10' })).toBeVisible()
     await expect(page.locator('.sl-mini-list > li')).toHaveCount(3) // the synthetic list never grows
@@ -244,7 +244,7 @@ test.describe('desktop and wide', () => {
     const log = await guard(page)
     await open(page, 'invoices')
     const rows = page.locator('.sl-tbl tbody tr')
-    await expect(rows).toHaveCount(8)
+    await expect(rows).toHaveCount(9) // RM-E04C / A7 added TST-1015 (IRR) to exercise the unit split
     await page.locator('[data-queue="rejected"]').click()
     await expect(rows).toHaveCount(1)
     await expect(rows.first()).toContainText('فیش خوانا نیست')
@@ -358,3 +358,104 @@ test.describe('mobile', () => {
     await noPageHorizontalScroll(page)
   })
 })
+
+// ---------------------------------------------------------------------------------------------------------
+// RM-E04C / A7 — Seller UI states in a real browser (all viewports). Evidence (optional):
+// RM_E04C_A7_EVIDENCE_DIR=../docs/evidence/rm-e04c-a7 npx playwright test -c playwright.seller.config.ts -g "A7"
+
+const A7_OUT = process.env.RM_E04C_A7_EVIDENCE_DIR
+
+async function a7snap(page: Page, info: TestInfo, name: string) {
+  if (!A7_OUT) return
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: `${A7_OUT}/${info.project.name.replace('seller-', '')}-${name}.png`, fullPage: true })
+}
+
+test.describe('A7 states', () => {
+  test('A7: blocking answers show a generic panel and no data on every screen; no traffic', async ({ page }, info) => {
+    const log = await guard(page)
+    for (const sim of ['action_denied', 'row_scope_denied', 'feature_disabled', 'session_expired'] as const) {
+      for (const [path] of SECTIONS) {
+        await open(page, `${path}?sim=${sim}&inv=TST-1003&lead=900104`)
+        await expect(page.locator('[data-ui-state] [data-kind="locked"]')).toBeVisible()
+        await expect(page.locator('.sl-tbl, .sl-lcard, [role="dialog"]')).toHaveCount(0)
+        await expect(page.locator('body')).not.toContainText(/مشتری نمونه|TST-\d{4}|0900000|۰۹۰۰۰۰۰/)
+        await expect(page.getByRole('button', { name: 'تلاش مجدد' })).toHaveCount(0)
+        await noPageHorizontalScroll(page)
+      }
+      await a7snap(page, info, `a7-${sim}`)
+    }
+    expectNoBusinessTraffic(log)
+  })
+
+  test('A7: failure shows the correlation id; retry re-reads only', async ({ page }, info) => {
+    const log = await guard(page)
+    await open(page, 'invoices?sim=error')
+    const alert = page.getByRole('alert').filter({ hasText: 'امکان دریافت لیست وجود ندارد' })
+    await expect(alert).toContainText('syn-corr-a7-500')
+    await a7snap(page, info, 'a7-failure')
+    await alert.getByRole('button', { name: 'تلاش مجدد' }).click()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    await expect(page.locator('.sl-tbl tbody tr:visible, .sl-lcard:visible').first()).toBeVisible()
+    expectNoBusinessTraffic(log)
+  })
+
+  test('A7: exact empty shows ۰; absent count shows «—»', async ({ page }, info) => {
+    await guard(page)
+    await open(page, 'leads?sim=empty&queue=all')
+    await expect(page.locator('[data-queue="all"]')).toContainText('۰')
+    await expect(page.getByText('در این صف موردی وجود ندارد')).toBeVisible()
+    await open(page, 'leads?sim=count_absent&queue=all')
+    await expect(page.locator('[data-queue="all"] .ds-count-unknown')).toBeAttached()
+    await expect(page.locator('[data-queue="all"]')).not.toContainText('۰')
+    await a7snap(page, info, 'a7-count-absent')
+  })
+
+  test('A7: PARTIAL withholds dependent amounts; FIELD_DENIED shows «محدود» only; UNKNOWN maps to نامعلوم', async ({ page }, info) => {
+    await guard(page)
+    await open(page, 'invoices?sim=partial')
+    await expect(page.locator('[data-kind="incomplete"]').first()).toContainText('COVERAGE_INCOMPLETE')
+    await expect(page.locator('[data-withheld="true"]').first()).toBeAttached()
+    await a7snap(page, info, 'a7-partial-invoices')
+    await open(page, 'leads?sim=field_denied&queue=all')
+    await expect(page.locator('[data-restricted="true"]:visible').first()).toBeVisible()
+    await expect(page.locator('main')).not.toContainText(/مشتری نمونه|0900000|۰۹۰۰۰۰۰/)
+    await a7snap(page, info, 'a7-field-denied')
+    await open(page, 'invoices?sim=unknown&inv=TST-1003')
+    const d = await settled(page, 'فاکتور TST-1003')
+    await expect(d.locator('[data-state="unknown"]').first()).toBeVisible()
+    await a7snap(page, info, 'a7-unknown')
+  })
+
+  test('A7: FIELD_DENIED leaves no phone or name in attributes or accessible names (S6 timelines included)', async ({ page }) => {
+    await guard(page)
+    await open(page, 'request?sim=field_denied')
+    for (const b of await page.getByRole('button', { name: /^روند/ }).all()) await b.click()
+    const attrs = await page.evaluate(() => Array.from(document.querySelectorAll('*')).flatMap(el => Array.from(el.attributes).map(a => a.value)).join('\n'))
+    expect(attrs).not.toMatch(/0900000\d{4}|۰۹۰۰۰۰۰[۰-۹]{4}|مشتری نمونه/)
+    await expect(page.locator('body')).not.toContainText(/0900000|۰۹۰۰۰۰۰|مشتری نمونه/)
+    await expect(page.getByRole('list', { name: /روند درخواست ثبت‌شده در/ }).first()).toBeAttached()
+  })
+
+  test('A7: missing and out-of-scope detail render the same «یافت نشد»', async ({ page }, info) => {
+    await guard(page)
+    await open(page, 'invoices?inv=TST-9999')
+    const a = await (await settled(page, 'یافت نشد')).innerText()
+    await open(page, 'invoices?inv=TST-1001&sim=not_found')
+    const b = await (await settled(page, 'یافت نشد')).innerText()
+    expect(b).toBe(a)
+    expect(a).not.toMatch(/TST-\d{4}/)
+    await a7snap(page, info, 'a7-not-found')
+  })
+
+  test('A7: wallet keeps units apart, settlement undefined, history is not cash', async ({ page }, info) => {
+    await guard(page)
+    await open(page, 'wallet')
+    await expect(page.getByTestId('wallet-settlement')).toHaveText('— تعریف نشده')
+    await expect(page.locator('.sl-hero b[data-unit="IRT"]')).toContainText('تومان')
+    await expect(page.locator('.sl-hero b[data-unit="IRR"]')).toContainText('ریال')
+    await noPageHorizontalScroll(page)
+    await a7snap(page, info, 'a7-wallet')
+  })
+})
+

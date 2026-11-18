@@ -4,7 +4,7 @@
  * for visual parity. They are display vocabulary only — not business statuses, transitions
  * or permissions, and nothing here is sent anywhere.
  */
-import type { DsIconName, DsNavItem } from '../../shared/ui/ds'
+import type { DsCount, DsIconName, DsNavItem } from '../../shared/ui/ds'
 import type { Tone } from '../../shared/ui/primitives'
 import type { InvoiceNextAction, InvoiceStatus, LeadOutcome, LeadStatus, SellerSection, StageState, WalletTxState } from './types'
 
@@ -91,7 +91,8 @@ export const SECTION_LABEL: Record<SellerSection, string> = {
 }
 
 /** Navigation labels and grouping from prototype/app.js NAV (tab labels are shorter for the last two). */
-export function sellerNavItems(base: string, counts: { leadsNone: number; conversions: number; invoicesAction: number }): DsNavItem[] {
+/** Counts are omitted (undefined) when the current answer must not show any data, and «—» when absent. */
+export function sellerNavItems(base: string, counts: { leadsNone?: DsCount | undefined; conversions?: DsCount | undefined; invoicesAction?: DsCount | undefined }): DsNavItem[] {
   return [
     { id: 'leads', label: 'شماره‌های من', href: `${base}/leads`, icon: 'users', count: counts.leadsNone, alert: true, mobileLabel: 'شماره‌ها' },
     { id: 'conversions', label: 'آماده‌های تبدیل', href: `${base}/conversions`, icon: 'swap', count: counts.conversions, mobileLabel: 'تبدیل' },

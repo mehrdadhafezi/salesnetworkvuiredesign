@@ -5,6 +5,7 @@ import {
   toFaDigits, type DsNavItem, type MenuEntry,
 } from '../../shared/ui/ds'
 import { CommandPalette, Toasts, type PaletteItem } from './components/overlays'
+import { useStatePresentation } from './components/states'
 import { CONVERSIONS, INVOICES, LEADS, PREVIEW_USER, SELLER_PREVIEW_MARKER } from './fixtures/sellerFixtures'
 import { LEAD_STATUS, SECTION_LABEL, sellerNavItems } from './labels'
 import { BehaviorPage } from './pages/BehaviorPage'
@@ -17,6 +18,7 @@ import { WalletPage } from './pages/WalletPage'
 import { isTypingTarget } from './state/hooks'
 import { leadCounts } from './state/selectors'
 import { SellerPreviewProvider, useSellerPreview, type Density, type Sim, type Theme } from './state/SellerPreviewContext'
+import { SIMS, SIM_LABEL } from './state/uiState'
 import { SELLER_SECTIONS, type SellerSection } from './types'
 import './seller.css'
 
@@ -42,7 +44,7 @@ export function SellerPreviewPage() {
   const initial = {
     theme: pick<Theme>(params.get('theme'), ['light', 'dim', 'dark'], 'light'),
     density: pick<Density>(params.get('density'), ['comfortable', 'compact'], 'comfortable'),
-    sim: pick<Sim>(params.get('sim'), ['none', 'loading', 'empty', 'error', 'offline'], 'none'),
+    sim: pick<Sim>(params.get('sim'), SIMS, 'none'),
   }
   return (
     <SellerPreviewProvider base={SELLER_PREVIEW_BASE} initial={initial}>
@@ -60,6 +62,9 @@ function SellerPreviewShell() {
   const navigate = useNavigate()
   const { base, theme, density, sim, setTheme, setDensity, setSim, toast } = useSellerPreview()
   const [palette, setPalette] = useState(false)
+  const sp = useStatePresentation()
+  const showData = !sp.policy.blocksContent
+  const restricted = sp.policy.fieldsRestricted
 
   // Theme / density on <html> like the prototype, so body, scrollbars and overlays follow; restored on leave.
   useEffect(() => {
@@ -76,10 +81,13 @@ function SellerPreviewShell() {
   const current: SellerSection | null = isSection(section) ? section : null
   useEffect(() => { if (current) document.title = `${SECTION_LABEL[current]} — پنل فروشنده (پیش‌نمایش ساختگی)` }, [current])
 
-  const counts = useMemo(() => leadCounts(LEADS), [])
-  const nav = useMemo(() => sellerNavItems(base, {
-    leadsNone: counts.none, conversions: CONVERSIONS.length, invoicesAction: INVOICES.filter(i => i.next).length,
-  }), [base, counts])
+  const leads = sp.data(LEADS)
+  const invoices = sp.data(INVOICES)
+  const counts = useMemo(() => leadCounts(leads), [leads])
+  // Blocking answers show no count at all; an absent count is «—»; an exact empty answer is a real 0.
+  const nav = useMemo(() => sellerNavItems(base, showData ? {
+    leadsNone: sp.count(counts.none), conversions: sp.count(sp.data(CONVERSIONS).length), invoicesAction: sp.count(invoices.filter(i => i.next).length),
+  } : {}), [base, counts, invoices, showData, sp])
 
   const go = useCallback((s: SellerSection, query = '') => { void navigate(`${base}/${s}${query}`); window.scrollTo(0, 0) }, [navigate, base])
   const onNavigate = (item: DsNavItem, e?: MouseEvent<HTMLAnchorElement>) => { e?.preventDefault(); go(item.id as SellerSection) }
@@ -96,10 +104,13 @@ function SellerPreviewShell() {
 
   const paletteItems = useMemo<PaletteItem[]>(() => [
     ...nav.map<PaletteItem>(n => ({ id: `go-${n.id}`, group: 'رفتن به', icon: n.icon, label: n.label, keywords: `رفتن به ${SECTION_LABEL[n.id as SellerSection]}`, run: () => go(n.id as SellerSection) })),
-    ...LEADS.map<PaletteItem>(l => ({ id: `lead-${l.id}`, group: 'مشتریان', icon: 'users', label: l.name, meta: `${toFaDigits(l.phone)} · ${LEAD_STATUS[l.status].label}`, keywords: l.phone, run: () => go('leads', `?queue=all&lead=${l.id}`) })),
-    ...INVOICES.map<PaletteItem>(i => ({ id: `inv-${i.code}`, group: 'فاکتورها', icon: 'receipt', label: `فاکتور ${i.code}`, meta: i.customer, keywords: i.code, run: () => go('invoices', `?inv=${i.code}`) })),
+    // Records appear in the palette only when the answer may show them; withheld identity is never listed or searchable.
+    ...(showData ? leads.map<PaletteItem>(l => (restricted
+      ? { id: `lead-${l.id}`, group: 'مشتریان', icon: 'users', label: 'مشتری (محدود)', meta: sp.policy.statusUnknown ? 'نامعلوم' : LEAD_STATUS[l.status].label, keywords: '', run: () => go('leads', `?queue=all&lead=${l.id}`) }
+      : { id: `lead-${l.id}`, group: 'مشتریان', icon: 'users', label: l.name, meta: `${toFaDigits(l.phone)} · ${sp.policy.statusUnknown ? 'نامعلوم' : LEAD_STATUS[l.status].label}`, keywords: l.phone, run: () => go('leads', `?queue=all&lead=${l.id}`) })) : []),
+    ...(showData ? invoices.map<PaletteItem>(i => ({ id: `inv-${i.code}`, group: 'فاکتورها', icon: 'receipt', label: `فاکتور ${i.code}`, meta: restricted ? 'مشتری (محدود)' : i.customer, keywords: i.code, run: () => go('invoices', `?inv=${i.code}`) })) : []),
     ...(['light', 'dim', 'dark'] as const).map<PaletteItem>(t => ({ id: `theme-${t}`, group: 'نمایش', icon: 'grid', label: { light: 'پوسته روشن', dim: 'پوسته کم‌نور', dark: 'پوسته تیره' }[t], meta: theme === t ? 'فعال' : undefined, keywords: 'تغییر پوسته', run: () => setTheme(t) })),
-  ], [nav, go, theme, setTheme])
+  ], [nav, go, theme, setTheme, showData, restricted, leads, invoices, sp.policy.statusUnknown])
 
   if (!current) return <Navigate to={`${base}/leads`} replace />
 
@@ -112,15 +123,13 @@ function SellerPreviewShell() {
     { kind: 'item', id: 'comfortable', label: 'راحت', current: density === 'comfortable', onSelect: () => setDensity('comfortable') },
     { kind: 'item', id: 'compact', label: 'فشرده', current: density === 'compact', onSelect: () => setDensity('compact') },
     { kind: 'heading', id: 'h-sim', label: 'حالت‌های نمایشی (دمو)' },
-    ...([['none', 'عادی'], ['loading', 'در حال بارگذاری'], ['empty', 'خالی'], ['error', 'خطای فهرست'], ['offline', 'آفلاین']] as const).map<MenuEntry>(([id, label]) => ({
-      kind: 'item', id: `sim-${id}`, label, current: sim === id, onSelect: () => setSim(id),
-    })),
+    ...SIMS.map<MenuEntry>(id => ({ kind: 'item', id: `sim-${id}`, label: SIM_LABEL[id], current: sim === id, onSelect: () => setSim(id) })),
     { kind: 'separator', id: 's1' },
     { kind: 'item', id: 'password', label: 'رمز من', icon: 'lock', disabled: true, disabledReason: 'پیش‌نمایش حساب کاربری ندارد.' },
     { kind: 'item', id: 'logout', label: 'خروج', icon: 'logout', disabled: true, disabledReason: 'پیش‌نمایش نشستی ندارد؛ چیزی برای خروج نیست.' },
   ]
 
-  const open = LEADS.filter(l => l.status === 'none' || l.status === 'no_answer' || l.status === 'callback').length
+  const open = leads.filter(l => l.status === 'none' || l.status === 'no_answer' || l.status === 'callback').length
 
   return (
     <div className="sl-root" dir="rtl" lang="fa" data-preview={SELLER_PREVIEW_MARKER}>
@@ -135,10 +144,14 @@ function SellerPreviewShell() {
             search={{ label: 'جستجو و فرمان‌ها (Ctrl+K)', placeholder: 'جستجوی مشتری، فاکتور یا رفتن به…', shortcut: 'Ctrl K', onOpen: () => setPalette(true) }}
             actions={
               <>
-                <div className="sl-workload" aria-label={`${toFaDigits(open)} مورد باز (ساختگی)`}>
-                  <DsIcon name="menu" /><span><b>{toFaDigits(open)}</b> مورد باز</span>
-                </div>
-                <HeaderIconButton label="اعلان‌ها — ۲ مورد نمونه" icon="bell" badge="۲" onClick={() => toast('اعلان‌های نمونه: ۱ تماس مجدد امروز، ۱ فاکتور رد شده. (ساختگی)')} />
+                {showData ? (
+                  <div className="sl-workload" aria-label={`${sp.countText(open)} مورد باز (ساختگی)`}>
+                    <DsIcon name="menu" /><span><b>{sp.countText(open)}</b> مورد باز</span>
+                  </div>
+                ) : null}
+                {showData
+                  ? <HeaderIconButton label="اعلان‌ها — ۲ مورد نمونه" icon="bell" badge="۲" onClick={() => toast('اعلان‌های نمونه: ۱ تماس مجدد امروز، ۱ فاکتور رد شده. (ساختگی)')} />
+                  : <HeaderIconButton label="اعلان‌ها — در این وضعیت نمایش داده نمی‌شود" icon="bell" onClick={() => toast('در این وضعیت هیچ اعلانی نمایش داده نمی‌شود.')} />}
                 <HelpCenterButton
                   subtitle="راهنمای پیش‌نمایش پنل فروشنده (ساختگی)."
                   topics={[
