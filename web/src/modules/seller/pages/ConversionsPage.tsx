@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router'
 import {
   ContextHint, Drawer, DsIcon, Metric, MetricGroup, PageHead, Panel, QueueTabs, StatusIndicator, TonePill, Toolbar, toFaDigits, type DsQueue,
 } from '../../../shared/ui/ds'
-import { FactChip, Money, Note, OwnershipFacts, SearchField, TableFoot, Timeline, Who, useListState } from '../components/bits'
+import { FactChip, Money, Note, OwnershipFacts, SearchField, TableFoot, Timeline, Who, useCustomerName, useListState } from '../components/bits'
+import { NotFoundDrawer, Restricted, ScreenFrame, useDetail, useStatePresentation } from '../components/states'
 import { OutcomeGrid } from '../components/overlays'
 import { CONVERSIONS, PREVIEW_USER } from '../fixtures/sellerFixtures'
 import { CASE_OUTCOMES, DEMO_SUFFIX, type CaseOutcome } from '../labels'
@@ -22,48 +23,50 @@ import type { Conversion, ConversionQueue } from '../types'
 const PER_PAGE = 10
 
 export function ConversionsPage() {
-  const { setSim } = useSellerPreview()
+  const sp = useStatePresentation()
+  const conversions = sp.data(CONVERSIONS)
   const [queue, setQueue] = useState<ConversionQueue>('all')
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
   const [caseParam, setCaseParam] = useDrawerParam('case')
-  const list = useMemo(() => filterConversions(CONVERSIONS, queue, q), [queue, q])
+  const list = useMemo(() => filterConversions(conversions, queue, q, !sp.policy.fieldsRestricted), [conversions, queue, q, sp.policy.fieldsRestricted])
   const pg = paginate(list, page, PER_PAGE)
-  const open = caseParam ? CONVERSIONS.find(c => String(c.id) === caseParam) ?? null : null
-  const n = (s: ConversionQueue) => CONVERSIONS.filter(c => s === 'all' || c.stage === s).length
-  const remainingKnown = CONVERSIONS.filter(c => c.remaining !== null)
+  const detail = useDetail(caseParam, id => conversions.find(c => String(c.id) === id))
+  const open = detail.record
+  const n = (s: ConversionQueue) => conversions.filter(c => s === 'all' || c.stage === s).length
+  const remainingKnown = conversions.filter(c => c.remaining !== null)
   const stateEl = useListState({
-    count: pg.items.length, noResult: q !== '', onClear: () => setQ(''), onRetry: () => setSim('none'),
+    count: pg.items.length, noResult: q !== '', onClear: () => setQ(''),
     emptyTitle: 'پرونده‌ای برای پیگیری وجود ندارد', emptyDetail: 'پرونده‌هایی که «تبدیل توسط خودم» را برایشان انتخاب کنید اینجا می‌آیند.',
   })
   const queues: DsQueue[] = [
-    { id: 'all', label: 'همه', tone: 'neutral', count: n('all') },
-    { id: 'follow', label: 'نیازمند پیگیری', tone: 'amber', icon: 'clock', count: n('follow') },
-    { id: 'link', label: 'لینک ارسال شد', tone: 'teal', icon: 'send', count: n('link') },
-    { id: 'done', label: 'تکمیل‌شده', tone: 'green', icon: 'checkCircle', count: n('done') },
+    { id: 'all', label: 'همه', tone: 'neutral', count: sp.count(n('all')) },
+    { id: 'follow', label: 'نیازمند پیگیری', tone: 'amber', icon: 'clock', count: sp.count(n('follow')) },
+    { id: 'link', label: 'لینک ارسال شد', tone: 'teal', icon: 'send', count: sp.count(n('link')) },
+    { id: 'done', label: 'تکمیل‌شده', tone: 'green', icon: 'checkCircle', count: sp.count(n('done')) },
   ]
 
   return (
-    <>
+    <ScreenFrame title="آماده‌های تبدیل" contract="no_list_source" head={
       <PageHead
         title="آماده‌های تبدیل"
         sub="پرونده‌هایی که هنگام صدور فاکتور «تبدیل توسط خودم» را انتخاب کرده‌اید (نمونه ساختگی)"
         kpis={
           <MetricGroup label="شاخص‌های این صفحه">
-            <Metric label="کل پرونده" value={toFaDigits(CONVERSIONS.length)} accent="neutral" />
-            <Metric label="نیازمند پیگیری" value={toFaDigits(n('follow'))} accent="amber" tone="warn" />
+            <Metric label="کل پرونده" {...sp.kpi(conversions.length)} accent="neutral" />
+            <Metric label="نیازمند پیگیری" {...sp.kpi(n('follow'))} accent="amber" tone="warn" />
             <Metric label="تماس سررسیده" accent="red" state="undefined" meaning="در نمونه تعریف نشده" />
-            <Metric label="دارای مانده" value={toFaDigits(remainingKnown.filter(c => (c.remaining ?? 0) > 0).length)} accent="teal"
-              meaning={remainingKnown.length < CONVERSIONS.length ? `${toFaDigits(CONVERSIONS.length - remainingKnown.length)} پرونده با مانده نامعلوم` : undefined} />
+            <Metric label="دارای مانده" {...sp.kpi(remainingKnown.filter(c => (c.remaining ?? 0) > 0).length)} accent="teal"
+              meaning={remainingKnown.length < conversions.length ? `${toFaDigits(conversions.length - remainingKnown.length)} پرونده با مانده نامعلوم` : undefined} />
           </MetricGroup>
         }
-      />
+      />}>
       <Panel label="فهرست پرونده‌های تبدیل">
         <QueueTabs queues={queues} value={queue} onChange={id => { setQueue(id as ConversionQueue); setPage(1); setCaseParam(null) }} />
         <Toolbar>
           <div className="sl-grow-field"><SearchField id="sl-conv-q" label="جستجوی پرونده" placeholder="نام، موبایل، فاکتور یا شماره پرونده" value={q} onChange={v => { setQ(v); setPage(1) }} /></div>
           <span className="ds-grow" />
-          <span className="muted sl-desk" role="status">{toFaDigits(list.length)} پرونده</span>
+          <span className="muted sl-desk" role="status">{sp.countText(list.length)} پرونده</span>
         </Toolbar>
         {stateEl ?? (
           <>
@@ -91,13 +94,15 @@ export function ConversionsPage() {
         )}
       </Panel>
       <CaseDrawer c={open} onClose={() => setCaseParam(null)} />
-    </>
+      <NotFoundDrawer open={detail.notFound} kicker="پرونده تبدیل" onClose={() => setCaseParam(null)} />
+    </ScreenFrame>
   )
 }
 
 function CaseDrawer({ c, onClose }: { c: Conversion | null; onClose: () => void }) {
+  const name = useCustomerName()
   return (
-    <Drawer open={c !== null} onClose={onClose} title={c?.customer ?? 'پرونده تبدیل'} kicker={c ? `پرونده تبدیل #${toFaDigits(c.id)}` : 'پرونده تبدیل'}>
+    <Drawer open={c !== null} onClose={onClose} title={c ? name(c.customer) : 'پرونده تبدیل'} kicker={c ? `پرونده تبدیل #${toFaDigits(c.id)}` : 'پرونده تبدیل'}>
       {c ? <CaseBody key={c.id} c={c} onClose={onClose} /> : null}
     </Drawer>
   )
@@ -106,7 +111,7 @@ function CaseDrawer({ c, onClose }: { c: Conversion | null; onClose: () => void 
 const FIELDS: OutcomeFields = { date: '', hour: '10', minute: '00', reason: '', amount: '' }
 
 function CaseBody({ c, onClose }: { c: Conversion; onClose: () => void }) {
-  const { toast } = useSellerPreview()
+  const { toast, ui } = useSellerPreview()
   const [params] = useSearchParams()
   const init = params.get('outcome')
   const [outcome, setOutcome] = useState<CaseOutcome | null>(CASE_OUTCOMES.some(o => o.id === init) ? init as CaseOutcome : null)
@@ -133,13 +138,13 @@ function CaseBody({ c, onClose }: { c: Conversion; onClose: () => void }) {
     <div ref={ref}>
       <div className="sl-dr-head">
         <div className="sl-dr-title"><TonePill tone={c.resultTone} icon={c.resultIcon} label={c.result} /></div>
-        <div className="sl-dr-meta"><span className="mono sl-dr-phone">{toFaDigits(c.phone)}</span><span>فاکتور <span className="mono">{c.invoice}</span></span><span>{c.option}</span></div>
+        <div className="sl-dr-meta">{ui.policy.fieldsRestricted ? <Restricted what="شماره مشتری" /> : <span className="mono sl-dr-phone">{toFaDigits(c.phone)}</span>}<span>فاکتور <span className="mono">{c.invoice}</span></span><span>{c.option}</span></div>
         <div className="sl-dr-facts"><FactChip icon="history">آخرین فعالیت: {c.lastActivity}</FactChip><FactChip icon="layers">مرحله: {c.stageLabel}</FactChip></div>
       </div>
       <section className="ds-sec sl-sec-primary" aria-labelledby="sl-case-h">
         <div className="sl-sum-grid sl-sum-3">
           <div className="sl-sum"><span>مبلغ گزینه</span><b><Money value={c.remaining} /></b></div>
-          <div className="sl-sum"><span>پرداخت تایید‌شده</span><b><Money value={c.remaining === null ? null : 0} /></b></div>
+          <div className="sl-sum"><span>پرداخت تایید‌شده</span><b><Money value={null} /></b></div>
           <div className="sl-sum"><span>مانده</span><b><Money value={c.remaining} /></b></div>
         </div>
         <div className="ds-sec-h sl-mt"><h3 id="sl-case-h">نتیجه تماس</h3></div>

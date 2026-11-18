@@ -6,6 +6,10 @@
  */
 import type { Tone } from '../../shared/ui/primitives'
 import type { DsIconName } from '../../shared/ui/ds'
+import type { Unit } from '../../shared/api/types'
+
+/** Money unit, mirrored from the contract `Unit` (IRR · IRT). Amounts in different units are never added together. */
+export type MoneyUnit = Unit
 
 export type SellerSection = 'leads' | 'conversions' | 'repeat' | 'invoices' | 'behavior' | 'request' | 'wallet'
 
@@ -84,6 +88,8 @@ export interface Invoice {
   next: InvoiceNextAction
   rejectReason?: string | undefined
   history: InvoiceEvent[]
+  /** Unit of every stage amount of this invoice; absent = IRT (the RM-E03 fixtures). */
+  unit?: MoneyUnit | undefined
 }
 
 /* ---------- Conversions ---------- */
@@ -170,6 +176,8 @@ export interface WalletTx {
   invoice: string
   rule: string
   state: WalletTxState
+  /** Absent = IRT. */
+  unit?: MoneyUnit | undefined
 }
 
 export interface WalletFixture {

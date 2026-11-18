@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react'
 import {
-  Banner, ContextHint, Drawer, DsIcon, MenuButton, Metric, MetricGroup, PageHead, Panel, QueueTabs, StatusIndicator, TonePill, Toolbar,
+  Banner, ContextHint, Drawer, DsIcon, MenuButton, Metric, MetricGroup, PageHead, Panel, QueueTabs, StatusIndicator, Toolbar,
   toFaDigits, type DsQueue, type MenuEntry,
 } from '../../../shared/ui/ds'
-import { FilterChip, InvoiceStatusPill, Money, Note, SearchField, TableFoot, Timeline, Who, useListState } from '../components/bits'
+import { FilterChip, InvoiceStatusPill, Money, Note, SearchField, StatusPill, TableFoot, Timeline, UNIT_LABEL, Who, useListState } from '../components/bits'
+import { NotFoundDrawer, ScreenFrame, Withheld, useDetail, useStatePresentation } from '../components/states'
 import { INVOICES } from '../fixtures/sellerFixtures'
 import { DEMO_SUFFIX, INVOICE_ACTION, INVOICE_QUEUE_LABEL, INVOICE_STATUS, STAGE_STATE } from '../labels'
 import { useDrawerParam } from '../state/hooks'
-import { INVOICE_STATUSES, collectibleTotal, filterInvoices, invoiceAmounts, invoiceCounts, paginate, type Payable } from '../state/selectors'
+import { INVOICE_STATUSES, collectibleTotal, filterInvoices, invoiceAmounts, invoiceCounts, paginate, unitOf, type InvoiceAmounts, type Payable } from '../state/selectors'
 import { useSellerPreview } from '../state/SellerPreviewContext'
-import type { Invoice, InvoiceQueue } from '../types'
+import type { StatePolicy } from '../state/uiState'
+import type { Invoice, InvoiceQueue, MoneyUnit } from '../types'
 
 /*
  * S4 — فاکتورها (prototype V.invoices + invoiceDrawer). SYNTHETIC invoices only.
@@ -21,14 +23,31 @@ import type { Invoice, InvoiceQueue } from '../types'
 const PER_PAGE = 10
 const PRODUCTS = Array.from(new Set(INVOICES.map(i => i.product))).map(p => ({ id: p, label: p }))
 
-export function PayableCell({ p }: { p: Payable }) {
+export function PayableCell({ p, unit = 'IRT' }: { p: Payable; unit?: MoneyUnit | undefined }) {
   switch (p.kind) {
-    case 'amount': return <Money value={p.value} />
+    case 'amount': return <Money value={p.value} unit={unit} />
     case 'settled': return <span className="sl-settled"><DsIcon name="check" />تسویه</span>
     case 'awaiting_finance': return <span className="sl-muted-pill">در انتظار تایید مالی</span>
     case 'unknown': return <StatusIndicator state="unknown" label="نامعلوم" />
     case 'none': return <span className="muted">—</span>
+    case 'withheld': return <Withheld />
   }
+}
+
+/**
+ * A7: amounts that depend on stage facts. PARTIAL withholds them; an unmapped status makes them unknown.
+ * Stage amounts and the invoice total are declared facts and stay visible.
+ */
+export function presentAmounts(a: InvoiceAmounts, policy: StatePolicy): { remaining: 'withheld' | number | null; payable: Payable } {
+  if (policy.dependentAmountsWithheld) return { remaining: 'withheld', payable: { kind: 'withheld' } }
+  if (policy.statusUnknown) return { remaining: null, payable: { kind: 'unknown' } }
+  return { remaining: a.remaining, payable: a.payable }
+}
+
+function RemainingCell({ r, unit }: { r: 'withheld' | number | null; unit: MoneyUnit }) {
+  if (r === 'withheld') return <Withheld />
+  if (r === null) return <span className="muted">—</span>
+  return r <= 0 ? <span className="sl-settled"><DsIcon name="check" />تسویه</span> : <Money value={r} unit={unit} />
 }
 
 function progress(inv: Invoice): number {
@@ -37,28 +56,32 @@ function progress(inv: Invoice): number {
 }
 
 export function InvoicesPage() {
-  const { toast, setSim } = useSellerPreview()
+  const { toast } = useSellerPreview()
+  const sp = useStatePresentation()
+  const identity = !sp.policy.fieldsRestricted
+  const invoices = sp.data(INVOICES)
   const [queue, setQueue] = useState<InvoiceQueue>('all')
   const [q, setQ] = useState('')
   const [product, setProduct] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [invParam, setInvParam] = useDrawerParam('inv')
-  const counts = useMemo(() => invoiceCounts(INVOICES), [])
-  const list = useMemo(() => filterInvoices(INVOICES, queue, q, product), [queue, q, product])
+  const counts = useMemo(() => invoiceCounts(invoices), [invoices])
+  const list = useMemo(() => filterInvoices(invoices, queue, q, product, identity), [invoices, queue, q, product, identity])
   const pg = paginate(list, page, PER_PAGE)
-  const collectible = collectibleTotal(INVOICES)
-  const open = invParam ? INVOICES.find(i => i.code === invParam) ?? null : null
+  const collectible = collectibleTotal(invoices)
+  const detail = useDetail(invParam, id => invoices.find(i => i.code === id))
+  const open = detail.record
   const filtersActive = q !== '' || product !== null
   const clear = () => { setQ(''); setProduct(null); setPage(1) }
 
   const stateEl = useListState({
-    count: pg.items.length, noResult: filtersActive, onClear: clear, onRetry: () => setSim('none'),
+    count: pg.items.length, noResult: filtersActive, onClear: clear,
     emptyTitle: 'فاکتوری در این وضعیت وجود ندارد', emptyDetail: 'وضعیت دیگری را انتخاب کنید یا جستجو را تغییر دهید.',
   })
 
   const queues: DsQueue[] = [
-    { id: 'all', label: 'همه', tone: 'neutral', count: counts.all },
-    ...INVOICE_STATUSES.map<DsQueue>(k => ({ id: k, label: INVOICE_QUEUE_LABEL[k], tone: INVOICE_STATUS[k].tone, icon: INVOICE_STATUS[k].icon, count: counts[k] })),
+    { id: 'all', label: 'همه', tone: 'neutral', count: sp.count(counts.all) },
+    ...INVOICE_STATUSES.map<DsQueue>(k => ({ id: k, label: INVOICE_QUEUE_LABEL[k], tone: INVOICE_STATUS[k].tone, icon: INVOICE_STATUS[k].icon, count: sp.count(counts[k]) })),
   ]
 
   const moreMenu = (inv: Invoice): MenuEntry[] => {
@@ -79,28 +102,34 @@ export function InvoicesPage() {
       : <button type="button" className="btn btn-sm" onClick={e => { e.stopPropagation(); setInvParam(inv.code) }}>جزئیات</button>
   }
 
+  const collectibleWithheld = sp.policy.dependentAmountsWithheld || sp.policy.statusUnknown
   return (
-    <>
+    <ScreenFrame title="فاکتورها" head={
       <PageHead
         title="فاکتورها"
         sub="فقط فاکتورهای صادرشده توسط شما (نمونه ساختگی)"
         kpis={
           <MetricGroup label="شاخص‌های این صفحه">
-            <Metric label="در انتظار پرداخت" value={toFaDigits(counts.pre_invoice + counts.staged)} accent="violet" />
-            <Metric label="در بررسی مالی" value={toFaDigits(counts.finance_review)} accent="orange" />
-            <Metric label="رد شده" value={toFaDigits(counts.rejected)} accent="red" tone="bad" />
-            <Metric label="مانده قابل وصول" value={collectible.value.toLocaleString('fa-IR')} unit="تومان" accent="teal"
-              meaning={collectible.hasUnknown ? 'یک ارسال نامعلوم؛ جمع نهایی نیست' : undefined} />
+            <Metric label="در انتظار پرداخت" {...sp.kpi(counts.pre_invoice + counts.staged)} accent="violet" />
+            <Metric label="در بررسی مالی" {...sp.kpi(counts.finance_review)} accent="orange" />
+            <Metric label="رد شده" {...sp.kpi(counts.rejected)} accent="red" tone="bad" />
+            {collectibleWithheld || collectible.byUnit.length === 0
+              ? <Metric label="مانده قابل وصول" accent="teal" state={collectibleWithheld ? 'unknown' : 'ok'} value={collectibleWithheld ? undefined : '۰'}
+                meaning={collectibleWithheld ? (sp.policy.statusUnknown ? 'وضعیت مراحل نامعلوم؛ محاسبه نشد' : 'به داده ناقص وابسته است؛ نمایش داده نمی‌شود') : undefined} />
+              : collectible.byUnit.map(u => (
+                <Metric key={u.unit} label={`مانده قابل وصول (${UNIT_LABEL[u.unit]})`} value={u.value.toLocaleString('fa-IR')} unit={UNIT_LABEL[u.unit]} accent="teal"
+                  meaning={collectible.hasUnknown ? 'یک ارسال نامعلوم؛ جمع نهایی نیست' : 'واحدها با هم جمع نمی‌شوند'} />
+              ))}
           </MetricGroup>
         }
-      />
+      />}>
       <Panel label="فهرست فاکتورها" className="sl-has-cards">
         <QueueTabs queues={queues} value={queue} onChange={id => { setQueue(id as InvoiceQueue); setPage(1); setInvParam(null) }} />
         <Toolbar>
           <div className="sl-grow-field"><SearchField id="sl-inv-q" label="جستجوی فاکتور" placeholder="کد فاکتور، نام یا موبایل مشتری" value={q} onChange={v => { setQ(v); setPage(1) }} /></div>
           <FilterChip label="محصول" value={product} options={PRODUCTS} onChange={v => { setProduct(v); setPage(1) }} />
           <span className="ds-grow" />
-          <span className="muted sl-desk" role="status">{toFaDigits(list.length)} فاکتور</span>
+          <span className="muted sl-desk" role="status">{sp.countText(list.length)} فاکتور</span>
         </Toolbar>
         {stateEl ?? (
           <>
@@ -118,6 +147,8 @@ export function InvoicesPage() {
                 <tbody>
                   {pg.items.map(inv => {
                     const a = invoiceAmounts(inv)
+                    const u = unitOf(inv)
+                    const v = presentAmounts(a, sp.policy)
                     const pct = progress(inv)
                     const st = inv.stages.length
                     const cur = inv.stages.find(s => s.state === 'due' || s.state === 'rejected' || s.state === 'submitted' || s.state === 'unknown')
@@ -129,12 +160,12 @@ export function InvoicesPage() {
                         <td className="sl-col-opt">{inv.product}</td>
                         <td>
                           <div className="sl-prog">
-                            <div className="sl-line"><Money value={a.total} /><span>{st > 1 ? `مرحله ${toFaDigits(cur?.n ?? st)} از ${toFaDigits(st)}` : 'پرداخت یک‌جا'}</span></div>
+                            <div className="sl-line"><Money value={a.total} unit={u} /><span>{st > 1 ? `مرحله ${toFaDigits(cur?.n ?? st)} از ${toFaDigits(st)}` : 'پرداخت یک‌جا'}</span></div>
                             <div className="sl-bar" role="img" aria-label={`${toFaDigits(pct)}٪ تایید مالی شده`}><i style={{ width: `${pct}%` }} /></div>
                           </div>
                         </td>
-                        <td>{a.remaining === null ? <span className="muted">—</span> : a.remaining <= 0 ? <span className="sl-settled"><DsIcon name="check" />تسویه</span> : <Money value={a.remaining} />}</td>
-                        <td><PayableCell p={a.payable} /></td>
+                        <td><RemainingCell r={v.remaining} unit={u} /></td>
+                        <td><PayableCell p={v.payable} unit={u} /></td>
                         <td>
                           <InvoiceStatusPill inv={inv} />
                           {inv.rejectReason ? <div className="sl-reject">{inv.rejectReason}</div> : null}
@@ -155,11 +186,13 @@ export function InvoicesPage() {
             <div className="sl-card-list" aria-label="فهرست فاکتورها (کارت)">
               {pg.items.map(inv => {
                 const a = invoiceAmounts(inv)
+                const u = unitOf(inv)
+                const v = presentAmounts(a, sp.policy)
                 const act = inv.next ? INVOICE_ACTION[inv.next] : null
                 return (
                   <article key={inv.code} className="sl-lcard" aria-label={`فاکتور ${inv.code}`}>
                     <div className="sl-top"><Who name={inv.customer} sub={<>فاکتور <span className="mono">{inv.code}</span></>} /><InvoiceStatusPill inv={inv} /></div>
-                    <div className="sl-meta"><span>کل <Money value={a.total} /></span><span>مانده {a.remaining === null ? '—' : <Money value={a.remaining} />}</span><span>قابل پرداخت <PayableCell p={a.payable} /></span></div>
+                    <div className="sl-meta"><span>کل <Money value={a.total} unit={u} /></span><span>مانده <RemainingCell r={v.remaining} unit={u} /></span><span>قابل پرداخت <PayableCell p={v.payable} unit={u} /></span></div>
                     <div className="sl-acts">
                       <MenuButton label={`اقدام‌های بیشتر ${inv.code}`} className="btn" entries={moreMenu(inv)}><DsIcon name="more" />بیشتر</MenuButton>
                       <button type="button" className={`btn${act ? ' btn-soft' : ''}`} onClick={() => setInvParam(inv.code)}>{act ? act.label : 'جزئیات'}</button>
@@ -173,13 +206,16 @@ export function InvoicesPage() {
         )}
       </Panel>
       <InvoiceDrawer inv={open} onClose={() => setInvParam(null)} />
-    </>
+      <NotFoundDrawer open={detail.notFound} kicker="فاکتور" onClose={() => setInvParam(null)} />
+    </ScreenFrame>
   )
 }
 
 export function InvoiceDrawer({ inv, onClose }: { inv: Invoice | null; onClose: () => void }) {
-  const { toast } = useSellerPreview()
+  const { toast, ui } = useSellerPreview()
   const a = inv ? invoiceAmounts(inv) : null
+  const u = inv ? unitOf(inv) : 'IRT'
+  const v = a ? presentAmounts(a, ui.policy) : null
   const act = inv?.next ? INVOICE_ACTION[inv.next] : null
   return (
     <Drawer open={inv !== null} onClose={onClose} title={inv ? `فاکتور ${inv.code}` : 'فاکتور'} kicker="فاکتور" wide
@@ -191,25 +227,25 @@ export function InvoiceDrawer({ inv, onClose }: { inv: Invoice | null; onClose: 
         </>
       ) : undefined}
     >
-      {inv && a ? (
+      {inv && a && v ? (
         <>
           <div className="sl-dr-head">
             <div className="sl-dr-title"><InvoiceStatusPill inv={inv} /></div>
-            <div className="sl-dr-meta"><span className="sl-strong-text">{inv.customer}</span><span className="mono">{toFaDigits(inv.phone)}</span><span>{inv.product}</span></div>
+            <div className="sl-dr-meta"><Who name={inv.customer} phone={inv.phone} copy={false} /><span>{inv.product}</span></div>
             <div className="sl-dr-quick">
               <button type="button" className="btn" onClick={() => toast(`نمایشی: لینکی برای ${inv.code} وجود ندارد و چیزی کپی نشد.`)}><DsIcon name="copy" />کپی لینک پرداخت</button>
             </div>
           </div>
           <section className="ds-sec sl-sec-primary" aria-label="خلاصه مبالغ">
             <div className="sl-sum-grid">
-              <div className="sl-sum"><span>مبلغ کل</span><b><Money value={a.total} /></b></div>
-              <div className="sl-sum"><span>پرداخت تایید‌شده مالی</span><b className="sl-green"><Money value={a.confirmed} /></b></div>
-              <div className="sl-sum"><span>مانده</span><b>{a.remaining === null ? <span className="muted">—</span> : <Money value={a.remaining} />}</b></div>
-              <div className="sl-sum"><span>قابل پرداخت فعلی</span><b><PayableCell p={a.payable} /></b></div>
+              <div className="sl-sum"><span>مبلغ کل</span><b><Money value={a.total} unit={u} /></b></div>
+              <div className="sl-sum"><span>پرداخت تایید‌شده مالی</span><b className="sl-green">{ui.policy.dependentAmountsWithheld ? <Withheld /> : ui.policy.statusUnknown ? <Money value={null} /> : <Money value={a.confirmed} unit={u} />}</b></div>
+              <div className="sl-sum"><span>مانده</span><b><RemainingCell r={v.remaining} unit={u} /></b></div>
+              <div className="sl-sum"><span>قابل پرداخت فعلی</span><b><PayableCell p={v.payable} unit={u} /></b></div>
             </div>
-            {a.submitted > 0 ? <Note tone="warn" icon="clock">مبلغ <Money value={a.submitted} /> فیش ارسال‌شده است و تا تایید مالی، پرداخت‌شده یا کسرشده از مانده حساب نمی‌شود.</Note> : null}
+            {a.submitted > 0 ? <Note tone="warn" icon="clock">مبلغ <Money value={a.submitted} unit={u} /> فیش ارسال‌شده است و تا تایید مالی، پرداخت‌شده یا کسرشده از مانده حساب نمی‌شود.</Note> : null}
             {a.unknown > 0 ? (
-              <Banner kind="unknown">نتیجه ارسال فیش به مبلغ <Money value={a.unknown} /> نامعلوم است؛ ممکن است ثبت شده باشد. پیش از هر ارسال مجدد باید تطبیق شود.</Banner>
+              <Banner kind="unknown">نتیجه ارسال فیش به مبلغ <Money value={a.unknown} unit={u} /> نامعلوم است؛ ممکن است ثبت شده باشد. پیش از هر ارسال مجدد باید تطبیق شود.</Banner>
             ) : null}
             {inv.rejectReason ? <Note tone="danger" icon="alert">دلیل رد مالی: {inv.rejectReason}</Note> : null}
           </section>
@@ -222,10 +258,10 @@ export function InvoiceDrawer({ inv, onClose }: { inv: Invoice | null; onClose: 
                   <li key={s.n} className={`sl-stage sl-stage-${s.state}`}>
                     <span className="sl-n" aria-hidden="true">{toFaDigits(s.n)}</span>
                     <div className="sl-grow">مرحله {toFaDigits(s.n)}<div className="sl-stage-state">
-                      {s.state === 'unknown' ? <StatusIndicator state="unknown" label={p.label} /> : <TonePill tone={p.tone} icon={p.icon} label={p.label} />}
+                      {s.state === 'unknown' ? <StatusIndicator state="unknown" label={p.label} /> : <StatusPill tone={p.tone} icon={p.icon} label={p.label} />}
                       {s.note ? <span className="muted sl-meta-text">{s.note}</span> : null}
                     </div></div>
-                    <Money value={s.amount} />
+                    <Money value={s.amount} unit={u} />
                   </li>
                 )
               })}

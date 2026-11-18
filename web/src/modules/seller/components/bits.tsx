@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
 import {
-  DsIcon, MenuButton, StatePanel, TonePill, formatFaNumber, toFaDigits, type DsIconName, type MenuEntry,
+  DsIcon, MenuButton, StatePanel, StatusIndicator, TonePill, formatFaNumber, toFaDigits, type DsIconName, type MenuEntry,
 } from '../../../shared/ui/ds'
 import type { Tone } from '../../../shared/ui/primitives'
 import { INVOICE_STATUS, LEAD_STATUS } from '../labels'
 import type { Page } from '../state/selectors'
 import { useSellerPreview } from '../state/SellerPreviewContext'
-import type { Invoice, Lead, LeadEvent, LeadNext } from '../types'
+import { Restricted } from './states'
+import type { Invoice, Lead, LeadEvent, LeadNext, MoneyUnit } from '../types'
 
 /*
  * Small Seller-domain presentation pieces of the frozen prototype (prototype/app.js money(),
@@ -14,12 +15,14 @@ import type { Invoice, Lead, LeadEvent, LeadNext } from '../types'
  * every value is synthetic and no element performs a business action.
  */
 
-/** Amount with unit (SN-207 §4). null = unknown → «—» with an accessible reason, never 0. */
-export function Money({ value, strong = false }: { value: number | null; strong?: boolean }) {
+export const UNIT_LABEL: Record<MoneyUnit, string> = { IRT: 'تومان', IRR: 'ریال' }
+
+/** Amount with its unit (SN-207 §4). null = unknown → «—» with an accessible reason, never 0. */
+export function Money({ value, strong = false, unit = 'IRT' }: { value: number | null; strong?: boolean; unit?: MoneyUnit | undefined }) {
   if (value === null) return <span className="sl-amount sl-unknown"><span aria-hidden="true">—</span><span className="sr">مبلغ نامعلوم</span></span>
   return (
-    <span className={`sl-amount${strong ? ' sl-strong' : ''}`}>
-      <span className="num">{formatFaNumber(value)}</span><small>تومان</small>
+    <span className={`sl-amount${strong ? ' sl-strong' : ''}`} data-unit={unit}>
+      <span className="num">{formatFaNumber(value)}</span><small>{UNIT_LABEL[unit]}</small>
     </span>
   )
 }
@@ -28,14 +31,33 @@ export function Fa({ children }: { children: string | number }) {
   return <>{toFaDigits(children)}</>
 }
 
+/** A status the answer could not map onto the known vocabulary (A7 `unknown`): «نامعلوم», never a guess. */
+function useStatusUnknown(): boolean {
+  return useSellerPreview().ui.policy.statusUnknown
+}
+
 export function LeadStatusPill({ lead }: { lead: Pick<Lead, 'status'> }) {
   const p = LEAD_STATUS[lead.status]
+  if (useStatusUnknown()) return <StatusIndicator state="unknown" />
   return <TonePill tone={p.tone} icon={p.icon} label={p.label} />
 }
 
 export function InvoiceStatusPill({ inv }: { inv: Pick<Invoice, 'status'> }) {
   const p = INVOICE_STATUS[inv.status]
+  if (useStatusUnknown()) return <StatusIndicator state="unknown" />
   return <TonePill tone={p.tone} icon={p.icon} label={p.label} />
+}
+
+/** Any module status pill under the A7 unknown-mapping state. */
+export function StatusPill({ tone, icon, label }: { tone: Tone; icon: DsIconName; label: string }) {
+  if (useStatusUnknown()) return <StatusIndicator state="unknown" />
+  return <TonePill tone={tone} icon={icon} label={label} />
+}
+
+/** Customer display name under the field policy (A7 `field_denied` → «محدود», no partial value). */
+export function useCustomerName(): (name: string) => string {
+  const restricted = useSellerPreview().ui.policy.fieldsRestricted
+  return (name: string) => (restricted ? 'مشتری (محدود)' : name)
 }
 
 const NEXT_ICON: Record<LeadNext['kind'], DsIconName> = { callback: 'clock', attempts: 'phoneOff', archive: 'alert', invoice: 'file' }
@@ -54,7 +76,15 @@ export function nextChipClass(next: LeadNext | null): string {
 
 /** Name + discovery-only phone with a copy shortcut (copy is a demo toast; nothing touches the clipboard). */
 export function Who({ name, phone, sub, copy = true }: { name: string; phone?: string | undefined; sub?: ReactNode; copy?: boolean }) {
-  const { toast } = useSellerPreview()
+  const { toast, ui } = useSellerPreview()
+  if (ui.policy.fieldsRestricted) {
+    return (
+      <div className="sl-who">
+        <Restricted what="نام مشتری" />
+        {phone ? <span className="sl-phone"><Restricted what="شماره مشتری" /></span> : sub ? <span className="sl-phone">{sub}</span> : null}
+      </div>
+    )
+  }
   return (
     <div className="sl-who">
       <b>{name}</b>
@@ -105,9 +135,12 @@ export function OwnershipFacts({ rows }: { rows: { term: string; value: ReactNod
 
 /** Pagination footer (prototype tfoot()). RTL: «›» is previous, «‹» is next. */
 export function TableFoot({ page, onPage, perPage }: { page: Page<unknown>; onPage: (p: number) => void; perPage: number }) {
+  const absent = useSellerPreview().ui.policy.countsAbsent
   return (
     <div className="sl-tfoot">
-      <span>نمایش <b className="num">{toFaDigits(page.total ? `${page.from}–${page.to}` : '0')}</b> از <b className="num">{toFaDigits(page.total)}</b></span>
+      {absent
+        ? <span>نمایش <b className="num">{toFaDigits(page.total ? `${page.from}–${page.to}` : '0')}</b> از <b className="num" aria-hidden="true">—</b><span className="sr">تعداد کل نامعلوم</span></span>
+        : <span>نمایش <b className="num">{toFaDigits(page.total ? `${page.from}–${page.to}` : '0')}</b> از <b className="num">{toFaDigits(page.total)}</b></span>}
       <nav className="sl-pager" aria-label="صفحه‌بندی">
         <button type="button" aria-label="صفحه قبلی" disabled={page.page <= 1} onClick={() => onPage(page.page - 1)}>›</button>
         {Array.from({ length: page.pages }, (_, i) => i + 1).map(n => (
@@ -154,22 +187,22 @@ export function SearchField({ id, label, placeholder, value, onChange }: { id: s
 }
 
 /**
- * Shared list-area state (prototype applyTableState): loading / error / empty / noresult.
- * Returns null when the list itself should render.
+ * Shared list-area state (prototype applyTableState): loading / empty / noresult. Returns null when the
+ * list itself should render. Blocking answers (denied, disabled, expired, failure) never reach here:
+ * ScreenFrame renders them instead of the screen body. An exact empty answer arrives as zero rows.
  */
-export function useListState({ count, emptyTitle, emptyDetail, noResult, onClear, onRetry }: {
+export function useListState({ count, emptyTitle, emptyDetail, noResult, onClear }: {
   count: number
   emptyTitle: string
   emptyDetail: string
   /** True when filters/search are active, so an empty list is "no result" rather than "nothing exists". */
   noResult: boolean
   onClear?: (() => void) | undefined
-  onRetry: () => void
+  /** Kept for call-site compatibility; retry now lives in ScreenFrame (failure only). */
+  onRetry?: (() => void) | undefined
 }): ReactNode {
   const { sim } = useSellerPreview()
   if (sim === 'loading') return <StatePanel kind="loading" title="در حال بارگذاری فهرست" />
-  if (sim === 'error') return <StatePanel kind="error" title="امکان دریافت لیست وجود ندارد" detail="ممکن است اتصال لحظه‌ای قطع شده باشد. بقیه صفحه همچنان قابل استفاده است. (نمایشی)" actions={<button type="button" className="btn btn-primary" onClick={onRetry}><DsIcon name="refresh" />تلاش مجدد</button>} />
-  if (sim === 'empty') return <StatePanel kind="empty" title={emptyTitle} detail={emptyDetail} />
   if (count > 0) return null
   if (noResult) return <StatePanel kind="noresult" title="نتیجه‌ای پیدا نشد" detail="جستجو یا فیلترها همه موارد را کنار گذاشتند." actions={onClear ? <button type="button" className="btn btn-soft" onClick={onClear}>پاک کردن جستجو و فیلترها</button> : undefined} />
   return <StatePanel kind="empty" title={emptyTitle} detail={emptyDetail} />

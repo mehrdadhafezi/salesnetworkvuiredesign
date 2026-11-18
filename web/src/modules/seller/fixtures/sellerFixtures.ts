@@ -77,6 +77,8 @@ export const INVOICES: Invoice[] = [
   { code: 'TST-1006', customer: 'مشتری نمونه ح', phone: phone(108), product: 'اشتراک نمونه ۱۰ ستاره', status: 'approved', next: null, stages: [stage(1, 10_000_000, 'confirmed')], history: [{ text: 'تایید مالی', meta: 'کارشناس مالی (نمونه) · ۱۴۰۵/۰۶/۱۸' }, { text: 'صدور پیش‌فاکتور', meta: 'فروشنده نمونه · ۱۴۰۵/۰۶/۱۵' }] },
   { code: 'TST-1007', customer: 'مشتری نمونه الف', phone: phone(101), product: 'اشتراک نمونه نقره‌ای + پکیج', status: 'staged', next: null, stages: [stage(1, 32_000_000, 'confirmed'), stage(2, 32_000_000, 'unknown', 'پاسخ ارسال فیش نرسید؛ ممکن است ثبت شده باشد')], history: [{ text: 'ارسال فیش مرحله ۲ — نتیجه نامعلوم', meta: 'فروشنده نمونه · امروز' }, { text: 'تایید مالی مرحله ۱', meta: 'کارشناس مالی (نمونه) · ۱۴۰۵/۰۶/۲۲' }, { text: 'صدور پیش‌فاکتور', meta: 'فروشنده نمونه · ۱۴۰۵/۰۶/۲۰' }] },
   { code: 'TST-1008', customer: 'مشتری نمونه چ', phone: phone(107), product: 'اعتبارسنجی نمونه ۲۵۰ هزار', status: 'cancelled', next: null, stages: [stage(1, 250_000, 'void')], history: [{ text: 'لغو پیش‌فاکتور', meta: 'فروشنده نمونه · ۱۴۰۵/۰۶/۲۱' }] },
+  /* A7: one invoice in rials, so the unit split is exercised; its amounts are never added to the toman ones. */
+  { code: 'TST-1015', customer: 'مشتری نمونه ق', phone: phone(205), product: 'اعتبارسنجی نمونه (ریالی)', status: 'staged', next: 'register_payment', unit: 'IRR', stages: [stage(1, 40_000_000, 'confirmed'), stage(2, 60_000_000, 'due')], history: [{ text: 'تایید مالی مرحله ۱', meta: 'کارشناس مالی (نمونه) · ۱۴۰۵/۰۷/۰۴' }, { text: 'صدور پیش‌فاکتور', meta: 'فروشنده نمونه · ۱۴۰۵/۰۷/۰۲' }] },
 ]
 
 export const CONVERSIONS: Conversion[] = [
@@ -117,5 +119,6 @@ export const WALLET: WalletFixture = {
     { id: 'w6', date: '۱۴۰۵/۰۵/۲۲ ۲۳:۱۵', channel: 'card', amount: 480, invoice: 'TST-1013', rule: 'قاعده نمونه #۶', state: 'confirmed' },
     { id: 'w7', date: '۱۴۰۵/۰۵/۲۲ ۲۲:۴۴', channel: 'online', amount: null, invoice: 'TST-1007', rule: 'قاعده نمونه #۴', state: 'unknown' },
     { id: 'w8', date: '۱۴۰۵/۰۵/۱۹ ۲۲:۲۷', channel: 'online', amount: 300_000, invoice: 'TST-1014', rule: 'قاعده نمونه #۴', state: 'pending' },
+    { id: 'w9', date: '۱۴۰۵/۰۵/۱۸ ۱۱:۰۵', channel: 'card', amount: 2_400_000, invoice: 'TST-1015', rule: 'قاعده نمونه #۷', state: 'confirmed', unit: 'IRR' },
   ],
 }

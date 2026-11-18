@@ -6,8 +6,16 @@
  */
 import type {
   BehaviorItem, Conversion, ConversionQueue, Invoice, InvoiceQueue, InvoiceStatus, Lead, LeadOutcome, LeadQueue, LeadStatus,
-  RepeatItem, WalletChannel, WalletTx, WalletTxState,
+  MoneyUnit, RepeatItem, WalletChannel, WalletTx, WalletTxState,
 } from '../types'
+
+/** Unit of an invoice or wallet line; the RM-E03 fixtures predate units and are IRT. */
+export function unitOf(x: { unit?: MoneyUnit | undefined }): MoneyUnit {
+  return x.unit ?? 'IRT'
+}
+
+/** Stable unit order for display (IRT first, as the fixtures are mostly IRT). */
+export const UNIT_ORDER: readonly MoneyUnit[] = ['IRT', 'IRR']
 
 /** Persian / Arabic-Indic digits → ASCII, lower-case, trimmed (prototype palette norm()). */
 export function normalizeSearch(s: string): string {
@@ -41,16 +49,17 @@ export interface LeadFilter {
 
 export const DEFAULT_LEAD_FILTER: LeadFilter = { queue: 'none', q: '', source: null, prob: null, range: 'all', sort: 'newest' }
 
-export function leadCounts(leads: Lead[]): Record<LeadQueue, number> {
+export function leadCounts(leads: readonly Lead[]): Record<LeadQueue, number> {
   const out: Record<LeadQueue, number> = { none: 0, no_answer: 0, callback: 0, not_purchased: 0, duplicate: 0, invoiced: 0, all: leads.length }
   for (const l of leads) out[l.status] += 1
   return out
 }
 
-export function filterLeads(leads: Lead[], f: LeadFilter): Lead[] {
+/** `identity=false` (A7 FIELD_DENIED): name and phone are not searchable, so a search cannot confirm a withheld value. */
+export function filterLeads(leads: readonly Lead[], f: LeadFilter, identity = true): Lead[] {
   const list = leads.filter(l =>
     (f.queue === 'all' || l.status === f.queue)
-    && matches(f.q, l.name, l.phone, l.city)
+    && matches(f.q, ...(identity ? [l.name, l.phone] : []), l.city)
     && (f.source === null || l.source === f.source)
     && (f.prob === null || (f.prob === '—' ? l.prob === '' : l.prob === f.prob))
     && (f.range === 'all' || l.assignedDays <= Number(f.range)))
@@ -58,7 +67,7 @@ export function filterLeads(leads: Lead[], f: LeadFilter): Lead[] {
 }
 
 /** Share of assigned leads that already carry a status (prototype «نرخ پیگیری»). null when there are no leads. */
-export function followUpRate(leads: Lead[]): number | null {
+export function followUpRate(leads: readonly Lead[]): number | null {
   if (!leads.length) return null
   return Math.round(((leads.length - leadCounts(leads).none) / leads.length) * 100)
 }
@@ -83,6 +92,8 @@ export type Payable =
   | { kind: 'awaiting_finance' }
   | { kind: 'unknown' }
   | { kind: 'none' }
+  /** A7 PARTIAL: depends on incomplete facts, so it is not shown (not the same as unknown). */
+  | { kind: 'withheld' }
 
 export interface InvoiceAmounts {
   total: number
@@ -114,63 +125,73 @@ export function invoiceAmounts(inv: Invoice): InvoiceAmounts {
   return { total, confirmed, submitted, unknown, remaining: total - confirmed, payable }
 }
 
-export function invoiceCounts(invoices: Invoice[]): Record<InvoiceQueue, number> {
+export function invoiceCounts(invoices: readonly Invoice[]): Record<InvoiceQueue, number> {
   const out: Record<InvoiceQueue, number> = { all: invoices.length, pre_invoice: 0, staged: 0, finance_review: 0, approved: 0, rejected: 0, cancelled: 0 }
   for (const i of invoices) out[i.status] += 1
   return out
 }
 
-export function filterInvoices(invoices: Invoice[], queue: InvoiceQueue, q: string, product: string | null): Invoice[] {
-  return invoices.filter(i => (queue === 'all' || i.status === queue) && matches(q, i.code, i.customer, i.phone) && (product === null || i.product === product))
+export function filterInvoices(invoices: readonly Invoice[], queue: InvoiceQueue, q: string, product: string | null, identity = true): Invoice[] {
+  return invoices.filter(i => (queue === 'all' || i.status === queue) && matches(q, i.code, ...(identity ? [i.customer, i.phone] : [])) && (product === null || i.product === product))
 }
 
-/** Sum of remaining receivable across non-cancelled invoices; also reports whether any part is unknown. */
-export function collectibleTotal(invoices: Invoice[]): { value: number; hasUnknown: boolean } {
-  let value = 0, hasUnknown = false
+/**
+ * Remaining receivable across non-cancelled invoices, one sum PER UNIT (never added across units),
+ * and whether any part is unknown (then no sum is final).
+ */
+export function collectibleTotal(invoices: readonly Invoice[]): { byUnit: { unit: MoneyUnit; value: number }[]; hasUnknown: boolean } {
+  const sums = new Map<MoneyUnit, number>()
+  let hasUnknown = false
   for (const i of invoices) {
     const a = invoiceAmounts(i)
-    if (a.remaining !== null) value += a.remaining
+    if (a.remaining !== null) sums.set(unitOf(i), (sums.get(unitOf(i)) ?? 0) + a.remaining)
     if (a.unknown > 0) hasUnknown = true
   }
-  return { value, hasUnknown }
+  return { byUnit: UNIT_ORDER.filter(u => sums.has(u)).map(u => ({ unit: u, value: sums.get(u) ?? 0 })), hasUnknown }
 }
 
 export const INVOICE_STATUSES: InvoiceStatus[] = ['pre_invoice', 'staged', 'finance_review', 'approved', 'rejected', 'cancelled']
 
 /* ---------- Conversions / repeat / behavior ---------- */
 
-export function filterConversions(list: Conversion[], queue: ConversionQueue, q: string): Conversion[] {
-  return list.filter(c => (queue === 'all' || c.stage === queue) && matches(q, c.customer, c.phone, c.invoice, String(c.id)))
+export function filterConversions(list: readonly Conversion[], queue: ConversionQueue, q: string, identity = true): Conversion[] {
+  return list.filter(c => (queue === 'all' || c.stage === queue) && matches(q, ...(identity ? [c.customer, c.phone] : []), c.invoice, String(c.id)))
 }
 
-export function filterRepeat(list: RepeatItem[], queue: 'open' | 'done', q: string): RepeatItem[] {
-  return list.filter(r => (queue === 'open' ? !r.done : r.done) && matches(q, r.customer, r.phone, r.invoice))
+export function filterRepeat(list: readonly RepeatItem[], queue: 'open' | 'done', q: string, identity = true): RepeatItem[] {
+  return list.filter(r => (queue === 'open' ? !r.done : r.done) && matches(q, ...(identity ? [r.customer, r.phone] : []), r.invoice))
 }
 
-export function filterBehavior(list: BehaviorItem[], q: string, onlyHot: boolean): BehaviorItem[] {
-  return list.filter(b => (!onlyHot || b.hot) && matches(q, b.name, b.phone, b.invoice))
+export function filterBehavior(list: readonly BehaviorItem[], q: string, onlyHot: boolean, identity = true): BehaviorItem[] {
+  return list.filter(b => (!onlyHot || b.hot) && matches(q, ...(identity ? [b.name, b.phone] : []), b.invoice))
 }
 
 /* ---------- Wallet ---------- */
 
+export interface WalletUnitTotals { unit: MoneyUnit; confirmed: number; pending: number }
+
 export interface WalletTotals {
-  confirmed: number
-  pending: number
-  /** Lines whose amount or state is unknown — excluded from both sums, so totals are incomplete. */
+  /** One entry per unit present; units are never added together. */
+  byUnit: WalletUnitTotals[]
+  /** Lines whose amount or state is unknown — excluded from every sum, so totals are incomplete. */
   unknownCount: number
 }
 
-export function walletTotals(tx: WalletTx[]): WalletTotals {
-  let confirmed = 0, pending = 0, unknownCount = 0
+export function walletTotals(tx: readonly WalletTx[]): WalletTotals {
+  const sums = new Map<MoneyUnit, WalletUnitTotals>()
+  let unknownCount = 0
   for (const t of tx) {
     if (t.state === 'unknown' || t.amount === null) { unknownCount += 1; continue }
-    if (t.state === 'confirmed') confirmed += t.amount
-    else pending += t.amount
+    const u = unitOf(t)
+    const cur = sums.get(u) ?? { unit: u, confirmed: 0, pending: 0 }
+    if (t.state === 'confirmed') cur.confirmed += t.amount
+    else cur.pending += t.amount
+    sums.set(u, cur)
   }
-  return { confirmed, pending, unknownCount }
+  return { byUnit: UNIT_ORDER.flatMap(u => { const v = sums.get(u); return v ? [v] : [] }), unknownCount }
 }
 
-export function filterWallet(tx: WalletTx[], channel: 'all' | WalletChannel, state: 'all' | WalletTxState): WalletTx[] {
+export function filterWallet(tx: readonly WalletTx[], channel: 'all' | WalletChannel, state: 'all' | WalletTxState): WalletTx[] {
   return tx.filter(t => (channel === 'all' || t.channel === channel) && (state === 'all' || t.state === state))
 }
 

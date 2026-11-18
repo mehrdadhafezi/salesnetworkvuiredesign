@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Drawer, Metric, MetricGroup, PageHead, Panel, StatusIndicator, Toolbar, toFaDigits } from '../../../shared/ui/ds'
-import { SearchField, TableFoot, Timeline, Who, useListState } from '../components/bits'
+import { SearchField, TableFoot, Timeline, Who, useCustomerName, useListState } from '../components/bits'
+import { NotFoundDrawer, Restricted, ScreenFrame, useDetail, useStatePresentation } from '../components/states'
 import { BEHAVIOR, INVOICES } from '../fixtures/sellerFixtures'
 import { useDrawerParam } from '../state/hooks'
 import { filterBehavior, paginate } from '../state/selectors'
@@ -17,34 +18,37 @@ import type { BehaviorItem } from '../types'
 const PER_PAGE = 10
 
 export function BehaviorPage() {
-  const { base, setSim } = useSellerPreview()
+  const { base } = useSellerPreview()
+  const sp = useStatePresentation()
+  const items = sp.data(BEHAVIOR)
   const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [onlyHot, setOnlyHot] = useState(false)
   const [page, setPage] = useState(1)
   const [param, setParam] = useDrawerParam('b')
-  const list = useMemo(() => filterBehavior(BEHAVIOR, q, onlyHot), [q, onlyHot])
+  const list = useMemo(() => filterBehavior(items, q, onlyHot, !sp.policy.fieldsRestricted), [items, q, onlyHot, sp.policy.fieldsRestricted])
   const pg = paginate(list, page, PER_PAGE)
-  const open = param ? BEHAVIOR.find(b => b.id === param) ?? null : null
+  const detail = useDetail(param, id => items.find(b => b.id === id))
+  const open = detail.record
   const stateEl = useListState({
-    count: pg.items.length, noResult: q !== '' || onlyHot, onClear: () => { setQ(''); setOnlyHot(false) }, onRetry: () => setSim('none'),
+    count: pg.items.length, noResult: q !== '' || onlyHot, onClear: () => { setQ(''); setOnlyHot(false) },
     emptyTitle: 'رفتاری ثبت نشده است', emptyDetail: 'هنوز مشتری‌ای لینک فاکتور را باز نکرده است.',
   })
   const goInvoice = (code: string) => void navigate(`${base}/invoices?inv=${encodeURIComponent(code)}`)
 
   return (
-    <>
+    <ScreenFrame title="رفتار مشتریان" contract="no_source" head={
       <PageHead
         title="رفتار مشتریان"
         sub="باز شدن لینک، مشاهده محصول، گردونه، کد تخفیف و پرداخت روی صفحه فاکتور (نمونه ساختگی)"
         kpis={
           <MetricGroup label="شاخص‌های این صفحه">
-            <Metric label="مشتری فعال امروز" value={toFaDigits(BEHAVIOR.filter(b => b.hot).length)} accent="teal" />
+            <Metric label="مشتری فعال امروز" {...sp.kpi(items.filter(b => b.hot).length)} accent="teal" />
             <Metric label="لینک باز شده (۷ روز)" accent="blue" state="unavailable" meaning="پوشش رویداد در نمونه ناقص است" />
             <Metric label="پرداخت پس از بازدید" accent="green" state="undefined" meaning="فرمول در پیش‌نمایش تعریف نشده" />
           </MetricGroup>
         }
-      />
+      />}>
       <Panel label="رفتار مشتریان">
         <Toolbar>
           <div className="sl-grow-field"><SearchField id="sl-beh-q" label="جستجوی مشتری یا فاکتور" placeholder="شماره مشتری یا کد فاکتور" value={q} onChange={v => { setQ(v); setPage(1) }} /></div>
@@ -66,7 +70,7 @@ export function BehaviorPage() {
                       <td data-l="فاکتور"><span className="mono">{b.invoice}</span></td>
                       <td data-l="آخرین فعالیت">{b.last}{b.hot ? <span className="sl-hot">فعال</span> : null}</td>
                       <td data-l="زمان" className="muted">{b.when}</td>
-                      <td data-l="تعداد">{b.count === null ? <StatusIndicator state="incomplete" label="نامعلوم" /> : `${toFaDigits(b.count)} رویداد`}</td>
+                      <td data-l="تعداد">{b.count === null || sp.policy.countsAbsent ? <StatusIndicator state="incomplete" label="نامعلوم" /> : `${toFaDigits(b.count)} رویداد`}</td>
                       <td className="sl-col-actions"><div className="sl-row-actions"><button type="button" className="btn btn-sm" onClick={e => { e.stopPropagation(); setParam(b.id) }}>مشاهده روند</button></div></td>
                     </tr>
                   ))}
@@ -78,14 +82,17 @@ export function BehaviorPage() {
         )}
       </Panel>
       <BehaviorDrawer b={open} onClose={() => setParam(null)} onInvoice={goInvoice} />
-    </>
+      <NotFoundDrawer open={detail.notFound} kicker="روند رفتار مشتری" onClose={() => setParam(null)} />
+    </ScreenFrame>
   )
 }
 
 function BehaviorDrawer({ b, onClose, onInvoice }: { b: BehaviorItem | null; onClose: () => void; onInvoice: (code: string) => void }) {
+  const { ui } = useSellerPreview()
+  const name = useCustomerName()
   const hasInvoice = b ? INVOICES.some(i => i.code === b.invoice) : false
   return (
-    <Drawer open={b !== null} onClose={onClose} title={b?.name ?? 'روند رفتار مشتری'} kicker="روند رفتار مشتری"
+    <Drawer open={b !== null} onClose={onClose} title={b ? name(b.name) : 'روند رفتار مشتری'} kicker="روند رفتار مشتری"
       footer={b ? (
         <>
           <button type="button" className="btn btn-lg btn-ghost" onClick={onClose}>بستن</button>
@@ -96,7 +103,7 @@ function BehaviorDrawer({ b, onClose, onInvoice }: { b: BehaviorItem | null; onC
       {b ? (
         <>
           <div className="sl-dr-head">
-            <div className="sl-dr-meta"><span className="mono">{toFaDigits(b.phone)}</span><span>فاکتور <span className="mono">{b.invoice}</span></span>{b.hot ? <span className="sl-hot">فعال</span> : null}</div>
+            <div className="sl-dr-meta">{ui.policy.fieldsRestricted ? <Restricted what="شماره مشتری" /> : <span className="mono">{toFaDigits(b.phone)}</span>}<span>فاکتور <span className="mono">{b.invoice}</span></span>{b.hot ? <span className="sl-hot">فعال</span> : null}</div>
           </div>
           <section className="ds-sec" aria-label="رویدادها">
             <Timeline events={b.events} label="رویدادهای مشتری" />

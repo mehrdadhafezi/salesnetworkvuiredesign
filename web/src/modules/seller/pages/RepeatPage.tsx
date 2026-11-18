@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ContextHint, Drawer, DsIcon, Metric, MetricGroup, PageHead, Panel, QueueTabs, Toolbar, toFaDigits, type DsQueue } from '../../../shared/ui/ds'
-import { FactChip, Money, Note, OwnershipFacts, SearchField, TableFoot, Timeline, Who, useListState } from '../components/bits'
+import { FactChip, Money, Note, OwnershipFacts, SearchField, TableFoot, Timeline, Who, useCustomerName, useListState } from '../components/bits'
+import { NotFoundDrawer, Restricted, ScreenFrame, useDetail, useStatePresentation } from '../components/states'
 import { REPEAT_ITEMS } from '../fixtures/sellerFixtures'
 import { DEMO_SUFFIX } from '../labels'
 import { useDrawerParam } from '../state/hooks'
@@ -18,37 +19,39 @@ import type { RepeatItem } from '../types'
 const PER_PAGE = 10
 
 export function RepeatPage() {
-  const { setSim } = useSellerPreview()
+  const sp = useStatePresentation()
+  const items = sp.data(REPEAT_ITEMS)
   const [queue, setQueue] = useState<'open' | 'done'>('open')
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
   const [param, setParam] = useDrawerParam('item')
-  const list = useMemo(() => filterRepeat(REPEAT_ITEMS, queue, q), [queue, q])
+  const list = useMemo(() => filterRepeat(items, queue, q, !sp.policy.fieldsRestricted), [items, queue, q, sp.policy.fieldsRestricted])
   const pg = paginate(list, page, PER_PAGE)
-  const open = param ? REPEAT_ITEMS.find(r => String(r.id) === param) ?? null : null
-  const openCount = REPEAT_ITEMS.filter(r => !r.done).length
-  const doneCount = REPEAT_ITEMS.length - openCount
+  const detail = useDetail(param, id => items.find(r => String(r.id) === id))
+  const open = detail.record
+  const openCount = items.filter(r => !r.done).length
+  const doneCount = items.length - openCount
   const stateEl = useListState({
-    count: pg.items.length, noResult: q !== '', onClear: () => setQ(''), onRetry: () => setSim('none'),
+    count: pg.items.length, noResult: q !== '', onClear: () => setQ(''),
     emptyTitle: 'کاری در این صف نیست',
     emptyDetail: 'وقتی مرحله بعدی یک پرداخت به شما ارجاع شود، اینجا نمایش داده می‌شود. مالک فروش و پورسانت پایه برای فروشنده صادرکننده اولیه حفظ می‌شود.',
   })
   const queues: DsQueue[] = [
-    { id: 'open', label: 'باز', tone: 'amber', icon: 'clock', count: openCount },
-    { id: 'done', label: 'انجام‌شده', tone: 'green', icon: 'checkCircle', count: doneCount },
+    { id: 'open', label: 'باز', tone: 'amber', icon: 'clock', count: sp.count(openCount) },
+    { id: 'done', label: 'انجام‌شده', tone: 'green', icon: 'checkCircle', count: sp.count(doneCount) },
   ]
   return (
-    <>
+    <ScreenFrame title="نیاز به اقدام مجدد" contract="no_source" head={
       <PageHead
         title="نیاز به اقدام مجدد"
         sub="پرداخت‌های مرحله‌ای که مرحله بعدشان به شما ارجاع شده است (نمونه ساختگی)"
         kpis={
           <MetricGroup label="شاخص‌های این صفحه">
-            <Metric label="باز" value={toFaDigits(openCount)} accent="neutral" />
-            <Metric label="این ماه انجام‌شده" value={toFaDigits(doneCount)} accent="green" tone="good" />
+            <Metric label="باز" {...sp.kpi(openCount)} accent="neutral" />
+            <Metric label="این ماه انجام‌شده" {...sp.kpi(doneCount)} accent="green" tone="good" />
           </MetricGroup>
         }
-      />
+      />}>
       <Panel label="صف اقدام مجدد">
         <QueueTabs queues={queues} value={queue} onChange={id => { setQueue(id as 'open' | 'done'); setPage(1); setParam(null) }} />
         <Toolbar>
@@ -85,14 +88,16 @@ export function RepeatPage() {
         )}
       </Panel>
       <RepeatDrawer r={open} onClose={() => setParam(null)} />
-    </>
+      <NotFoundDrawer open={detail.notFound} kicker="اقدام مجدد" onClose={() => setParam(null)} />
+    </ScreenFrame>
   )
 }
 
 function RepeatDrawer({ r, onClose }: { r: RepeatItem | null; onClose: () => void }) {
-  const { toast } = useSellerPreview()
+  const { toast, ui } = useSellerPreview()
+  const name = useCustomerName()
   return (
-    <Drawer open={r !== null} onClose={onClose} title={r?.customer ?? 'اقدام مجدد'} kicker={r ? `فاکتور ${r.invoice} · ${r.stageLabel}` : 'اقدام مجدد'}
+    <Drawer open={r !== null} onClose={onClose} title={r ? name(r.customer) : 'اقدام مجدد'} kicker={r ? `فاکتور ${r.invoice} · ${r.stageLabel}` : 'اقدام مجدد'}
       footerHint="پیش‌نمایش: ارجاع یا اعلانی انجام نمی‌شود"
       footer={r && !r.done ? (
         <>
@@ -104,7 +109,7 @@ function RepeatDrawer({ r, onClose }: { r: RepeatItem | null; onClose: () => voi
       {r ? (
         <>
           <div className="sl-dr-head">
-            <div className="sl-dr-meta"><span className="mono sl-dr-phone">{toFaDigits(r.phone)}</span><span>مبلغ مرحله <Money value={r.amount} /></span></div>
+            <div className="sl-dr-meta">{ui.policy.fieldsRestricted ? <Restricted what="شماره مشتری" /> : <span className="mono sl-dr-phone">{toFaDigits(r.phone)}</span>}<span>مبلغ مرحله <Money value={r.amount} /></span></div>
             <div className="sl-dr-facts"><FactChip icon="clock" cls={r.dueTone ? `sl-${r.dueTone}` : ''}>زمان اقدام: {r.due}</FactChip></div>
           </div>
           <section className="ds-sec sl-sec-primary" aria-label="مالکیت و مسئولیت">

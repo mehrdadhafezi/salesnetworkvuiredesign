@@ -93,11 +93,14 @@ describe('presentation logic', () => {
     expect(invoiceAmounts(byCode('TST-1008'))).toMatchObject({ remaining: null, payable: { kind: 'none' } })
     expect(collectibleTotal(INVOICES).hasUnknown).toBe(true)
   })
-  it('wallet: unknown lines are excluded from both sums and counted separately — never as zero', () => {
+  it('wallet: unknown lines are excluded from both sums and counted separately — never as zero; units never mix', () => {
     const t = walletTotals(WALLET.tx)
     expect(t.unknownCount).toBe(1)
-    expect(t.pending).toBe(600_000)
-    expect(t.confirmed).toBe(WALLET.tx.filter(x => x.state === 'confirmed').reduce((s, x) => s + (x.amount ?? 0), 0))
+    const irt = t.byUnit.find(u => u.unit === 'IRT')
+    const irr = t.byUnit.find(u => u.unit === 'IRR')
+    expect(irt?.pending).toBe(600_000)
+    expect(irt?.confirmed).toBe(WALLET.tx.filter(x => x.state === 'confirmed' && (x.unit ?? 'IRT') === 'IRT').reduce((s, x) => s + (x.amount ?? 0), 0))
+    expect(irr).toEqual({ unit: 'IRR', confirmed: 2_400_000, pending: 0 })
     expect(filterWallet(WALLET.tx, 'online', 'all').every(x => x.channel === 'online')).toBe(true)
   })
   it('outcome and request validation mirror the prototype required fields', () => {

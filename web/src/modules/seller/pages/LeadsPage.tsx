@@ -5,14 +5,15 @@ import {
 } from '../../../shared/ui/ds'
 import {
   FactChip, FilterChip, InvoiceStatusPill, LeadStatusPill, Money, NextStep, Note, SearchField, TableFoot, Tag, Timeline, Who,
-  nextChipClass, useListState,
+  nextChipClass, useCustomerName, useListState,
 } from '../components/bits'
+import { NotFoundDrawer, Restricted, ScreenFrame, useDetail, useStatePresentation } from '../components/states'
 import { OutcomeGrid } from '../components/overlays'
 import { INVOICES, LEADS } from '../fixtures/sellerFixtures'
 import { CLOSED_LEAD_STATUSES, DEMO_SUFFIX, LEAD_OUTCOMES, LEAD_QUEUE_ORDER, LEAD_STATUS } from '../labels'
 import { useDrawerParam, usePageKeys } from '../state/hooks'
 import {
-  DEFAULT_LEAD_FILTER, filterLeads, followUpRate, invoiceAmounts, leadCounts, paginate, validateOutcome,
+  DEFAULT_LEAD_FILTER, filterLeads, followUpRate, invoiceAmounts, leadCounts, paginate, unitOf, validateOutcome,
   type DateRange, type FieldErrors, type LeadFilter, type OutcomeFields,
 } from '../state/selectors'
 import { useSellerPreview } from '../state/SellerPreviewContext'
@@ -34,7 +35,10 @@ function isQueue(v: string | null): v is LeadQueue {
 }
 
 export function LeadsPage() {
-  const { toast, setSim, base } = useSellerPreview()
+  const { toast, base } = useSellerPreview()
+  const sp = useStatePresentation()
+  const leads = sp.data(LEADS)
+  const name = useCustomerName()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const [filter, setFilter] = useState<LeadFilter>(() => ({ ...DEFAULT_LEAD_FILTER, queue: isQueue(params.get('queue')) ? params.get('queue') as LeadQueue : 'none' }))
@@ -44,11 +48,13 @@ export function LeadsPage() {
   const tbody = useRef<HTMLTableSectionElement>(null)
   const search = useRef<HTMLDivElement>(null)
 
-  const counts = useMemo(() => leadCounts(LEADS), [])
-  const list = useMemo(() => filterLeads(LEADS, filter), [filter])
+  const counts = useMemo(() => leadCounts(leads), [leads])
+  const identity = !sp.policy.fieldsRestricted
+  const list = useMemo(() => filterLeads(leads, filter, identity), [leads, filter, identity])
   const pg = paginate(list, page, PER_PAGE)
-  const rate = followUpRate(LEADS)
-  const openLead = leadParam ? LEADS.find(l => String(l.id) === leadParam) ?? null : null
+  const rate = followUpRate(leads)
+  const detail = useDetail(leadParam, id => leads.find(l => String(l.id) === id))
+  const openLead = detail.record
 
   const update = (patch: Partial<LeadFilter>) => { setFilter(f => ({ ...f, ...patch })); setPage(1); setCursor(0) }
   const switchQueue = useCallback((q: LeadQueue) => { setFilter(f => ({ ...f, queue: q })); setPage(1); setCursor(0); setLeadParam(null) }, [setLeadParam])
@@ -66,11 +72,11 @@ export function LeadsPage() {
   /** J/K: next / previous lead — in the drawer it steps through the current list (prototype step()). */
   const step = useCallback((d: number) => {
     if (!openLead) { focusRow(cursor + d); return }
-    const src = list.some(l => l.id === openLead.id) ? list : LEADS
+    const src = list.some(l => l.id === openLead.id) ? list : leads
     const i = src.findIndex(l => l.id === openLead.id)
     const n = src[(i + d + src.length) % src.length]
     if (n) setLeadParam(String(n.id))
-  }, [openLead, list, cursor, setLeadParam])
+  }, [openLead, list, leads, cursor, setLeadParam])
 
   usePageKeys(useCallback((k: string) => {
     if (openLead) return false // the drawer owns 1–5 / Enter / J / K while open (handled inside it)
@@ -85,8 +91,8 @@ export function LeadsPage() {
   }, [openLead, step, switchQueue]))
 
   const queues: DsQueue[] = LEAD_QUEUE_ORDER.map(k => k === 'all'
-    ? { id: 'all', label: 'همه', tone: 'neutral', count: counts.all, shortcut: '0' }
-    : { id: k, label: LEAD_STATUS[k].label, tone: LEAD_STATUS[k].tone, icon: LEAD_STATUS[k].icon, count: counts[k], shortcut: LEAD_STATUS[k].key })
+    ? { id: 'all', label: 'همه', tone: 'neutral', count: sp.count(counts.all), shortcut: '0' }
+    : { id: k, label: LEAD_STATUS[k].label, tone: LEAD_STATUS[k].tone, icon: LEAD_STATUS[k].icon, count: sp.count(counts[k]), shortcut: LEAD_STATUS[k].key })
 
   const onRowKey = (e: ReactKeyboardEvent<HTMLTableRowElement>, i: number, lead: Lead) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); focusRow(i + 1) }
@@ -95,25 +101,25 @@ export function LeadsPage() {
   }
 
   const stateEl = useListState({
-    count: pg.items.length, noResult: filtersActive, onClear: clearFilters, onRetry: () => setSim('none'),
+    count: pg.items.length, noResult: filtersActive, onClear: clearFilters,
     emptyTitle: 'در این صف موردی وجود ندارد', emptyDetail: 'شماره‌ای با این وضعیت ندارید.',
   })
 
   return (
-    <>
+    <ScreenFrame title="شماره‌های من" head={
       <PageHead
         title="شماره‌های من"
-        sub={`${toFaDigits(LEADS.length)} شماره تخصیص‌یافته (ساختگی)`}
+        sub={`${sp.countText(leads.length)} شماره تخصیص‌یافته (ساختگی)`}
         kpis={
           <MetricGroup label="شاخص‌های این صفحه">
-            <Metric label="بدون وضعیت" value={toFaDigits(counts.none)} accent="neutral" />
-            <Metric label="تماس مجدد امروز" value={toFaDigits(LEADS.filter(l => l.next?.kind === 'callback' && l.next.due).length)} accent="blue" />
+            <Metric label="بدون وضعیت" {...sp.kpi(counts.none)} accent="neutral" />
+            <Metric label="تماس مجدد امروز" {...sp.kpi(leads.filter(l => l.next?.kind === 'callback' && l.next.due).length)} accent="blue" />
             <Metric label="نرخ پیگیری" value={rate === null ? undefined : toFaDigits(rate)} unit="٪" accent="teal" state={rate === null ? 'unknown' : 'ok'} />
-            <Metric label="پیش‌فاکتور (نمونه)" value={toFaDigits(counts.invoiced)} accent="violet" />
+            <Metric label="پیش‌فاکتور (نمونه)" {...sp.kpi(counts.invoiced)} accent="violet" />
           </MetricGroup>
         }
         actions={<button type="button" className="btn" onClick={() => void navigate(`${base}/request`)}><DsIcon name="plus" />درخواست شماره</button>}
-      />
+      />}>
       <Panel label="فهرست شماره‌ها" className="sl-has-cards">
         <QueueTabs queues={queues} value={filter.queue} onChange={id => switchQueue(id as LeadQueue)} />
         <Toolbar>
@@ -124,7 +130,7 @@ export function LeadsPage() {
           <FilterChip label="احتمال فروش" value={filter.prob} options={PROBS} onChange={prob => update({ prob })} />
           <FilterChip label="تاریخ تخصیص" icon="clock" value={filter.range === 'all' ? null : filter.range} options={RANGES} onChange={r => update({ range: r ?? 'all' })} />
           <span className="ds-grow" />
-          <span className="muted sl-desk" role="status">{toFaDigits(list.length)} نتیجه</span>
+          <span className="muted sl-desk" role="status">{sp.countText(list.length)} نتیجه</span>
           <button type="button" className="btn btn-ghost btn-sm sl-desk" aria-label={`مرتب‌سازی: ${filter.sort === 'newest' ? 'جدیدترین' : 'قدیمی‌ترین'}`}
             onClick={() => update({ sort: filter.sort === 'newest' ? 'oldest' : 'newest' })}>
             <DsIcon name="swap" />{filter.sort === 'newest' ? 'جدیدترین' : 'قدیمی‌ترین'}
@@ -159,7 +165,7 @@ export function LeadsPage() {
                         <td className="sl-col-opt">{l.prob || <span className="muted">—</span>}</td>
                         <td className="sl-col-actions">
                           <div className="sl-row-actions">
-                            <button type="button" className="btn btn-ghost btn-sm ds-btn-icon" aria-label={`تماس با ${l.name}`} title="تماس"
+                            <button type="button" className="btn btn-ghost btn-sm ds-btn-icon" aria-label={`تماس با ${name(l.name)}`} title="تماس"
                               onClick={e => { e.stopPropagation(); toast('نمایشی: روی موبایل شماره‌گیر باز می‌شود؛ پیش‌نمایش تماسی برقرار نمی‌کند.') }}>
                               <DsIcon name="phone" />
                             </button>
@@ -179,7 +185,7 @@ export function LeadsPage() {
               {pg.items.map(l => {
                 const closed = CLOSED_LEAD_STATUSES.includes(l.status)
                 return (
-                  <article key={l.id} className="sl-lcard" aria-label={l.name}>
+                  <article key={l.id} className="sl-lcard" aria-label={name(l.name)}>
                     <div className="sl-top"><Who name={l.name} phone={l.phone} copy={false} /><LeadStatusPill lead={l} /></div>
                     <div className="sl-meta"><span>{l.city}</span><span>{l.source}</span><span>{l.assignedAgo}</span>{l.next ? <NextStep next={l.next} /> : null}</div>
                     <div className="sl-acts">
@@ -194,18 +200,20 @@ export function LeadsPage() {
           </>
         )}
       </Panel>
-      <LeadDrawer lead={openLead} list={list} onClose={() => setLeadParam(null)} onStep={step} />
-    </>
+      <LeadDrawer lead={openLead} list={list} all={leads} onClose={() => setLeadParam(null)} onStep={step} />
+      <NotFoundDrawer open={detail.notFound} kicker="جزئیات شماره" onClose={() => setLeadParam(null)} />
+    </ScreenFrame>
   )
 }
 
 const EMPTY_FIELDS: OutcomeFields = { date: '۱۴۰۵/۰۷/۱۰', hour: '10', minute: '30', reason: '', amount: '' }
 
-function LeadDrawer({ lead, list, onClose, onStep }: { lead: Lead | null; list: Lead[]; onClose: () => void; onStep: (d: number) => void }) {
-  const src = lead && list.some(l => l.id === lead.id) ? list : LEADS
+function LeadDrawer({ lead, list, all, onClose, onStep }: { lead: Lead | null; list: readonly Lead[]; all: readonly Lead[]; onClose: () => void; onStep: (d: number) => void }) {
+  const name = useCustomerName()
+  const src = lead && list.some(l => l.id === lead.id) ? list : all
   const idx = lead ? src.findIndex(l => l.id === lead.id) : -1
   return (
-    <Drawer open={lead !== null} onClose={onClose} title={lead?.name ?? 'جزئیات'} kicker={lead ? `${toFaDigits(idx + 1)} از ${toFaDigits(src.length)}` : 'جزئیات'}
+    <Drawer open={lead !== null} onClose={onClose} title={lead ? name(lead.name) : 'جزئیات'} kicker={lead ? `${toFaDigits(idx + 1)} از ${toFaDigits(src.length)}` : 'جزئیات'}
       topExtra={lead ? (
         <>
           <button type="button" className="btn btn-ghost btn-sm ds-btn-icon" aria-label="مشتری قبلی (K)" title="قبلی (K)" onClick={() => onStep(-1)}><DsIcon name="chev" className="sl-rot180" /></button>
@@ -220,7 +228,9 @@ function LeadDrawer({ lead, list, onClose, onStep }: { lead: Lead | null; list: 
 }
 
 function LeadDrawerBody({ lead, onClose, onStep }: { lead: Lead; onClose: () => void; onStep: (d: number) => void }) {
-  const { toast } = useSellerPreview()
+  const { toast, ui } = useSellerPreview()
+  const name = useCustomerName()
+  const restricted = ui.policy.fieldsRestricted
   const [params] = useSearchParams()
   const initial = params.get('outcome')
   const [outcome, setOutcome] = useState<LeadOutcome | null>(LEAD_OUTCOMES.some(o => o.id === initial) ? initial as LeadOutcome : null)
@@ -248,7 +258,7 @@ function LeadDrawerBody({ lead, onClose, onStep }: { lead: Lead; onClose: () => 
     setErrors(e)
     const first = Object.keys(e)[0]
     if (first) { body.current?.querySelector<HTMLElement>(`[data-field="${first}"]`)?.focus(); return }
-    toast(`«${ctaText[outcome]}» برای ${lead.name} ${DEMO_SUFFIX}`, 'info')
+    toast(`«${ctaText[outcome]}» برای ${name(lead.name)} ${DEMO_SUFFIX}`, 'info')
   }
 
   // Drawer keys (prototype): 1–5 pick an outcome, Enter commits, J/K step — only while focus is not on a control.
@@ -267,7 +277,7 @@ function LeadDrawerBody({ lead, onClose, onStep }: { lead: Lead; onClose: () => 
     <div ref={body}>
       <div className="sl-dr-head">
         <div className="sl-dr-title"><LeadStatusPill lead={lead} /></div>
-        <div className="sl-dr-meta"><span className="mono sl-dr-phone">{toFaDigits(lead.phone)}</span><span>{lead.city}، {lead.province}</span><Tag teal={lead.source !== 'MIS'}>{lead.source}</Tag></div>
+        <div className="sl-dr-meta">{restricted ? <Restricted what="شماره مشتری" /> : <span className="mono sl-dr-phone">{toFaDigits(lead.phone)}</span>}<span>{lead.city}، {lead.province}</span><Tag teal={lead.source !== 'MIS'}>{lead.source}</Tag></div>
         <div className="sl-dr-facts">
           <FactChip icon="history">آخرین فعالیت: {lead.lastActivity}</FactChip>
           {lead.next ? <FactChip icon="clock" cls={nextChipClass(lead.next)}>گام بعدی: {lead.next.text}</FactChip> : <FactChip icon="arrowL">گام بعدی: ثبت اولین نتیجه</FactChip>}
@@ -275,7 +285,7 @@ function LeadDrawerBody({ lead, onClose, onStep }: { lead: Lead; onClose: () => 
         </div>
         <div className="sl-dr-quick">
           <button type="button" className="btn" onClick={() => toast('نمایشی: شماره‌گیر باز نمی‌شود؛ پیش‌نمایش تماسی برقرار نمی‌کند.')}><DsIcon name="phone" />تماس</button>
-          <button type="button" className="btn" onClick={() => toast(`نمایشی: شماره ${toFaDigits(lead.phone)} کپی نشد.`)}><DsIcon name="copy" />کپی شماره</button>
+          {restricted ? null : <button type="button" className="btn" onClick={() => toast(`نمایشی: شماره ${toFaDigits(lead.phone)} کپی نشد.`)}><DsIcon name="copy" />کپی شماره</button>}
         </div>
       </div>
 
@@ -332,7 +342,7 @@ function LeadDrawerBody({ lead, onClose, onStep }: { lead: Lead; onClose: () => 
       <details className="sl-details" open>
         <summary><h3>اطلاعات مشتری</h3><span className="muted sl-meta-text">فقط‌خواندنی در پیش‌نمایش</span><DsIcon name="chev" className="sl-chev" /></summary>
         <dl className="sl-kv">
-          <div><dt>نام مشتری</dt><dd>{lead.name}</dd></div>
+          <div><dt>نام مشتری</dt><dd>{restricted ? <Restricted what="نام مشتری" /> : lead.name}</dd></div>
           <div><dt>احتمال فروش <ContextHint text="برای اولویت‌بندی پیگیری است و وضعیت مشتری را تغییر نمی‌دهد." /></dt><dd>{lead.prob || <span className="muted">—</span>}</dd></div>
           <div><dt>استان</dt><dd>{lead.province}</dd></div>
           <div><dt>شهر</dt><dd>{lead.city}</dd></div>
@@ -347,11 +357,14 @@ function LeadDrawerBody({ lead, onClose, onStep }: { lead: Lead; onClose: () => 
       <details className="sl-details">
         <summary><h3>تاریخچه</h3><span className="muted sl-meta-text">{toFaDigits(lead.history.length)} رویداد</span><DsIcon name="chev" className="sl-chev" /></summary>
         <Timeline events={lead.history} label="تاریخچه تعامل" />
+        {ui.state === 'partial'
+          ? <p className="muted sl-meta-text" data-partial-history="true">تاریخچه کامل نیست (پاسخ ناقص)؛ رویدادهای قدیمی‌تر ممکن است نمایش داده نشوند.</p>
+          : null}
       </details>
       <details className="sl-details" open={invoices.length > 0}>
         <summary><h3>فاکتورهای این پرونده</h3><span className="muted sl-meta-text">{toFaDigits(invoices.length)}</span><DsIcon name="chev" className="sl-chev" /></summary>
         {invoices.length
-          ? <div className="sl-mini-list">{invoices.map(i => <div key={i.code} className="sl-mini"><div className="sl-grow"><span className="mono">{i.code}</span><div className="muted sl-meta-text">{i.product}</div></div><Money value={invoiceAmounts(i).total} /><InvoiceStatusPill inv={i} /></div>)}</div>
+          ? <div className="sl-mini-list">{invoices.map(i => <div key={i.code} className="sl-mini"><div className="sl-grow"><span className="mono">{i.code}</span><div className="muted sl-meta-text">{i.product}</div></div><Money value={invoiceAmounts(i).total} unit={unitOf(i)} /><InvoiceStatusPill inv={i} /></div>)}</div>
           : <p className="muted">هنوز فاکتوری برای این پرونده صادر نشده است.</p>}
       </details>
 

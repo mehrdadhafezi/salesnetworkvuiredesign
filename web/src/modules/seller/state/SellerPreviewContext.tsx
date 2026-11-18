@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
+import { STATE_POLICY, answerOfSim, stateOfSim, type SellerUiState, type ServerAnswer, type Sim, type StatePolicy } from './uiState'
 
 /*
  * Local, in-memory presentation state of the RM-E03 Seller preview: theme / density, the demo
@@ -8,8 +9,7 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState, type
 
 export type Theme = 'light' | 'dim' | 'dark'
 export type Density = 'comfortable' | 'compact'
-/** Prototype demo states (help.js «حالت‌های نمایشی»): presentation only. */
-export type Sim = 'none' | 'loading' | 'empty' | 'error' | 'offline'
+export type { Sim } from './uiState'
 export type ToastKind = 'info' | 'success' | 'warning' | 'error'
 
 export interface Toast { id: number; msg: string; kind: ToastKind }
@@ -22,6 +22,8 @@ interface Ctx {
   setTheme: (t: Theme) => void
   setDensity: (d: Density) => void
   setSim: (s: Sim) => void
+  /** A7: the presentation state the current (synthetic) answer stands for, its policy and the answer itself. */
+  ui: { state: SellerUiState; policy: StatePolicy; answer: ServerAnswer }
   toasts: Toast[]
   toast: (msg: string, kind?: ToastKind) => void
   dismiss: (id: number) => void
@@ -46,7 +48,8 @@ export function SellerPreviewProvider({ base, initial, children }: {
     setToasts(ts => [...ts, { id, msg, kind }].slice(-3))
     window.setTimeout(() => dismiss(id), 4500)
   }, [dismiss])
-  const value = useMemo<Ctx>(() => ({ base, theme, density, sim, setTheme, setDensity, setSim, toasts, toast, dismiss }), [base, theme, density, sim, toasts, toast, dismiss])
+  const ui = useMemo(() => { const state = stateOfSim(sim); return { state, policy: STATE_POLICY[state], answer: answerOfSim(sim) } }, [sim])
+  const value = useMemo<Ctx>(() => ({ base, theme, density, sim, setTheme, setDensity, setSim, ui, toasts, toast, dismiss }), [base, theme, density, sim, ui, toasts, toast, dismiss])
   return <SellerPreviewCtx.Provider value={value}>{children}</SellerPreviewCtx.Provider>
 }
 
