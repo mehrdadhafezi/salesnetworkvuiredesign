@@ -67,9 +67,30 @@ func rmE04CRequiredRoles(id string) []string {
 	return nil
 }
 
-// Both M2 records are decided with Security as an approver (M2 §2-1, §3); their full role lists are set when the
-// governance owner registers them.
-var rmE04CGateFloorRoles = []string{"Security owner"}
+// Floor of approver roles for M2 records 1 and 2: the roles proposed in the M2 intake (§4-1, §4-2, §6). The
+// registered record may require more (e.g. Legal for record 2); it can never open the gate with fewer.
+// RM-E04D: was Security only, which let a single-role approval open Group B.
+var rmE04CGateFloorRoles = []string{"Product owner", "Sales owner", "Security owner"}
+
+// rmE04CGateTitle binds each gate id to an R5 inventory row that really is the Seller record it claims to be,
+// so an unrelated approved decision cannot be named in the gate (RM-E04D).
+var rmE04CGateTitle = map[int]*regexp.Regexp{
+	1: regexp.MustCompile(`(?i)\bseller\b.*\bcapabilit`),
+	2: regexp.MustCompile(`(?i)\bseller\b.*\b(row[- ]?scope|read[- ]?scope|ownership)`),
+}
+
+// r5Titles maps every R5 inventory decision id to its title column.
+func r5Titles(t *testing.T) map[string]string {
+	t.Helper()
+	out := map[string]string{}
+	for _, l := range strings.Split(read(t, "docs/remediation/r5-decision-inventory.md"), "\n") {
+		c := strings.Split(l, "|")
+		if len(c) > 3 && strings.HasPrefix(l, "| ") {
+			out[strings.TrimSpace(c[1])] = strings.TrimSpace(c[2])
+		}
+	}
+	return out
+}
 
 // IDs that can never stand in for M2 records 1 / 2: the decisions RM-E04C keeps separate from them, and the
 // authoritative E0 approvals.
@@ -144,7 +165,7 @@ type rmE04CGate struct {
 
 // rmE04CGateState: the gate is open only when both M2 ids are named, distinct, not reserved, present in the
 // tracker and APPROVED_VERIFIED through valid records. A closed gate must not list anything.
-func rmE04CGateState(g rmE04CGate, recs map[string]trackerRecord, load approvalLoader, inRepo bool) (bool, []string) {
+func rmE04CGateState(g rmE04CGate, recs map[string]trackerRecord, titles map[string]string, load approvalLoader, inRepo bool) (bool, []string) {
 	var p []string
 	listed := len(g.ApprovedSellerCapabilities) > 0 || len(g.ApprovedMeOperations) > 0
 	if g.M2Record1ID == "" || g.M2Record2ID == "" {
@@ -156,7 +177,12 @@ func rmE04CGateState(g rmE04CGate, recs map[string]trackerRecord, load approvalL
 	if g.M2Record1ID == g.M2Record2ID {
 		p = append(p, "M2 record 1 and record 2 must be distinct decisions")
 	}
-	for _, id := range []string{g.M2Record1ID, g.M2Record2ID} {
+	for n, id := range []string{g.M2Record1ID, g.M2Record2ID} {
+		if title, ok := titles[id]; !ok {
+			p = append(p, id+" has no R5 inventory row (register it first)")
+		} else if !rmE04CGateTitle[n+1].MatchString(title) {
+			p = append(p, fmt.Sprintf("%s (%q) is not the Seller M2 record %d", id, title, n+1))
+		}
 		if rmE04CGateReserved[id] {
 			p = append(p, id+" is reserved and cannot stand for an M2 record")
 		}
@@ -251,7 +277,7 @@ func TestRME04CTrackerTransitionsAreVerified(t *testing.T) {
 
 func TestRME04CProposalsStayOutOfRuntime(t *testing.T) {
 	g := loadRMEGate(t)
-	open, p := rmE04CGateState(g, trackerByID(t), repoLoader, true)
+	open, p := rmE04CGateState(g, trackerByID(t), r5Titles(t), repoLoader, true)
 	for _, x := range p {
 		t.Error(x)
 	}
@@ -265,7 +291,7 @@ func TestRME04CProposalsStayOutOfRuntime(t *testing.T) {
 }
 
 func TestRME04CDocumentsAreMarkedNotApproved(t *testing.T) {
-	open, _ := rmE04CGateState(loadRMEGate(t), trackerByID(t), repoLoader, true)
+	open, _ := rmE04CGateState(loadRMEGate(t), trackerByID(t), r5Titles(t), repoLoader, true)
 	marker := regexp.MustCompile(`(DRAFT — NOT APPROVED|PROPOSED — NOT ACCEPTED|PROPOSAL — NOT IMPLEMENTED, NOT APPROVED|PLAN ONLY)`)
 	accepted := regexp.MustCompile(`\| Status \| \*\*ACCEPTED\b`)
 	for _, f := range rmE04CDocs {
@@ -427,6 +453,11 @@ func TestRME04CGroupBGate(t *testing.T) {
 		}
 	}
 
+	const r3 = "UNRELATED-FIXTURE"
+	titles := map[string]string{
+		r1: "Seller first-release capability eligibility", r2: "Seller row-scope (ownership predicate) per destination",
+		r3: "Pro-rata commission split across bundle components", "D-42": "Can HR edit sales capabilities?", "D-01": "E0 approval",
+	}
 	gateCases := []struct {
 		name string
 		g    rmE04CGate
@@ -445,6 +476,13 @@ func TestRME04CGroupBGate(t *testing.T) {
 		{"approval lacks Security", open, recsOf(at(r1), at(r2)),
 			loadFor(map[string]approvalRecord{r1: rmFxDecision(t, r1, "APPROVED", "VERIFIED", []string{"Product owner"}), r2: rmFxDecision(t, r2, "APPROVED", "VERIFIED", floor)}), false, false},
 		{"id not in tracker", open, map[string]trackerRecord{r1: at(r1)}, good, false, false},
+		{"approved by Security only (below the three-role floor)", open, recsOf(at(r1), at(r2)),
+			loadFor(map[string]approvalRecord{r1: rmFxDecision(t, r1, "APPROVED", "VERIFIED", []string{"Security owner"}), r2: rmFxDecision(t, r2, "APPROVED", "VERIFIED", floor)}), false, false},
+		{"an unrelated approved decision named as record 2", rmE04CGate{M2Record1ID: r1, M2Record2ID: r3}, recsOf(at(r1), at(r3)),
+			loadFor(map[string]approvalRecord{r1: rmFxDecision(t, r1, "APPROVED", "VERIFIED", floor), r3: rmFxDecision(t, r3, "APPROVED", "VERIFIED", floor)}), false, false},
+		{"records 1 and 2 swapped", rmE04CGate{M2Record1ID: r2, M2Record2ID: r1}, recsOf(at(r1), at(r2)), good, false, false},
+		{"record not in the R5 inventory", rmE04CGate{M2Record1ID: r1, M2Record2ID: "UNREGISTERED"}, recsOf(at(r1), at("UNREGISTERED")),
+			loadFor(map[string]approvalRecord{r1: rmFxDecision(t, r1, "APPROVED", "VERIFIED", floor), "UNREGISTERED": rmFxDecision(t, "UNREGISTERED", "APPROVED", "VERIFIED", floor)}), false, false},
 		{"same id twice", rmE04CGate{M2Record1ID: r1, M2Record2ID: r1}, recsOf(at(r1), at(r2)), good, false, false},
 		{"separate decision used as M2 record", rmE04CGate{M2Record1ID: "D-42", M2Record2ID: r2}, recsOf(at("D-42"), at(r2)),
 			loadFor(map[string]approvalRecord{"D-42": rmFxDecision(t, "D-42", "APPROVED", "VERIFIED", floor), r2: rmFxDecision(t, r2, "APPROVED", "VERIFIED", floor)}), false, false},
@@ -452,13 +490,13 @@ func TestRME04CGroupBGate(t *testing.T) {
 			loadFor(map[string]approvalRecord{"D-01": rmFxDecision(t, "D-01", "APPROVED", "VERIFIED", floor), r2: rmFxDecision(t, r2, "APPROVED", "VERIFIED", floor)}), false, false},
 	}
 	for _, c := range gateCases {
-		gotOpen, p := rmE04CGateState(c.g, c.recs, c.load, false)
+		gotOpen, p := rmE04CGateState(c.g, c.recs, titles, c.load, false)
 		if gotOpen != c.open || (len(p) == 0) != c.ok {
 			t.Errorf("gate %s: open=%v ok=%v, want open=%v ok=%v (%v)", c.name, gotOpen, len(p) == 0, c.open, c.ok, p)
 		}
 	}
 	// In repository mode the synthetic approvals can never open the gate.
-	if o, _ := rmE04CGateState(open, recsOf(at(r1), at(r2)), good, true); o {
+	if o, _ := rmE04CGateState(open, recsOf(at(r1), at(r2)), titles, good, true); o {
 		t.Error("synthetic approval records opened the gate in repository mode")
 	}
 

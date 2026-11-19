@@ -1,0 +1,18 @@
+{
+  "purpose": "RM-E04D S4 readiness manifest. Empty = S4 (invoice /me operations, billing.own.read, payments.own.read) stays out of the Group B gate. docs/governance/rm_e04d_test.go accepts S4 in the gate only when ALL proofs hold (1, 2, 3a and 3b): (1) contract: contract_decision_id is a registered R5 decision titled as the conversion-payment data contract, APPROVED_VERIFIED through a valid R6 record signed by at least the Finance owner and the Security owner (roadmap B5 review roles); (2) schema: the named billing migration defines the named column NOT NULL with a CHECK that lists the explicit unknown state; (3a) static registration (necessary, not sufficient): every category names an existing, non-empty Go test (path:TestName) under internal/ that uses the column in code and reports failures; (3b) execution evidence: verified CI execution plus independent Security review, PENDING by construction (no field here can satisfy it; review package §7). Filling this file never approves anything.",
+  "contract_decision_id": "",
+  "schema": {
+    "migration": "",
+    "table": "",
+    "column": "",
+    "unknown_state": ""
+  },
+  "enforcement_tests": {
+    "foreign_conversion_hidden": "",
+    "own_conversion_visible": "",
+    "non_conversion_mismatch_visible": "",
+    "unknown_conversion_state_fail_closed": "",
+    "null_owner_hidden": "",
+    "out_of_scope_not_found_parity": ""
+  }
+}

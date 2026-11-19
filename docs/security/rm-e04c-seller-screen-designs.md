@@ -99,7 +99,7 @@ Readiness legend: **R0** blocked — no server source or contract · **R1** cont
 | Unauthorized | §0 |
 | Unknown / partial | `unknown_state_count > 0` or incomplete stages → PARTIAL, dependent amounts «—»; cancelled → remaining absent; NULL seller / issuer invoices are absent for everyone |
 | Security tests | NT-01, 03, 05, 06, 07, 08, 11, 12, 13, 15, 17, 18, 21, 24, 25, 26, 27, 28, 30 |
-| Readiness | **R1** → R2 after M2 rec. 1 + 2 (money labels remain limited by GAP-03) |
+| Readiness | **R1** → R2 only after M2 rec. 1 + 2 **and** the three S4 readiness proofs in `docs/governance/rm-e04d-s4-readiness.json`: an approved and verified conversion-payment contract (Finance + Security), a NOT NULL fact with an explicit unknown state, six statically registered I-L tests on synthetic seller ≠ issuer and unknown-conversion fixtures, and **verified execution evidence with independent Security review, which is PENDING by construction** (review package §7). Enforced by `TestRME04DS4NeedsConversionPaymentContract`. Money labels remain limited by GAP-03 |
 
 ## S5 — رفتار مشتریان (Customer Behaviour)
 
@@ -164,7 +164,7 @@ Readiness legend: **R0** blocked — no server source or contract · **R1** cont
 | S1 | `cases.own.read` | `CUSTODY_CURRENT_HOLDER` | R1 | M2 rec. 1 + 2 |
 | S2 | `cases.own.read` (attribution) | parent case | R1 / R0 | readiness contract; RM-E04A-Q3 |
 | S3 | — | — | R0 | hand-off contract; OPD-10 |
-| S4 | `billing.own.read`, `payments.own.read` | `INVOICE_SELLER_AND_ISSUER` | R1 | M2 rec. 1 + 2; GAP-03 for confirmed money |
+| S4 | `billing.own.read`, `payments.own.read` | legacy-equivalent I-L (RM-E04D; `INVOICE_SELLER_AND_ISSUER` withdrawn) | R1 | M2 rec. 1 + 2; conversion-payment data contract; GAP-03 for confirmed money |
 | S5 | — | — | R0 | event source; privacy |
 | S6 | — | `REQUESTER` | R0 | workflow; OPD-10 |
 | S7 | `commission.own.read` | `COMMISSION_HOLDER` | R3 | M2 rec. 1; D-41 / OPD-09 for semantics |

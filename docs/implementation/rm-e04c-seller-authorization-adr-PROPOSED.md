@@ -189,3 +189,10 @@ A change in current custody or hierarchy never re-attributes historical rows. Hi
 ## 15. What this ADR does not decide
 
 Which capabilities the Seller holds (M2 rec. 1), which basis applies per destination (M2 rec. 2), who grants (D-42), how accounts are created (D-34), person identity (R5-SEC-01), real-data use (ADR #18), wallet semantics (D-41 / OPD-09 / D-36), delegation and assisted issuance (OPD-10), customer field access (GAP-04 / D-30 / D-45). See the decision package.
+
+## 16. Correction of record — RM-E04D (baseline `a053a95`)
+
+Two statements above are corrected; the text above is kept as history. Evidence: [`rm-e04d-codex-security-review-package.md`](rm-e04d-codex-security-review-package.md) §1–§3.
+
+1. **`CUSTODY_CURRENT_HOLDER` is M2 option 2, not option 1.** §5 defines it, correctly, as the conditions under which `CurrentHolder` returns `Known` — the **legacy** holder columns with a contradiction guard. The M2 intake defines option 1 as the **derived** holder. Decision sheets now name predicates by column: P1 derived, P2 legacy-guarded (this basis), P3 both agree.
+2. **`INVOICE_SELLER_AND_ISSUER` is withdrawn as the recommended S4 basis.** Legacy 2.0.160 shows ordinary invoices by seller and requires the issuer only for conversion-payment invoices (`class-sn-plugin.php:27443-27459`); the synthetic dataset has seller ≠ issuer on 4 of 4 invoices. The recommended basis is the legacy-equivalent `INVOICE_SELLER_UNLESS_FOREIGN_CONVERSION` (I-L): `seller_user_id = me AND (conversion_payment IS FALSE OR issued_by_user_id = me)`, with an unknown flow treated as conversion. It needs the conversion-payment fact imported first; until then it degrades to the AND predicate, and S4 should not be wired.

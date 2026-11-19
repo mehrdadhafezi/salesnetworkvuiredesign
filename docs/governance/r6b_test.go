@@ -18,25 +18,23 @@ var r6bDocs = []string{"r6b-m1-adr18-decision-pack-fa.md", "r6b-m1-pgov-workshee
 	"r6b-m1-staging-rehearsal-checklist-fa.md", "r6b-m1-engineering-eligibility.md"}
 
 // The tracker is unchanged by R6-B: 26 / 30 / 5, ADR #18 review-ready, D-03…D-22 evidence-missing.
+// ADR #18 stays READY_FOR_REVIEW and every P-GOV record stays EVIDENCE_MISSING with nothing recorded, unless
+// a valid R6 approval record justifies a later status (RM-E04D). The former global count pin is replaced by
+// TestR6NoStatusOrOutcomeWithoutApprovalRecord (per-record R5 baseline) and the R5 tripwire in
+// TestR6TrackerAccountsForEveryR5Record.
 func TestR6BTrackerUnchanged(t *testing.T) {
-	counts := map[string]int{}
-	for _, r := range loadTracker(t).Records {
-		counts[r.Status]++
-		switch {
-		case r.ID == "ADR #18" && r.Status != "READY_FOR_REVIEW":
-			t.Errorf("ADR #18 status %s, want READY_FOR_REVIEW", r.Status)
-		case r.R5Package == "P-GOV" && r.Status != "EVIDENCE_MISSING":
-			t.Errorf("%s status %s, want EVIDENCE_MISSING", r.ID, r.Status)
+	recs := trackerByID(t)
+	base := map[string]string{"ADR #18": "READY_FOR_REVIEW"}
+	for _, r := range recs {
+		if r.R5Package == "P-GOV" {
+			base[r.ID] = "EVIDENCE_MISSING"
 		}
 	}
-	want := map[string]int{"READY_FOR_REVIEW": 26, "EVIDENCE_MISSING": 30, "DRAFT": 5}
-	for k, v := range want {
-		if counts[k] != v {
-			t.Errorf("%s: %d entries, want %d", k, counts[k], v)
-		}
+	if len(base) != 21 {
+		t.Errorf("expected ADR #18 and 20 P-GOV records, found %d", len(base))
 	}
-	if len(counts) != len(want) {
-		t.Errorf("unexpected statuses %v", counts)
+	for _, x := range baselineOrVerifiedProblems(recs, base, repoLoader, true) {
+		t.Error(x)
 	}
 }
 
