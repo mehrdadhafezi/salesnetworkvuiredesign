@@ -1,0 +1,38 @@
+{
+  "record_type": "PROJECT_PREFERENCE_NON_AUTHORITATIVE",
+  "purpose": "RM-E04I. Records that the project owner prefers R5-SEC-01 option A as the engineering direction. DRAFT — NOT APPROVED. This file is NOT an R6 approval record, NOT a decision, NOT a signature, NOT a T5 verification, NOT an authority nomination and NOT implementation authorization. No gate, evaluator, migration, provisioning workflow or tracker may read it as input. docs/governance/rm_e04i_test.go keeps it non-authoritative. Production NO-GO.",
+  "baseline": "739db621bdf834cd92d7b33ce9a31f224572cc22",
+  "decision_id": "R5-SEC-01 (proposed ADR)",
+  "preferred_option": "A",
+  "preference_source": "project owner instruction (RM-E04I task statement)",
+  "decision_status": "NOT_APPROVED",
+  "authority_status": "UNVERIFIED",
+  "implementation_authorization": "NOT_GRANTED",
+  "production_deployment": "NO-GO",
+  "layers": {
+    "project_preference": "A (project owner instruction; not a governance act)",
+    "engineering_recommendation": "A, conditional (RM-E04H §4.3: only if HR names an accountable owner and an approved proofing method; otherwise D)",
+    "official_governance_decision": "NONE — tracker R5-SEC-01 outcome.selected_option is empty",
+    "human_approval": "NONE — no signer appointed, no signature exists",
+    "independent_t5_verification": "NONE — T5 verifier UNASSIGNED",
+    "implementation_authorization": "NOT_GRANTED"
+  },
+  "original_options_preserved": [
+    "A — HR-verified Person registry: HR records a Person per employee; accounts linked by a reviewed, reversible link with evidence.",
+    "B — Security-managed identity provider (external IdP) as the person authority; accounts federated.",
+    "C — Declarative SoD only: accounts asserted distinct by an approver; no Person entity.",
+    "D — Keep blocked: no person model; SoD-dependent actions stay BLOCKED."
+  ],
+  "signatures": [],
+  "t5_verification": null,
+  "consumable_by": [],
+  "not_evidence_of": [
+    "an approved R5-SEC-01 decision",
+    "authority of any signer, recorder or verifier",
+    "a verified person identity or account link",
+    "permission to create schema, migrations, links, grants or credentials",
+    "permission to open Group B, S4, D-42 or Group C",
+    "production deployment authorization"
+  ],
+  "contract": "docs/security/rm-e04i-option-a-implementation-contract.md"
+}
