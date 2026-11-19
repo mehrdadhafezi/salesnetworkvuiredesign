@@ -1,0 +1,38 @@
+{
+  "_comment": "RM-E04E CANDIDATE DRAFT — NOT APPROVED, NOT A RECORD. decision_id is a PLACEHOLDER until the authorized inventory owner assigns an official ID. No option is selected. Never copy this file into docs/governance/approvals/ unfilled and never fill it on anyone's behalf. Schema: docs/remediation/r6-approval-evidence-standard.md §2. Production NO-GO.",
+  "_candidate_label": "M2 Record 1",
+  "_candidate_title": "Seller first-release capability eligibility",
+  "_candidate_options": [
+    "A: cases.own.read, billing.own.read, payments.own.read, commission.own.read",
+    "B: cases.own.read",
+    "C: option A + cases.contact_outcome.record",
+    "D: defer (formal form is an R6 DEFERRAL record, not this DECISION)"
+  ],
+  "_required_roles_proposed": [
+    "Product owner",
+    "Sales owner",
+    "Security owner"
+  ],
+  "record_type": "DECISION",
+  "decision_id": "PLACEHOLDER-INVENTORY-ID-NOT-ASSIGNED",
+  "decision_version": "1.0",
+  "outcome": "",
+  "selected_option": "",
+  "decision_text": "",
+  "approvers": [],
+  "independent_approvals": [],
+  "decision_date": "",
+  "effective_date": "",
+  "evidence_source": {
+    "type": "",
+    "reference": ""
+  },
+  "immutable_ref": "",
+  "supersedes": [],
+  "conditions": "",
+  "recorded_by": {
+    "name": "",
+    "role": ""
+  },
+  "human_verification": null
+}

@@ -1,0 +1,39 @@
+{
+  "_comment": "RM-E04E CANDIDATE DRAFT — NOT APPROVED, NOT A RECORD. decision_id is a PLACEHOLDER until the authorized inventory owner assigns an official ID. No option is selected. Never copy this file into docs/governance/approvals/ unfilled and never fill it on anyone's behalf. Schema: docs/remediation/r6-approval-evidence-standard.md §2. Production NO-GO.",
+  "_candidate_label": "M2 Record 2",
+  "_candidate_title": "Seller row-scope (ownership predicate) per destination",
+  "_candidate_options": [
+    "S1: P1 | P2 | P3 | defer",
+    "S2 attribution: inherit the approved S1 predicate | defer (S2 list stays without scope)",
+    "S4: I-a | I-b | I-c | I-d | I-L | defer (any S4 choice stays blocked by rm-e04d-s4-readiness.json proofs)",
+    "S7: C (COMMISSION_HOLDER) | defer"
+  ],
+  "_required_roles_proposed": [
+    "Product owner",
+    "Sales owner",
+    "Security owner",
+    "Legal owner (open question PQ-4)"
+  ],
+  "record_type": "DECISION",
+  "decision_id": "PLACEHOLDER-INVENTORY-ID-NOT-ASSIGNED",
+  "decision_version": "1.0",
+  "outcome": "",
+  "selected_option": "",
+  "decision_text": "",
+  "approvers": [],
+  "independent_approvals": [],
+  "decision_date": "",
+  "effective_date": "",
+  "evidence_source": {
+    "type": "",
+    "reference": ""
+  },
+  "immutable_ref": "",
+  "supersedes": [],
+  "conditions": "",
+  "recorded_by": {
+    "name": "",
+    "role": ""
+  },
+  "human_verification": null
+}
