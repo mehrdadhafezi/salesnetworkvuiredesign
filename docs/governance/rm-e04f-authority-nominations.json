@@ -1,0 +1,32 @@
+{
+  "purpose": "RM-E04F provisional nomination register. DRAFT — NOT APPROVED. These entries record nominations stated by the project owner; they are NOT verified appointments, NOT human signatures and NOT evidence of authority. No entry may become ACTIVE in this file: activation needs an appointment instrument, authority evidence and independent human verification (docs/governance/proposals/rm-e04f-authority-role-assignment-architecture.md §5). docs/governance/rm_e04f_test.go keeps every entry provisional. Production NO-GO.",
+  "baseline": "b3dc3ed5fe8a7286bb2baf999da0d2ec62bba8c3",
+  "allowed_states": ["NOMINATED", "UNASSIGNED"],
+  "appointing_authority": {
+    "position_key": "CEO",
+    "position_kind": "ROOT",
+    "holder_nominee_key": "",
+    "holder_status": "UNASSIGNED",
+    "evidence_reference": "",
+    "note": "The project owner states that the CEO appoints position holders. That statement is a design input, not a signed appointment document. The CEO position holder is not identified or verified here."
+  },
+  "nominees": [
+    {
+      "nominee_key": "N1",
+      "display_name": "مهرداد حافظی",
+      "person_ref": "",
+      "identity_resolution": "NOT_STARTED",
+      "note": "One person. Holding several nominations never counts as several independent approvers."
+    }
+  ],
+  "nominations": [
+    {"authority_key": "decision.register", "r6_role": "Decision inventory owner", "position_key": "DECISION_INVENTORY_OWNER", "nominee_key": "N1", "state": "NOMINATED", "nominated_by": "project owner (session instruction, RM-E04F)", "appointment_evidence": "", "authority_evidence": "", "verified_by": "", "valid_from": "", "valid_to": ""},
+    {"authority_key": "decision.sign.product", "r6_role": "Product owner", "position_key": "PRODUCT_OWNER", "nominee_key": "N1", "state": "NOMINATED", "nominated_by": "project owner (session instruction, RM-E04F)", "appointment_evidence": "", "authority_evidence": "", "verified_by": "", "valid_from": "", "valid_to": ""},
+    {"authority_key": "decision.sign.sales", "r6_role": "Sales owner", "position_key": "SALES_OWNER", "nominee_key": "N1", "state": "NOMINATED", "nominated_by": "project owner (session instruction, RM-E04F)", "appointment_evidence": "", "authority_evidence": "", "verified_by": "", "valid_from": "", "valid_to": ""},
+    {"authority_key": "decision.sign.security", "r6_role": "Security owner", "position_key": "SECURITY_OWNER", "nominee_key": "N1", "state": "NOMINATED", "nominated_by": "project owner (session instruction, RM-E04F)", "appointment_evidence": "", "authority_evidence": "", "verified_by": "", "valid_from": "", "valid_to": ""},
+    {"authority_key": "decision.sign.legal", "r6_role": "Legal owner", "position_key": "LEGAL_OWNER", "nominee_key": "N1", "state": "NOMINATED", "nominated_by": "project owner (session instruction, RM-E04F)", "appointment_evidence": "", "authority_evidence": "", "verified_by": "", "valid_from": "", "valid_to": ""},
+    {"authority_key": "decision.sign.finance", "r6_role": "Finance owner", "position_key": "FINANCE_OWNER", "nominee_key": "N1", "state": "NOMINATED", "nominated_by": "project owner (session instruction, RM-E04F)", "appointment_evidence": "", "authority_evidence": "", "verified_by": "", "valid_from": "", "valid_to": ""},
+    {"authority_key": "decision.record", "r6_role": "Recorder", "position_key": "DECISION_RECORDER", "nominee_key": "N1", "state": "NOMINATED", "nominated_by": "project owner (session instruction, RM-E04F)", "appointment_evidence": "", "authority_evidence": "", "verified_by": "", "valid_from": "", "valid_to": ""},
+    {"authority_key": "decision.verify_t5", "r6_role": "T5 verifier", "position_key": "T5_VERIFIER", "nominee_key": "", "state": "UNASSIGNED", "nominated_by": "", "appointment_evidence": "", "authority_evidence": "", "verified_by": "", "valid_from": "", "valid_to": "", "note": "Requires an independent person: not an approver, not the recorder, not automation."}
+  ]
+}
