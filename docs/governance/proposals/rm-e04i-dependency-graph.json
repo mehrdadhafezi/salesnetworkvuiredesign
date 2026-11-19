@@ -1,0 +1,61 @@
+{
+  "record_type": "DEPENDENCY_GRAPH_NON_AUTHORITATIVE",
+  "purpose": "RM-E04I machine-readable dependency graph for R5-SEC-01 option A readiness. DRAFT — NOT APPROVED. Analysis only: it does not change any tracker prerequisite, decision, gate or manifest and no gate may read it. Edges point from prerequisite to dependent. Human-readable view: docs/security/rm-e04i-option-a-implementation-contract.md §9.",
+  "authoritative": false,
+  "baseline": "739db621bdf834cd92d7b33ce9a31f224572cc22",
+  "edge_types": ["DECISION", "TECHNICAL", "EVIDENCE", "DEPLOYMENT", "CONDITIONAL"],
+  "edge_sources": ["DOCUMENTED", "PROPOSED"],
+  "nodes": [
+    {"id": "R5-SEC-01", "kind": "decision", "tracker_id": "R5-SEC-01 (proposed ADR)", "state": "READY_FOR_REVIEW / PREFERRED_A / NOT_APPROVED"},
+    {"id": "D-34", "kind": "decision", "tracker_id": "D-34", "state": "READY_FOR_REVIEW"},
+    {"id": "D-42", "kind": "decision", "tracker_id": "D-42", "state": "READY_FOR_REVIEW"},
+    {"id": "ADR #18", "kind": "decision", "tracker_id": "ADR #18", "state": "DEFERRED / OPEN"},
+    {"id": "E-7", "kind": "engineering", "state": "OPEN (engineering prerequisite, not a business decision)"},
+    {"id": "EV-019", "kind": "evidence", "state": "DOCUMENTED"},
+    {"id": "EV-020", "kind": "evidence", "state": "DOCUMENTED"},
+    {"id": "LEGAL-PRIVACY-REVIEW", "kind": "evidence", "state": "PENDING"},
+    {"id": "T5-R5-SEC-01", "kind": "evidence", "state": "PENDING (verifier UNASSIGNED)"},
+    {"id": "F-PR1", "kind": "engineering", "alias": "PR-A", "state": "PLANNED / NOT AUTHORIZED"},
+    {"id": "F-PR2", "kind": "engineering", "alias": "PR-C", "state": "PLANNED / NOT AUTHORIZED"},
+    {"id": "RM-E04G", "kind": "engineering", "state": "INTERIM_GUARD_ONLY (RM-E04G-I1 in force)"},
+    {"id": "RM-E04F", "kind": "engineering", "state": "DESIGN ONLY; nominations provisional"},
+    {"id": "Group B", "kind": "gate", "state": "BLOCKED"},
+    {"id": "S4", "kind": "gate", "state": "BLOCKED"},
+    {"id": "Group C", "kind": "gate", "state": "BLOCKED"},
+    {"id": "Production", "kind": "deployment", "state": "NO-GO"}
+  ],
+  "edges": [
+    {"from": "D-34", "to": "R5-SEC-01", "type": "DECISION", "source": "DOCUMENTED", "ref": "docs/governance/r6-decision-tracker.json R5-SEC-01 prerequisites"},
+    {"from": "D-42", "to": "R5-SEC-01", "type": "DECISION", "source": "DOCUMENTED", "ref": "docs/governance/r6-decision-tracker.json R5-SEC-01 prerequisites"},
+    {"from": "ADR #18", "to": "R5-SEC-01", "type": "DECISION", "source": "DOCUMENTED", "ref": "docs/governance/r6-decision-tracker.json R5-SEC-01 prerequisites"},
+    {"from": "R5-SEC-01", "to": "D-34", "type": "DECISION", "source": "DOCUMENTED", "ref": "docs/governance/r6-decision-tracker.json D-34 prerequisites"},
+    {"from": "R5-SEC-01", "to": "D-42", "type": "DECISION", "source": "DOCUMENTED", "ref": "docs/governance/r6-decision-tracker.json D-42 prerequisites"},
+    {"from": "E-7", "to": "D-42", "type": "TECHNICAL", "source": "DOCUMENTED", "ref": "docs/governance/r6-decision-tracker.json D-42 prerequisites"},
+    {"from": "EV-019", "to": "R5-SEC-01", "type": "EVIDENCE", "source": "DOCUMENTED", "ref": "docs/remediation/r5-decision-inventory.md row R5-SEC-01"},
+    {"from": "EV-020", "to": "R5-SEC-01", "type": "EVIDENCE", "source": "DOCUMENTED", "ref": "docs/remediation/r5-decision-inventory.md row R5-SEC-01"},
+    {"from": "LEGAL-PRIVACY-REVIEW", "to": "R5-SEC-01", "type": "EVIDENCE", "source": "DOCUMENTED", "ref": "R5-SEC-01 record: missing evidence 'privacy review'; Legal (privacy) is a required approver"},
+    {"from": "T5-R5-SEC-01", "to": "R5-SEC-01", "type": "EVIDENCE", "source": "DOCUMENTED", "ref": "docs/remediation/r6-approval-evidence-standard.md (APPROVED_VERIFIED needs independent human verification)"},
+    {"from": "R5-SEC-01", "to": "F-PR2", "type": "DECISION", "source": "DOCUMENTED", "ref": "docs/security/rm-e04h-person-identity-decision-package.md §9 (H1 APPROVED_VERIFIED with A or B)"},
+    {"from": "F-PR1", "to": "F-PR2", "type": "TECHNICAL", "source": "DOCUMENTED", "ref": "docs/security/rm-e04h-person-identity-decision-package.md §9"},
+    {"from": "F-PR2", "to": "RM-E04G", "type": "TECHNICAL", "source": "DOCUMENTED", "ref": "docs/security/rm-e04h-person-identity-decision-package.md §6.5 (interim guard replaced only by F-PR2)"},
+    {"from": "F-PR2", "to": "RM-E04F", "type": "TECHNICAL", "source": "DOCUMENTED", "ref": "docs/security/rm-e04h-person-identity-decision-package.md §9 F-PR4 (authority registry consumes person_id)"},
+    {"from": "RM-E04G", "to": "Group B", "type": "TECHNICAL", "source": "DOCUMENTED", "ref": "docs/governance/rm_e04g_test.go rmE04GGroupBReadiness"},
+    {"from": "Group B", "to": "S4", "type": "TECHNICAL", "source": "DOCUMENTED", "ref": "docs/governance/rm_e04d_test.go s4ReadinessProblems (S4 is part of Group B readiness)"},
+    {"from": "D-42", "to": "Group C", "type": "DECISION", "source": "DOCUMENTED", "ref": "docs/governance/proposals/rm-e04e-authority-and-registration-packet.md (D-42 + D-34 + Group C authorization before any real grant)"},
+    {"from": "D-34", "to": "Group C", "type": "CONDITIONAL", "source": "DOCUMENTED", "condition": "only where credential provisioning is involved", "ref": "docs/governance/proposals/rm-e04e-authority-and-registration-packet.md"},
+    {"from": "F-PR2", "to": "D-42", "type": "CONDITIONAL", "source": "PROPOSED", "condition": "only for the D-42 hardened unlock (RM-E04I §8); the D-42 decision itself is not blocked by code", "ref": "docs/security/rm-e04i-option-a-implementation-contract.md §8"},
+    {"from": "ADR #18", "to": "R5-SEC-01", "type": "CONDITIONAL", "source": "PROPOSED", "condition": "co-requisite only if option A needs real HR data outside synthetic fixtures (RM-E04H OF-4 engineering reading)", "ref": "docs/security/rm-e04h-person-identity-decision-package.md §2.3 OF-4"},
+    {"from": "Group B", "to": "Group C", "type": "TECHNICAL", "source": "PROPOSED", "ref": "docs/implementation/rm-e04c-seller-implementation-roadmap.md (Group C follows Group B)"},
+    {"from": "Group C", "to": "Production", "type": "DEPLOYMENT", "source": "DOCUMENTED", "ref": "docs/implementation/rm-e04a-execution-plan.md Group C — real users and real data"},
+    {"from": "S4", "to": "Production", "type": "DEPLOYMENT", "source": "PROPOSED", "ref": "S4 runtime scope must be proven before any production exposure"}
+  ],
+  "unresolved_conflicts": [
+    {"id": "OF-4a", "cycle": ["R5-SEC-01", "D-34"], "status": "UNRESOLVED", "owner": "Inventory owner + Codex (HQ-10)", "ref": "docs/security/rm-e04h-person-identity-decision-package.md §2.3 OF-4"},
+    {"id": "OF-4b", "cycle": ["R5-SEC-01", "D-42"], "status": "UNRESOLVED", "owner": "Inventory owner + Codex (HQ-10)", "ref": "docs/security/rm-e04h-person-identity-decision-package.md §2.3 OF-4"}
+  ],
+  "recommended_ordering_non_authoritative": {
+    "status": "RECOMMENDATION ONLY — tracker prerequisites are not changed",
+    "order": ["EV-019 / EV-020 / LEGAL-PRIVACY-REVIEW", "R5-SEC-01 (+ T5-R5-SEC-01)", "F-PR1", "F-PR2", "RM-E04G relaxation + RM-E04F activation", "E-7", "D-42 / D-34", "Group B", "S4", "Group C", "Production"],
+    "reading": "R5-SEC-01 upstream; D-34 and D-42 downstream consumers that may be discussed in the same M2 session; ADR #18 a conditional co-requisite. Adopting this reading needs a recorded inventory-owner decision (HQ-10)."
+  }
+}
