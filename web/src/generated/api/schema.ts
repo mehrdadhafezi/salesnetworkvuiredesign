@@ -2219,6 +2219,8 @@ export interface paths {
         /**
          * Finance review queue of target-submitted attempts with their decision gate (read only)
          * @description Requires finance.review.read (flag finance.review_read). There is NO approve / reject command (D-41, OPD-08, OPD-09; D-43 gate shown).
+         *     invoice_id (optional) keeps only attempts submitted against exactly that invoice (the attempt's own native invoice
+         *     reference); an unknown invoice id is an empty page. Unknown query parameters are 400 CONTRACT_INVALID.
          */
         get: operations["listFinanceReviewQueue"];
         put?: never;
@@ -5817,6 +5819,8 @@ export interface components {
         /** @description Target user id of a current assignee (never a phone, name or email). */
         FulfillmentAssignee: string;
         WritebackStateFilter: components["schemas"]["WritebackState"];
+        /** @description Exact native invoice id. */
+        InvoiceIDQuery: components["schemas"]["NativeID"];
     };
     requestBodies: never;
     headers: {
@@ -9181,6 +9185,8 @@ export interface operations {
     listFinanceReviewQueue: {
         parameters: {
             query?: {
+                /** @description Exact native invoice id. */
+                invoice_id?: components["parameters"]["InvoiceIDQuery"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];

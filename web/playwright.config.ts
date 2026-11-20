@@ -4,7 +4,7 @@ import { defineConfig, devices } from '@playwright/test'
 // build tag e2e: TestBrowserFullStack for R7-1, TestBrowserPaymentsFullStack
 // for R7-2, TestBrowserFulfillmentFullStack for R7-3, TestBrowserHRFullStack and TestBrowserHRReadOverlay for R7-6,
 // TestBrowserReportingBiawinFullStack and TestBrowserReportingBiawinReadOverlay for R7-7,
-// TestBrowserCustomer360ReadOverlay for RM-P01) start one disposable stack each and pass E2E_* variables; this
+// TestBrowserCustomer360ReadOverlay for RM-P01, TestBrowserInvoiceWorkspaceReadOverlay for RM-P02) start one disposable stack each and pass E2E_* variables; this
 // suite never starts servers and never runs against anything but that stack.
 // Each project belongs to exactly one orchestrator and one flag state.
 const baseURL = process.env.E2E_BASE_URL ?? ''
@@ -51,5 +51,7 @@ export default defineConfig({
     { name: 'reporting-biawin-read-overlay', testMatch: 'reporting-biawin-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
     // RM-P01 (TestBrowserCustomer360ReadOverlay): Customer ⇄ Case ⇄ Invoice navigation through the TEST-ONLY dev auth stub.
     { name: 'customer-360-read-overlay', testMatch: 'customer-360-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
+    // RM-P02 (TestBrowserInvoiceWorkspaceReadOverlay): the invoice 360° workspace through the TEST-ONLY dev auth stub.
+    { name: 'invoice-workspace-read-overlay', testMatch: 'invoice-workspace-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
   ],
 })

@@ -169,7 +169,7 @@ describe('RM-P01 customer ⇄ case ⇄ invoice navigation', () => {
   it('never links an unconfirmed relationship, even when it carries a candidate id', async () => {
     renderAt(`/billing/invoices/${INV_R}`, routes())
     await screen.findByRole('heading', { level: 1, name: 'فاکتور: legacy.invoice.v2 #9003' })
-    const invoiceCard = section('فاکتور')
+    const invoiceCard = section('نمای کلی و پیوندها')
     expect(within(invoiceCard).getByText('مرتبط (تأیید نشده)')).toBeTruthy()
     expect(within(invoiceCard).getByText('تعارض')).toBeTruthy()
     expect(within(invoiceCard).queryByRole('link', { name: /مشاهده/ })).toBeNull()
@@ -197,7 +197,7 @@ describe('RM-P01 customer ⇄ case ⇄ invoice navigation', () => {
       const v = invoice(INV_A, '9001', { customer: st === 'RESOLVED' ? resolved(CUST) : unlinked(st, CUST), case: unlinked('UNKNOWN') })
       const { router } = renderAt(`/billing/invoices/${INV_A}`, routes({ [`GET /api/v1/invoices/${INV_A}`]: () => json(env({ data: { invoice: v,
         product_ref_raw: null, pay_method_raw: null, payment_plan_raw: null, current_stage_raw: null, updated_at_raw: null, states: [], declared: [] } })) }))
-      const card = await waitFor(() => section('فاکتور'))
+      const card = await waitFor(() => section('نمای کلی و پیوندها'))
       expect((await within(card).findAllByText(label)).length).toBeGreaterThan(0)
       expect(within(card).queryAllByRole('link', { name: 'مشاهده مشتری' }).length).toBe(st === 'RESOLVED' ? 1 : 0)
       router.dispose()

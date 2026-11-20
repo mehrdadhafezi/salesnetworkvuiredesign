@@ -11175,6 +11175,9 @@ type IfMatch = string
 // InvoiceID Target native identifier. Never a phone, e-mail, login or legacy key.
 type InvoiceID = NativeID
 
+// InvoiceIDQuery Target native identifier. Never a phone, e-mail, login or legacy key.
+type InvoiceIDQuery = NativeID
+
 // InvoiceLinkState defines model for InvoiceLinkState.
 type InvoiceLinkState string
 
@@ -11573,6 +11576,9 @@ type ListFinanceReconciliationParamsSubjectType string
 
 // ListFinanceReviewQueueParams defines parameters for ListFinanceReviewQueue.
 type ListFinanceReviewQueueParams struct {
+	// InvoiceId Exact native invoice id.
+	InvoiceId *InvoiceIDQuery `form:"invoice_id,omitempty" json:"invoice_id,omitempty"`
+
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
@@ -14694,6 +14700,19 @@ func (siw *ServerInterfaceWrapper) ListFinanceReviewQueue(w http.ResponseWriter,
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ListFinanceReviewQueueParams
+
+	// ------------- Optional query parameter "invoice_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "invoice_id", r.URL.Query(), &params.InvoiceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "invoice_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invoice_id", Err: err})
+		}
+		return
+	}
 
 	// ------------- Optional query parameter "cursor" -------------
 

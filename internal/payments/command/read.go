@@ -214,15 +214,22 @@ func (s *Service) Batch(ctx context.Context, batchID string, actor Actor) (Batch
 }
 
 // ReviewQueue implements api.ReviewSource.
-func (s *Service) ReviewQueue(ctx context.Context, after *string, limit int) ([]api.ReviewAttempt, error) {
+func (s *Service) ReviewQueue(ctx context.Context, invoiceID, after *string, limit int) ([]api.ReviewAttempt, error) {
+	if invoiceID != nil && !uuidPattern.MatchString(*invoiceID) {
+		return nil, nil
+	}
 	var out []api.ReviewAttempt
 	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
-		var cursor any
+		var cursor, invoice any
 		if after != nil {
 			cursor = *after
 		}
+		if invoiceID != nil {
+			invoice = *invoiceID
+		}
 		rows, err := tx.Query(ctx, `SELECT attempt_id::text FROM payments.submitted_attempt WHERE state = 'PENDING_REVIEW'
-			AND ($1::uuid IS NULL OR attempt_id > $1::uuid) ORDER BY attempt_id LIMIT $2`, cursor, limit+1)
+			AND ($1::uuid IS NULL OR attempt_id > $1::uuid) AND ($3::uuid IS NULL OR invoice_id = $3::uuid)
+			ORDER BY attempt_id LIMIT $2`, cursor, limit+1, invoice)
 		if err != nil {
 			return err
 		}

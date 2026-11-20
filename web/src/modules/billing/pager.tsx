@@ -9,7 +9,9 @@ export function useCursors() {
     back: () => setCursors(c => c.slice(0, -1)), next: (n: string) => setCursors(c => [...c, n]) }
 }
 
+/** Renders nothing for a single page: no disabled, non-functional controls. */
 export function Pager({ page, c, label = 'صفحه‌بندی' }: { page: PageInfo; c: ReturnType<typeof useCursors>; label?: string }) {
+  if (c.depth === 0 && !page.has_more) return null
   return (
     <nav className="bi-pager" aria-label={label}>
       <Button disabled={c.depth === 0} onClick={c.back}>صفحه قبل</Button>

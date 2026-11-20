@@ -285,6 +285,14 @@ InvoiceID:
   schema:
     $ref: './hr.yaml#/NativeID'
 
+InvoiceIDQuery:
+  name: invoice_id
+  in: query
+  required: false
+  description: Exact native invoice id.
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
 AttemptID:
   name: attempt_id
   in: path

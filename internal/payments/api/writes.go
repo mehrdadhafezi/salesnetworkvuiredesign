@@ -120,8 +120,10 @@ type ReviewAttempt struct {
 // ReviewSource is the published read the Finance review surface uses.
 type ReviewSource interface {
 	// ReviewQueue lists target attempts awaiting review, oldest first, after
-	// the keyset cursor (attempt id), at most limit+1 rows.
-	ReviewQueue(ctx context.Context, after *string, limit int) ([]ReviewAttempt, error)
+	// the keyset cursor (attempt id), at most limit+1 rows. invoiceID, when
+	// set, keeps only attempts submitted against exactly that invoice (the
+	// attempt's own native invoice reference; RM-P02).
+	ReviewQueue(ctx context.Context, invoiceID, after *string, limit int) ([]ReviewAttempt, error)
 	// ReviewAttempt reads one attempt; ok is false when unknown.
 	ReviewAttempt(ctx context.Context, attemptID string) (a ReviewAttempt, ok bool, err error)
 }

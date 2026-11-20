@@ -19,3 +19,4 @@
 .bi-unit h3{font-size:var(--fs);margin:0 0 6px}
 .bi-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
 @media (max-width:760px){.bi-filters{grid-template-columns:1fr}.bi-kv{grid-template-columns:1fr}}
+.bi-sub{font-size:var(--fs);margin:12px 0 6px}

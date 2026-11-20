@@ -232,7 +232,7 @@ var ContractQuery = map[string][]string{
 	"/api/v1/payments/invoices/{invoice_id}/batches":    {},
 	"/api/v1/payments/batches/{batch_id}":               {},
 	"/api/v1/payments/evidence":                         {},
-	"/api/v1/finance/review/attempts":                   {"cursor", "limit"},
+	"/api/v1/finance/review/attempts":                   {"invoice_id", "cursor", "limit"},
 	"/api/v1/finance/review/attempts/{attempt_id}":      {},
 	// Slice 10: no phone (or any contact) parameter exists on any path.
 	"/api/v1/biawin/subscriptions":                                      {"run_id", "state", "customer_link_state", "invoice_link_state", "activation_evidence", "product", "cursor", "limit"},

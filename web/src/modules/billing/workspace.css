@@ -1,0 +1,37 @@
+/* RM-P02 invoice workspace. Layout only, SN-207 tokens. */
+.ws-nav{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 0;margin:0 0 12px}
+.ws-nav ul{display:flex;flex-wrap:wrap;gap:6px 12px;margin:0;padding:0;list-style:none}
+.ws-nav a{display:inline-block;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:var(--fs-sm);text-decoration:none;background:var(--surface)}
+.ws-nav a:focus-visible,.ws-nav a:hover{border-color:var(--primary)}
+.ws-anchor{scroll-margin-top:72px;min-width:0}
+.ws-anchor .bi-ltr,.ws-table td{overflow-wrap:anywhere}
+.ws-overview{display:grid;gap:8px}
+.ws-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 16px;margin:0}
+.ws-facts > div{border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:0}
+.ws-facts dt{color:var(--text-2);font-size:var(--fs-sm);margin-bottom:4px}
+.ws-facts dd{margin:0;overflow-wrap:anywhere}
+.ws-pills{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ws-unit{display:inline-flex;gap:4px;align-items:center}
+.ws-note{margin:8px 0}
+.ws-table-wrap{overflow-x:auto}
+.ws-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.ws-table th,.ws-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.ws-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.ws-sub td{background:var(--surface-2)}
+.ws-history{display:grid;gap:6px}
+.ws-list{margin:0;padding:0 18px;display:grid;gap:4px}
+.ws-pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+/* Phones: stacked, labelled cells; no horizontal scroll. */
+@media (max-width:760px){
+  .ws-nav{position:static}
+  .ws-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .ws-table,.ws-table tbody,.ws-table tr,.ws-table td{display:block;width:100%}
+  .ws-table tr{border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin-bottom:8px}
+  .ws-table td{border-bottom:0;padding:4px 0;display:grid;grid-template-columns:minmax(96px,38%) minmax(0,1fr);gap:8px;min-width:0}
+  .ws-table td::before{content:attr(data-label);color:var(--text-2)}
+  .ws-table tr.ws-sub td{display:block}
+  .ws-table tr.ws-sub td::before{content:none}
+  /* Long status pills wrap inside a stacked cell instead of being clipped. */
+  .ws-table .pill{white-space:normal;height:auto;min-height:24px;padding:2px 8px;max-width:100%}
+  .ws-table .pill svg{flex:none}
+}
