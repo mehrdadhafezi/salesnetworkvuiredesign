@@ -38,8 +38,13 @@ export function SellerPreviewProvider({ base, initial, children }: {
 }) {
   const [theme, setTheme] = useState(initial.theme)
   const [density, setDensity] = useState(initial.density)
-  const [sim, setSim] = useState(initial.sim)
+  const [sim, setSimState] = useState(initial.sim)
   const [toasts, setToasts] = useState<Toast[]>([])
+  // RM-E04J: a blocking answer also clears pending toasts, so no earlier message outlives the denial.
+  const setSim = useCallback((s: Sim) => {
+    setSimState(s)
+    if (STATE_POLICY[stateOfSim(s)].blocksContent) setToasts([])
+  }, [])
   const nextId = useRef(1)
   const dismiss = useCallback((id: number) => setToasts(ts => ts.filter(t => t.id !== id)), [])
   // Prototype toast(): short, auto-dismiss (4.5 s), manually closable, at most 3 stacked.
@@ -49,7 +54,7 @@ export function SellerPreviewProvider({ base, initial, children }: {
     window.setTimeout(() => dismiss(id), 4500)
   }, [dismiss])
   const ui = useMemo(() => { const state = stateOfSim(sim); return { state, policy: STATE_POLICY[state], answer: answerOfSim(sim) } }, [sim])
-  const value = useMemo<Ctx>(() => ({ base, theme, density, sim, setTheme, setDensity, setSim, ui, toasts, toast, dismiss }), [base, theme, density, sim, ui, toasts, toast, dismiss])
+  const value = useMemo<Ctx>(() => ({ base, theme, density, sim, setTheme, setDensity, setSim, ui, toasts, toast, dismiss }), [base, theme, density, sim, setSim, ui, toasts, toast, dismiss])
   return <SellerPreviewCtx.Provider value={value}>{children}</SellerPreviewCtx.Provider>
 }
 

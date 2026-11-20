@@ -137,7 +137,7 @@ describe('rendered preview', () => {
     expect(within(table).getAllByRole('row')).toHaveLength(1 + 10)
   })
 
-  it('lead drawer: commit is disabled until an outcome is chosen; a required reason blocks the demo toast', async () => {
+  it('lead drawer: commit is disabled until an outcome is chosen; a required reason blocks review; confirming only simulates', async () => {
     renderAt('/dev/seller/leads?queue=all&lead=900104')
     const dialog = await screen.findByRole('dialog', { name: 'مشتری نمونه ت' })
     expect((within(dialog).getByRole('button', { name: 'یک نتیجه انتخاب کنید' }) as HTMLButtonElement).disabled).toBe(true)
@@ -147,6 +147,10 @@ describe('rendered preview', () => {
     expect(document.querySelector('.sl-toast')).toBeNull()
     fireEvent.change(within(dialog).getByLabelText(/دلیل عدم خرید/), { target: { value: 'نمونه' } })
     fireEvent.click(within(dialog).getByRole('button', { name: 'ثبت عدم خرید' }))
+    // RM-E04J: a valid draft opens the review step first; still nothing is recorded.
+    expect(within(dialog).getByRole('heading', { name: 'بازبینی پیش از تأیید' })).toBeTruthy()
+    expect(document.querySelector('.sl-toast')).toBeNull()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'تأیید شبیه‌سازی' }))
     expect(document.querySelector('.sl-toast')?.textContent).toContain('چیزی ثبت یا ارسال نشد')
   })
 
