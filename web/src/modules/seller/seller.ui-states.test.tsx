@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NOT_FOUND_DETAIL, NOT_FOUND_TITLE, SETTLEMENT_UNDEFINED } from './components/states'
@@ -13,6 +13,11 @@ const SECTIONS = [
   ['leads', 'شماره‌های من'], ['conversions', 'آماده‌های تبدیل'], ['repeat', 'نیاز به اقدام مجدد'], ['invoices', 'فاکتورها'],
   ['behavior', 'رفتار مشتریان'], ['request', 'درخواست اضافه کردن شماره'], ['wallet', 'کیف پول من'],
 ] as const
+
+/** RM-E04K: S1 data arrives through the asynchronous (synthetic) read boundary — wait until no read is pending. */
+async function readsSettled() {
+  await waitFor(() => expect(document.querySelector('[data-read-phase="loading"]')).toBeNull())
+}
 
 function renderAt(url: string) {
   const router = createMemoryRouter([
@@ -93,6 +98,7 @@ describe('exact empty versus absent count', () => {
   it('exact empty: counts are a real ۰ and the empty panel shows; never «—»', async () => {
     renderAt('/dev/seller/leads?sim=empty&queue=all')
     await screen.findByRole('heading', { level: 1, name: 'شماره‌های من' })
+    await readsSettled()
     const all = document.querySelector('[data-queue="all"]') as HTMLElement
     expect(all.textContent).toContain('۰')
     expect(all.querySelector('.ds-count-unknown')).toBeNull()
@@ -101,6 +107,7 @@ describe('exact empty versus absent count', () => {
   it('absent count: «—» with an accessible «تعداد نامعلوم», never ۰; rows still render', async () => {
     renderAt('/dev/seller/leads?sim=count_absent&queue=all')
     await screen.findByRole('heading', { level: 1, name: 'شماره‌های من' })
+    await readsSettled()
     const all = document.querySelector('[data-queue="all"]') as HTMLElement
     expect(all.querySelector('.ds-count-unknown')).not.toBeNull()
     expect(all.textContent).toContain('—')
@@ -132,6 +139,7 @@ describe('PARTIAL', () => {
   it('lead history is marked incomplete', async () => {
     renderAt('/dev/seller/leads?sim=partial&queue=all&lead=900104')
     const d = await screen.findByRole('dialog')
+    await readsSettled()
     expect(d.querySelector('[data-partial-history="true"]')).not.toBeNull()
   })
 })
@@ -141,6 +149,7 @@ describe('FIELD_DENIED', () => {
     for (const path of ['leads?queue=all', 'invoices', 'conversions', 'repeat', 'behavior', 'request']) {
       const { unmount } = renderAt(`/dev/seller/${path}${path.includes('?') ? '&' : '?'}sim=field_denied`)
       await screen.findByRole('heading', { level: 1 })
+      await readsSettled()
       expect(document.querySelectorAll('[data-restricted="true"]').length).toBeGreaterThan(0)
       for (const n of ALL_NAMES) expect(bodyText()).not.toContain(n)
       expect(hasSyntheticPhone()).toBe(false)
@@ -154,6 +163,7 @@ describe('FIELD_DENIED', () => {
   it('a search by a hidden phone finds nothing', async () => {
     renderAt('/dev/seller/leads?sim=field_denied&queue=all')
     await screen.findByRole('heading', { level: 1, name: 'شماره‌های من' })
+    await readsSettled()
     fireEvent.change(screen.getByRole('searchbox', { name: 'جستجو در این صف' }), { target: { value: LEADS[0]?.phone ?? '' } })
     expect(screen.getByText('نتیجه‌ای پیدا نشد')).toBeTruthy()
   })
@@ -279,6 +289,7 @@ describe('FIELD_DENIED leaves no identity anywhere in the DOM (attributes, acces
   it.each(SCREENS)('%s', async path => {
     renderAt(`/dev/seller/${path}&sim=field_denied`.replace('request&', 'request?').replace('wallet&', 'wallet?'))
     await screen.findByRole('heading', { level: 1 })
+    await readsSettled()
     // Expand every collapsible timeline so hidden and shown states are both covered.
     for (const b of screen.queryAllByRole('button', { name: /^روند/ })) fireEvent.click(b)
     // The detail drawer must really be open on screens that have one (otherwise the scan proves little).

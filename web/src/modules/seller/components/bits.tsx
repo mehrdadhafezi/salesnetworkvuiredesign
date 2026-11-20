@@ -107,7 +107,7 @@ export function Tag({ children, teal = false }: { children: ReactNode; teal?: bo
   return <span className={`sl-tag${teal ? ' sl-teal' : ''}`}>{children}</span>
 }
 
-export function Timeline({ events, label }: { events: LeadEvent[]; label: string }) {
+export function Timeline({ events, label }: { events: readonly LeadEvent[]; label: string }) {
   if (!events.length) return <p className="muted">رویدادی ثبت نشده است.</p>
   return (
     <ul className="sl-timeline" aria-label={label}>

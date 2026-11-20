@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
-import { STATE_POLICY, answerOfSim, stateOfSim, type SellerUiState, type ServerAnswer, type Sim, type StatePolicy } from './uiState'
+import { STATE_POLICY, answerOfSim, classifyAnswer, stateOfSim, type SellerUiState, type ServerAnswer, type Sim, type StatePolicy } from './uiState'
 
 /*
  * Local, in-memory presentation state of the RM-E03 Seller preview: theme / density, the demo
@@ -55,6 +55,20 @@ export function SellerPreviewProvider({ base, initial, children }: {
   }, [dismiss])
   const ui = useMemo(() => { const state = stateOfSim(sim); return { state, policy: STATE_POLICY[state], answer: answerOfSim(sim) } }, [sim])
   const value = useMemo<Ctx>(() => ({ base, theme, density, sim, setTheme, setDensity, setSim, ui, toasts, toast, dismiss }), [base, theme, density, sim, setSim, ui, toasts, toast, dismiss])
+  return <SellerPreviewCtx.Provider value={value}>{children}</SellerPreviewCtx.Provider>
+}
+
+/**
+ * RM-E04K: re-provides the preview context with `ui` taken from an answer the screen actually received
+ * (its read boundary) instead of the scenario selector. Every existing A7 piece (ScreenFrame, Restricted,
+ * status pills, counts) then presents that answer unchanged. Presentation only; grants nothing.
+ */
+export function SellerAnswerScope({ answer, children }: { answer: ServerAnswer; children: ReactNode }) {
+  const parent = useSellerPreview()
+  const value = useMemo<Ctx>(() => {
+    const state = classifyAnswer(answer)
+    return { ...parent, ui: { state, policy: STATE_POLICY[state], answer } }
+  }, [parent, answer])
   return <SellerPreviewCtx.Provider value={value}>{children}</SellerPreviewCtx.Provider>
 }
 

@@ -1,22 +1,24 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
-  Banner, ContextHint, Drawer, DsIcon, Metric, MetricGroup, PageHead, Panel, QueueTabs, Toolbar, toFaDigits, type DsQueue,
+  Banner, ContextHint, Drawer, DsIcon, Metric, MetricGroup, PageHead, Panel, QueueTabs, StatePanel, Toolbar, toFaDigits, type DsQueue,
 } from '../../../shared/ui/ds'
 import {
   FactChip, FilterChip, InvoiceStatusPill, LeadStatusPill, Money, NextStep, Note, SearchField, TableFoot, Tag, Timeline, Who,
   nextChipClass, useCustomerName, useListState,
 } from '../components/bits'
-import { NotFoundDrawer, Restricted, ScreenFrame, useDetail, useStatePresentation } from '../components/states'
+import { NotFoundDrawer, Restricted, ScreenFrame, useStatePresentation } from '../components/states'
 import { OutcomeGrid } from '../components/overlays'
-import { INVOICES, LEADS } from '../fixtures/sellerFixtures'
+import { isAuthorizationBlock, type S1CaseDetail, type S1Read } from '../data/s1ReadSource'
+import { useS1ReadSource, useSequencedRead, type ReadPhase } from '../data/s1Reads'
 import { CLOSED_LEAD_STATUSES, DEMO_SUFFIX, LEAD_OUTCOMES, LEAD_QUEUE_ORDER, LEAD_STATUS } from '../labels'
 import { useDrawerParam, usePageKeys } from '../state/hooks'
 import {
   DEFAULT_LEAD_FILTER, filterLeads, followUpRate, invoiceAmounts, leadCounts, paginate, unitOf, validateOutcome,
   type DateRange, type FieldErrors, type LeadFilter, type OutcomeFields,
 } from '../state/selectors'
-import { useSellerPreview } from '../state/SellerPreviewContext'
+import { SellerAnswerScope, useSellerPreview } from '../state/SellerPreviewContext'
+import type { ServerAnswer } from '../state/uiState'
 import { DRAFT_PRODUCTS, PAY_TYPE_LABEL, SIMULATED_RESULT_NOTICE, SIMULATION_NOTICE, draftLines, draftReducer, emptyDraft, type DraftProduct, type DraftStep } from '../state/outcomeDraft'
 import type { Lead, LeadOutcome, LeadQueue } from '../types'
 
@@ -26,6 +28,11 @@ import type { Lead, LeadOutcome, LeadQueue } from '../types'
  * interactions. RM-E04J: «ثبت» validates the local draft (existing `validateOutcome`) and opens a
  * review step; «تأیید شبیه‌سازی» shows a clearly labelled simulated result. Nothing is ever recorded:
  * no request, no storage, and `cases.contact_outcome.record` is not wired (Seller authority: D-42).
+ *
+ * RM-E04K: every S1 record now arrives through the S1 read boundary (data/s1ReadSource.ts) — list, detail
+ * and history are separate sequenced reads. Only the answer to the CURRENT request is ever shown; an
+ * authorization block (401 / 403 / FEATURE_DISABLED) on any read latches the whole screen closed for that
+ * source, so no late success can restore protected content.
  */
 
 const PER_PAGE = 10
@@ -37,17 +44,65 @@ function isQueue(v: string | null): v is LeadQueue {
   return v !== null && (LEAD_QUEUE_ORDER as readonly string[]).includes(v)
 }
 
+const NO_ROWS: readonly Lead[] = Object.freeze([])
+type Settled = (read: Pick<S1Read<unknown>, 'state' | 'answer'>) => void
+
+/** S1 read lifecycle: list + detail reads, the authorization latch, then the existing screen under the received answer. */
 export function LeadsPage() {
+  const source = useS1ReadSource()
+  const [leadParam, setLeadParam] = useDrawerParam('lead')
+  const [detailTry, setDetailTry] = useState(0)
+  const [latch, setLatch] = useState<{ sourceId: string; answer: ServerAnswer } | null>(null)
+  const sourceId = source.id
+  const onSettled = useCallback<Settled>(r => { if (isAuthorizationBlock(r.state)) setLatch({ sourceId, answer: r.answer }) }, [sourceId])
+  const list = useSequencedRead(sourceId, signal => source.listCases({ signal }), onSettled)
+  const detail = useSequencedRead(
+    leadParam === null ? null : `${sourceId}|${leadParam}|${detailTry}`,
+    signal => source.getCase(leadParam ?? '', { signal }),
+    onSettled,
+  )
+  const blocked = latch?.sourceId === sourceId ? latch.answer : null
+  const answer = blocked ?? (list.status === 'done' ? list.read.answer : null)
+  if (!answer) return <LeadsLoading />
+  return (
+    <SellerAnswerScope answer={answer}>
+      <LeadsScreen
+        leads={list.status === 'done' ? list.read.data?.rows ?? NO_ROWS : NO_ROWS}
+        leadParam={leadParam} setLeadParam={setLeadParam}
+        detail={detail} onRetryDetail={() => setDetailTry(n => n + 1)} onSettled={onSettled}
+      />
+    </SellerAnswerScope>
+  )
+}
+
+/** Pending list read: no rows, no counts, no drawer — nothing from an earlier answer is kept on screen. */
+function LeadsLoading() {
+  return (
+    <>
+      <PageHead title="شماره‌های من" sub="در حال دریافت فهرست (ساختگی)…" />
+      <div data-read-phase="loading" className="sl-frame-body">
+        <Panel label="فهرست شماره‌ها"><StatePanel kind="loading" title="در حال بارگذاری فهرست" /></Panel>
+      </div>
+    </>
+  )
+}
+
+function LeadsScreen({ leads, leadParam, setLeadParam, detail, onRetryDetail, onSettled }: {
+  leads: readonly Lead[]
+  leadParam: string | null
+  setLeadParam: (id: string | null) => void
+  detail: ReadPhase<S1CaseDetail>
+  onRetryDetail: () => void
+  onSettled: Settled
+}) {
   const { toast, base } = useSellerPreview()
   const sp = useStatePresentation()
-  const leads = sp.data(LEADS)
   const name = useCustomerName()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const [filter, setFilter] = useState<LeadFilter>(() => ({ ...DEFAULT_LEAD_FILTER, queue: isQueue(params.get('queue')) ? params.get('queue') as LeadQueue : 'none' }))
   const [page, setPage] = useState(1)
   const [cursor, setCursor] = useState(0)
-  const [leadParam, setLeadParam] = useDrawerParam('lead')
   const tbody = useRef<HTMLTableSectionElement>(null)
   const search = useRef<HTMLDivElement>(null)
 
@@ -56,8 +111,10 @@ export function LeadsPage() {
   const list = useMemo(() => filterLeads(leads, filter, identity), [leads, filter, identity])
   const pg = paginate(list, page, PER_PAGE)
   const rate = followUpRate(leads)
-  const detail = useDetail(leadParam, id => leads.find(l => String(l.id) === id))
-  const openLead = detail.record
+  const openDetail = detail.status === 'done' ? detail.read.data : null
+  const openLead = openDetail?.record ?? null
+  const notFound = detail.status === 'done' && detail.read.state === 'not_found'
+  const drawerPhase: DrawerPhase = openDetail ? 'record' : detail.status === 'loading' ? 'pending' : detail.status === 'done' && !notFound ? 'failed' : 'closed'
 
   const update = (patch: Partial<LeadFilter>) => { setFilter(f => ({ ...f, ...patch })); setPage(1); setCursor(0) }
   const switchQueue = useCallback((q: LeadQueue) => { setFilter(f => ({ ...f, queue: q })); setPage(1); setCursor(0); setLeadParam(null) }, [setLeadParam])
@@ -82,7 +139,7 @@ export function LeadsPage() {
   }, [openLead, list, leads, cursor, setLeadParam])
 
   usePageKeys(useCallback((k: string) => {
-    if (openLead) return false // the drawer owns 1–5 / Enter / J / K while open (handled inside it)
+    if (leadParam !== null) return false // the drawer owns 1–5 / Enter / J / K while open (handled inside it)
     if (k === 'f') { search.current?.querySelector('input')?.focus(); return true }
     if (k === 'j') { step(1); return true }
     if (k === 'k') { step(-1); return true }
@@ -91,7 +148,7 @@ export function LeadsPage() {
       if (q) { switchQueue(q); return true }
     }
     return false
-  }, [openLead, step, switchQueue]))
+  }, [leadParam, step, switchQueue]))
 
   const queues: DsQueue[] = LEAD_QUEUE_ORDER.map(k => k === 'all'
     ? { id: 'all', label: 'همه', tone: 'neutral', count: sp.count(counts.all), shortcut: '0' }
@@ -203,19 +260,31 @@ export function LeadsPage() {
           </>
         )}
       </Panel>
-      <LeadDrawer lead={openLead} list={list} all={leads} onClose={() => setLeadParam(null)} onStep={step} />
-      <NotFoundDrawer open={detail.notFound} kicker="جزئیات شماره" onClose={() => setLeadParam(null)} />
+      <LeadDrawer detail={openDetail} phase={drawerPhase} list={list} all={leads} onClose={() => setLeadParam(null)} onStep={step} onRetry={onRetryDetail} onSettled={onSettled} />
+      <NotFoundDrawer open={notFound} kicker="جزئیات شماره" onClose={() => setLeadParam(null)} />
     </ScreenFrame>
   )
 }
 
 
-function LeadDrawer({ lead, list, all, onClose, onStep }: { lead: Lead | null; list: readonly Lead[]; all: readonly Lead[]; onClose: () => void; onStep: (d: number) => void }) {
+type DrawerPhase = 'closed' | 'pending' | 'record' | 'failed'
+
+function LeadDrawer({ detail, phase, list, all, onClose, onStep, onRetry, onSettled }: {
+  detail: S1CaseDetail | null
+  phase: DrawerPhase
+  list: readonly Lead[]
+  all: readonly Lead[]
+  onClose: () => void
+  onStep: (d: number) => void
+  onRetry: () => void
+  onSettled: Settled
+}) {
   const name = useCustomerName()
+  const lead = detail?.record ?? null
   const src = lead && list.some(l => l.id === lead.id) ? list : all
   const idx = lead ? src.findIndex(l => l.id === lead.id) : -1
   return (
-    <Drawer open={lead !== null} onClose={onClose} title={lead ? name(lead.name) : 'جزئیات'} kicker={lead ? `${toFaDigits(idx + 1)} از ${toFaDigits(src.length)}` : 'جزئیات'}
+    <Drawer open={phase !== 'closed'} onClose={onClose} title={lead ? name(lead.name) : 'جزئیات'} kicker={lead ? `${toFaDigits(idx + 1)} از ${toFaDigits(src.length)}` : 'جزئیات'}
       topExtra={lead ? (
         <>
           <button type="button" className="btn btn-ghost btn-sm ds-btn-icon" aria-label="مشتری قبلی (K)" title="قبلی (K)" onClick={() => onStep(-1)}><DsIcon name="chev" className="sl-rot180" /></button>
@@ -224,15 +293,29 @@ function LeadDrawer({ lead, list, all, onClose, onStep }: { lead: Lead | null; l
         </>
       ) : undefined}
     >
-      {/* Keyed by lead: the draft (and any simulated result) belongs to one lead and never carries over. */}
-      {lead ? <LeadDrawerBody key={lead.id} lead={lead} onClose={onClose} onStep={onStep} /> : null}
+      {/* Keyed by lead: the draft (and any simulated result) belongs to one lead and never carries over.
+          A pending or failed detail read mounts no record content at all (no earlier case stays visible). */}
+      {detail ? <LeadDrawerBody key={detail.record.id} detail={detail} onClose={onClose} onStep={onStep} onSettled={onSettled} /> : null}
+      {phase === 'pending' ? <div data-read-phase="loading"><StatePanel kind="loading" title="در حال دریافت جزئیات" headingLevel={3} /></div> : null}
+      {phase === 'failed' ? (
+        <div data-read-phase="failed">
+          <StatePanel kind="error" title="امکان دریافت جزئیات وجود ندارد" detail="خطای سرور یا شبکه. فقط خواندن دوباره انجام می‌شود." headingLevel={3}
+            actions={<button type="button" className="btn btn-primary" onClick={onRetry}><DsIcon name="refresh" />تلاش مجدد</button>} />
+        </div>
+      ) : null}
     </Drawer>
   )
 }
 
-function LeadDrawerBody({ lead, onClose, onStep }: { lead: Lead; onClose: () => void; onStep: (d: number) => void }) {
+function LeadDrawerBody({ detail, onClose, onStep, onSettled }: { detail: S1CaseDetail; onClose: () => void; onStep: (d: number) => void; onSettled: Settled }) {
   const { toast, ui } = useSellerPreview()
+  const lead = detail.record
   const restricted = ui.policy.fieldsRestricted
+  const source = useS1ReadSource()
+  const [historyTry, setHistoryTry] = useState(0)
+  const caseId = String(lead.id)
+  const history = useSequencedRead(`${source.id}|${caseId}|${historyTry}`, signal => source.listCaseHistory(caseId, { signal }), onSettled)
+  const hist = history.status === 'done' ? history.read.data : null
   const [params] = useSearchParams()
   const initial = params.get('outcome')
   const [d, dispatch] = useReducer(draftReducer, LEAD_OUTCOMES.some(o => o.id === initial) ? initial as LeadOutcome : null, emptyDraft)
@@ -242,7 +325,7 @@ function LeadDrawerBody({ lead, onClose, onStep }: { lead: Lead; onClose: () => 
   const stepHead = useRef<HTMLHeadingElement>(null)
   const prevStep = useRef(step)
   const attemptsNext = Math.min(3, lead.attempts + 1)
-  const invoices = INVOICES.filter(i => lead.invoiceRefs?.includes(i.code))
+  const invoices = detail.invoices
   const s = LEAD_STATUS[lead.status]
   const chosen = LEAD_OUTCOMES.find(o => o.id === outcome)
   const lines = draftLines(d, { attemptsNext, fa: toFaDigits })
@@ -420,11 +503,23 @@ function LeadDrawerBody({ lead, onClose, onStep }: { lead: Lead; onClose: () => 
         </label>
       </details>
       <details className="sl-details">
-        <summary><h3>تاریخچه</h3><span className="muted sl-meta-text">{toFaDigits(lead.history.length)} رویداد</span><DsIcon name="chev" className="sl-chev" /></summary>
-        <Timeline events={lead.history} label="تاریخچه تعامل" />
-        {ui.state === 'partial'
-          ? <p className="muted sl-meta-text" data-partial-history="true">تاریخچه کامل نیست (پاسخ ناقص)؛ رویدادهای قدیمی‌تر ممکن است نمایش داده نشوند.</p>
-          : null}
+        {/* A truncated (PARTIAL) history never shows a total: «—», never the shown count as if complete. */}
+        <summary><h3>تاریخچه</h3><span className="muted sl-meta-text">{hist ? (hist.complete ? toFaDigits(hist.events.length) : '—') : '…'} رویداد</span><DsIcon name="chev" className="sl-chev" /></summary>
+        {history.status !== 'done'
+          ? <p className="muted sl-meta-text" role="status" data-read-phase="loading">در حال دریافت تاریخچه…</p>
+          : hist ? (
+            <>
+              <Timeline events={hist.events} label="تاریخچه تعامل" />
+              {!hist.complete
+                ? <p className="muted sl-meta-text" data-partial-history="true">تاریخچه کامل نیست (پاسخ ناقص)؛ رویدادهای قدیمی‌تر ممکن است نمایش داده نشوند.</p>
+                : null}
+            </>
+          ) : (
+            <div className="sl-cond" data-read-phase="failed">
+              <Note tone="warn" icon="alert">تاریخچه دریافت نشد. فقط خواندن دوباره انجام می‌شود.</Note>
+              <button type="button" className="btn btn-sm" onClick={() => setHistoryTry(n => n + 1)}><DsIcon name="refresh" />تلاش مجدد تاریخچه</button>
+            </div>
+          )}
       </details>
       <details className="sl-details" open={invoices.length > 0}>
         <summary><h3>فاکتورهای این پرونده</h3><span className="muted sl-meta-text">{toFaDigits(invoices.length)}</span><DsIcon name="chev" className="sl-chev" /></summary>
