@@ -160,3 +160,32 @@ This recommendation does not bind anyone. It is not entered in any authoritative
 | Conditions |  |
 | Evidence reference / immutable_ref |  |
 | Human verification |  |
+
+## 13. RM-E04L owner preference (non-authoritative annotation)
+
+**OWNER PREFERENCE — NOT APPROVED.** Recorded in RM-E04L (baseline `main` @ `a8f3c4df9215f4496f2547e89d950403f485ead3`)
+from a conversation-level instruction of the project owner. It is not a selection in §3, not an outcome in §12, not
+an R6 record and not implementation authorization. Report label: `M2_REC_1 = OWNER_PREFERRED_READ_ONLY_OWN_CASES`;
+governance state: **`NOT_APPROVED_VERIFIED`** (record not registered; no official ID). Production **NO-GO**.
+
+| Layer | Value |
+|---|---|
+| Owner preference | Seller reads **own cases only**, read-only, first phase |
+| Nearest option in §3 | **B** (`cases.own.read` alone). `cases.own.read` is a **proposed candidate name**, not a registered capability (§4; Codex naming review pending) |
+| Engineering recommendation (§9) | A — unchanged and still non-binding. The preference is narrower than A; the difference is a human decision |
+| Official decision / approvers / T5 | **None** |
+
+What the preference does **not** cover (each needs its own explicit eligibility decision; none is implied):
+
+| Domain | Capability in the original options | Status under the preference |
+|---|---|---|
+| Invoices (S4) | `billing.own.read` | **DEFERRED** — also blocked by Record 2 §6 S4 readiness |
+| Payments (S4 sub-resource) | `payments.own.read` | **DEFERRED** |
+| Commission / wallet (S7) | `commission.own.read` | **DEFERRED** — the capability exists in code but is not in the `seller` bundle; S7 semantics stay blocked on D-41 / OPD-09 |
+| Contact-outcome recording | `cases.contact_outcome.record` (write) | **EXCLUDED** — View ≠ Write (§6) |
+| Case assignment, invoice issuing, any other write | — | **EXCLUDED** |
+| Attribution sub-resource (S2) | `cases.own.read` (`listMyCaseAttribution`) | **REQUIRES EXPLICIT SCOPE** — it exposes original-owner / credit facts, which are not "current custody" (Record 2 §12) |
+| Organization-wide reads | §2 exclusion list | **EXCLUDED** (XR §2) |
+
+Options A–D in §3 stay open and unticked. Approvers may select any of them; the consequences in §3–§8 are unchanged.
+Handoff and dependency chain: [`../../implementation/rm-e04l-seller-own-case-preference-handoff.md`](../../implementation/rm-e04l-seller-own-case-preference-handoff.md).

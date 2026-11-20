@@ -218,3 +218,41 @@ role never widens `/me` results, and the two scopes are never merged in one resp
 | Conditions |  |
 | Evidence reference / immutable_ref |  |
 | Human verification |  |
+
+## 12. RM-E04L owner preference (non-authoritative annotation)
+
+**OWNER PREFERENCE — NOT APPROVED.** Recorded in RM-E04L (baseline `main` @ `a8f3c4df9215f4496f2547e89d950403f485ead3`)
+from a conversation-level instruction of the project owner. It ticks nothing in §4, fills nothing in §11 and opens no
+gate. Report label: `M2_REC_2 = OWNER_PREFERRED_CUSTODY_CURRENT_HOLDER`; governance state: **`NOT_APPROVED_VERIFIED`**
+(record not registered; no official ID). Production **NO-GO**.
+
+**Preference as stated:** Seller-owned cases are those where the caller is the verified current custody holder of the
+requested case, as established by authoritative server-side custody facts (`CUSTODY_CURRENT_HOLDER`, the basis name
+used by the API proposal).
+
+**Normalization against §3.** `CUSTODY_CURRENT_HOLDER` is a basis *label*, not a column. It can be realised by P1
+(derived), P2 (legacy holder + contradiction guard) or P3 (both agree). The only resolver that exists today is
+`CurrentHolder` (`internal/custody/query/query.go`), which is **P2** and fails closed with a named basis
+(`NO_CUSTODY_RECORD`, `CASE_ABSENT_IN_LATEST`, `NO_RESOLVED_LEGACY_HOLDER`, `CONTRADICTING_HOLDER_EVIDENCE`). The
+engineering mapping is therefore **preference ≈ P2 for S1**, but which fact is "authoritative" is an approver
+decision: P1 and P3 stay open alternatives with their §3 consequences. S2 attribution, S4 and S7 are **not covered**
+by this preference.
+
+**Predicate completeness check (fail closed wherever UNRESOLVED):**
+
+| Case | Defined by | State |
+|---|---|---|
+| Unknown / NULL holder | §7.3, SR-05; `CurrentHolder` `Known=false` | Defined — not shown, not counted |
+| Historical vs current holder | §1, §7.1; historical option not proposed | Defined — current only. PQ-6 (outcomes the Seller recorded after the case moved) **open** |
+| Pending transfer | — | **UNRESOLVED.** The target custody model has no transfer / pending state (`internal/custody/custody.go`: no Transfer); legacy in-flight semantics are unverified. Until defined, only the published holder counts and nothing else widens scope |
+| Conflicting custody evidence | §7.2; `CONTRADICTING_HOLDER_EVIDENCE` | Defined — excluded for every Seller |
+| Missing caller identity | §3 (V8 precedent) | Defined — 403 `ROW_SCOPE_DENIED`. Scope is per account, not per person (R5-SEC-01 stays separate) |
+| Reassignment / revoked custody | §7.1; SR-11 | Defined — lost on the next request after the moving import batch; stale between batches. The **acceptable staleness window is not decided** |
+| Cross-user access | §7.6, SR-06 | Defined — out-of-scope ≡ missing |
+| Cross-organization access | — | **UNRESOLVED.** Case and custody tables carry no organization key; isolation is single-deployment only. Approvers must state this as a condition or require a model |
+| Aggregate counts | §7.5, SR-07 | Defined — same scoped query; not computable → ABSENT, never 0 |
+| Detail and history sub-resources | §7.6, SR-06 | Defined — each re-applies the parent predicate. Attribution is S2 (above) |
+| Generic 404 parity | §7.6; A3 precedent | Defined — same status and body as a missing id |
+
+PQ-1 (distribution-item cases in S1), PQ-4 (Legal sign-off) and PQ-6 remain open and must be answered in the decision
+text. Handoff: [`../../implementation/rm-e04l-seller-own-case-preference-handoff.md`](../../implementation/rm-e04l-seller-own-case-preference-handoff.md).
