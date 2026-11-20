@@ -49,6 +49,8 @@ async function open(page: Page, path: string) {
   await page.goto(`/dev/seller/${path}`)
   await expect(page.locator('.sl-root')).toBeVisible()
   await expect(page.locator('h1')).toHaveCount(1)
+  // RM-E04K: S1 reads arrive through the asynchronous synthetic read boundary. `sim=loading` never settles by design.
+  if (!path.includes('sim=loading')) await expect(page.locator('[data-read-phase="loading"]')).toHaveCount(0)
 }
 
 async function noPageHorizontalScroll(page: Page) {
@@ -556,6 +558,141 @@ test.describe('E04J contact-outcome preview', () => {
       await noPageHorizontalScroll(page)
       await jsnap(page, info, `blocked-${sim}`)
     }
+    expectNoBusinessTraffic(log)
+  })
+})
+
+
+// ---------------------------------------------------------------------------------------------------------
+// RM-E04K — S1 read boundary: loading / answer lifecycle, request ordering and fail-closed transitions in a
+// real browser. The synthetic source settles on timers, so the page clock is controlled to observe pending
+// reads deterministically. SYNTHETIC only; no request leaves the page. Evidence (optional):
+// RM_E04K_EVIDENCE_DIR=../docs/evidence/rm-e04k npx playwright test -c playwright.seller.config.ts -g "E04K"
+
+const K_OUT = process.env.RM_E04K_EVIDENCE_DIR
+const LATENCY = 450
+
+async function ksnap(page: Page, info: TestInfo, name: string) {
+  if (!K_OUT) return
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: `${K_OUT}/${info.project.name.replace('seller-', '')}-${name}.png` })
+}
+
+/** Sensitive synthetic identity anywhere in the DOM (text, attributes, hidden nodes). */
+async function identityInDom(page: Page): Promise<boolean> {
+  const html = await page.content()
+  return /0900000\d{4}|۰۹۰۰۰۰۰[۰-۹]{4}|مشتری نمونه/.test(html)
+}
+
+/** Switch the preview scenario in-app (no reload) through the existing user menu. */
+async function switchSim(page: Page, label: string) {
+  await page.getByRole('button', { name: 'منوی کاربر، پوسته و تراکم' }).click()
+  await page.getByRole('menuitem', { name: label, exact: false }).first().click()
+}
+
+test.describe('E04K S1 read boundary', () => {
+  test('E04K: loading → list → pending detail → history; switching cases never shows the previous case', async ({ page }, info) => {
+    const log = await guard(page)
+    await page.clock.install()
+    await page.goto('/dev/seller/leads?queue=all&lead=900104')
+    const loading = page.locator('[data-read-phase="loading"] [data-kind="loading"]').first()
+    await expect(loading).toBeVisible()
+    await expect(loading).toHaveAttribute('aria-busy', 'true')
+    await expect(page.locator('.sl-tbl, .sl-lcard, [data-queue], [role="dialog"]')).toHaveCount(0)
+    expect(await identityInDom(page)).toBe(false)
+    await noPageHorizontalScroll(page)
+    await ksnap(page, info, 'loading')
+
+    await page.clock.runFor(LATENCY + 50)
+    const d = await settled(page, 'مشتری نمونه ت')
+    await expect(d.locator('[data-draft-step="edit"]')).toBeVisible()
+    await d.locator('summary', { hasText: 'تاریخچه' }).click()
+    await expect(d.getByRole('list', { name: 'تاریخچه تعامل' })).toContainText('تماس بی‌پاسخ (۲ از ۳)')
+    await ksnap(page, info, 'detail')
+
+    // Step to the next case (J): the drawer shows a pending detail with none of the previous case's content.
+    await d.getByRole('button', { name: /^عدم خرید/ }).click()
+    await d.getByLabel(/دلیل عدم خرید/).fill('پیش‌نویس مورد قبلی')
+    await d.getByRole('button', { name: 'مشتری بعدی (J)' }).click()
+    await expect(page.getByRole('dialog').locator('[data-read-phase="loading"]').first()).toBeVisible()
+    await expect(page.getByRole('dialog')).not.toContainText('مشتری نمونه ت')
+    await expect(page.getByRole('dialog')).not.toContainText('پیش‌نویس مورد قبلی')
+    await ksnap(page, info, 'detail-pending')
+    await page.clock.runFor(LATENCY + 50)
+    await expect(page.getByRole('dialog').locator('[data-draft-step="edit"]')).toBeVisible()
+    await expect(page.getByRole('dialog')).not.toContainText('مشتری نمونه ت')
+    await expect(page.locator('body')).not.toContainText('پیش‌نویس مورد قبلی')
+    await noPageHorizontalScroll(page)
+    expectNoBusinessTraffic(log)
+  })
+
+  test('E04K: PARTIAL history is marked incomplete with «—» count; absent count «—»; FIELD_DENIED hides identity everywhere', async ({ page }, info) => {
+    const log = await guard(page)
+    await open(page, 'leads?queue=all&lead=900104&sim=partial')
+    const d = await settled(page, 'مشتری نمونه ت')
+    await expect(page.locator('[data-kind="incomplete"]').first()).toContainText('COVERAGE_INCOMPLETE')
+    const hist = d.locator('details', { hasText: 'تاریخچه' }).last()
+    await hist.locator('summary').click()
+    await expect(hist.locator('summary')).toContainText('— رویداد')
+    await expect(hist.locator('[data-partial-history="true"]')).toBeVisible()
+    await hist.scrollIntoViewIfNeeded()
+    await ksnap(page, info, 'partial-history')
+
+    await open(page, 'leads?queue=all&sim=count_absent')
+    await expect(page.locator('[data-queue="all"] .ds-count-unknown')).toBeAttached()
+    await expect(page.locator('[data-queue="all"]')).not.toContainText('۰')
+    await ksnap(page, info, 'count-absent')
+
+    await open(page, 'leads?queue=all&lead=900104&sim=field_denied')
+    await settled(page, 'مشتری (محدود)')
+    await page.getByRole('dialog').locator('summary', { hasText: 'تاریخچه' }).click()
+    expect(await identityInDom(page)).toBe(false)
+    await ksnap(page, info, 'field-denied')
+    expectNoBusinessTraffic(log)
+  })
+
+  test('E04K: in-app denial / session expiry clear the record and draft; failure → retry re-reads; offline is a failure, not rows', async ({ page }, info) => {
+    const log = await guard(page)
+    const mobile = kindOf(page.viewportSize()?.width ?? 1366) === 'mobile'
+    await open(page, 'leads?queue=all&lead=900104')
+    const d = await settled(page, 'مشتری نمونه ت')
+    await d.getByRole('button', { name: /^عدم خرید/ }).click()
+    await d.getByLabel(/دلیل عدم خرید/).fill('دلیل محرمانه نمونه')
+    await d.getByRole('button', { name: 'ثبت عدم خرید' }).click()
+    await expect(d.getByRole('heading', { name: 'بازبینی پیش از تأیید' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    for (const [label, title, shot] of [
+      ['نشست منقضی', 'نشست شما به پایان رسیده است', 'session-expired'],
+      ['بدون مجوز', 'دسترسی به این بخش ندارید', 'blocked'],
+    ] as const) {
+      await open(page, 'leads?queue=all&lead=900104')
+      await settled(page, 'مشتری نمونه ت')
+      await page.keyboard.press('Escape')
+      if (mobile) await open(page, `leads?queue=all&lead=900104&sim=${shot === 'blocked' ? 'action_denied' : 'session_expired'}`)
+      else await switchSim(page, label)
+      await expect(page.getByRole('heading', { level: 2, name: title })).toBeVisible()
+      await expect(page.locator('.sl-tbl, .sl-lcard, [role="dialog"], [data-draft-step]')).toHaveCount(0)
+      expect(await identityInDom(page)).toBe(false)
+      await expect(page.locator('body')).not.toContainText('دلیل محرمانه نمونه')
+      await noPageHorizontalScroll(page)
+      await ksnap(page, info, shot)
+    }
+
+    await open(page, 'leads?queue=all&sim=error')
+    const alert = page.getByRole('alert').filter({ hasText: 'امکان دریافت لیست وجود ندارد' })
+    await expect(alert).toContainText('syn-corr-a7-500')
+    await expect(page.locator('.sl-tbl, .sl-lcard')).toHaveCount(0)
+    await ksnap(page, info, 'failure')
+    await alert.getByRole('button', { name: 'تلاش مجدد' }).click()
+    await expect(page.locator('.sl-tbl tbody tr:visible, .sl-lcard:visible').first()).toBeVisible()
+    await ksnap(page, info, 'retry-list')
+
+    await open(page, 'leads?queue=all&sim=offline')
+    await expect(page.locator('[data-kind="offline"]')).toBeVisible()
+    await expect(page.getByRole('alert').filter({ hasText: 'امکان دریافت لیست وجود ندارد' })).toBeVisible()
+    await expect(page.locator('.sl-tbl, .sl-lcard')).toHaveCount(0)
+    await expect(page.getByText('در این صف موردی وجود ندارد')).toHaveCount(0)
+    await ksnap(page, info, 'offline')
     expectNoBusinessTraffic(log)
   })
 })

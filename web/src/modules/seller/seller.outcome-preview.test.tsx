@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NOT_FOUND_DETAIL } from './components/states'
@@ -39,9 +39,16 @@ afterEach(() => {
   fetchSpy.mockRestore(); xhrSpy.mockRestore()
 })
 
+/** RM-E04K: S1 data arrives through the asynchronous (synthetic) read boundary — wait until no read is pending. */
+async function readsSettled() {
+  await waitFor(() => expect(document.querySelector('[data-read-phase="loading"]')).toBeNull())
+}
+
 async function openLead(extra = '') {
   renderAt(`/dev/seller/leads?queue=all&lead=900104${extra}`)
-  return screen.findByRole('dialog', { name: extra.includes('field_denied') ? 'مشتری (محدود)' : LEAD.name })
+  const d = await screen.findByRole('dialog', { name: extra.includes('field_denied') ? 'مشتری (محدود)' : LEAD.name })
+  await readsSettled()
+  return d
 }
 
 /** Fill a valid «عدم خرید» draft and go to review. */

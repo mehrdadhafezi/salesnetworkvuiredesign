@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { RouterProvider, createMemoryRouter, type RouteObject } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { configFromEnv } from '../../app/config'
@@ -130,6 +130,8 @@ describe('rendered preview', () => {
   it('/dev/seller redirects to leads; leads queue tabs filter the table', async () => {
     const { router } = renderAt('/dev/seller')
     await screen.findByRole('heading', { level: 1, name: 'شماره‌های من' })
+    // RM-E04K: the list arrives through the asynchronous synthetic read boundary.
+    await waitFor(() => expect(document.querySelector('[data-read-phase="loading"]')).toBeNull())
     expect(router.state.location.pathname).toBe('/dev/seller/leads')
     const table = screen.getByRole('table', { name: 'فهرست شماره‌ها' })
     expect(within(table).getAllByRole('row')).toHaveLength(1 + leadCounts(LEADS).none)
