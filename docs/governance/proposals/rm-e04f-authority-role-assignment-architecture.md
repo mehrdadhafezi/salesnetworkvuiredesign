@@ -360,7 +360,7 @@ None of these is evidence for T-A3 or T-A4.
 | R3 | The CEO position holder holds `position.appoint` for governance offices **only** while their CEO `PositionAssignment` is `APPOINTED` and valid |
 | SA | **No self-appointment:** an appointer can never appoint themself (person level, any account). If the CEO is to hold a governance office, the appointment needs an appointing body above the CEO (board instrument) — RM-E04F-AD2 |
 | R4 | Changing CEO = new `PositionAssignment` (supersession). Appointments made by the previous CEO remain valid until ended; they are not re-signed or rewritten |
-| R5 | The project owner's statement "the CEO appoints position holders" is recorded as a **design input**, not as evidence. The CEO position's holder is **UNVERIFIED / UNASSIGNED** |
+| R5 | The project owner's statement "the CEO appoints position holders" is recorded as a **design input**, not as evidence. The CEO position's holder is **UNVERIFIED / UNASSIGNED** (RM-E04Q: a provisional CEO nominee is recorded as `NOMINATED` only — not appointed, not verified) |
 
 ### 5.5 Emergency revocation and recovery
 
@@ -824,7 +824,7 @@ enforce runtime behaviour; no runtime exists.
 | Test | Asserts |
 |---|---|
 | `TestRME04FDocumentsMarkedNotApproved` | All RM-E04F documents carry `DRAFT — NOT APPROVED` near the top and state NO-GO; the handoff is `REVIEW PENDING` |
-| `TestRME04FNominationsStayProvisional` | Every nomination is `NOMINATED` or `UNASSIGNED`; no evidence, verifier, validity or person ref is filled; the CEO position has no holder; T5 verifier is `UNASSIGNED`; nominees count as one independent person |
+| `TestRME04FNominationsStayProvisional` | Every nomination is `NOMINATED` or `UNASSIGNED`; no evidence, verifier, validity or person ref is filled; the CEO position has at most a `NOMINATED` holder with no evidence, who is not nominated for any office it appoints (SA); T5 verifier is `UNASSIGNED`; nominees count as one independent person |
 | `TestRME04FWorkflowHasNoShortcutToActive` | The §5.2 state diagram/table in this document allows `ACTIVE` only from `PENDING_VERIFICATION` and only by a human verifier |
 | `TestRME04FOnePersonIsOneApprover` | The R6 validator rejects a decision signed by one nominee under the Product, Sales and Security roles (also with case / whitespace variants) |
 | `TestRME04FRecorderOrApproverCannotVerify` | The R6 validator rejects T5 verification by the recorder or an approver |

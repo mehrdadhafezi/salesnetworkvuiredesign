@@ -102,7 +102,8 @@ func TestRME04FDocumentsMarkedNotApproved(t *testing.T) {
 }
 
 // A candidate name never becomes a verified authority: every entry is NOMINATED or UNASSIGNED, nothing that
-// would evidence or activate it is filled, the CEO position has no recorded holder, and T5 stays unassigned.
+// would evidence or activate it is filled, the CEO position has at most a NOMINATED holder (never self-appointing),
+// and T5 stays unassigned.
 func TestRME04FNominationsStayProvisional(t *testing.T) {
 	r, _ := rmE04FLoadRegister(t)
 	allowed := map[string]bool{"NOMINATED": true, "UNASSIGNED": true}
@@ -110,14 +111,30 @@ func TestRME04FNominationsStayProvisional(t *testing.T) {
 		t.Errorf("allowed_states widened: %v", r.AllowedStates)
 	}
 	a := r.AppointingAuthority
-	if a.PositionKey != "CEO" || a.PositionKind != "ROOT" || a.HolderNomineeKey != "" || a.HolderStatus != "UNASSIGNED" || a.EvidenceReference != "" {
-		t.Errorf("the CEO position must be a keyed ROOT position with no recorded holder or evidence: %+v", a)
+	if a.PositionKey != "CEO" || a.PositionKind != "ROOT" || !allowed[a.HolderStatus] || a.EvidenceReference != "" {
+		t.Errorf("the CEO position must be a keyed ROOT position, at most NOMINATED, with no evidence: %+v", a)
+	}
+	// RM-E04Q: the CEO position may carry a provisional nominee (NOMINATED), never an appointed or verified holder.
+	if (a.HolderStatus == "UNASSIGNED") != (a.HolderNomineeKey == "") {
+		t.Errorf("CEO holder status %s inconsistent with nominee %q", a.HolderStatus, a.HolderNomineeKey)
 	}
 	nominees := map[string]bool{}
 	for _, n := range r.Nominees {
+		if nominees[n.NomineeKey] {
+			t.Errorf("duplicate nominee key %s", n.NomineeKey)
+		}
 		nominees[n.NomineeKey] = true
 		if n.PersonRef != "" || n.IdentityResolution != "NOT_STARTED" {
 			t.Errorf("nominee %s: a person reference or identity resolution is claimed", n.NomineeKey)
+		}
+	}
+	if a.HolderNomineeKey != "" && !nominees[a.HolderNomineeKey] {
+		t.Errorf("CEO holder nominee %q is not in the nominee register", a.HolderNomineeKey)
+	}
+	// Rule SA (§5.4): the CEO nominee can never also be a nominee for an office the CEO appoints.
+	for _, n := range r.Nominations {
+		if a.HolderNomineeKey != "" && n.NomineeKey == a.HolderNomineeKey {
+			t.Errorf("%s: the CEO nominee is also nominated for an office the CEO appoints (self-appointment)", n.AuthorityKey)
 		}
 	}
 	if len(r.Nominations) == 0 {
