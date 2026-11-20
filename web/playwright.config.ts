@@ -3,7 +3,8 @@ import { defineConfig, devices } from '@playwright/test'
 // R7 full-stack E2E. The Go orchestrators (internal/integration/legacy/shadow,
 // build tag e2e: TestBrowserFullStack for R7-1, TestBrowserPaymentsFullStack
 // for R7-2, TestBrowserFulfillmentFullStack for R7-3, TestBrowserHRFullStack and TestBrowserHRReadOverlay for R7-6,
-// TestBrowserReportingBiawinFullStack and TestBrowserReportingBiawinReadOverlay for R7-7) start one disposable stack each and pass E2E_* variables; this
+// TestBrowserReportingBiawinFullStack and TestBrowserReportingBiawinReadOverlay for R7-7,
+// TestBrowserCustomer360ReadOverlay for RM-P01) start one disposable stack each and pass E2E_* variables; this
 // suite never starts servers and never runs against anything but that stack.
 // Each project belongs to exactly one orchestrator and one flag state.
 const baseURL = process.env.E2E_BASE_URL ?? ''
@@ -48,5 +49,7 @@ export default defineConfig({
     { name: 'reporting-biawin-flags-off', testMatch: 'reporting-biawin.spec.ts', grep: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
     // R7-7 (TestBrowserReportingBiawinReadOverlay): the same reads through the TEST-ONLY dev auth stub (backend-only evidence).
     { name: 'reporting-biawin-read-overlay', testMatch: 'reporting-biawin-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
+    // RM-P01 (TestBrowserCustomer360ReadOverlay): Customer ⇄ Case ⇄ Invoice navigation through the TEST-ONLY dev auth stub.
+    { name: 'customer-360-read-overlay', testMatch: 'customer-360-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
   ],
 })

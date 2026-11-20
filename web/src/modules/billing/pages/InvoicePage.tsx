@@ -14,6 +14,7 @@ import {
 import { Pager, useCursors } from '../pager'
 import { useSession } from '../../../shared/auth/currentSession'
 import { PaymentSubmissionPanel } from '../../payments/PaymentSubmissionPanel'
+import { RelationLink } from '../../../shared/relations/RelationLink'
 
 /** Runs a read only when the server allows it; otherwise a settled null. */
 async function gated<T>(on: boolean, run: () => Promise<ReadState<T>>): Promise<ReadState<T | null>> {
@@ -67,8 +68,10 @@ export function InvoicePage() {
               <dt>وضعیت چرخه فاکتور</dt><dd><StatusPill tone="slate" icon="question" label="تعیین نشده — وضعیت قطعی ادعا نمی‌شود (TAD #20)" /></dd>
               <dt>فروشنده / صادرکننده</dt><dd><UserRefText user={detail.data.invoice.seller} /> · <UserRefText user={detail.data.invoice.issued_by} /></dd>
               <dt>طرح پرداخت (خام)</dt><dd className="bi-ltr">{text(detail.data.payment_plan_raw)}</dd>
-              <dt>پیوند مشتری</dt><dd>{detail.data.invoice.customer.state} <span className="muted">— {detail.data.invoice.customer.basis}</span></dd>
-              <dt>پیوند پرونده</dt><dd>{detail.data.invoice.case.state} <span className="muted">— {detail.data.invoice.case.basis}</span></dd>
+              <dt>پیوند مشتری</dt><dd><RelationLink state={detail.data.invoice.customer.state} id={detail.data.invoice.customer.id}
+                to={id => `/customers/${id}`} basis={detail.data.invoice.customer.basis}>مشاهده مشتری</RelationLink></dd>
+              <dt>پیوند پرونده</dt><dd><RelationLink state={detail.data.invoice.case.state} id={detail.data.invoice.case.id}
+                to={id => `/sales/cases/${id}`} basis={detail.data.invoice.case.basis}>مشاهده پرونده</RelationLink></dd>
             </dl>
           )}
         </Card>
