@@ -199,7 +199,10 @@ test.describe('desktop and wide', () => {
     await expect(d.getByLabel(/دلیل عدم خرید/)).toBeFocused()
     await d.getByLabel(/دلیل عدم خرید/).fill('قیمت (نمونه)')
     await d.getByRole('button', { name: 'ثبت عدم خرید' }).click()
-    await expect(page.locator('.sl-toast').filter({ hasText: 'نمایشی — چیزی ثبت یا ارسال نشد' })).toBeVisible()
+    // RM-E04J: a valid draft goes to review first; confirming only simulates.
+    await expect(d.getByRole('heading', { name: 'بازبینی پیش از تأیید' })).toBeFocused()
+    await d.getByRole('button', { name: 'ویرایش' }).click()
+    await expect(page.locator('.sl-toast').filter({ hasText: 'نمایشی — چیزی ثبت یا ارسال نشد' })).toHaveCount(0)
     await d.getByRole('button', { name: /^تماس مجدد/ }).click()
     await d.getByLabel('تاریخ شمسی', { exact: false }).fill('')
     await d.getByRole('button', { name: /^ثبت تماس مجدد/ }).click()
@@ -459,3 +462,100 @@ test.describe('A7 states', () => {
   })
 })
 
+
+// ---------------------------------------------------------------------------------------------------------
+// RM-E04J — S1 contact-outcome preview (draft → review → simulated result) in a real browser, all viewports.
+// SYNTHETIC only; nothing is recorded and no request leaves the page. Evidence (optional):
+// RM_E04J_EVIDENCE_DIR=../docs/evidence/rm-e04j npx playwright test -c playwright.seller.config.ts -g "E04J"
+
+const J_OUT = process.env.RM_E04J_EVIDENCE_DIR
+
+async function jsnap(page: Page, info: TestInfo, name: string) {
+  if (!J_OUT) return
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: `${J_OUT}/${info.project.name.replace('seller-', '')}-${name}.png` })
+}
+
+test.describe('E04J contact-outcome preview', () => {
+  test('E04J: draft → validation → review → edit → simulated result → reset; keyboard + focus; no traffic', async ({ page }, info) => {
+    const log = await guard(page)
+    await open(page, 'leads?queue=all')
+    await jsnap(page, info, 's1-list')
+    const mobile = kindOf(page.viewportSize()?.width ?? 1366) === 'mobile'
+    if (mobile) await page.locator('.sl-lcard').filter({ hasText: 'مشتری نمونه ت' }).getByRole('button', { name: 'ثبت نتیجه' }).click()
+    else await page.locator('.sl-tbl tbody tr').filter({ hasText: 'مشتری نمونه ت' }).first().getByRole('button', { name: 'ثبت نتیجه' }).click()
+    const d = await settled(page, 'مشتری نمونه ت')
+    await expect(d.getByRole('list', { name: 'مراحل پیش‌نمایش ثبت نتیجه' })).toBeVisible()
+    await jsnap(page, info, 'drawer-open')
+
+    // Validation: invalid drafts never reach review.
+    await d.getByRole('button', { name: /^عدم خرید/ }).click()
+    await d.getByRole('button', { name: 'ثبت عدم خرید' }).click()
+    await expect(d.getByRole('alert').filter({ hasText: 'دلیل' })).toBeVisible()
+    await expect(d.getByLabel(/دلیل عدم خرید/)).toBeFocused()
+    await expect(d.getByRole('heading', { name: 'بازبینی پیش از تأیید' })).toHaveCount(0)
+    await d.getByLabel(/دلیل عدم خرید/).scrollIntoViewIfNeeded()
+    await jsnap(page, info, 'validation')
+
+    // Valid → review (keyboard: Tab to the CTA, Enter).
+    await d.getByLabel(/دلیل عدم خرید/).fill('قیمت بالاتر از بودجه (نمونه)')
+    await d.getByRole('button', { name: 'ثبت عدم خرید' }).focus()
+    await page.keyboard.press('Enter')
+    const review = d.getByRole('heading', { name: 'بازبینی پیش از تأیید' })
+    await expect(review).toBeFocused()
+    await expect(d.locator('[data-simulation="review"]')).toContainText('قیمت بالاتر از بودجه (نمونه)')
+    await expect(d.locator('[data-simulation="review"]')).toContainText('شبیه‌سازی')
+    await jsnap(page, info, 'review')
+
+    // Edit keeps data; back to review.
+    await d.getByRole('button', { name: 'ویرایش' }).click()
+    await expect(d.getByRole('button', { name: /^عدم خرید/ })).toBeFocused()
+    await expect(d.getByLabel(/دلیل عدم خرید/)).toHaveValue('قیمت بالاتر از بودجه (نمونه)')
+    await d.getByRole('button', { name: 'ثبت عدم خرید' }).click()
+
+    // Confirm → simulated result (focus on its heading).
+    const confirmBtn = d.getByRole('button', { name: 'تأیید شبیه‌سازی' })
+    const at = await confirmBtn.boundingBox()
+    await confirmBtn.click()
+    await expect(d.getByRole('heading', { name: 'نتیجه شبیه‌سازی‌شده' })).toBeFocused()
+    // A second click at the same spot (double submit) lands on a disabled button: no reset, still one result.
+    if (at) await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2)
+    await expect(d.getByRole('button', { name: 'شبیه‌سازی انجام شد' })).toBeDisabled()
+    await expect(d.getByRole('heading', { name: 'نتیجه شبیه‌سازی‌شده' })).toBeVisible()
+    await expect(d.locator('[data-simulated="true"]')).toHaveCount(1)
+    await expect(d.locator('[data-simulation="result"]')).toContainText('چیزی در CRM ثبت نشد')
+    await expect(page.locator('.sl-toast').filter({ hasText: 'شبیه‌سازی' })).toHaveCount(1)
+    await noPageHorizontalScroll(page)
+    await jsnap(page, info, 'simulated')
+
+    // Reset clears the simulation; Esc closes and returns focus.
+    await d.getByRole('button', { name: 'شروع دوباره' }).click()
+    await expect(d.locator('[data-simulated="true"]')).toHaveCount(0)
+    await expect(d.getByRole('button', { name: 'یک نتیجه انتخاب کنید' })).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await expect(d).toBeHidden()
+    await noPageHorizontalScroll(page)
+    expectNoBusinessTraffic(log)
+  })
+
+  test('E04J: FIELD_DENIED review shows «محدود» only; blocking answer shows no draft or record', async ({ page }, info) => {
+    const log = await guard(page)
+    await open(page, 'leads?queue=all&lead=900104&sim=field_denied')
+    const d = await settled(page, 'مشتری (محدود)')
+    await d.getByRole('button', { name: /^تکراری/ }).click()
+    await d.getByRole('button', { name: 'ثبت به‌عنوان تکراری' }).click()
+    await expect(d.locator('[data-simulation="review"] [data-restricted="true"]')).toHaveCount(1)
+    const html = await page.content()
+    expect(html).not.toMatch(/0900000\d{4}|۰۹۰۰۰۰۰[۰-۹]{4}/)
+    expect(html).not.toContain('مشتری نمونه ت')
+    await jsnap(page, info, 'review-field-denied')
+    for (const sim of ['session_expired', 'action_denied']) {
+      await open(page, `leads?queue=all&lead=900104&sim=${sim}`)
+      await expect(page.getByRole('dialog')).toHaveCount(0)
+      await expect(page.locator('[data-draft-step], [data-outcome], [data-simulation]')).toHaveCount(0)
+      await noPageHorizontalScroll(page)
+      await jsnap(page, info, `blocked-${sim}`)
+    }
+    expectNoBusinessTraffic(log)
+  })
+})
