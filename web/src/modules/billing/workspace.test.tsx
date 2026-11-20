@@ -260,11 +260,91 @@ describe('RM-P02 invoice 360° workspace', () => {
 
   it('invoice detail denied: every invoice section is locked and no invoice data reaches the DOM', async () => {
     const denied = () => json({ outcome: 'UNAUTHORIZED', reasons: ['ACTION_DENIED'], correlation_id: 'c-9' }, 403)
-    renderAt(`/billing/invoices/${INV}`, routes({ [`GET /api/v1/invoices/${INV}`]: denied, [`GET /api/v1/invoices/${INV}/items`]: denied,
-      [`GET /api/v1/invoices/${INV}/stages`]: denied, 'GET /api/v1/finance/review/attempts': denied }))
+    const { calls } = renderAt(`/billing/invoices/${INV}`, routes({ [`GET /api/v1/invoices/${INV}`]: denied }))
     await screen.findByRole('heading', { level: 1, name: 'فاکتور: …' })
     await waitFor(() => expect(within(region('نمای کلی و پیوندها')).getByText('دسترسی به این بخش ندارید')).toBeTruthy())
-    expect(await within(region('بررسی مالی')).findByText('دسترسی به این بخش ندارید')).toBeTruthy()
     expect(document.body.textContent).not.toMatch(/SYN-0202|Synthetic product|zibal|2001/)
+    expect(calls.map(c => c.url).filter(u => u !== '/api/v1/session' && !u.startsWith('/health'))).toEqual([`/api/v1/invoices/${INV}`])
+  })
+})
+
+// RM-P02 security correction: every invoice-specific dependent read (the
+// invoice-filtered Finance review queue, items, stages, payments, receipts,
+// totals) is mounted and requested only after the invoice detail read
+// returned SUCCESS. The review endpoint keeps its own finance.review.read
+// check; nothing here grants or infers a permission.
+describe('RM-P02 dependent reads wait for a successful invoice detail', () => {
+  const DEPENDENT = ['/api/v1/finance/review/attempts', `/api/v1/invoices/${INV}/items`, `/api/v1/invoices/${INV}/stages`,
+    `/api/v1/invoices/${INV}/payments`, `/api/v1/invoices/${INV}/receipts`, `/api/v1/invoices/${INV}/totals`]
+  const dependentCalls = (calls: { url: string }[]) => calls.filter(c => DEPENDENT.includes(c.url) || c.url.includes('/payments/attempts/'))
+  const settleSome = () => new Promise(r => setTimeout(r, 50))
+
+  it('1. invoice detail UNAUTHORIZED → no Finance review (or other dependent) request', async () => {
+    const { calls } = renderAt(`/billing/invoices/${INV}`, routes({
+      [`GET /api/v1/invoices/${INV}`]: () => json({ outcome: 'UNAUTHORIZED', reasons: ['ACTION_DENIED'], correlation_id: 'c-11' }, 403) }))
+    await waitFor(() => expect(within(region('نمای کلی و پیوندها')).getByText('دسترسی به این بخش ندارید')).toBeTruthy())
+    await settleSome()
+    expect(dependentCalls(calls)).toEqual([])
+    const rv = region('بررسی مالی')
+    expect(within(rv).getByText('این بخش فقط پس از دریافت موفق فاکتور نمایش داده می‌شود')).toBeTruthy()
+    expect(within(rv).queryByRole('table')).toBeNull()
+    expect(document.body.textContent).not.toContain(ID(801))
+  })
+
+  it('2. invoice detail BLOCKED → no Finance review request', async () => {
+    const { calls } = renderAt(`/billing/invoices/${INV}`, routes({
+      [`GET /api/v1/invoices/${INV}`]: () => json({ outcome: 'BLOCKED', reasons: ['FEATURE_DISABLED'], correlation_id: 'c-12' }) }))
+    await waitFor(() => expect(within(region('نمای کلی و پیوندها')).getByText('این بخش هنوز فعال نشده است')).toBeTruthy())
+    await settleSome()
+    expect(dependentCalls(calls)).toEqual([])
+    expect(within(region('بررسی مالی')).getByText('این بخش فقط پس از دریافت موفق فاکتور نمایش داده می‌شود')).toBeTruthy()
+  })
+
+  it('not found / failed invoice detail → no Finance review request', async () => {
+    for (const status of [404, 500]) {
+      const { calls, router } = renderAt(`/billing/invoices/${INV}`, routes({ [`GET /api/v1/invoices/${INV}`]: () => json({ type: '/problems/x',
+        title: status === 404 ? 'Resource not found' : 'Internal error', status, reason_code: status === 404 ? 'NOT_FOUND' : 'INTERNAL', correlation_id: `c-${status}` },
+      status, 'application/problem+json') }))
+      await waitFor(() => expect(within(region('نمای کلی و پیوندها')).getByText(status === 404 ? 'Resource not found' : 'Internal error')).toBeTruthy())
+      await settleSome()
+      expect(dependentCalls(calls)).toEqual([])
+      router.dispose()
+      document.body.innerHTML = ''
+    }
+    expect(true).toBe(true)
+  })
+
+  it('3 + 4. while the invoice detail is loading nothing dependent is requested; after SUCCESS the review read runs', async () => {
+    let release: () => void = () => undefined
+    const gate = new Promise<void>(r => { release = r })
+    const { calls } = renderAt(`/billing/invoices/${INV}`, routes({
+      [`GET /api/v1/invoices/${INV}`]: async () => { await gate; return json(env({ data: detail() })) } }))
+    await waitFor(() => expect(calls.some(c => c.url === `/api/v1/invoices/${INV}`)).toBe(true))
+    await settleSome()
+    expect(dependentCalls(calls)).toEqual([])
+    expect(within(region('بررسی مالی')).getByText('در انتظار دریافت فاکتور…')).toBeTruthy()
+    expect(within(region('اقلام (اسنپ‌شات صدور)')).getByText('در انتظار دریافت فاکتور…')).toBeTruthy()
+
+    release()
+    await open()
+    const rv = region('بررسی مالی')
+    expect(await within(rv).findByRole('table')).toBeTruthy()
+    const order = calls.map(c => c.url)
+    const reviewAt = order.indexOf('/api/v1/finance/review/attempts')
+    expect(reviewAt).toBeGreaterThan(order.indexOf(`/api/v1/invoices/${INV}`))
+    expect(calls[reviewAt]?.search.get('invoice_id')).toBe(INV)
+    expect(await within(region('اقلام (اسنپ‌شات صدور)')).findByText(/Synthetic product A/)).toBeTruthy()
+  })
+
+  it('5. Finance review UNAUTHORIZED after a successful detail → only its own section locks', async () => {
+    const { calls } = renderAt(`/billing/invoices/${INV}`, routes({
+      'GET /api/v1/finance/review/attempts': () => json({ outcome: 'UNAUTHORIZED', reasons: ['ACTION_DENIED'], correlation_id: 'c-15' }, 403) }))
+    await open()
+    expect(await within(region('بررسی مالی')).findByText('دسترسی به این بخش ندارید')).toBeTruthy()
+    expect(calls.filter(c => c.url === '/api/v1/finance/review/attempts')).toHaveLength(1) // asked once, the server decided
+    expect(within(region('نمای کلی و پیوندها')).getByRole('link', { name: 'مشاهده مشتری' })).toBeTruthy()
+    expect(await within(region('تلاش‌های پرداخت')).findByText('تلاش: پذیرفته‌شده (نه بررسی مالی، نه تسویه)')).toBeTruthy()
+    expect(await within(region('اقلام (اسنپ‌شات صدور)')).findByText(/Synthetic product A/)).toBeTruthy()
+    expect(document.body.textContent).not.toContain(ID(801))
   })
 })

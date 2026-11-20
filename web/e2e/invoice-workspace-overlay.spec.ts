@@ -135,12 +135,19 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
 operator.describe('dev-user-002 (no capability, test-only overlay): the workspace stays locked', () => {
   operator.use({ extraHTTPHeaders: { 'X-Dev-User': 'dev-user-002' } })
 
-  operator('every section is denied and no invoice, payment or review data reaches the DOM', async ({ page, blocked }) => {
+  operator('invoice detail denied: dependent reads are never requested and no invoice, payment or review data reaches the DOM', async ({ page, blocked }) => {
     void blocked
+    const reqs = recordApi(page)
     await page.goto(`/billing/invoices/${DB.reviewInvoice}`)
-    for (const name of [S.overview, S.facts, S.items, S.stages, S.review]) {
-      await expect(region(page, name).getByText('دسترسی به این بخش ندارید')).toBeVisible()
+    for (const name of [S.overview, S.facts]) await expect(region(page, name).getByText('دسترسی به این بخش ندارید')).toBeVisible()
+    // Invoice-dependent sections wait for a successful invoice detail; they never mount or fetch here.
+    for (const name of [S.items, S.stages, S.review]) {
+      await expect(region(page, name).getByText('این بخش فقط پس از دریافت موفق فاکتور نمایش داده می‌شود')).toBeVisible()
     }
+    for (const name of [S.attempts, S.receipts, S.amounts]) await expect(region(page, name).getByText('دسترسی به شواهد پرداخت ندارید')).toBeVisible()
+    const dependent = reqs.map(r => new URL(r.url()).pathname).filter(p => p.startsWith('/api/v1/finance/') || p.startsWith('/api/v1/payments/') ||
+      (p.startsWith(`/api/v1/invoices/${DB.reviewInvoice}/`)))
+    expect(dependent).toEqual([])
     await expect(page.locator('table')).toHaveCount(0)
     const html = await page.content()
     for (const leak of [DB.reviewKey, 'zibal', 'PENDING_REVIEW', 'تایید مالی: در دسترس نیست']) expect(html).not.toContain(leak)

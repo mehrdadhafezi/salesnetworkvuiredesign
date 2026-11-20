@@ -11,7 +11,7 @@ import { blockedDetail, declaredLabel, mappingLabel, stageStateLabel, stateField
 import { Pager, useCursors } from '../pager'
 import { useSession } from '../../../shared/auth/currentSession'
 import { PaymentSubmissionPanel } from '../../payments/PaymentSubmissionPanel'
-import { Anchor, AttemptsTable, FinanceReviewForInvoice, InvoiceOverview, WorkspaceNav } from '../workspace'
+import { Anchor, AttemptsTable, AwaitInvoice, FinanceReviewForInvoice, InvoiceOverview, WorkspaceNav } from '../workspace'
 
 /** Runs a read only when the server allows it; otherwise a settled null. */
 async function gated<T>(on: boolean, run: () => Promise<ReadState<T>>): Promise<ReadState<T | null>> {
@@ -24,7 +24,13 @@ const SECTIONS: [string, string][] = [
 ]
 
 /**
- * Invoice 360° workspace (RM-P02, read only). One page composes the existing
+ * Invoice 360° workspace (RM-P02, read only). Page-level rule: every
+ * invoice-specific dependent read (items, stages, payments, receipts,
+ * totals, Finance review) is mounted and requested only after the invoice
+ * detail read returned SUCCESS; each still passes its own server-side
+ * authorization (nothing is inferred from the detail answer except the
+ * server's own allowed_actions hint).
+ * One page composes the existing
  * read endpoints: overview and RESOLVED relationships, invoice facts and
  * raw status evidence, per-unit amount evidence (declared, item, stage and
  * accepted-attempt sums side by side, never a winner and never across
@@ -43,13 +49,14 @@ export function InvoicePage() {
   const paymentFeature = session.status === 'ready' && session.session.features?.payment_submission === true
   const path = { invoice_id: invoiceId }
   const detail = useRead(`i:${invoiceId}`, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}', { params: { path } }), e => e.data))
+  const invoiceOk = detail.status === 'ok'
   const ic = useCursors()
-  const items = useRead(`it:${invoiceId}:${ic.cursor ?? ''}`, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}/items', {
-    params: { path, query: { limit: 25, ...(ic.cursor ? { cursor: ic.cursor } : {}) } } }), e => e.items && e.page ? { items: e.items, page: e.page } : undefined))
+  const items = useRead(`it:${invoiceId}:${ic.cursor ?? ''}:${invoiceOk}`, () => gated(invoiceOk, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}/items', {
+    params: { path, query: { limit: 25, ...(ic.cursor ? { cursor: ic.cursor } : {}) } } }), e => e.items && e.page ? { items: e.items, page: e.page } : undefined)))
   const sc = useCursors()
-  const stages = useRead(`st:${invoiceId}:${sc.cursor ?? ''}`, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}/stages', {
-    params: { path, query: { limit: 25, ...(sc.cursor ? { cursor: sc.cursor } : {}) } } }), e => e.items && e.page ? { items: e.items, page: e.page } : undefined))
-  const canPay = detail.status === 'ok' && actionHint(detail.allowed, 'payments.attempt.read').allowed
+  const stages = useRead(`st:${invoiceId}:${sc.cursor ?? ''}:${invoiceOk}`, () => gated(invoiceOk, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}/stages', {
+    params: { path, query: { limit: 25, ...(sc.cursor ? { cursor: sc.cursor } : {}) } } }), e => e.items && e.page ? { items: e.items, page: e.page } : undefined)))
+  const canPay = invoiceOk && actionHint(detail.allowed, 'payments.attempt.read').allowed
   const pc = useCursors()
   const pays = useRead(`p:${invoiceId}:${pc.cursor ?? ''}:${canPay}`, () => gated(canPay, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}/payments', {
     params: { path, query: { limit: 25, ...(pc.cursor ? { cursor: pc.cursor } : {}) } } }), e => e.items && e.page ? { items: e.items, page: e.page } : undefined)))
@@ -139,21 +146,21 @@ export function InvoicePage() {
         </Anchor>
         <Anchor id="inv-items">
           <Card title="اقلام (اسنپ‌شات صدور)">
-            <ReadStates state={items} what="اقلام" blockedDetail={blockedDetail} />
-            {items.status === 'ok' && (items.data.items.length === 0 ? <StateBlock kind="empty" title="قلمی ثبت نشده است" /> : (
+            {!invoiceOk ? <AwaitInvoice detail={detail} /> : <ReadStates state={items} what="اقلام" blockedDetail={blockedDetail} />}
+            {invoiceOk && items.status === 'ok' && items.data && (items.data.items.length === 0 ? <StateBlock kind="empty" title="قلمی ثبت نشده است" /> : (
               <ul className="bi-list" aria-label="اقلام">
                 {items.data.items.map(it => (
                   <li key={it.item_id}>{text(it.title_snapshot)} · <span className="bi-ltr">{`×${text(it.qty_raw)}`}</span> · <AmountText amount={it.line_total} /></li>
                 ))}
               </ul>
             ))}
-            {items.status === 'ok' && <Pager page={items.data.page} c={ic} label="صفحه‌بندی اقلام" />}
+            {invoiceOk && items.status === 'ok' && items.data && <Pager page={items.data.page} c={ic} label="صفحه‌بندی اقلام" />}
           </Card>
         </Anchor>
         <Anchor id="inv-stages">
           <Card title="مراحل پرداخت">
-            <ReadStates state={stages} what="مراحل" blockedDetail={blockedDetail} />
-            {stages.status === 'ok' && (stages.data.items.length === 0 ? <StateBlock kind="empty" title="مرحله‌ای ثبت نشده است" /> : (
+            {!invoiceOk ? <AwaitInvoice detail={detail} /> : <ReadStates state={stages} what="مراحل" blockedDetail={blockedDetail} />}
+            {invoiceOk && stages.status === 'ok' && stages.data && (stages.data.items.length === 0 ? <StateBlock kind="empty" title="مرحله‌ای ثبت نشده است" /> : (
               <ul className="bi-list" aria-label="مراحل پرداخت">
                 {stages.data.items.map(s => (
                   <li key={s.stage_id}>
@@ -164,7 +171,7 @@ export function InvoicePage() {
                 ))}
               </ul>
             ))}
-            {stages.status === 'ok' && <Pager page={stages.data.page} c={sc} label="صفحه‌بندی مراحل" />}
+            {invoiceOk && stages.status === 'ok' && stages.data && <Pager page={stages.data.page} c={sc} label="صفحه‌بندی مراحل" />}
           </Card>
         </Anchor>
         <Anchor id="inv-attempts">
@@ -198,7 +205,8 @@ export function InvoicePage() {
         </Anchor>
         <Anchor id="inv-review">
           <Card title="بررسی مالی">
-            <FinanceReviewForInvoice key={invoiceId} invoiceId={invoiceId} zone={zone} />
+            {/* Mounted (and so requested) only after the invoice detail read succeeded; finance.review.read is still checked by the server. */}
+            {invoiceOk ? <FinanceReviewForInvoice key={invoiceId} invoiceId={invoiceId} zone={zone} /> : <AwaitInvoice detail={detail} />}
           </Card>
         </Anchor>
         <Anchor id="inv-provenance">

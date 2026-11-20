@@ -19,6 +19,17 @@ import { attemptStateLabel, channelLabel, gatewayStateLabel, mappingLabel, prove
  * decision. Relationships navigate only when RESOLVED.
  */
 
+/**
+ * Placeholder of an invoice-dependent section while the invoice detail is
+ * not successfully available. Dependent reads (items, stages, Finance
+ * review) are neither mounted nor requested until the detail read returns
+ * SUCCESS; if it is denied, blocked, not found or failed, they never run.
+ */
+export function AwaitInvoice({ detail }: { detail: ReadState<unknown> }) {
+  if (detail.status === 'loading') return <StateBlock kind="loading" title="در انتظار دریافت فاکتور…" />
+  return <StateBlock kind="unknown" title="این بخش فقط پس از دریافت موفق فاکتور نمایش داده می‌شود" />
+}
+
 /** In-page section navigation (native anchors; no client-side routing). */
 export function WorkspaceNav({ sections }: { sections: [string, string][] }) {
   return (
