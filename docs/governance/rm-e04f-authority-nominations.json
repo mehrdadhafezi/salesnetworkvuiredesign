@@ -5,10 +5,10 @@
   "appointing_authority": {
     "position_key": "CEO",
     "position_kind": "ROOT",
-    "holder_nominee_key": "",
-    "holder_status": "UNASSIGNED",
+    "holder_nominee_key": "N2",
+    "holder_status": "NOMINATED",
     "evidence_reference": "",
-    "note": "The project owner states that the CEO appoints position holders. That statement is a design input, not a signed appointment document. The CEO position holder is not identified or verified here."
+    "note": "The project owner states that the CEO appoints position holders. That statement is a design input, not a signed appointment document. RM-E04Q: the project owner nominates N2 (مصطفی احمدی) for the CEO position and names N2 as the proposed appointing authority for organizational positions. This is a provisional nomination only: N2 is NOT a formally appointed or verified CEO, no external legal instrument is registered, and N2 holds no appointing authority until an appointment instrument, authority evidence and independent human verification exist."
   },
   "nominees": [
     {
@@ -17,6 +17,13 @@
       "person_ref": "",
       "identity_resolution": "NOT_STARTED",
       "note": "One person. Holding several nominations never counts as several independent approvers."
+    },
+    {
+      "nominee_key": "N2",
+      "display_name": "مصطفی احمدی",
+      "person_ref": "",
+      "identity_resolution": "NOT_STARTED",
+      "note": "One person, distinct from N1. Nominated by the project owner (session instruction, RM-E04Q) for the CEO position and as proposed appointing authority. NOT appointed, NOT verified; no authority evidence."
     }
   ],
   "nominations": [

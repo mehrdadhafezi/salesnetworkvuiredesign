@@ -753,7 +753,8 @@ func TestRME04ISignerFloorPreserved(t *testing.T) {
 		t.Errorf("R5-SEC-01 signer floor changed: %v; Security, HR, Legal and Product must each be independently represented", got)
 	}
 	reg, _ := rmE04FLoadRegister(t)
-	if a := reg.AppointingAuthority; a.HolderStatus != "UNASSIGNED" && strings.TrimSpace(a.EvidenceReference) == "" {
+	// A provisional NOMINATED CEO nominee (RM-E04Q) is not an assignment; any other status needs evidence.
+	if a := reg.AppointingAuthority; a.HolderStatus != "UNASSIGNED" && a.HolderStatus != "NOMINATED" && strings.TrimSpace(a.EvidenceReference) == "" {
 		t.Error("CEO appointing authority marked assigned without documentary evidence")
 	}
 	for _, n := range reg.Nominations {
