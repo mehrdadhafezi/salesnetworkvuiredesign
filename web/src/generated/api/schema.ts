@@ -510,7 +510,10 @@ export interface paths {
         /**
          * List shadow cases
          * @description Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
-         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         *     Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+         *     customer_id matches only Cases whose customer link is RESOLVED to exactly that customer; RELATED, UNKNOWN,
+         *     CONFLICT and NOT_RECOVERABLE links are never returned for it (list them with customer_link_state instead).
+         *     customer_id with a customer_link_state other than RESOLVED is 400. An unknown customer_id is an empty page.
          */
         get: operations["listCases"];
         put?: never;
@@ -678,7 +681,11 @@ export interface paths {
         /**
          * List shadow invoices
          * @description Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
-         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         *     Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+         *     customer_id / case_id match only invoices whose own customer / case link is RESOLVED to exactly that id; RELATED,
+         *     UNKNOWN, CONFLICT and NOT_RECOVERABLE links are never returned for them, and no link is inferred through another
+         *     module (an invoice is not attributed to a customer through its Case). customer_id (case_id) with a
+         *     customer_link_state (case_link_state) other than RESOLVED is 400. An unknown id is an empty page.
          */
         get: operations["listInvoices"];
         put?: never;
@@ -5737,6 +5744,8 @@ export interface components {
         CaseLinkState: components["schemas"]["ResolutionState"];
         /** @description Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state. */
         HasUnknownStatus: boolean;
+        /** @description Exact native Case id; matches only RESOLVED case links. */
+        CaseIDQuery: components["schemas"]["NativeID"];
         InvoiceID: components["schemas"]["NativeID"];
         PaymentChannel: components["schemas"]["PaymentChannel"];
         TargetMapping: components["schemas"]["TargetMapping"];
@@ -6506,6 +6515,7 @@ export interface operations {
                 state_mapping?: components["parameters"]["StateMapping"];
                 customer_link_state?: components["parameters"]["CustomerLinkState"];
                 presence?: components["parameters"]["Presence"];
+                customer_id?: components["parameters"]["CustomerID"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -6730,6 +6740,9 @@ export interface operations {
                 case_link_state?: components["parameters"]["CaseLinkState"];
                 /** @description Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state. */
                 has_unknown_status?: components["parameters"]["HasUnknownStatus"];
+                customer_id?: components["parameters"]["CustomerID"];
+                /** @description Exact native Case id; matches only RESOLVED case links. */
+                case_id?: components["parameters"]["CaseIDQuery"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];

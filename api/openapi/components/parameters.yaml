@@ -270,6 +270,14 @@ CaseID:
   schema:
     $ref: './hr.yaml#/NativeID'
 
+CaseIDQuery:
+  name: case_id
+  in: query
+  required: false
+  description: Exact native Case id; matches only RESOLVED case links.
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
 InvoiceID:
   name: invoice_id
   in: path

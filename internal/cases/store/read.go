@@ -55,8 +55,15 @@ func scanCase(r pgx.Row) (Case, error) {
 }
 
 // CaseFilter is the allowlisted list filter.
+//
+// CustomerID matches only Cases whose own customer link is RESOLVED to
+// exactly that customer (RM-P01). A RELATED, UNKNOWN, CONFLICT or
+// NOT_RECOVERABLE link is never treated as a confirmed relationship, even
+// when it carries a candidate customer_id: identity is never inferred from
+// phone, names, legacy keys or ownership.
 type CaseFilter struct {
 	Workflow, StateMapping, CustomerLinkState, Presence *string
+	CustomerID                                          *string
 }
 
 // ListCases lists Cases by case id (keyset).
@@ -68,7 +75,8 @@ func ListCases(ctx context.Context, tx db.Tx, f CaseFilter, after *string, limit
 		WHERE ($1::text IS NULL OR c.workflow_type = $1) AND ($2::text IS NULL OR c.state_mapping = $2)
 		  AND ($3::text IS NULL OR c.customer_link_state = $3) AND ($4::text IS NULL OR c.presence = $4)
 		  AND ($5::uuid IS NULL OR c.case_id > $5)
-		ORDER BY c.case_id LIMIT $6`, f.Workflow, f.StateMapping, f.CustomerLinkState, f.Presence, after, limit+1)
+		  AND ($7::uuid IS NULL OR (c.customer_id = $7::uuid AND c.customer_link_state = 'RESOLVED'))
+		ORDER BY c.case_id LIMIT $6`, f.Workflow, f.StateMapping, f.CustomerLinkState, f.Presence, after, limit+1, f.CustomerID)
 	if err != nil {
 		return nil, err
 	}

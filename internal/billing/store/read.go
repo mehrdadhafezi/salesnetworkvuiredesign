@@ -76,10 +76,17 @@ func scanInvoice(r pgx.Row) (Invoice, error) {
 	return v, err
 }
 
-// InvoiceFilter is the allowlisted filter.
+// InvoiceFilter is the allowlisted filter. Every filter is conjunctive.
+//
+// CustomerID / CaseID match only invoices whose own customer / case link is
+// RESOLVED to exactly that id (RM-P01). RELATED, UNKNOWN, CONFLICT and
+// NOT_RECOVERABLE links are never treated as confirmed, and no link is
+// inferred across modules (e.g. invoice -> case -> customer), from phone,
+// names, legacy source keys or ownership.
 type InvoiceFilter struct {
 	Presence, CustomerLink, CaseLink *string
 	HasUnknownStatus                 *bool
+	CustomerID, CaseID               *string
 }
 
 // ListInvoices lists invoices by invoice id (keyset).
@@ -92,7 +99,9 @@ func ListInvoices(ctx context.Context, tx db.Tx, f InvoiceFilter, after *string,
 		case_id, customer_link_state, c12, case_link_state, c13, c14, c15, item_count, stage_count, unknown_states)
 		WHERE ($1::text IS NULL OR presence = $1) AND ($2::text IS NULL OR customer_link_state = $2) AND ($3::text IS NULL OR case_link_state = $3)
 		  AND ($4::boolean IS NULL OR (unknown_states > 0) = $4) AND ($5::uuid IS NULL OR invoice_id::uuid > $5)
-		ORDER BY invoice_id::uuid LIMIT $6`, f.Presence, f.CustomerLink, f.CaseLink, f.HasUnknownStatus, after, limit+1)
+		  AND ($7::uuid IS NULL OR (customer_id::uuid = $7::uuid AND customer_link_state = 'RESOLVED'))
+		  AND ($8::uuid IS NULL OR (case_id::uuid = $8::uuid AND case_link_state = 'RESOLVED'))
+		ORDER BY invoice_id::uuid LIMIT $6`, f.Presence, f.CustomerLink, f.CaseLink, f.HasUnknownStatus, after, limit+1, f.CustomerID, f.CaseID)
 	if err != nil {
 		return nil, err
 	}

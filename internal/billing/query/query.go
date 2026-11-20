@@ -77,6 +77,22 @@ func (s *Service) ListInvoices(ctx context.Context, f store.InvoiceFilter, curso
 	if (f.CustomerLink != nil && !links[*f.CustomerLink]) || (f.CaseLink != nil && !links[*f.CaseLink]) {
 		return InvoicesPage{}, invalid("link state")
 	}
+	// customer_id / case_id select RESOLVED links only; combining one with
+	// another link state would silently hide RELATED/CONFLICT/UNKNOWN rows.
+	for _, x := range []struct {
+		name      string
+		id, state *string
+	}{{"customer_id", f.CustomerID, f.CustomerLink}, {"case_id", f.CaseID, f.CaseLink}} {
+		if x.id == nil {
+			continue
+		}
+		if !uuidPattern.MatchString(*x.id) {
+			return InvoicesPage{}, invalid("%s", x.name)
+		}
+		if x.state != nil && *x.state != "RESOLVED" {
+			return InvoicesPage{}, invalid("%s requires its link state RESOLVED or absent", x.name)
+		}
+	}
 	limit, err := pagination.Limit(limitIn)
 	if err != nil {
 		return InvoicesPage{}, invalid("%v", err)

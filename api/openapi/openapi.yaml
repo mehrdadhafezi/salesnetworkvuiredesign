@@ -772,12 +772,16 @@ paths:
       summary: List shadow cases
       description: |
         Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
-        Unknown query parameters are 400 CONTRACT_INVALID.
+        Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+        customer_id matches only Cases whose customer link is RESOLVED to exactly that customer; RELATED, UNKNOWN,
+        CONFLICT and NOT_RECOVERABLE links are never returned for it (list them with customer_link_state instead).
+        customer_id with a customer_link_state other than RESOLVED is 400. An unknown customer_id is an empty page.
       parameters:
         - $ref: './components/parameters.yaml#/WorkflowType'
         - $ref: './components/parameters.yaml#/StateMapping'
         - $ref: './components/parameters.yaml#/CustomerLinkState'
         - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/CustomerID'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
       responses:
@@ -995,12 +999,18 @@ paths:
       summary: List shadow invoices
       description: |
         Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
-        Unknown query parameters are 400 CONTRACT_INVALID.
+        Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+        customer_id / case_id match only invoices whose own customer / case link is RESOLVED to exactly that id; RELATED,
+        UNKNOWN, CONFLICT and NOT_RECOVERABLE links are never returned for them, and no link is inferred through another
+        module (an invoice is not attributed to a customer through its Case). customer_id (case_id) with a
+        customer_link_state (case_link_state) other than RESOLVED is 400. An unknown id is an empty page.
       parameters:
         - $ref: './components/parameters.yaml#/Presence'
         - $ref: './components/parameters.yaml#/CustomerLinkState'
         - $ref: './components/parameters.yaml#/CaseLinkState'
         - $ref: './components/parameters.yaml#/HasUnknownStatus'
+        - $ref: './components/parameters.yaml#/CustomerID'
+        - $ref: './components/parameters.yaml#/CaseIDQuery'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
       responses:

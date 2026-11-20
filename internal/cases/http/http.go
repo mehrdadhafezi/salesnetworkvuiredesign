@@ -53,6 +53,14 @@ func uuidp(s *string) *openapi_types.UUID {
 	return &u
 }
 
+func idp(v *openapi_types.UUID) *string {
+	if v == nil {
+		return nil
+	}
+	s := v.String()
+	return &s
+}
+
 func strp[T ~string](v *T) *string {
 	if v == nil {
 		return nil
@@ -117,7 +125,7 @@ func (h *Handlers) ListCases(ctx context.Context, req oapi.ListCasesRequestObjec
 	}
 	p := req.Params
 	res, err := h.q.ListCases(ctx, store.CaseFilter{Workflow: strp(p.WorkflowType), StateMapping: strp(p.StateMapping),
-		CustomerLinkState: strp(p.CustomerLinkState), Presence: strp(p.Presence)}, p.Cursor, p.Limit)
+		CustomerLinkState: strp(p.CustomerLinkState), Presence: strp(p.Presence), CustomerID: idp(p.CustomerId)}, p.Cursor, p.Limit)
 	if errors.Is(err, query.ErrInvalidQuery) {
 		return oapi.ListCases400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	}

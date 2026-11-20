@@ -58,6 +58,14 @@ func uuidp(s *string) *openapi_types.UUID {
 	return &u
 }
 
+func idp(v *openapi_types.UUID) *string {
+	if v == nil {
+		return nil
+	}
+	s := v.String()
+	return &s
+}
+
 func strp[T ~string](v *T) *string {
 	if v == nil {
 		return nil
@@ -164,7 +172,7 @@ func (h *Handlers) ListInvoices(ctx context.Context, req oapi.ListInvoicesReques
 	}
 	p := req.Params
 	res, err := h.q.ListInvoices(ctx, store.InvoiceFilter{Presence: strp(p.Presence), CustomerLink: strp(p.CustomerLinkState),
-		CaseLink: strp(p.CaseLinkState), HasUnknownStatus: p.HasUnknownStatus}, p.Cursor, p.Limit)
+		CaseLink: strp(p.CaseLinkState), HasUnknownStatus: p.HasUnknownStatus, CustomerID: idp(p.CustomerId), CaseID: idp(p.CaseId)}, p.Cursor, p.Limit)
 	if errors.Is(err, query.ErrInvalidQuery) {
 		return oapi.ListInvoices400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	}
