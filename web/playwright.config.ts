@@ -43,7 +43,8 @@ export default defineConfig({
     { name: 'hr-flags-on', testMatch: 'hr.spec.ts', grepInvert: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
     { name: 'hr-flags-off', testMatch: 'hr.spec.ts', grep: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
     // R7-6 (TestBrowserHRReadOverlay): HR reads through the TEST-ONLY dev auth stub (backend-only evidence).
-    { name: 'hr-read-overlay', testMatch: 'hr-read-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
+    // RM-P04: the HR operational workspace runs on the same overlay stack (same dataset, same orchestrator).
+    { name: 'hr-read-overlay', testMatch: /hr-(read|workspace)-overlay\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     // R7-7 (TestBrowserReportingBiawinFullStack): reporting / MIS and Biawin reads, production subject resolver.
     { name: 'reporting-biawin-flags-on', testMatch: 'reporting-biawin.spec.ts', grepInvert: /@flags-off/, use: { ...devices['Desktop Chrome'] } },
     { name: 'reporting-biawin-flags-off', testMatch: 'reporting-biawin.spec.ts', grep: /@flags-off/, use: { ...devices['Desktop Chrome'] } },

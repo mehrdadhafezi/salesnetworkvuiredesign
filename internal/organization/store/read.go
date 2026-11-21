@@ -84,6 +84,10 @@ type PersonFilter struct {
 	OrgUnitID   *string
 	IsActive    *bool
 	HasFindings *bool
+	// UserID (RM-P04) is an exact identity-user link of the employment. It
+	// is lineage evidence, never a merge: a user shared by several
+	// employments returns every one of them (SHARED_USER stays visible).
+	UserID *string
 }
 
 // Sort is an allowlisted sort: Expr is a constant SQL expression.
@@ -212,13 +216,14 @@ WHERE ($1::text IS NULL OR p.display_name ILIKE '%' || $1 || '%' OR e.employee_c
   AND ($6::boolean IS NULL OR e.is_active = $6)
   AND ($7::boolean IS NULL OR (fc.n > 0) = $7)
   AND ($8::text IS NULL OR (` + s.Expr + `, p.person_id) ` + op + ` ($8, $9::uuid))
+  AND ($11::uuid IS NULL OR e.user_id = $11)
 ORDER BY ` + s.Expr + ` ` + dir + `, p.person_id ` + dir + ` LIMIT $10`
 	var query *string
 	if f.Query != nil {
 		v := escapeLike(*f.Query)
 		query = &v
 	}
-	rows, err := tx.Query(ctx, q, query, f.Status, f.PositionID, f.LevelID, f.OrgUnitID, f.IsActive, f.HasFindings, afterValue, afterID, limit+1)
+	rows, err := tx.Query(ctx, q, query, f.Status, f.PositionID, f.LevelID, f.OrgUnitID, f.IsActive, f.HasFindings, afterValue, afterID, limit+1, f.UserID)
 	if err != nil {
 		return nil, err
 	}

@@ -166,7 +166,7 @@ func (h *Handlers) ListOrganizationPersons(ctx context.Context, req oapi.ListOrg
 	pr := req.Params
 	p := query.PersonsParams{Cursor: pr.Cursor, Limit: pr.Limit}
 	p.Filter = store.PersonFilter{Query: pr.Q, PositionID: str(pr.PositionId), LevelID: str(pr.LevelId), OrgUnitID: str(pr.OrgUnitId),
-		IsActive: pr.IsActive, HasFindings: pr.HasFindings}
+		IsActive: pr.IsActive, HasFindings: pr.HasFindings, UserID: str(pr.UserId)}
 	if pr.EmploymentStatus != nil {
 		s := string(*pr.EmploymentStatus)
 		p.Filter.Status = &s
@@ -175,7 +175,8 @@ func (h *Handlers) ListOrganizationPersons(ctx context.Context, req oapi.ListOrg
 		p.Sort = string(*pr.Sort)
 	}
 	// Filters on masked fields are refused rather than silently answering.
-	if (p.Filter.Status != nil || p.Filter.IsActive != nil) && !c.Can(identityapi.CapEmploymentRead) ||
+	// The user link is an employment field, so user_id needs org.employment.read too.
+	if (p.Filter.Status != nil || p.Filter.IsActive != nil || p.Filter.UserID != nil) && !c.Can(identityapi.CapEmploymentRead) ||
 		(p.Filter.PositionID != nil || p.Filter.LevelID != nil) && !c.Can(identityapi.CapPositionRead) ||
 		p.Filter.OrgUnitID != nil && !c.Can(identityapi.CapUnitRead) || p.Filter.HasFindings != nil && !c.Can(identityapi.CapAssignmentRead) {
 		return oapi.ListOrganizationPersons403JSONResponse{DeniedJSONResponse: authzhttp.Denied(ctx, authorization.Decision{})}, nil

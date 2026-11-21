@@ -11,6 +11,8 @@ import { resolveNavigation, type Evaluation, type NavAccess } from './access'
  * never trigger the call.
  */
 const Ctx = createContext<NavAccess>({ status: 'LOADING' })
+/** RM-P04: the same evaluation, for read-only access visibility (no second request). */
+const EvalCtx = createContext<Evaluation>({ state: 'IDLE' })
 
 export function NavigationAccessProvider({ children }: { children: ReactNode }) {
   const api = useApi()
@@ -32,11 +34,19 @@ export function NavigationAccessProvider({ children }: { children: ReactNode }) 
   }, [api, ready, authenticated])
 
   // An evaluation made for an earlier session answer is never reused.
-  const access = useMemo(() => {
-    const evaluation: Evaluation = !authenticated ? { state: 'IDLE' } : result.for === ready ? result.ev : { state: 'LOADING' }
-    return resolveNavigation(session, evaluation)
-  }, [session, authenticated, ready, result])
-  return <Ctx.Provider value={access}>{children}</Ctx.Provider>
+  const evaluation = useMemo<Evaluation>(() => (!authenticated ? { state: 'IDLE' } : result.for === ready ? result.ev : { state: 'LOADING' }),
+    [authenticated, ready, result])
+  const access = useMemo(() => resolveNavigation(session, evaluation), [session, evaluation])
+  return <Ctx.Provider value={access}><EvalCtx.Provider value={evaluation}>{children}</EvalCtx.Provider></Ctx.Provider>
+}
+
+/**
+ * The server's effective-access evaluation for the CURRENT principal, exactly
+ * as received (IDLE when anonymous). Presentation only: a page may hide a
+ * section it would be refused, but every read is still authorised by the server.
+ */
+export function useEffectiveAccess(): Evaluation {
+  return useContext(EvalCtx)
 }
 
 export function useNavigationAccess(): NavAccess {

@@ -1976,6 +1976,8 @@ export interface paths {
         /**
          * HR change requests the caller requested or currently reviews
          * @description Requires org.hr_request.read (flag organization.hr_request_write). Read only.
+         *     Row scope: requester, current reviewer or a history actor. The optional status and
+         *     subject_user_id filters only narrow that scope (RM-P04). Ordered by request_id.
          */
         get: operations["listHRRequests"];
         put?: never;
@@ -5222,13 +5224,13 @@ export interface components {
             correlation_id: components["schemas"]["CorrelationID"];
             command?: components["schemas"]["CommandResult"];
         };
-        /** @enum {string} */
-        HRRequestType: "transfer_seller" | "terminate_seller";
         /**
          * @description Legacy HR request namespace (preserved). pending_hr is NOT applied; approved / failed are never reached in Slice 11.
          * @enum {string}
          */
         HRRequestStatus: "pending_review" | "pending_hr" | "approved" | "rejected" | "cancelled" | "failed";
+        /** @enum {string} */
+        HRRequestType: "transfer_seller" | "terminate_seller";
         /** @description Requester, subject parent, target and reviewer are snapshots taken at the transition. */
         HRRequest: {
             /** Format: uuid */
@@ -5720,6 +5722,12 @@ export interface components {
         OrgUnitID: components["schemas"]["NativeID"];
         IsActive: boolean;
         HasFindings: boolean;
+        /**
+         * @description RM-P04. Exact identity-user link of the employment (lineage evidence, never a merge).
+         *     Requires org.employment.read (the link is an employment field). Every person whose
+         *     employment carries this user is returned, so a shared user stays visible as a conflict.
+         */
+        UserID: components["schemas"]["NativeID"];
         /** @description Allowlisted sort; a leading "-" is descending. */
         PersonSort: "display_name" | "-display_name" | "employee_code" | "-employee_code" | "employment_status" | "-employment_status";
         OrgUnitKind: components["schemas"]["OrgUnitKind"];
@@ -5819,6 +5827,10 @@ export interface components {
         FulfillmentItemID: string;
         /** @description Target user id of a current assignee (never a phone, name or email). */
         FulfillmentAssignee: string;
+        /** @description RM-P04. Narrows the caller's visible requests to one status; never widens the row scope. */
+        HRRequestStatusFilter: components["schemas"]["HRRequestStatus"];
+        /** @description RM-P04. Narrows the caller's visible requests to one subject user; never widens the row scope. */
+        HRRequestSubjectUser: string;
         WritebackStateFilter: components["schemas"]["WritebackState"];
         /** @description Exact native invoice id. */
         InvoiceIDQuery: components["schemas"]["NativeID"];
@@ -6084,6 +6096,12 @@ export interface operations {
                 org_unit_id?: components["parameters"]["OrgUnitID"];
                 is_active?: components["parameters"]["IsActive"];
                 has_findings?: components["parameters"]["HasFindings"];
+                /**
+                 * @description RM-P04. Exact identity-user link of the employment (lineage evidence, never a merge).
+                 *     Requires org.employment.read (the link is an employment field). Every person whose
+                 *     employment carries this user is returned, so a shared user stays visible as a conflict.
+                 */
+                user_id?: components["parameters"]["UserID"];
                 /** @description Allowlisted sort; a leading "-" is descending. */
                 sort?: components["parameters"]["PersonSort"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
@@ -8799,6 +8817,10 @@ export interface operations {
     listHRRequests: {
         parameters: {
             query?: {
+                /** @description RM-P04. Narrows the caller's visible requests to one status; never widens the row scope. */
+                status?: components["parameters"]["HRRequestStatusFilter"];
+                /** @description RM-P04. Narrows the caller's visible requests to one subject user; never widens the row scope. */
+                subject_user_id?: components["parameters"]["HRRequestSubjectUser"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];

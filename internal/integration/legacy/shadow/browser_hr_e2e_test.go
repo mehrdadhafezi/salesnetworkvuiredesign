@@ -217,6 +217,23 @@ func TestBrowserHRReadOverlay(t *testing.T) {
 		"E2E_HR_SELF_PARENT":        itoa(selfParents),
 		"E2E_HR_SELLER_USER_ID":     e.one(t, `SELECT user_id::text FROM identity.user_account WHERE source_key = '3'`),
 		"E2E_HR_SELF_PARENT_PERSON": e.one(t, `SELECT p.person_id::text FROM organization.person p WHERE p.source_key = '110'`),
+		// RM-P04 workspace expectations, all from SQL over the disposable database.
+		"E2E_HR_ASSIGNMENTS":         itoa(e.count(t, `SELECT count(*) FROM organization.org_assignment`)),
+		"E2E_HR_ASSIGNMENTS_CURRENT": itoa(e.count(t, `SELECT count(*) FROM organization.org_assignment WHERE is_current`)),
+		"E2E_HR_SELF_PARENT_ASSIGNMENTS": itoa(e.count(t, `SELECT count(*) FROM organization.org_assignment a
+			JOIN organization.employment ce ON ce.employment_id = a.child_employment_id
+			LEFT JOIN organization.employment pe ON pe.employment_id = a.parent_employment_id
+			JOIN organization.person p ON p.source_key = '110'
+			WHERE ce.person_id = p.person_id OR pe.person_id = p.person_id`)),
+		"E2E_HR_POSITIONS": itoa(e.count(t, `SELECT count(*) FROM organization.position`)),
+		"E2E_HR_LEVELS":    itoa(e.count(t, `SELECT count(*) FROM organization.level`)),
+		"E2E_HR_SHARED_USER": e.one(t, `SELECT coalesce((SELECT user_id::text FROM organization.employment WHERE user_id IS NOT NULL
+			GROUP BY user_id HAVING count(*) > 1 ORDER BY 1 LIMIT 1), '')`),
+		"E2E_HR_SHARED_USER_PERSONS": itoa(e.count(t, `SELECT coalesce((SELECT count(*) FROM organization.employment WHERE user_id IS NOT NULL
+			GROUP BY user_id HAVING count(*) > 1 ORDER BY user_id LIMIT 1), 0)`)),
+	}
+	if dir := os.Getenv("E2E_SCREENSHOT_DIR"); dir != "" {
+		env["E2E_SCREENSHOT_DIR"] = dir
 	}
 	runPlaywright(t, root, "hr-read-overlay", env)
 

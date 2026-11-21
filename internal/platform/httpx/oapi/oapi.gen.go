@@ -11157,6 +11157,12 @@ type FulfillmentStatusFilter = FulfillmentStatus
 // FulfillmentSubscriptionID defines model for FulfillmentSubscriptionID.
 type FulfillmentSubscriptionID = openapi_types.UUID
 
+// HRRequestStatusFilter Legacy HR request namespace (preserved). pending_hr is NOT applied; approved / failed are never reached in Slice 11.
+type HRRequestStatusFilter = HRRequestStatus
+
+// HRRequestSubjectUser defines model for HRRequestSubjectUser.
+type HRRequestSubjectUser = openapi_types.UUID
+
 // HasConflict defines model for HasConflict.
 type HasConflict = bool
 
@@ -11264,6 +11270,9 @@ type SourceType string
 
 // SubjectType defines model for SubjectType.
 type SubjectType string
+
+// UserID Target native identifier. Never a phone, e-mail, login or legacy key.
+type UserID = NativeID
 
 // UserSort defines model for UserSort.
 type UserSort string
@@ -11681,6 +11690,12 @@ type CompleteFulfillmentWorkCaseParams struct {
 
 // ListHRRequestsParams defines parameters for ListHRRequests.
 type ListHRRequestsParams struct {
+	// Status RM-P04. Narrows the caller's visible requests to one status; never widens the row scope.
+	Status *HRRequestStatusFilter `form:"status,omitempty" json:"status,omitempty"`
+
+	// SubjectUserId RM-P04. Narrows the caller's visible requests to one subject user; never widens the row scope.
+	SubjectUserId *HRRequestSubjectUser `form:"subject_user_id,omitempty" json:"subject_user_id,omitempty"`
+
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
@@ -11875,6 +11890,11 @@ type ListOrganizationPersonsParams struct {
 	OrgUnitId   *OrgUnitID   `form:"org_unit_id,omitempty" json:"org_unit_id,omitempty"`
 	IsActive    *IsActive    `form:"is_active,omitempty" json:"is_active,omitempty"`
 	HasFindings *HasFindings `form:"has_findings,omitempty" json:"has_findings,omitempty"`
+
+	// UserId RM-P04. Exact identity-user link of the employment (lineage evidence, never a merge).
+	// Requires org.employment.read (the link is an employment field). Every person whose
+	// employment carries this user is returned, so a shared user stays visible as a conflict.
+	UserId *UserID `form:"user_id,omitempty" json:"user_id,omitempty"`
 
 	// Sort Allowlisted sort; a leading "-" is descending.
 	Sort *ListOrganizationPersonsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
@@ -15511,6 +15531,32 @@ func (siw *ServerInterfaceWrapper) ListHRRequests(w http.ResponseWriter, r *http
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ListHRRequestsParams
 
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "subject_user_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subject_user_id", r.URL.Query(), &params.SubjectUserId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subject_user_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject_user_id", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "cursor" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
@@ -16960,6 +17006,19 @@ func (siw *ServerInterfaceWrapper) ListOrganizationPersons(w http.ResponseWriter
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has_findings"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has_findings", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "user_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "user_id", r.URL.Query(), &params.UserId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "user_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
 		}
 		return
 	}

@@ -1,7 +1,9 @@
 import '../hr.css'
+import { Link } from 'react-router'
 import { useApi, type OrgUnit } from '../../../shared/api'
 import { Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/primitives'
 import { ReadStates } from '../components/States'
+import { HRSectionNav } from '../workspace/SectionNav'
 import { findingLabel, kindLabel, text } from '../labels'
 import { compact, settle, useRead, type ReadState } from '../load'
 
@@ -29,6 +31,7 @@ export function StructurePage() {
   })
   return (
     <>
+      <HRSectionNav />
       <PageHeader title="ساختار سازمانی" subtitle="دپارتمان ← واحد ← تیم؛ ساختار واحد با خط گزارش‌دهی یکی نیست." />
       <ReadStates state={state} what="ساختار" />
       {state.status === 'ok' && <Tree units={state.data.units} truncated={state.data.truncated} />}
@@ -69,7 +72,7 @@ function Node({ u }: { u: OrgUnit }) {
   return (
     <span className="hr-node">
       <span className="muted">{kindLabel[u.kind]}</span> <b>{text(u.label)}</b>
-      <span className="muted num"> · {u.member_count} نیرو</span>
+      <Link className="muted num" to={`/hr?org_unit_id=${u.org_unit_id}`} aria-label={`نیروهای ${text(u.label)}: ${u.member_count}`}>· {u.member_count} نیرو</Link>
       {u.is_active === false && <StatusPill tone="slate" icon="ban" label="غیرفعال" />}
       {u.parent_state === 'MISSING' && <StatusPill tone="orange" icon="alert" label="تعارض: والد ناموجود" />}
       {u.parent_state === 'NOT_RECORDED' && <StatusPill tone="amber" icon="question" label="والد ثبت نشده" />}

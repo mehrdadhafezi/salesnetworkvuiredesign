@@ -76,7 +76,7 @@ func (s *Service) ListPersons(ctx context.Context, p PersonsParams) (PersonsPage
 	if f.Status != nil && !store.EmploymentStatuses[*f.Status] {
 		return PersonsPage{}, invalid("employment_status")
 	}
-	for name, v := range map[string]*string{"position_id": f.PositionID, "level_id": f.LevelID, "org_unit_id": f.OrgUnitID} {
+	for name, v := range map[string]*string{"position_id": f.PositionID, "level_id": f.LevelID, "org_unit_id": f.OrgUnitID, "user_id": f.UserID} {
 		if err := checkID(name, v); err != nil {
 			return PersonsPage{}, err
 		}

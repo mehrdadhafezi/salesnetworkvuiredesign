@@ -44,8 +44,25 @@ func scanRequest(r pgx.Row) (Request, error) {
 const visible = `(requested_by_user_id = $1 OR current_reviewer_user_id = $1 OR EXISTS (SELECT 1 FROM organization.hr_request_event e
 	WHERE e.request_id = r.request_id AND e.actor_user_id = $1))`
 
-// List returns the requests visible to actor (newest first), cursor paged.
-func (s *Service) List(ctx context.Context, actorUserID string, cursor *string, limit int) ([]Request, *string, error) {
+// ListFilter (RM-P04) narrows the visible requests. It never widens the
+// row scope: every filter is ANDed with the visibility rule.
+type ListFilter struct {
+	Status        *string
+	SubjectUserID *string
+}
+
+var listStatuses = map[string]bool{api.HRPendingReview: true, api.HRPendingHR: true, api.HRApproved: true, api.HRRejected: true,
+	api.HRCancelled: true, api.HRFailed: true}
+
+// List returns the requests visible to actor in request-id order, cursor
+// paged, narrowed by f.
+func (s *Service) List(ctx context.Context, actorUserID string, f ListFilter, cursor *string, limit int) ([]Request, *string, error) {
+	if f.Status != nil && !listStatuses[*f.Status] {
+		return nil, nil, invalid("status")
+	}
+	if f.SubjectUserID != nil && !uuidPattern.MatchString(*f.SubjectUserID) {
+		return nil, nil, invalid("subject_user_id")
+	}
 	if !uuidPattern.MatchString(actorUserID) {
 		return nil, nil, nil
 	}
@@ -64,7 +81,8 @@ func (s *Service) List(ctx context.Context, actorUserID string, cursor *string, 
 	var out []Request
 	err := s.runner.InTx(ctx, db.TxOptions{ReadOnly: true, Isolation: db.RepeatableRead}, func(ctx context.Context, tx db.Tx) error {
 		rows, err := tx.Query(ctx, `SELECT `+requestCols+` FROM organization.hr_request r WHERE `+visible+`
-			AND ($2::uuid IS NULL OR request_id > $2) ORDER BY request_id LIMIT $3`, actorUserID, after, limit+1)
+			AND ($2::uuid IS NULL OR request_id > $2) AND ($4::text IS NULL OR status = $4) AND ($5::uuid IS NULL OR subject_user_id = $5)
+			ORDER BY request_id LIMIT $3`, actorUserID, after, limit+1, f.Status, f.SubjectUserID)
 		if err != nil {
 			return err
 		}

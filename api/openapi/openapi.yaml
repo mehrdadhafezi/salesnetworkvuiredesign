@@ -328,6 +328,7 @@ paths:
         - $ref: './components/parameters.yaml#/OrgUnitID'
         - $ref: './components/parameters.yaml#/IsActive'
         - $ref: './components/parameters.yaml#/HasFindings'
+        - $ref: './components/parameters.yaml#/UserID'
         - $ref: './components/parameters.yaml#/PersonSort'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
@@ -3073,7 +3074,11 @@ paths:
       summary: "HR change requests the caller requested or currently reviews"
       description: |
         Requires org.hr_request.read (flag organization.hr_request_write). Read only.
+        Row scope: requester, current reviewer or a history actor. The optional status and
+        subject_user_id filters only narrow that scope (RM-P04). Ordered by request_id.
       parameters:
+        - $ref: './components/parameters.yaml#/HRRequestStatusFilter'
+        - $ref: './components/parameters.yaml#/HRRequestSubjectUser'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
       responses:

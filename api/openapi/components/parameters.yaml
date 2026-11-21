@@ -126,6 +126,34 @@ HasFindings:
   schema:
     type: boolean
 
+UserID:
+  name: user_id
+  in: query
+  required: false
+  description: |
+    RM-P04. Exact identity-user link of the employment (lineage evidence, never a merge).
+    Requires org.employment.read (the link is an employment field). Every person whose
+    employment carries this user is returned, so a shared user stays visible as a conflict.
+  schema:
+    $ref: './hr.yaml#/NativeID'
+
+HRRequestStatusFilter:
+  name: status
+  in: query
+  required: false
+  description: RM-P04. Narrows the caller's visible requests to one status; never widens the row scope.
+  schema:
+    $ref: './writes.yaml#/HRRequestStatus'
+
+HRRequestSubjectUser:
+  name: subject_user_id
+  in: query
+  required: false
+  description: RM-P04. Narrows the caller's visible requests to one subject user; never widens the row scope.
+  schema:
+    type: string
+    format: uuid
+
 PersonID:
   name: person_id
   in: query
