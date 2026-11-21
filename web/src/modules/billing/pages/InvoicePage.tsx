@@ -11,7 +11,8 @@ import { blockedDetail, declaredLabel, mappingLabel, stageStateLabel, stateField
 import { Pager, useCursors } from '../pager'
 import { useSession } from '../../../shared/auth/currentSession'
 import { PaymentSubmissionPanel } from '../../payments/PaymentSubmissionPanel'
-import { Anchor, AttemptsTable, AwaitInvoice, FinanceReviewForInvoice, InvoiceOverview, WorkspaceNav } from '../workspace'
+import { InvoiceActivity } from '../activity'
+import { Anchor, AttemptsTable, AwaitInvoice, FinanceReviewForInvoice, InvoiceOverview, useInvoiceReview, WorkspaceNav } from '../workspace'
 
 /** Runs a read only when the server allows it; otherwise a settled null. */
 async function gated<T>(on: boolean, run: () => Promise<ReadState<T>>): Promise<ReadState<T | null>> {
@@ -20,7 +21,7 @@ async function gated<T>(on: boolean, run: () => Promise<ReadState<T>>): Promise<
 
 const SECTIONS: [string, string][] = [
   ['inv-overview', 'نمای کلی'], ['inv-facts', 'فاکتور'], ['inv-states', 'وضعیت‌ها'], ['inv-amounts', 'مبالغ'], ['inv-items', 'اقلام'],
-  ['inv-stages', 'مراحل'], ['inv-attempts', 'تلاش‌ها'], ['inv-receipts', 'رسیدها'], ['inv-review', 'بررسی مالی'], ['inv-provenance', 'منشأ'],
+  ['inv-stages', 'مراحل'], ['inv-attempts', 'تلاش‌ها'], ['inv-receipts', 'رسیدها'], ['inv-review', 'بررسی مالی'], ['inv-activity', 'فعالیت'], ['inv-provenance', 'منشأ'],
 ]
 
 /**
@@ -63,6 +64,7 @@ export function InvoicePage() {
   const rc = useCursors()
   const receipts = useRead(`r:${invoiceId}:${rc.cursor ?? ''}:${canPay}`, () => gated(canPay, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}/receipts', {
     params: { path, query: { limit: 25, ...(rc.cursor ? { cursor: rc.cursor } : {}) } } }), e => e.items && e.page ? { items: e.items, page: e.page } : undefined)))
+  const review = useInvoiceReview(invoiceId, invoiceOk)
   const totals = useRead(`t:${invoiceId}:${canPay}`, () => gated(canPay, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}/totals', { params: { path } }), e => e.data)))
 
   const title = detail.status === 'ok' ? `${detail.data.invoice.source.source_spec} #${detail.data.invoice.source.source_key}` : '…'
@@ -206,7 +208,12 @@ export function InvoicePage() {
         <Anchor id="inv-review">
           <Card title="بررسی مالی">
             {/* Mounted (and so requested) only after the invoice detail read succeeded; finance.review.read is still checked by the server. */}
-            {invoiceOk ? <FinanceReviewForInvoice key={invoiceId} invoiceId={invoiceId} zone={zone} /> : <AwaitInvoice detail={detail} />}
+            {invoiceOk ? <FinanceReviewForInvoice review={review} zone={zone} /> : <AwaitInvoice detail={detail} />}
+          </Card>
+        </Anchor>
+        <Anchor id="inv-activity">
+          <Card title="خط زمانی فعالیت فاکتور">
+            <InvoiceActivity detail={detail} pays={pays} pc={pc} canPay={canPay} review={review} zone={zone} />
           </Card>
         </Anchor>
         <Anchor id="inv-provenance">

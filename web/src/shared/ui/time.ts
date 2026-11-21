@@ -12,3 +12,20 @@ export function formatInstant(utc: string, displayZone: string): string {
     timeStyle: 'short',
   }).format(d)
 }
+
+/**
+ * Presentation-only Jalali rendering of a legacy wall-clock value whose time
+ * zone was never recorded. The wall-clock fields are shown unchanged in the
+ * Persian calendar (no zone shift is applied or implied); `day` precision
+ * shows the date only. `wallClockMs` is UTC-based arithmetic over the raw
+ * fields, never an instant.
+ */
+export function formatWallClock(wallClockMs: number, dateOnly: boolean): string {
+  const d = new Date(wallClockMs)
+  if (Number.isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+    timeZone: 'UTC',
+    dateStyle: 'medium',
+    ...(dateOnly ? {} : { timeStyle: 'medium' }),
+  }).format(d)
+}

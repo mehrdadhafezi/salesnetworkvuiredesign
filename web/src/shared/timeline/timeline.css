@@ -1,0 +1,45 @@
+/* RM-P03 activity timeline. Layout only, SN-207 tokens; logical properties (RTL first). */
+.tl{display:grid;gap:12px;min-width:0}
+.tl-coverage{margin:0;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);font-size:var(--fs-sm);overflow-wrap:anywhere}
+.tl-sources{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0;padding:0;list-style:none;font-size:var(--fs-sm)}
+.tl-sources li{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
+.tl-sources li > svg{width:16px;height:16px;flex:none}
+.tl-views{display:flex;flex-wrap:wrap;gap:6px}
+.tl-views .btn[aria-pressed="true"]{border-color:var(--primary);background:var(--primary-soft);color:var(--text)}
+.tl-lane,.tl-group{border:1px solid var(--border);border-radius:8px;padding:10px 12px;min-width:0;display:grid;gap:8px}
+.tl-lane-title{display:flex;align-items:center;gap:6px;margin:0;font-size:var(--fs-sm);font-weight:600}
+.tl-lane-title svg{width:16px;height:16px;flex:none}
+.tl-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 16px;margin:0;font-size:var(--fs-xs)}
+.tl-meta > div{min-width:0}
+.tl-meta dt{color:var(--text-2);display:inline}
+.tl-meta dt::after{content:': '}
+.tl-meta dd{display:inline;margin:0;overflow-wrap:anywhere}
+.tl-rule{margin:0;font-size:var(--fs-xs)}
+.tl-list{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.tl-event{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;padding-block:6px}
+/* The rail sits on the inline-start side (right in RTL). */
+.tl-event::before{content:'';position:absolute;inset-inline-start:13px;inset-block:0;border-inline-start:2px solid var(--border)}
+.tl-event:first-child::before{inset-block-start:16px}
+.tl-event:last-child::before{inset-block-end:calc(100% - 16px)}
+.tl-dot{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--surface);border:1px solid var(--border-strong)}
+.tl-dot svg{width:15px;height:15px}
+.tl-body{min-width:0;display:grid;gap:2px;font-size:var(--fs-sm)}
+.tl-head{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.tl-label{overflow-wrap:anywhere}
+.tl-src{font-size:var(--fs-xs);padding:0 6px;border:1px solid var(--border);border-radius:99px;color:var(--text-2)}
+.tl-time,.tl-line{margin:0;overflow-wrap:anywhere}
+.tl-k{color:var(--text-2)}
+.tl-ltr{direction:ltr;unicode-bidi:isolate;overflow-wrap:anywhere}
+.tl-raw{font-family:var(--font-mono, monospace);font-size:var(--fs-xs)}
+.tl-details summary{cursor:pointer;color:var(--primary);font-size:var(--fs-xs);width:max-content;max-width:100%}
+.tl-details summary:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.tl-details[open]{padding:6px 8px;border-radius:6px;background:var(--surface-2)}
+.tl-pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.tl-combined{display:grid;gap:10px;min-width:0}
+/* Long pills wrap instead of overflowing on narrow screens. */
+.tl .pill{white-space:normal;height:auto;min-height:24px;max-width:100%}
+.tl .pill svg{flex:none}
+@media (max-width:760px){
+  .tl-lane,.tl-group{padding:8px}
+  .tl-meta{grid-template-columns:1fr}
+}

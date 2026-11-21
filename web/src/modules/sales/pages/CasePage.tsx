@@ -4,12 +4,13 @@ import { useApi, type AttributionSnapshot, type CaseCustody, type Facet } from '
 import { actionHint } from '../../../shared/permissions/allowedActions'
 import { settle, useRead, type ReadState } from '../../../shared/read/load'
 import { ReadStates } from '../../../shared/read/ReadStates'
-import { Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/primitives'
+import { Card, PageHeader, StatusPill } from '../../../shared/ui/primitives'
 import { ParityPill, ReadOnlyNote, ResolutionPill, UserRefText } from '../components'
-import { blockedDetail, eventKindLabel, facetLabel, findingLabel, text, workflowLabel } from '../labels'
-import { Pager, useCursors } from '../pager'
+import { blockedDetail, facetLabel, text, workflowLabel } from '../labels'
+import { useCursors } from '../pager'
+import { CaseActivity } from '../activity'
 import { useSession } from '../../../shared/auth/currentSession'
-import { ContactOutcomePanel } from '../../writes/ContactOutcomePanel'
+import { ContactOutcomePanel, useContactOutcomes } from '../../writes/ContactOutcomePanel'
 import { RelatedInvoices } from '../../../shared/relations/RelatedRecords'
 import { RelationLink } from '../../../shared/relations/RelationLink'
 
@@ -38,7 +39,11 @@ export function CasePage() {
     : { status: 'ok', data: null, outcome: 'SUCCESS', allowed: undefined })
 
   const session = useSession()
+  const zone = session.status === 'ready' ? session.session.display_zone : 'Asia/Tehran'
   const outcomeFeature = session.status === 'ready' && session.session.features?.contact_outcome_write === true
+  // Contact outcome facts are their own read (cases.case.read on the server), shared by the panel and the
+  // RM-P03 timeline; with the session feature off nothing is requested (Slice 11 rule).
+  const outcomes = useContactOutcomes(caseId, outcomeFeature)
   const title = detail.status === 'ok' ? `${detail.data.case.source.source_spec} #${detail.data.case.source.source_key}` : '…'
   return (
     <>
@@ -60,7 +65,7 @@ export function CasePage() {
             </dl>
           )}
         </Card>
-        {outcomeFeature && <ContactOutcomePanel caseId={caseId} />}
+        {outcomeFeature && <ContactOutcomePanel caseId={caseId} outcomes={outcomes} />}
         <Card title="چهار مالک (بدون ادغام)">
           <FourOwners custody={custody} attribution={attribution} canCustody={canCustody} />
         </Card>
@@ -89,25 +94,8 @@ export function CasePage() {
         <Card title="فاکتورهای این پرونده (پیوند تأییدشده)">
           <RelatedInvoices key={caseId} caseId={caseId} />
         </Card>
-        <Card title="سابقه وضعیت (فقط افزودنی)">
-          <ReadStates state={history} what="سابقه" blockedDetail={blockedDetail} />
-          {history.status === 'ok' && (history.data.items.length === 0 ? <StateBlock kind="empty" title="سابقه وضعیتی ثبت نشده است" /> : (
-            <ol className="sa-list" aria-label="سابقه وضعیت">
-              {history.data.items.map(h => (
-                <li key={h.history_id}><span className="sa-ltr">{`${text(h.old_state_raw)} → ${text(h.new_state_raw)}`}</span>
-                  <span className="muted"> · {text(h.occurred_raw)} · </span><UserRefText user={h.actor} /></li>
-              ))}
-            </ol>
-          ))}
-          {history.status === 'ok' && <Pager page={history.data.page} c={hc} />}
-        </Card>
-        <Card title="خط زمانی نگهداری (فقط افزودنی)">
-          {!canCustody ? <StateBlock kind="locked" title="دسترسی به نگهداری ندارید" /> : (
-            <>
-              <ReadStates state={custody} what="نگهداری" blockedDetail={blockedDetail} />
-              {custody.status === 'ok' && custody.data && <Timeline c={custody.data} />}
-            </>
-          )}
+        <Card title="خط زمانی فعالیت پرونده">
+          <CaseActivity history={history} hc={hc} custody={custody} canCustody={canCustody} attribution={attribution} outcomes={outcomes.view} zone={zone} />
         </Card>
       </div>
     </>
@@ -156,31 +144,5 @@ function FourOwners({ custody, attribution, canCustody }: { custody: ReadState<C
         <p className="muted">بدون شاهد مالی؛ از نگهدار فعلی مشتق نمی‌شود.</p>
       </section>
     </div>
-  )
-}
-
-function Timeline({ c }: { c: CaseCustody }) {
-  return (
-    <>
-      {c.events.length === 0 ? <StateBlock kind="empty" title="رویداد نگهداری ثبت نشده است" /> : (
-        <ol className="sa-list" aria-label="رویدادهای نگهداری">
-          {c.events.map(e => (
-            <li key={e.event_id}>
-              <span className="sa-ltr">{e.legacy_action}</span> — {eventKindLabel[e.kind] ?? e.kind}
-              <span className="muted"> · {text(e.occurred_raw)} · </span>
-              <UserRefText user={e.from} /> → <UserRefText user={e.to} /> <span className="muted">(اقدام‌کننده: </span><UserRefText user={e.actor} /><span className="muted">)</span>
-            </li>
-          ))}
-        </ol>
-      )}
-      {c.findings.length > 0 && (
-        <>
-          <h3 className="sa-sub">یافته‌ها (خودکار اصلاح نمی‌شوند)</h3>
-          <ul className="sa-list" aria-label="یافته‌های نگهداری">
-            {c.findings.map(f => <li key={f.finding_id}><StatusPill tone="orange" icon="alert" label={findingLabel[f.kind] ?? f.kind} /> <span className="muted">{f.detail}</span></li>)}
-          </ul>
-        </>
-      )}
-    </>
   )
 }
