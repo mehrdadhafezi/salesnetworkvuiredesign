@@ -11092,6 +11092,9 @@ type BiawinSubscriptionState = SubscriptionState
 // CaseID Target native identifier. Never a phone, e-mail, login or legacy key.
 type CaseID = NativeID
 
+// CaseIDQuery Target native identifier. Never a phone, e-mail, login or legacy key.
+type CaseIDQuery = NativeID
+
 // CaseLinkState RESOLVED (strong evidence; still never merged), RELATED (relationship
 // without equality), UNKNOWN (insufficient evidence), CONFLICT
 // (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
@@ -11340,6 +11343,7 @@ type ListCasesParams struct {
 	StateMapping      *StateMapping      `form:"state_mapping,omitempty" json:"state_mapping,omitempty"`
 	CustomerLinkState *CustomerLinkState `form:"customer_link_state,omitempty" json:"customer_link_state,omitempty"`
 	Presence          *Presence          `form:"presence,omitempty" json:"presence,omitempty"`
+	CustomerId        *CustomerID        `form:"customer_id,omitempty" json:"customer_id,omitempty"`
 
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
@@ -11759,6 +11763,10 @@ type ListInvoicesParams struct {
 
 	// HasUnknownStatus Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state.
 	HasUnknownStatus *HasUnknownStatus `form:"has_unknown_status,omitempty" json:"has_unknown_status,omitempty"`
+	CustomerId       *CustomerID       `form:"customer_id,omitempty" json:"customer_id,omitempty"`
+
+	// CaseId Exact native Case id; matches only RESOLVED case links.
+	CaseId *CaseIDQuery `form:"case_id,omitempty" json:"case_id,omitempty"`
 
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
@@ -13071,6 +13079,19 @@ func (siw *ServerInterfaceWrapper) ListCases(w http.ResponseWriter, r *http.Requ
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer_id", r.URL.Query(), &params.CustomerId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_id", Err: err})
 		}
 		return
 	}
@@ -16097,6 +16118,32 @@ func (siw *ServerInterfaceWrapper) ListInvoices(w http.ResponseWriter, r *http.R
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has_unknown_status"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has_unknown_status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "customer_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "customer_id", r.URL.Query(), &params.CustomerId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "customer_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customer_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "case_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "case_id", r.URL.Query(), &params.CaseId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "case_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
 		}
 		return
 	}

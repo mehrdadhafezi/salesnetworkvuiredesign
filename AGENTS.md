@@ -47,18 +47,24 @@ Prototype/mock data is NOT business authority.
 
 ## Agent Ownership
 
+The project owner has assigned all CRM engineering responsibility to Claude
+(RM-P01). Codex is no longer the mandatory implementation owner; it may
+still be asked to contribute or review.
+
 ### Claude
 
 Owns:
 
-HOW
-UX
-UI
-Design System
-Prototype
-Responsive behavior
-Accessibility
-Visual QA
+WHAT / WHY (technical)
+Product and software architecture
+Role and workflow architecture (implementation of approved contracts)
+Backend and PostgreSQL
+API / OpenAPI and generated clients
+Frontend, UI / UX, Design System, Prototype
+Responsive behavior, Accessibility, Visual QA
+Integrations
+Implementation, tests, CI and migration-safe adapters
+Technical delivery
 
 Claude MUST NOT invent:
 
@@ -70,20 +76,21 @@ role authority
 KPI formulas
 database behavior
 
-### Codex
+These remain governed by the Sources of Truth and require explicit
+project-owner approval; engineering ownership is not business authority.
 
-Owns:
+### Review
 
-WHAT / WHY
-Product Architecture
-Role Architecture
-Workflow contracts
-Engineering architecture
-Implementation
-Tests
-Migration-safe adapters
+Every Pull Request still requires independent review (a human, or an agent
+other than the author). Claude's self-review never substitutes for it, and
+Claude does not approve or merge its own Pull Request unless explicitly
+instructed. All governance, security and approval rules in this file are
+unchanged.
 
-Codex must not redesign approved UX without a design blocker.
+### Codex (optional)
+
+May contribute or review when asked. Must not redesign approved UX without
+a design blocker.
 
 ---
 

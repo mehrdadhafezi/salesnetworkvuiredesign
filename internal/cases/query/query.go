@@ -72,6 +72,16 @@ func (s *Service) ListCases(ctx context.Context, f store.CaseFilter, cursor *str
 			return CasesPage{}, err
 		}
 	}
+	if f.CustomerID != nil {
+		if !uuidPattern.MatchString(*f.CustomerID) {
+			return CasesPage{}, invalid("customer_id")
+		}
+		// customer_id selects RESOLVED links only; combining it with another
+		// link state would silently hide RELATED/CONFLICT/UNKNOWN rows.
+		if f.CustomerLinkState != nil && *f.CustomerLinkState != "RESOLVED" {
+			return CasesPage{}, invalid("customer_id requires customer_link_state RESOLVED or absent")
+		}
+	}
 	limit, err := pagination.Limit(limitIn)
 	if err != nil {
 		return CasesPage{}, invalid("%v", err)

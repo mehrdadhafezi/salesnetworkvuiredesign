@@ -5,13 +5,15 @@ import { actionHint } from '../../../shared/permissions/allowedActions'
 import { settle, useRead } from '../../../shared/read/load'
 import { ReadStates } from '../../../shared/read/ReadStates'
 import { Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/primitives'
+import { CustomerCases, RelatedInvoices } from '../../../shared/relations/RelatedRecords'
 import { NoMergeNote, StatePill } from '../components'
 import { blockedDetail, evidenceLabel, reasonLabel, schemeLabel, strengthLabel, text } from '../labels'
 
 /**
- * Customer 360 (identity section only), read-only. Sections: Customer,
- * Contact points (masked, shared indicator), Identifiers, Evidence, Merge
- * cases, Provenance. No merge, edit or reassign control exists.
+ * Customer 360, read-only. Sections: Customer, Contact points (masked,
+ * shared indicator), Identifiers, Evidence, Merge cases, Cases and Invoices
+ * linked to this customer by a RESOLVED relationship only (RM-P01), and
+ * Provenance. No merge, edit or reassign control exists.
  */
 export function CustomerPage() {
   const { customerId = '' } = useParams()
@@ -58,6 +60,12 @@ export function CustomerPage() {
           {detail.status === 'ok' && (actionHint(detail.allowed, 'customers.merge_case.read').allowed
             ? <Cases items={detail.data.merge_cases} />
             : <StateBlock kind="locked" title="دسترسی به پرونده‌های تطبیق ندارید" />)}
+        </Card>
+        <Card title="پرونده‌های این مشتری (پیوند تأییدشده)">
+          <CustomerCases key={customerId} customerId={customerId} />
+        </Card>
+        <Card title="فاکتورهای این مشتری (پیوند تأییدشده)">
+          <RelatedInvoices key={customerId} customerId={customerId} />
         </Card>
         <Card title="منبع">
           {detail.status === 'ok' && <Provenance d={detail.data} />}

@@ -796,12 +796,16 @@ paths:
       summary: List shadow cases
       description: |
         Requires cases.case.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
-        Unknown query parameters are 400 CONTRACT_INVALID.
+        Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+        customer_id matches only Cases whose customer link is RESOLVED to exactly that customer; RELATED, UNKNOWN,
+        CONFLICT and NOT_RECOVERABLE links are never returned for it (list them with customer_link_state instead).
+        customer_id with a customer_link_state other than RESOLVED is 400. An unknown customer_id is an empty page.
       parameters:
         - $ref: '#/components/parameters/WorkflowType'
         - $ref: '#/components/parameters/StateMapping'
         - $ref: '#/components/parameters/CustomerLinkState'
         - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/CustomerID'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -1027,12 +1031,18 @@ paths:
       summary: List shadow invoices
       description: |
         Requires billing.invoice.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
-        Unknown query parameters are 400 CONTRACT_INVALID.
+        Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+        customer_id / case_id match only invoices whose own customer / case link is RESOLVED to exactly that id; RELATED,
+        UNKNOWN, CONFLICT and NOT_RECOVERABLE links are never returned for them, and no link is inferred through another
+        module (an invoice is not attributed to a customer through its Case). customer_id (case_id) with a
+        customer_link_state (case_link_state) other than RESOLVED is 400. An unknown id is an empty page.
       parameters:
         - $ref: '#/components/parameters/Presence'
         - $ref: '#/components/parameters/CustomerLinkState'
         - $ref: '#/components/parameters/CaseLinkState'
         - $ref: '#/components/parameters/HasUnknownStatus'
+        - $ref: '#/components/parameters/CustomerID'
+        - $ref: '#/components/parameters/CaseIDQuery'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -3898,6 +3908,13 @@ components:
       description: Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state.
       schema:
         type: boolean
+    CaseIDQuery:
+      name: case_id
+      in: query
+      required: false
+      description: Exact native Case id; matches only RESOLVED case links.
+      schema:
+        $ref: '#/components/schemas/NativeID'
     InvoiceID:
       name: invoice_id
       in: path

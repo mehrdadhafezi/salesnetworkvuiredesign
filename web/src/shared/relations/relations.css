@@ -1,0 +1,16 @@
+/* RM-P01 relationship sections. Layout only, SN-207 tokens. */
+.rel-ltr{direction:ltr;unicode-bidi:isolate}
+.rel-link{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
+.rel-table-wrap{overflow-x:auto}
+.rel-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.rel-table th,.rel-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.rel-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+.rel-pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+/* Phones: one stacked card per row, each cell labelled (no horizontal scroll). */
+@media (max-width:760px){
+  .rel-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .rel-table,.rel-table tbody,.rel-table tr,.rel-table td{display:block;width:100%}
+  .rel-table tr{border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin-bottom:8px}
+  .rel-table td{border-bottom:0;padding:4px 0;display:grid;grid-template-columns:minmax(96px,40%) 1fr;gap:8px}
+  .rel-table td::before{content:attr(data-label);color:var(--text-2)}
+}

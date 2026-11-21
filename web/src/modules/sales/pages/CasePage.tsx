@@ -10,6 +10,8 @@ import { blockedDetail, eventKindLabel, facetLabel, findingLabel, text, workflow
 import { Pager, useCursors } from '../pager'
 import { useSession } from '../../../shared/auth/currentSession'
 import { ContactOutcomePanel } from '../../writes/ContactOutcomePanel'
+import { RelatedInvoices } from '../../../shared/relations/RelatedRecords'
+import { RelationLink } from '../../../shared/relations/RelationLink'
 
 /**
  * Case detail (read only). The four owners (GATE-0 INV-004) are shown as
@@ -53,7 +55,8 @@ export function CasePage() {
               <dt>نوع منبع</dt><dd>{workflowLabel[detail.data.case.workflow_type]}</dd>
               <dt>وضعیت (خام)</dt><dd><span className="sa-ltr">{`${detail.data.case.state_namespace}: ${text(detail.data.case.state_raw)}`}</span>
                 {detail.data.case.state_mapping === 'UNKNOWN' && <span className="muted"> (نگاشت‌نشده؛ مقدار خام حفظ شد)</span>}</dd>
-              <dt>پیوند مشتری</dt><dd><ResolutionPill resolution={detail.data.case.customer_link_state} /> <span className="muted">{detail.data.case.customer_link_reason}</span></dd>
+              <dt>پیوند مشتری</dt><dd><RelationLink state={detail.data.case.customer_link_state} id={detail.data.case.customer_id}
+                to={id => `/customers/${id}`} basis={detail.data.case.customer_link_reason}>مشاهده مشتری</RelationLink></dd>
             </dl>
           )}
         </Card>
@@ -82,6 +85,9 @@ export function CasePage() {
               )}
             </>
           )}
+        </Card>
+        <Card title="فاکتورهای این پرونده (پیوند تأییدشده)">
+          <RelatedInvoices key={caseId} caseId={caseId} />
         </Card>
         <Card title="سابقه وضعیت (فقط افزودنی)">
           <ReadStates state={history} what="سابقه" blockedDetail={blockedDetail} />
