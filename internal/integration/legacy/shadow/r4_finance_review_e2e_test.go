@@ -24,7 +24,7 @@ func TestR4FinanceDecisionContractOverReviewRead(t *testing.T) {
 	up := e.upload(t, "6", 71)
 	e.submit(t, batch("r4-review-0001", e.invoices["3001"], 0, seller, item("a", 600, up)))
 	e.pass(t, "receipt_finalise")
-	queue, err := e.svc.ReviewQueue(ctx, nil, 10)
+	queue, err := e.svc.ReviewQueue(ctx, nil, nil, 10)
 	if err != nil || len(queue) == 0 {
 		t.Fatalf("review queue: %v %v", queue, err)
 	}

@@ -3488,7 +3488,10 @@ paths:
       summary: "Finance review queue of target-submitted attempts with their decision gate (read only)"
       description: |
         Requires finance.review.read (flag finance.review_read). There is NO approve / reject command (D-41, OPD-08, OPD-09; D-43 gate shown).
+        invoice_id (optional) keeps only attempts submitted against exactly that invoice (the attempt's own native invoice
+        reference); an unknown invoice id is an empty page. Unknown query parameters are 400 CONTRACT_INVALID.
       parameters:
+        - $ref: './components/parameters.yaml#/InvoiceIDQuery'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
       responses:

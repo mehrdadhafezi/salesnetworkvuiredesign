@@ -81,7 +81,12 @@ func (h *ReviewHandlers) ListFinanceReviewQueue(ctx context.Context, req oapi.Li
 		}
 		after = &cur.ID
 	}
-	rows, err := h.src.ReviewQueue(ctx, after, limit)
+	var invoice *string
+	if req.Params.InvoiceId != nil {
+		s := req.Params.InvoiceId.String()
+		invoice = &s
+	}
+	rows, err := h.src.ReviewQueue(ctx, invoice, after, limit)
 	if err != nil {
 		return nil, err
 	}

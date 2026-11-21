@@ -3592,7 +3592,10 @@ paths:
       summary: Finance review queue of target-submitted attempts with their decision gate (read only)
       description: |
         Requires finance.review.read (flag finance.review_read). There is NO approve / reject command (D-41, OPD-08, OPD-09; D-43 gate shown).
+        invoice_id (optional) keeps only attempts submitted against exactly that invoice (the attempt's own native invoice
+        reference); an unknown invoice id is an empty page. Unknown query parameters are 400 CONTRACT_INVALID.
       parameters:
+        - $ref: '#/components/parameters/InvoiceIDQuery'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -4363,6 +4366,13 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/WritebackState'
+    InvoiceIDQuery:
+      name: invoice_id
+      in: query
+      required: false
+      description: Exact native invoice id.
+      schema:
+        $ref: '#/components/schemas/NativeID'
   headers:
     CorrelationID:
       description: Correlation id of this request (inbound value when valid, otherwise generated).

@@ -102,7 +102,7 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     await page.getByRole('region', { name: INVOICES_OF_CUSTOMER }).getByRole('link', { name: DB.invoiceKey }).click()
     await expect(page).toHaveURL(new RegExp(`/billing/invoices/${DB.invoice}$`))
     await expect(page.getByRole('heading', { level: 1, name: `فاکتور: ${DB.invoiceKey}` })).toBeVisible()
-    const card = page.getByRole('region', { name: 'فاکتور' })
+    const card = page.getByRole('region', { name: 'نمای کلی و پیوندها' })
     await expect(card.getByRole('link', { name: 'مشاهده مشتری' })).toHaveAttribute('href', `/customers/${DB.customer}`)
     await expect(card.getByRole('link', { name: 'مشاهده پرونده' })).toHaveAttribute('href', `/sales/cases/${DB.kase}`)
     // The existing invoice evidence sections are preserved.
@@ -129,7 +129,7 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     // Case → Invoice → Customer.
     await caseInvs.getByRole('link', { name: DB.invoiceKey }).click()
     await expect(page).toHaveURL(new RegExp(`/billing/invoices/${DB.invoice}$`))
-    await page.getByRole('region', { name: 'فاکتور' }).getByRole('link', { name: 'مشاهده مشتری' }).click()
+    await page.getByRole('region', { name: 'نمای کلی و پیوندها' }).getByRole('link', { name: 'مشاهده مشتری' }).click()
     await expect(page).toHaveURL(new RegExp(`/customers/${DB.customer}$`))
     await expect(page.getByRole('heading', { level: 1, name: /^مشتری: / })).toBeVisible()
 
@@ -139,7 +139,7 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
   operator('an invoice whose customer link is not RESOLVED shows its state and offers no customer link', async ({ page, blocked }) => {
     void blocked
     await page.goto(`/billing/invoices/${DB.unlinkedInvoice}`)
-    const card = page.getByRole('region', { name: 'فاکتور' })
+    const card = page.getByRole('region', { name: 'نمای کلی و پیوندها' })
     await expect(card.getByText(relationLabel[DB.unlinkedCustomerLink] ?? DB.unlinkedCustomerLink).first()).toBeVisible()
     await expect(card.getByRole('link', { name: 'مشاهده مشتری' })).toHaveCount(0)
     await expect(card.getByText('پیوند تأیید نشده است؛ پیمایش ارائه نمی‌شود.').first()).toBeVisible()
