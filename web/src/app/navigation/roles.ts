@@ -147,7 +147,7 @@ export const ROLE_CONTRACTS: Readonly<Record<RoleKey, RoleContract>> = {
     design: { status: 'READY_FOR_REVIEW', ref: 'prototype/hr/HR-DESIGN-SPEC.md' },
     sections: [
       { section: 'workforce explorer', status: 'PARTIAL', destinations: ['hr.workforce'] },
-      { section: 'employment / structure timeline', status: 'TECHNICAL_READ', destinations: ['hr.structure'] },
+      { section: 'employment / structure timeline', status: 'TECHNICAL_READ', destinations: ['hr.structure', 'hr.assignments', 'hr.positions'] },
       { section: 'onboarding and transfer', status: 'BLOCKED', blockedBy: ['OPD-05'] },
       { section: 'termination and handover', status: 'BLOCKED', blockedBy: ['OPD-05', 'SD-04'] },
       { section: 'requests', status: 'PARTIAL', destinations: ['hr.requests'] },

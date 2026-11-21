@@ -8,6 +8,8 @@ import { formatInstant } from '../../../shared/ui/time'
 import { ReadStates } from '../components/States'
 import { findingLabel, kindLabel, linkLabel, refStateLabel, severityLabel, severityTone, statusLabel, text } from '../labels'
 import { settle, useRead } from '../load'
+import { AccountCard, PersonRequestsCard } from '../workspace/PersonLinks'
+import { HRSectionNav } from '../workspace/SectionNav'
 
 /**
  * Person detail, read-only. Person, Employment, Position/Level, Org unit and
@@ -23,6 +25,7 @@ export function PersonPage() {
   const name = state.status === 'ok' ? text(state.data.person.display_name) : 'پرونده نیرو'
   return (
     <>
+      <HRSectionNav />
       <PageHeader title={name} subtitle="نمای فقط‌خواندنی؛ ساختار فعلی سابقه تاریخی را بازنویسی نمی‌کند.">
         <Link to="/hr">بازگشت به نیروها</Link>
       </PageHeader>
@@ -31,7 +34,8 @@ export function PersonPage() {
         canEmployment={actionHint(state.allowed, 'org.employment.read').allowed}
         canPosition={actionHint(state.allowed, 'org.position.read').allowed}
         canUnit={actionHint(state.allowed, 'org.unit.read').allowed}
-        canAssignment={actionHint(state.allowed, 'org.assignment.read').allowed} />}
+        canAssignment={actionHint(state.allowed, 'org.assignment.read').allowed}
+        canUser={actionHint(state.allowed, 'identity.user.read').allowed} />}
     </>
   )
 }
@@ -40,8 +44,8 @@ function Locked({ title }: { title: string }) {
   return <Card title={title}><StateBlock kind="locked" title="دسترسی به این بخش ندارید" /></Card>
 }
 
-function Detail({ d, canEmployment, canPosition, canUnit, canAssignment }:
-  { d: PersonDetail; canEmployment: boolean; canPosition: boolean; canUnit: boolean; canAssignment: boolean }) {
+function Detail({ d, canEmployment, canPosition, canUnit, canAssignment, canUser }:
+  { d: PersonDetail; canEmployment: boolean; canPosition: boolean; canUnit: boolean; canAssignment: boolean; canUser: boolean }) {
   const p = d.person
   const e = p.employment
   const session = useSession()
@@ -57,6 +61,7 @@ function Detail({ d, canEmployment, canPosition, canUnit, canAssignment }:
         </dl>
       </Card>
       {canEmployment && e ? <EmploymentCard e={e} /> : <Locked title="همکاری" />}
+      {canEmployment && e ? <AccountCard employment={e} canUser={canUser} /> : <Locked title="حساب کاربری (هویت ورود)" />}
       {canPosition && e ? (
         <Card title="سمت و سطح">
           <p className="muted">سمت یک واقعیت منابع انسانی است و مجوز یا نقش نیست.</p>
@@ -80,6 +85,7 @@ function Detail({ d, canEmployment, canPosition, canUnit, canAssignment }:
         </Card>
       ) : <Locked title="واحد سازمانی" />}
       {canAssignment ? <AssignmentCards d={d} /> : <Locked title="گزارش‌دهی و سابقه" />}
+      {canEmployment && e ? <PersonRequestsCard userId={e.user.user_id ?? null} linkState={e.user.link_state} /> : null}
     </div>
   )
 }
@@ -111,7 +117,7 @@ function AssignmentCards({ d }: { d: PersonDetail }) {
   return (
     <>
       <Card title="مدیر جاری">
-        <p className="muted">مدیر جاری اعتبار تاریخی نیست و مالکیت یا اعتبار فروش گذشته را تغییر نمی‌دهد.</p>
+        <p className="muted">مدیر جاری اعتبار تاریخی نیست و مالکیت یا اعتبار فروش گذشته را تغییر نمی‌دهد. جایگاه در سلسله‌مراتب هیچ مجوزی نمی‌دهد.</p>
         {p.manager_state === 'RESOLVED' && p.manager
           ? <Link to={`/hr/people/${p.manager.person_id}`}>{text(p.manager.display_name)}</Link>
           : p.manager_state === 'MULTIPLE' ? <StatusPill tone="orange" icon="alert" label="تعارض: چند مدیر جاری" />
@@ -123,6 +129,8 @@ function AssignmentCards({ d }: { d: PersonDetail }) {
         )}
       </Card>
       <Card title="بازه‌های گزارش‌دهی">
+        <p><Link to={`/hr/assignments?person_id=${p.person_id}`}>همه انتساب‌های این نیرو</Link>{' · '}
+          <Link to={`/hr/assignments?person_id=${p.person_id}&relation=PARENT`}>انتساب‌هایی که این نیرو مدیر آن است</Link></p>
         <p className="muted">تاریخ‌ها مقدار خام قدیمی‌اند؛ منطقه زمانی منبع نامعلوم است. بازه گم‌شده پر نمی‌شود.</p>
         {d.assignments.length === 0 ? <StateBlock kind="empty" title="انتسابی ثبت نشده" /> : (
           <ol className="hr-timeline">

@@ -19,6 +19,10 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'hr', lazy: async () => ({ Component: (await import('../modules/hr/pages/WorkforcePage')).WorkforcePage }) },
     { path: 'hr/people/:personId', lazy: async () => ({ Component: (await import('../modules/hr/pages/PersonPage')).PersonPage }) },
     { path: 'hr/structure', lazy: async () => ({ Component: (await import('../modules/hr/pages/StructurePage')).StructurePage }) },
+    // RM-P04 HR operational workspace (read only; static paths precede none of the :params above).
+    { path: 'hr/assignments', lazy: async () => ({ Component: (await import('../modules/hr/pages/AssignmentsPage')).AssignmentsPage }) },
+    { path: 'hr/positions', lazy: async () => ({ Component: (await import('../modules/hr/pages/PositionsPage')).PositionsPage }) },
+    { path: 'hr/access', lazy: async () => ({ Component: (await import('../modules/hr/pages/AccessPage')).AccessPage }) },
     { path: 'hr/exceptions', lazy: async () => ({ Component: (await import('../modules/hr/pages/ExceptionsPage')).ExceptionsPage }) },
     // Slice 5 customer identity (read-only). Static paths precede :customerId.
     { path: 'customers', lazy: async () => ({ Component: (await import('../modules/customers/pages/CustomersPage')).CustomersPage }) },

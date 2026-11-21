@@ -337,6 +337,7 @@ paths:
         - $ref: '#/components/parameters/OrgUnitID'
         - $ref: '#/components/parameters/IsActive'
         - $ref: '#/components/parameters/HasFindings'
+        - $ref: '#/components/parameters/UserID'
         - $ref: '#/components/parameters/PersonSort'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
@@ -3165,7 +3166,11 @@ paths:
       summary: HR change requests the caller requested or currently reviews
       description: |
         Requires org.hr_request.read (flag organization.hr_request_write). Read only.
+        Row scope: requester, current reviewer or a history actor. The optional status and
+        subject_user_id filters only narrow that scope (RM-P04). Ordered by request_id.
       parameters:
+        - $ref: '#/components/parameters/HRRequestStatusFilter'
+        - $ref: '#/components/parameters/HRRequestSubjectUser'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -3756,6 +3761,16 @@ components:
       required: false
       schema:
         type: boolean
+    UserID:
+      name: user_id
+      in: query
+      required: false
+      description: |
+        RM-P04. Exact identity-user link of the employment (lineage evidence, never a merge).
+        Requires org.employment.read (the link is an employment field). Every person whose
+        employment carries this user is returned, so a shared user stays visible as a conflict.
+      schema:
+        $ref: '#/components/schemas/NativeID'
     PersonSort:
       name: sort
       in: query
@@ -4358,6 +4373,21 @@ components:
       in: query
       required: false
       description: Target user id of a current assignee (never a phone, name or email).
+      schema:
+        type: string
+        format: uuid
+    HRRequestStatusFilter:
+      name: status
+      in: query
+      required: false
+      description: RM-P04. Narrows the caller's visible requests to one status; never widens the row scope.
+      schema:
+        $ref: '#/components/schemas/HRRequestStatus'
+    HRRequestSubjectUser:
+      name: subject_user_id
+      in: query
+      required: false
+      description: RM-P04. Narrows the caller's visible requests to one subject user; never widens the row scope.
       schema:
         type: string
         format: uuid
@@ -12466,11 +12496,6 @@ components:
           $ref: '#/components/schemas/CorrelationID'
         command:
           $ref: '#/components/schemas/CommandResult'
-    HRRequestType:
-      type: string
-      enum:
-        - transfer_seller
-        - terminate_seller
     HRRequestStatus:
       type: string
       description: Legacy HR request namespace (preserved). pending_hr is NOT applied; approved / failed are never reached in Slice 11.
@@ -12481,6 +12506,11 @@ components:
         - rejected
         - cancelled
         - failed
+    HRRequestType:
+      type: string
+      enum:
+        - transfer_seller
+        - terminate_seller
     HRRequest:
       type: object
       description: Requester, subject parent, target and reviewer are snapshots taken at the transition.

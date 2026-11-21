@@ -7,6 +7,7 @@ import { Button, Card, PageHeader, StateBlock, StatusPill } from '../../../share
 import { ReadStates } from '../components/States'
 import { kindLabel, linkLabel, statusLabel, text } from '../labels'
 import { compact, settle, useRead } from '../load'
+import { HRSectionNav } from '../workspace/SectionNav'
 
 type Sort = 'display_name' | '-display_name' | 'employee_code' | '-employee_code' | 'employment_status' | '-employment_status'
 
@@ -16,7 +17,7 @@ const sorts: { value: Sort; label: string }[] = [
   { value: 'employment_status', label: 'وضعیت همکاری' },
 ]
 
-const filterKeys = ['q', 'employment_status', 'position_id', 'level_id', 'org_unit_id', 'has_findings', 'sort'] as const
+const filterKeys = ['q', 'employment_status', 'position_id', 'level_id', 'org_unit_id', 'is_active', 'has_findings', 'user_id', 'sort'] as const
 
 /**
  * Workforce Explorer (SN-205 §3), read-only: server-side filters, sorting
@@ -33,6 +34,7 @@ export function WorkforcePage() {
 
   const list = useRead(key, async () => settle(await api.GET('/api/v1/organization/persons', {
     params: { query: compact({ ...query, has_findings: query.has_findings === 'true' ? true : undefined, sort: query.sort as Sort | undefined,
+      is_active: query.is_active === 'true' ? true : query.is_active === 'false' ? false : undefined,
       employment_status: query.employment_status as EmploymentStatus | undefined, cursor, limit: 25 }) },
   }), e => e.items && e.page ? { items: e.items, page: e.page } : undefined))
 
@@ -40,6 +42,10 @@ export function WorkforcePage() {
   const positions = useRead(`positions:${actionHint(allowed, 'org.position.read').allowed}`, async () =>
     actionHint(allowed, 'org.position.read').allowed
       ? settle(await api.GET('/api/v1/organization/positions', { params: { query: { limit: 200 } } }), e => e.items)
+      : { status: 'ok', data: [] as Lookup[], outcome: 'SUCCESS', allowed: undefined })
+  const levels = useRead(`levels:${actionHint(allowed, 'org.position.read').allowed}`, async () =>
+    actionHint(allowed, 'org.position.read').allowed
+      ? settle(await api.GET('/api/v1/organization/levels', { params: { query: { limit: 200 } } }), e => e.items)
       : { status: 'ok', data: [] as Lookup[], outcome: 'SUCCESS', allowed: undefined })
   const units = useRead(`units:${actionHint(allowed, 'org.unit.read').allowed}`, async () =>
     actionHint(allowed, 'org.unit.read').allowed
@@ -50,6 +56,8 @@ export function WorkforcePage() {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
     const next = new URLSearchParams()
+    const userId = params.get('user_id')
+    if (userId) next.set('user_id', userId)
     for (const k of filterKeys) {
       const v = form.get(k)
       if (typeof v === 'string' && v !== '') next.set(k, v)
@@ -60,9 +68,17 @@ export function WorkforcePage() {
 
   return (
     <>
+      <HRSectionNav />
       <PageHeader title="نیروها" subtitle="نمای فقط‌خواندنی مدل سایه؛ هیچ تغییری از این صفحه انجام نمی‌شود.">
         <StatusPill tone="slate" icon="lock" label="فقط خواندنی" />
       </PageHeader>
+      {params.get('user_id') && (
+        <div className="hr-scope" role="status">
+          <StatusPill tone="orange" icon="alert" label="فقط پرونده‌های متصل به یک حساب کاربری" />
+          <span className="muted"> حساب <span className="hr-ltr num">{params.get('user_id')}</span>؛ بیش از یک پرونده یعنی تعارض، نه ادغام.</span>
+          {' '}<Link to="/hr">نمایش همه نیروها</Link>
+        </div>
+      )}
       <Card title="فیلترها">
         <form className="hr-filters" onSubmit={apply} aria-label="فیلتر نیروها">
           <label className="lbl">جست‌وجو (نام یا کد)<input className="input" name="q" defaultValue={params.get('q') ?? ''} maxLength={100} /></label>
@@ -80,6 +96,14 @@ export function WorkforcePage() {
               </select>
             </label>
           )}
+          {levels.status === 'ok' && levels.data.length > 0 && (
+            <label className="lbl">سطح
+              <select className="input" name="level_id" defaultValue={params.get('level_id') ?? ''}>
+                <option value="">همه</option>
+                {levels.data.map(l => <option key={l.id} value={l.id}>{text(l.label)}</option>)}
+              </select>
+            </label>
+          )}
           {units.status === 'ok' && units.data.length > 0 && (
             <label className="lbl">واحد سازمانی
               <select className="input" name="org_unit_id" defaultValue={params.get('org_unit_id') ?? ''}>
@@ -88,6 +112,13 @@ export function WorkforcePage() {
               </select>
             </label>
           )}
+          <label className="lbl">پرچم فعال (قدیمی)
+            <select className="input" name="is_active" defaultValue={params.get('is_active') ?? ''}>
+              <option value="">همه</option>
+              <option value="true">فعال</option>
+              <option value="false">غیرفعال</option>
+            </select>
+          </label>
           <label className="lbl">ترتیب
             <select className="input" name="sort" defaultValue={params.get('sort') ?? 'display_name'}>
               {sorts.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -120,7 +151,7 @@ export function WorkforcePage() {
 function PersonTable({ items, canEmployment, canAssignment }: { items: PersonSummary[]; canEmployment: boolean; canAssignment: boolean }) {
   return (
     <div className="hr-table-wrap">
-      <table className="hr-table">
+      <table className="hr-table hr-stack">
         <caption className="sr">نیروها</caption>
         <thead>
           <tr>
@@ -135,17 +166,17 @@ function PersonTable({ items, canEmployment, canAssignment }: { items: PersonSum
             const e = p.employment
             return (
               <tr key={p.person_id}>
-                <td><Link to={`/hr/people/${p.person_id}`}>{text(p.display_name)}</Link></td>
+                <td data-label="نام"><Link to={`/hr/people/${p.person_id}`}>{text(p.display_name)}</Link></td>
                 {canEmployment && (
                   <>
-                    <td className="num">{text(e?.employee_code)}</td>
-                    <td>{e ? <>{statusLabel[e.status]}{e.status === 'UNMAPPED' && <span className="muted"> ({text(e.status_raw)})</span>}</> : '—'}</td>
-                    <td>{text(e?.position?.label)} · {text(e?.level?.label)}</td>
-                    <td>{e ? <StatusPill tone={e.user.link_state === 'LINKED' ? 'green' : 'orange'} icon={e.user.link_state === 'LINKED' ? 'check' : 'alert'} label={linkLabel[e.user.link_state]} /> : '—'}</td>
+                    <td data-label="کد کارمندی" className="num">{text(e?.employee_code)}</td>
+                    <td data-label="وضعیت همکاری">{e ? <>{statusLabel[e.status]}{e.status === 'UNMAPPED' && <span className="muted"> ({text(e.status_raw)})</span>}</> : '—'}</td>
+                    <td data-label="سمت · سطح">{text(e?.position?.label)} · {text(e?.level?.label)}</td>
+                    <td data-label="پیوند حساب">{e ? <StatusPill tone={e.user.link_state === 'LINKED' ? 'green' : 'orange'} icon={e.user.link_state === 'LINKED' ? 'check' : 'alert'} label={linkLabel[e.user.link_state]} /> : '—'}</td>
                   </>
                 )}
-                {canAssignment && <td><Manager p={p} /></td>}
-                <td>{p.finding_count > 0 ? <StatusPill tone="orange" icon="alert" label={`${p.finding_count} یافته`} /> : <span className="muted">—</span>}</td>
+                {canAssignment && <td data-label="مدیر جاری"><Manager p={p} /></td>}
+                <td data-label="یافته‌ها">{p.finding_count > 0 ? <StatusPill tone="orange" icon="alert" label={`${p.finding_count} یافته`} /> : <span className="muted">—</span>}</td>
               </tr>
             )
           })}

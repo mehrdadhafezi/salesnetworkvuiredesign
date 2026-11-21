@@ -1,4 +1,5 @@
 import '../writes.css'
+import '../../hr/hr.css'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useApi, type CommandEnvelope } from '../../../shared/api'
@@ -9,7 +10,10 @@ import { ReadStates } from '../../../shared/read/ReadStates'
 import { formatInstant } from '../../../shared/ui/time'
 import { Button, Card, PageHeader, StatusPill } from '../../../shared/ui/primitives'
 import { CommandBanner, newIdempotencyKey } from '../CommandBanner'
-import { blockedLabel, hrStatusLabel, hrTypeLabel } from '../labels'
+import { blockedLabel, hrTypeLabel } from '../labels'
+import { PersonResolver, UserPerson } from '../../hr/workspace/people'
+import { HRSectionNav } from '../../hr/workspace/SectionNav'
+import { hrStatusIcon, hrStatusTone, lifecycle, requestStatusLabel, stepLabel } from '../../hr/workspace/requests'
 
 /**
  * One HR request: requester, reviewer and target are snapshots; history is
@@ -17,6 +21,10 @@ import { blockedLabel, hrStatusLabel, hrTypeLabel } from '../labels'
  * final apply is shown as unavailable, never as a control.
  */
 export function HRRequestPage() {
+  return <PersonResolver><HRRequestView /></PersonResolver>
+}
+
+function HRRequestView() {
   const { requestId = '' } = useParams()
   const api = useApi()
   const s = useSession()
@@ -42,24 +50,36 @@ export function HRRequestPage() {
 
   return (
     <>
+      <HRSectionNav />
       <PageHeader title="درخواست منابع انسانی" subtitle="تایید مرحله‌ای ≠ اعمال تغییر.">
         <StatusPill tone="amber" icon="alert" label="دستور کنترل‌شده" />
       </PageHeader>
       <p><Link to="/hr/requests">بازگشت به فهرست</Link></p>
       <ReadStates state={st} what="درخواست" blockedDetail="درخواست‌های منابع انسانی پشت پرچم organization.hr_request_write هستند." />
       {st.status === 'ok' && (
-        <div className="wr-sections">
+        <div className="wr-sections hr-fit">
           {result && <CommandBanner env={result} />}
+          <ol className="hr-steps" aria-label="مراحل درخواست">
+            {lifecycle(st.data.request.status).map(step => (
+              <li key={step.key} data-state={step.state} aria-current={step.state === 'current' ? 'step' : undefined}>
+                <b>{step.label}</b> <span className="muted">{stepLabel[step.state]}</span>
+              </li>
+            ))}
+          </ol>
           <Card title={hrTypeLabel[st.data.request.request_type] ?? st.data.request.request_type}>
             <dl className="wr-dl">
-              <dt>وضعیت</dt><dd>{hrStatusLabel[st.data.request.status] ?? st.data.request.status}</dd>
-              <dt>فروشنده</dt><dd className="wr-ltr">{st.data.request.subject_user_id}</dd>
-              <dt>سرپرست فعلی (لحظه ثبت)</dt><dd className="wr-ltr">{st.data.request.subject_parent_user_id ?? '—'}</dd>
-              <dt>مقصد</dt><dd className="wr-ltr">{st.data.request.target_parent_user_id ?? '—'}</dd>
-              <dt>درخواست‌دهنده</dt><dd className="wr-ltr">{st.data.request.requested_by_user_id}</dd>
-              <dt>بازبین فعلی</dt><dd className="wr-ltr">{st.data.request.current_reviewer_user_id ?? '—'}</dd>
+              <dt>وضعیت</dt><dd><StatusPill tone={hrStatusTone(st.data.request.status)} icon={hrStatusIcon(st.data.request.status)} label={requestStatusLabel(st.data.request.status)} />
+                <span className="muted wr-ltr"> {st.data.request.status}</span></dd>
+              <dt>فروشنده</dt><dd><UserPerson userId={st.data.request.subject_user_id} /></dd>
+              <dt>سرپرست فعلی (لحظه ثبت)</dt><dd><UserPerson userId={st.data.request.subject_parent_user_id} /></dd>
+              <dt>مقصد</dt><dd><UserPerson userId={st.data.request.target_parent_user_id} /></dd>
+              <dt>درخواست‌دهنده</dt><dd><UserPerson userId={st.data.request.requested_by_user_id} /></dd>
+              <dt>بازبین فعلی</dt><dd><UserPerson userId={st.data.request.current_reviewer_user_id} empty="ندارد" /></dd>
               <dt>دلیل</dt><dd>{st.data.request.reason}</dd>
+              {st.data.request.reviewer_notes && <><dt>یادداشت بازبین</dt><dd>{st.data.request.reviewer_notes}</dd></>}
+              <dt>ثبت · آخرین تغییر</dt><dd>{formatInstant(st.data.request.created_at, zone)} · {formatInstant(st.data.request.updated_at, zone)}</dd>
             </dl>
+            <p className="muted">درخواست‌دهنده، سرپرست، مقصد و بازبین تصویر لحظه ثبت/گذار هستند؛ نام فعلی از پرونده امروز خوانده می‌شود و سابقه را بازنویسی نمی‌کند.</p>
             {actionHint(st.data.request.allowed_actions, 'approve_step').allowed && !pending && (
               <div className="wr-actions">
                 <Button variant="primary" onClick={() => setPending({ decision: 'approve', key: newIdempotencyKey() })}>تایید مرحله</Button>
@@ -81,12 +101,32 @@ export function HRRequestPage() {
               ))}
             </ul>
           </Card>
+          <Card title="درخواست‌شده در برابر اعمال‌شده">
+            <div className="hr-rva">
+              <section aria-label="تغییر درخواست‌شده">
+                <h3 className="hr-sub">درخواست‌شده</h3>
+                <p>{hrTypeLabel[st.data.request.request_type] ?? st.data.request.request_type}{st.data.request.request_type === 'transfer_seller' && <> ← <UserPerson userId={st.data.request.target_parent_user_id} /></>}</p>
+              </section>
+              <section aria-label="تغییر اعمال‌شده">
+                <h3 className="hr-sub">اعمال‌شده</h3>
+                <p>{st.data.request.status === 'approved' ? 'سرور وضعیت «تایید و اعمال شده» را گزارش می‌کند؛ اثر واقعی جداگانه تأیید نشده است.'
+                  : st.data.request.status === 'failed' ? 'اعمال ناموفق؛ اثر واقعی نامعلوم است و باید پیش از هر تکرار تطبیق شود.'
+                    : 'اعمال نشده. سلسله‌مراتب، همکاری، حساب و دسترسی تغییری نکرده‌اند.'}</p>
+              </section>
+            </div>
+          </Card>
           <Card title="تاریخچه">
-            <ol className="wr-list" aria-label="تاریخچه درخواست">
-              {st.data.history.map(h => (
-                <li key={h.event_id}>{h.action} · {hrStatusLabel[h.to_status] ?? h.to_status} · {formatInstant(h.occurred_at, zone)}</li>
-              ))}
-            </ol>
+            {st.data.history.length === 0 ? <p className="muted">رویدادی ثبت نشده است.</p> : (
+              <ol className="wr-list" aria-label="تاریخچه درخواست">
+                {st.data.history.map(h => (
+                  <li key={h.event_id}>
+                    <b className="wr-ltr">{h.action}</b> · {h.from_status ? `${requestStatusLabel(h.from_status)} ← ` : ''}{requestStatusLabel(h.to_status)} · {formatInstant(h.occurred_at, zone)}
+                    <div className="muted">اقدام‌کننده: <UserPerson userId={h.actor_user_id} />{h.next_reviewer_user_id && <> · بازبین بعدی: <UserPerson userId={h.next_reviewer_user_id} /></>}
+                      {h.notes && <> · یادداشت: {h.notes}</>} · نسخه <span className="num">{h.after_version}</span></div>
+                  </li>
+                ))}
+              </ol>
+            )}
           </Card>
         </div>
       )}

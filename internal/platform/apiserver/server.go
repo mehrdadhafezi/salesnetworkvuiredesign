@@ -163,7 +163,7 @@ var ContractQuery = map[string][]string{
 	"/api/v1/auth/logout-all":                               {},
 	"/api/v1/identity/users":                                {"q", "presence", "sort", "cursor", "limit"},
 	"/api/v1/identity/users/{user_id}":                      {},
-	"/api/v1/organization/persons":                          {"q", "employment_status", "position_id", "level_id", "org_unit_id", "is_active", "has_findings", "sort", "cursor", "limit"},
+	"/api/v1/organization/persons":                          {"q", "employment_status", "position_id", "level_id", "org_unit_id", "is_active", "has_findings", "user_id", "sort", "cursor", "limit"},
 	"/api/v1/organization/persons/{person_id}":              {},
 	"/api/v1/organization/positions":                        {"cursor", "limit"},
 	"/api/v1/organization/levels":                           {"cursor", "limit"},
@@ -221,7 +221,7 @@ var ContractQuery = map[string][]string{
 	"/api/v1/finance/reconciliation":                        {"run_id", "basis", "unit", "state", "subject_type", "cursor", "limit"},
 	// Slice 11: commands take no query parameters; reads are bounded.
 	"/api/v1/cases/{case_id}/contact-outcomes":          {},
-	"/api/v1/hr/requests":                               {"cursor", "limit"},
+	"/api/v1/hr/requests":                               {"status", "subject_user_id", "cursor", "limit"},
 	"/api/v1/hr/requests/{request_id}":                  {},
 	"/api/v1/hr/requests/{request_id}/decisions":        {},
 	"/api/v1/writeback/summary":                         {},

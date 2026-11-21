@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { useApi, type FindingKind } from '../../../shared/api'
 import { Button, Card, PageHeader, StateBlock } from '../../../shared/ui/primitives'
 import { ReadStates } from '../components/States'
+import { HRSectionNav } from '../workspace/SectionNav'
 import { findingLabel, severityLabel } from '../labels'
 import { compact, settle, useRead } from '../load'
 import { FindingList } from './PersonPage'
@@ -30,6 +31,7 @@ export function ExceptionsPage() {
 
   return (
     <>
+      <HRSectionNav />
       <PageHeader title="استثناهای سلسله‌مراتب" subtitle="یافته‌ها گزارش می‌شوند؛ هیچ موردی خودکار اصلاح نمی‌شود." />
       <Card title="فیلترها">
         <form className="hr-filters" onSubmit={apply} aria-label="فیلتر یافته‌ها">

@@ -96,7 +96,16 @@ func (h *HRRequestHandlers) ListHRRequests(ctx context.Context, req oapi.ListHRR
 		limit = int(*req.Params.Limit)
 	}
 	s := h.guard.Subject(ctx)
-	rows, next, err := h.svc.List(ctx, s.UserID, req.Params.Cursor, limit)
+	f := hrrequest.ListFilter{}
+	if req.Params.Status != nil {
+		st := string(*req.Params.Status)
+		f.Status = &st
+	}
+	if req.Params.SubjectUserId != nil {
+		u := req.Params.SubjectUserId.String()
+		f.SubjectUserID = &u
+	}
+	rows, next, err := h.svc.List(ctx, s.UserID, f, req.Params.Cursor, limit)
 	if errors.Is(err, hrrequest.ErrInvalid) {
 		return oapi.ListHRRequests400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	}
