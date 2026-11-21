@@ -104,6 +104,8 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     if (DB.foreignInvoice) await expect(invoices.getByText(DB.foreignInvoice, { exact: false })).toHaveCount(0)
     const call = reqs.find(r => { const u = new URL(r.url()); return u.pathname === '/api/v1/invoices' && u.searchParams.get('customer_id') === DB.customer })
     expect(call, 'invoice list filtered by the exact customer id').toBeTruthy()
+    // One RM-P01 read per customer and cursor serves both the related-invoices section and the timeline.
+    expect(reqs.filter(r => new URL(r.url()).pathname === '/api/v1/invoices')).toHaveLength(1)
     await shot(page, card, 'customer-timeline')
     expectReadsOnly(reqs)
   })
@@ -120,5 +122,18 @@ operator.describe('dev-user-002 (no capability, test-only overlay): every timeli
     await expect(card.getByRole('region', { name: CUSTODY })).toBeVisible()
     await expect(card.locator('li.tl-event')).toHaveCount(0)
     expect(await page.content()).not.toContain(DB.firstRaw)
+  })
+
+  operator('customer timeline: detail denied, so the timeline adds no invoice request and shows no invoice event', async ({ page, blocked }) => {
+    void blocked
+    const reqs = recordApi(page)
+    await page.goto(`/customers/${DB.customer}`)
+    const card = page.getByRole('region', { name: 'خط زمانی فعالیت مشتری' })
+    const invoices = card.getByRole('region', { name: 'صدور فاکتورهای با پیوند تأییدشده' })
+    await expect(invoices.getByText('این منبع فقط پس از دریافت موفق رکورد مشتری نمایش داده می‌شود')).toBeVisible()
+    await expect(card.locator('li.tl-event')).toHaveCount(0)
+    // Only the RM-P01 section's own (billing-authorized, here denied) read; the timeline adds none.
+    await expect(page.getByRole('region', { name: 'فاکتورهای این مشتری (پیوند تأییدشده)' }).getByText('دسترسی به این بخش ندارید')).toBeVisible()
+    expect(reqs.filter(r => new URL(r.url()).pathname === '/api/v1/invoices')).toHaveLength(1)
   })
 })

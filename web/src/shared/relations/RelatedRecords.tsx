@@ -84,18 +84,43 @@ function CaseTable({ items, customerId }: { items: CaseSummary[]; customerId: st
 }
 
 /**
- * Invoices whose own link is RESOLVED to the given customer and/or case
- * (both filters are conjunctive on the server). The current record's own
- * column shows only its state; the other relationship links out only when
- * RESOLVED.
+ * The RM-P01 invoice read: invoices whose own link is RESOLVED to the given
+ * customer and/or case (both filters are conjunctive on the server), paged
+ * with the server cursor. Billing authorizes it on its own; nothing here is
+ * inferred from another module's answer. A page owning this hook can share
+ * the one read (per owner and cursor) with the RM-P03 activity timeline.
+ * The cursor stack belongs to one owner: a different customer / case starts
+ * at the first page.
  */
-export function RelatedInvoices({ customerId, caseId }: { customerId?: string; caseId?: string }) {
+export function useRelatedInvoices({ customerId, caseId }: { customerId?: string; caseId?: string }) {
   const api = useApi()
-  const c = useCursorStack()
-  const invoices = useRead(`rel-inv:${customerId ?? ''}:${caseId ?? ''}:${c.cursor ?? ''}`, async () => settle(await api.GET('/api/v1/invoices', {
+  const owner = `${customerId ?? ''}:${caseId ?? ''}`
+  const [state, setState] = useState<{ owner: string; stack: string[] }>({ owner, stack: [] })
+  const stack = state.owner === owner ? state.stack : []
+  const cursor = stack[stack.length - 1]
+  const c = {
+    cursor, depth: stack.length,
+    back: () => setState({ owner, stack: stack.slice(0, -1) }),
+    next: (n: string) => setState({ owner, stack: [...stack, n] }),
+  }
+  const invoices = useRead(`rel-inv:${owner}:${cursor ?? ''}`, async () => settle(await api.GET('/api/v1/invoices', {
     params: { query: { ...(customerId ? { customer_id: customerId } : {}), ...(caseId ? { case_id: caseId } : {}), limit: PAGE,
-      ...(c.cursor ? { cursor: c.cursor } : {}) } } }),
+      ...(cursor ? { cursor } : {}) } } }),
   e => e.items && e.page ? { items: e.items, page: e.page } : undefined))
+  return { invoices, c }
+}
+
+export type RelatedInvoicesRead = ReturnType<typeof useRelatedInvoices>
+
+/** The RM-P01 related-invoices section over its own read. */
+export function RelatedInvoices({ customerId, caseId }: { customerId?: string; caseId?: string }) {
+  const rel = useRelatedInvoices({ ...(customerId ? { customerId } : {}), ...(caseId ? { caseId } : {}) })
+  return <RelatedInvoicesView rel={rel} customerId={customerId} caseId={caseId} />
+}
+
+/** The RM-P01 related-invoices section over a read owned by the page. */
+export function RelatedInvoicesView({ rel, customerId, caseId }: { rel: RelatedInvoicesRead; customerId?: string | undefined; caseId?: string | undefined }) {
+  const { invoices, c } = rel
   const owner = caseId ? 'این پرونده' : 'این مشتری'
   return (
     <>

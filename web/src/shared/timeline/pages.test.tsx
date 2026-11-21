@@ -249,9 +249,9 @@ function customerRoutes(over: Record<string, Handler> = {}, allowed: Record<stri
     [`GET /api/v1/customers/${CUST}/contact-points`]: () => json(env({ items: [], page: { has_more: false } }, allowed)),
     [`GET /api/v1/customers/${CUST}/evidence`]: () => json(env({ items: [], page: { has_more: false } }, allowed)),
     'GET /api/v1/cases': () => json(env({ items: [], page: { has_more: false } }, allowed)),
-    'GET /api/v1/invoices': req => json(env(q(req).get('customer_id') === CUST
-      ? page([invoice(), invoice({ invoice_id: ID(3), source: isrc('2003'), customer: { id: ID(999), state: 'RESOLVED', basis: 'x' }, code_raw: 'SYN-LEAK' })], 'i-2')
-      : page([]), INV_CAPS)),
+    'GET /api/v1/invoices': req => json(env(q(req).get('customer_id') !== CUST ? page([])
+      : q(req).get('cursor') === 'i-2' ? page([invoice({ invoice_id: ID(4), source: isrc('2004'), code_raw: 'SYN-PAGE2' })])
+        : page([invoice(), invoice({ invoice_id: ID(3), source: isrc('2003'), customer: { id: ID(999), state: 'RESOLVED', basis: 'x' }, code_raw: 'SYN-LEAK' })], 'i-2'), INV_CAPS)),
     ...over,
   }
 }
@@ -273,6 +273,58 @@ describe('RM-P03 customer activity timeline (safe subset)', () => {
     readOnlyNoIdentityJoin(calls)
   })
 
+  /* Read boundary (review of PR #91): the timeline never issues its own invoice request. It reuses the
+     page's RM-P01 read (one request per customer and cursor) and shows it only after the customer detail
+     read succeeded; the RM-P01 section itself keeps its own, billing-authorized read. */
+  const invoiceCalls = (calls: Captured[]) => calls.filter(c => c.url === '/api/v1/invoices')
+  const RELATED = 'فاکتورهای این مشتری (پیوند تأییدشده)'
+  const AWAIT = 'این منبع فقط پس از دریافت موفق رکورد مشتری نمایش داده می‌شود'
+
+  it('customer detail loading: no timeline invoice request; only the single RM-P01 read exists', async () => {
+    const { calls } = renderAt(`/customers/${CUST}`, customerRoutes({ [`GET /api/v1/customers/${CUST}`]: () => new Promise<Response>(() => {}) }))
+    const inv = await screen.findByRole('region', { name: 'صدور فاکتورهای با پیوند تأییدشده' })
+    expect(within(inv).getByText(AWAIT)).toBeTruthy()
+    expect(await within(screen.getByRole('region', { name: RELATED })).findByRole('link', { name: /legacy.invoice.v2 #2002/ })).toBeTruthy()
+    expect(invoiceCalls(calls)).toHaveLength(1)
+    expect(inv.querySelectorAll('li.tl-event')).toHaveLength(0)
+  })
+
+  for (const [what, handler] of [
+    ['denied', denied],
+    ['blocked', () => json({ outcome: 'BLOCKED', reasons: ['FEATURE_DISABLED'], correlation_id: 'test-corr-0303' })],
+    ['not found', () => json({ type: '/problems/not-found', title: 'Resource not found', status: 404, reason_code: 'CONTRACT_INVALID', correlation_id: 'x' }, 404, 'application/problem+json')],
+  ] as const) {
+    it(`customer detail ${what}: no timeline invoice request and no invoice event; the RM-P01 section still works`, async () => {
+      const { calls } = renderAt(`/customers/${CUST}`, customerRoutes({ [`GET /api/v1/customers/${CUST}`]: handler }))
+      const related = await screen.findByRole('region', { name: RELATED })
+      expect(await within(related).findByRole('link', { name: /legacy.invoice.v2 #2002/ })).toBeTruthy()
+      const inv = lane('صدور فاکتورهای با پیوند تأییدشده')
+      expect(within(inv).getByText(AWAIT)).toBeTruthy()
+      expect(inv.querySelectorAll('li.tl-event')).toHaveLength(0)
+      expect(within(inv).queryByText(/SYN-0303/)).toBeNull()
+      expect(invoiceCalls(calls)).toHaveLength(1)
+    })
+  }
+
+  it('detail success: one request per customer and cursor serves both the RM-P01 list and the timeline, pagination included', async () => {
+    const { calls } = renderAt(`/customers/${CUST}`, customerRoutes())
+    const inv = await screen.findByRole('region', { name: 'صدور فاکتورهای با پیوند تأییدشده' })
+    expect(await within(inv).findByRole('link', { name: /SYN-0303/ })).toBeTruthy()
+    const related = screen.getByRole('region', { name: RELATED })
+    expect(invoiceCalls(calls)).toHaveLength(1)
+    expect(invoiceCalls(calls)[0]?.search.get('customer_id')).toBe(CUST)
+    fireEvent.click(within(related).getByRole('button', { name: 'صفحه بعد' }))
+    expect(await within(related).findByText('SYN-PAGE2', { exact: false })).toBeTruthy()
+    expect(await within(inv).findByRole('link', { name: /SYN-PAGE2/ })).toBeTruthy()
+    expect(within(inv).getByText('فقط صفحه 2 بارگذاری شده است')).toBeTruthy()
+    expect(invoiceCalls(calls).map(c => c.search.get('cursor'))).toEqual([null, 'i-2'])
+    fireEvent.click(within(inv).getByRole('button', { name: 'صفحه قبل' }))
+    expect(await within(related).findByText('SYN-0303', { exact: false })).toBeTruthy()
+    // Back to page 1 re-reads page 1 once (no cache), never twice for the same cursor at once.
+    expect(invoiceCalls(calls).map(c => c.search.get('cursor'))).toEqual([null, 'i-2', null])
+    readOnlyNoIdentityJoin(calls)
+  })
+
   it('merge-case events stay locked without customers.merge_case.read; a denied invoice list is shown as denied', async () => {
     renderAt(`/customers/${CUST}`, customerRoutes({ 'GET /api/v1/invoices': denied }, caps('customers.customer.read')))
     const mc = await screen.findByRole('region', { name: 'پرونده‌های تطبیق هویت' })
@@ -280,5 +332,7 @@ describe('RM-P03 customer activity timeline (safe subset)', () => {
     expect(within(mc).queryByRole('link')).toBeNull()
     expect(await within(lane('صدور فاکتورهای با پیوند تأییدشده')).findByText('دسترسی به این بخش ندارید')).toBeTruthy()
     expect(within(lane('صدور فاکتورهای با پیوند تأییدشده')).queryByText(/SYN-0303/)).toBeNull()
+    expect(lane('صدور فاکتورهای با پیوند تأییدشده').querySelectorAll('li.tl-event')).toHaveLength(0)
+    expect(document.body.textContent).not.toMatch(/SYN-0303|SYN-LEAK/)
   })
 })

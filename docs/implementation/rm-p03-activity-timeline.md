@@ -47,7 +47,7 @@ Legacy text is recognised only as `YYYY-MM-DD[ HH:MM[:SS[.f]]]`; anything else (
 | Invoice | Target-submitted payments | the RM-P02 Finance review read (`invoice_id` filter), one request shared with the review section, only after invoice detail SUCCESS | list order, paged (10) |
 | Customer | Customer record observation | `GET /customers/{id}` | record field |
 | Customer | Identity merge cases | from the detail, only with `customers.merge_case.read` hint | list order |
-| Customer | Invoice issuance | `GET /invoices?customer_id=` (exact id); rows whose own link is not RESOLVED to this id are dropped and counted | list order, paged (10) |
+| Customer | Invoice issuance | no own request: the page's RM-P01 `GET /invoices?customer_id=` read (exact id, billing-authorized on its own, one request per customer and cursor, shared pager), shown only after customer detail SUCCESS; rows whose own link is not RESOLVED to this id are dropped and counted | list order, paged (10) |
 
 The customer timeline is explicitly a **safe subset**: case-level and payment-level events stay on their own pages
 (aggregating them would require one read per case / attempt and is not claimed).
