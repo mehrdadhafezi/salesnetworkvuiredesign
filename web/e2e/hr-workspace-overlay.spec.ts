@@ -49,7 +49,7 @@ async function shot(page: Page, region: Locator, name: string) {
   for (const [vp, size] of [['desktop', { width: 1366, height: 900 }], ['tablet', { width: 820, height: 1180 }], ['mobile', { width: 390, height: 844 }]] as const) {
     await page.setViewportSize(size)
     // No horizontal page scroll at any width.
-    const offenders = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1 ? [] : [...document.querySelectorAll('body *')]
+    const offenders = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1 ? [] : Array.from(document.querySelectorAll('body *'))
       .filter(el => { const r = el.getBoundingClientRect(); return r.right > window.innerWidth + 1 || r.left < -1 })
       .filter(el => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).overflowX !== 'visible') return false; return true })
       .slice(0, 8).map(el => `${el.tagName.toLowerCase()}.${(el.getAttribute('class') ?? '').replace(/ /g, '.')} ${Math.round(el.getBoundingClientRect().left)}..${Math.round(el.getBoundingClientRect().right)}`))
