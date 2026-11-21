@@ -54,6 +54,10 @@ describe('computeNavOverflow (priority+)', () => {
     expect(hidden).not.toContain(3)
     expect(hidden).toEqual([1, 2])
   })
+  it('counts the flex gap a visible separator adds (row of 4 items + 1 separator needs 400 + 17 + 4 × 2)', () => {
+    expect(computeNavOverflow({ ...base, available: 424, currentIndex: 0 })).toEqual([])
+    expect(computeNavOverflow({ ...base, available: 423, currentIndex: 0 })).toEqual([3])
+  })
 })
 
 describe('RoleNavigation', () => {

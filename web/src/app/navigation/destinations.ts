@@ -74,10 +74,10 @@ export const MODULE_LABEL: Record<ModuleKey, string> = {
 export const DESTINATIONS: readonly Destination[] = [
   { id: 'hr.workforce', to: '/hr', label: 'نیروها', short: 'نیروها', icon: 'users', module: 'hr', kind: 'READ', feature: 'hr_read', capability: c('org.person.read') },
   { id: 'hr.structure', to: '/hr/structure', label: 'ساختار سازمانی', short: 'ساختار', icon: 'layers', module: 'hr', kind: 'READ', feature: 'hr_read', capability: c('org.unit.read') },
-  { id: 'hr.assignments', to: '/hr/assignments', label: 'انتساب‌ها و گزارش‌دهی', short: 'انتساب‌ها', icon: 'swap', module: 'hr', kind: 'READ', feature: 'hr_read', capability: c('org.assignment.read') },
-  { id: 'hr.positions', to: '/hr/positions', label: 'سمت‌ها و سطوح', short: 'سمت‌ها', icon: 'layers', module: 'hr', kind: 'READ', feature: 'hr_read', capability: c('org.position.read') },
   { id: 'hr.exceptions', to: '/hr/exceptions', label: 'استثناهای سلسله‌مراتب', short: 'استثناها', icon: 'alert', module: 'hr', kind: 'READ', feature: 'hr_read', capability: c('org.assignment.read') },
   { id: 'hr.requests', to: '/hr/requests', label: 'درخواست‌های منابع انسانی', short: 'درخواست‌ها', icon: 'send', module: 'hr', kind: 'CONTROLLED_WRITE', feature: 'hr_request_write', capability: c('org.hr_request.read') },
+  { id: 'hr.assignments', to: '/hr/assignments', label: 'انتساب‌ها و گزارش‌دهی', short: 'انتساب‌ها', icon: 'swap', module: 'hr', kind: 'READ', feature: 'hr_read', capability: c('org.assignment.read') },
+  { id: 'hr.positions', to: '/hr/positions', label: 'سمت‌ها و سطوح', short: 'سمت‌ها', icon: 'layers', module: 'hr', kind: 'READ', feature: 'hr_read', capability: c('org.position.read') },
   { id: 'customers.list', to: '/customers', label: 'مشتریان', short: 'مشتریان', icon: 'user', module: 'customers', kind: 'READ', feature: 'customers_identity', capability: c('customers.customer.read') },
   { id: 'customers.merge', to: '/customers/merge-cases', label: 'پرونده‌های تطبیق', short: 'تطبیق', icon: 'swap', module: 'customers', kind: 'READ', feature: 'customers_identity', capability: c('customers.merge_case.read') },
   { id: 'customers.report', to: '/customers/identity-report', label: 'گزارش تطبیق هویت', short: 'گزارش هویت', icon: 'file', module: 'customers', kind: 'READ', feature: 'customers_identity', capability: c('customers.identity_report.read') },

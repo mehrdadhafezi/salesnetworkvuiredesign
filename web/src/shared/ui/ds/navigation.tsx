@@ -72,7 +72,9 @@ export function computeNavOverflow(input: {
     let total = 0, count = 0
     for (let i = 0; i < n; i++) {
       if (!visible[i]) continue
-      total += (itemWidths[i] ?? 0) + (count > 0 ? separatorWidths[i] ?? 0 : 0)
+      // A visible separator is its own flex item: its width AND one more flex gap.
+      const sep = count > 0 ? separatorWidths[i] ?? 0 : 0
+      total += (itemWidths[i] ?? 0) + sep + (sep > 0 ? gap : 0)
       count++
     }
     return total + gap * Math.max(0, count - 1)
@@ -202,7 +204,9 @@ export function RoleNavigation({ items, currentId, label, onNavigate, renderLink
       >
         <DsIcon name="more" />
         <span>{moreLabel}</span>
-        <span className="ds-nav-count"><span aria-hidden="true">{countText(overflowItems.length)}</span><span className="sr">، {countLabel(overflowItems.length)} مورد</span></span>
+        {/* While measuring (button invisible) the badge holds the upper bound, items.length, so the reserved
+            width is never smaller than the final badge (one digit while measuring vs two after the cut). */}
+        <span className="ds-nav-count"><span aria-hidden="true">{countText(phase === 'measure' ? items.length : overflowItems.length)}</span><span className="sr">، {countLabel(overflowItems.length)} مورد</span></span>
       </button>
       <Menu open={menuOpen} onClose={onCloseMenu} anchorRef={moreRef} label={moreLabel} entries={entries} initialFocus={menuFocus} />
     </nav>
