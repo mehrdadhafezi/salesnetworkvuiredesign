@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/api"
 	"github.com/mehrdadhafezi/salesnetworkvuiredesign/internal/payments/store"
@@ -145,7 +146,11 @@ func (s *Service) History(ctx context.Context, id string, cursor *string, limitI
 	if !uuidPattern.MatchString(id) {
 		return HistoryPage{}, invalid("attempt_id")
 	}
-	after, limit, err := bounds(cursor, limitIn)
+	limit, err := pagination.Limit(limitIn)
+	if err != nil {
+		return HistoryPage{}, invalid("%v", err)
+	}
+	after, err := historyCursor(cursor)
 	if err != nil {
 		return HistoryPage{}, err
 	}
@@ -158,10 +163,35 @@ func (s *Service) History(ctx context.Context, id string, cursor *string, limitI
 		if err != nil {
 			return err
 		}
-		p.Entries, p.NextCursor, err = page(rows, limit, func(h store.HistoryEntry) string { return h.HistoryID })
+		if len(rows) <= limit {
+			p.Entries = rows
+			return nil
+		}
+		p.Entries = rows[:limit]
+		last := rows[limit-1]
+		c, err := pagination.Encode(pagination.Cursor{Sort: historySort, Value: last.RecordedAt.UTC().Format(time.RFC3339Nano), ID: last.HistoryID})
+		p.NextCursor = &c
 		return err
 	})
 	return p, err
+}
+
+// historySort names the attempt history keyset (append order).
+const historySort = "recorded_at"
+
+func historyCursor(cursor *string) (*store.HistoryKey, error) {
+	if cursor == nil {
+		return nil, nil
+	}
+	c, err := pagination.Decode(*cursor, historySort)
+	if err != nil || !uuidPattern.MatchString(c.ID) {
+		return nil, invalid("cursor")
+	}
+	at, err := time.Parse(time.RFC3339Nano, c.Value)
+	if err != nil {
+		return nil, invalid("cursor")
+	}
+	return &store.HistoryKey{RecordedAt: at, ID: c.ID}, nil
 }
 
 // ReceiptsPage is one page of receipt references.

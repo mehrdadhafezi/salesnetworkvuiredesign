@@ -104,7 +104,7 @@ describe('RM-P02 invoice 360° workspace', () => {
     const nav = screen.getByRole('navigation', { name: 'بخش‌های فاکتور' })
     const anchors = within(nav).getAllByRole('link')
     expect(anchors.map(a => a.getAttribute('href'))).toEqual(['#inv-overview', '#inv-facts', '#inv-states', '#inv-amounts', '#inv-items', '#inv-stages',
-      '#inv-attempts', '#inv-receipts', '#inv-review', '#inv-provenance'])
+      '#inv-attempts', '#inv-receipts', '#inv-review', '#inv-activity', '#inv-provenance'])
     for (const a of anchors) expect(document.getElementById((a.getAttribute('href') ?? '').slice(1))).not.toBeNull()
     for (const t of ['نمای کلی و پیوندها', 'فاکتور', 'شواهد وضعیت (هر فیلد جدا)', 'شواهد جمع (به تفکیک واحد؛ بدون برنده)', 'اقلام (اسنپ‌شات صدور)', 'مراحل پرداخت',
       'تلاش‌های پرداخت', 'رسیدها (فقط فراداده ارجاع)', 'بررسی مالی', 'منشأ']) expect(region(t)).toBeTruthy()

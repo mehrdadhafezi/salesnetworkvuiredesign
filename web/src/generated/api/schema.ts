@@ -876,6 +876,7 @@ export interface paths {
          * List an attempt's append-only observed state changes
          * @description Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
          *     Unknown query parameters are 400 CONTRACT_INVALID.
+         *     Rows are in append order (oldest first: recorded_at, then history_id); recorded_at is when the import observed the change, not when it happened.
          */
         get: operations["listPaymentAttemptHistory"];
         put?: never;

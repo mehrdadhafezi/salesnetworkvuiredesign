@@ -97,6 +97,10 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     expect(reqs.some(r => /\/api\/v1\/payments\/attempts\/[0-9a-f-]{36}\/history/.test(new URL(r.url()).pathname))).toBe(true)
 
     for (const r of reqs) expect(r.method(), r.url()).toBe('GET')
+    // RM-P03 activity timeline: one 'attempt created' event per attempt on the loaded page (same request as the table).
+    const tl = region(page, 'خط زمانی فعالیت فاکتور')
+    await expect(tl.getByRole('region', { name: 'تلاش‌های پرداخت (منبع قدیمی)' }).locator('li[data-type="payment.attempt_created"]')).toHaveCount(Math.min(DB.attN, PAGE))
+    await expect(tl.getByRole('region', { name: 'رکورد فاکتور' }).locator('li[data-type="invoice.issued"]')).toHaveCount(1)
     await shots(page, 'invoice-workspace')
   })
 
@@ -118,6 +122,11 @@ operator.describe('dev-user-001 (synthetic read capabilities, test-only overlay)
     await expect(ov.getByText(relationLabel[DB.reviewCustomer] ?? DB.reviewCustomer).first()).toBeVisible()
     await expect(ov.getByRole('link', { name: 'مشاهده مشتری' })).toHaveCount(DB.reviewCustomer === 'RESOLVED' ? 1 : 0)
     await expect(ov.getByRole('link', { name: 'مشاهده پرونده' })).toHaveCount(DB.reviewCase === 'RESOLVED' ? 1 : 0)
+
+    // RM-P03 timeline: the same (single) review read, one event per submitted attempt of this invoice.
+    const subs = region(page, 'خط زمانی فعالیت فاکتور').getByRole('region', { name: 'پرداخت‌های ثبت‌شده در سامانه جدید' })
+    await expect(subs.locator('li[data-type="payment.submitted"]')).toHaveCount(DB.reviewN)
+    expect(reqs.filter(r => new URL(r.url()).pathname === '/api/v1/finance/review/attempts')).toHaveLength(1)
 
     // In-page navigation works.
     await page.getByRole('navigation', { name: 'بخش‌های فاکتور' }).getByRole('link', { name: 'بررسی مالی' }).click()

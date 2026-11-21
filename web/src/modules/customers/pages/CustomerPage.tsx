@@ -7,6 +7,8 @@ import { ReadStates } from '../../../shared/read/ReadStates'
 import { Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/primitives'
 import { CustomerCases, RelatedInvoices } from '../../../shared/relations/RelatedRecords'
 import { NoMergeNote, StatePill } from '../components'
+import { CustomerActivity } from '../activity'
+import { useSession } from '../../../shared/auth/currentSession'
 import { blockedDetail, evidenceLabel, reasonLabel, schemeLabel, strengthLabel, text } from '../labels'
 
 /**
@@ -24,6 +26,9 @@ export function CustomerPage() {
     params: { path: { customer_id: customerId } } }), e => e.items))
   const evidence = useRead(`ev:${customerId}`, async () => settle(await api.GET('/api/v1/customers/{customer_id}/evidence', {
     params: { path: { customer_id: customerId }, query: { limit: 100 } } }), e => e.items))
+
+  const session = useSession()
+  const zone = session.status === 'ready' ? session.session.display_zone : 'Asia/Tehran'
 
   const name = detail.status === 'ok' ? text(detail.data.customer.name_masked) : '…'
   return (
@@ -66,6 +71,9 @@ export function CustomerPage() {
         </Card>
         <Card title="فاکتورهای این مشتری (پیوند تأییدشده)">
           <RelatedInvoices key={customerId} customerId={customerId} />
+        </Card>
+        <Card title="خط زمانی فعالیت مشتری">
+          <CustomerActivity key={customerId} customerId={customerId} detail={detail} zone={zone} />
         </Card>
         <Card title="منبع">
           {detail.status === 'ok' && <Provenance d={detail.data} />}

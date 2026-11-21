@@ -1,9 +1,9 @@
 import './writes.css'
 import { useState, type FormEvent } from 'react'
-import { useApi, type CommandEnvelope } from '../../shared/api'
+import { useApi, type CommandEnvelope, type ContactOutcomeView } from '../../shared/api'
 import { useSession } from '../../shared/auth/currentSession'
 import { actionHint } from '../../shared/permissions/allowedActions'
-import { settle, useRead } from '../../shared/read/load'
+import { settle, useRead, type ReadState } from '../../shared/read/load'
 import { ReadStates } from '../../shared/read/ReadStates'
 import { formatInstant } from '../../shared/ui/time'
 import { Button, Card, StateBlock, StatusPill } from '../../shared/ui/primitives'
@@ -17,18 +17,33 @@ type Outcome = (typeof OUTCOMES)[number]
 interface Intent { outcome: Outcome; reason: string; callback: string }
 
 /**
+ * The case's contact outcome read, with a refresh counter. The case page
+ * owns it so the panel and the RM-P03 timeline share one request; it is
+ * requested only when `enabled` (the contact_outcome_write session feature),
+ * otherwise it settles as BLOCKED / FEATURE_DISABLED without a request.
+ */
+export function useContactOutcomes(caseId: string, enabled: boolean) {
+  const api = useApi()
+  const [reload, setReload] = useState(0)
+  const view = useRead(`co:${caseId}:${reload}:${enabled}`, async (): Promise<ReadState<ContactOutcomeView>> => enabled
+    ? settle(await api.GET('/api/v1/cases/{case_id}/contact-outcomes', { params: { path: { case_id: caseId } } }), e => e.data)
+    : { status: 'blocked', reasons: ['FEATURE_DISABLED'] })
+  return { view, refresh: () => setReload(n => n + 1) }
+}
+
+export type ContactOutcomes = ReturnType<typeof useContactOutcomes>
+
+/**
  * The held lead's contact outcome (Slice 11). The record action appears only
  * when the server's allowed_actions (same evaluator as the command) allows
  * it; the server re-checks everything at commit. A contact outcome never
  * changes custody, the invoice, payments or finance.
  */
-export function ContactOutcomePanel({ caseId }: { caseId: string }) {
+export function ContactOutcomePanel({ caseId, outcomes }: { caseId: string; outcomes: ContactOutcomes }) {
   const api = useApi()
   const s = useSession()
   const zone = s.status === 'ready' ? s.session.display_zone : 'Asia/Tehran'
-  const [reload, setReload] = useState(0)
-  const view = useRead(`co:${caseId}:${reload}`, async () => settle(await api.GET('/api/v1/cases/{case_id}/contact-outcomes', {
-    params: { path: { case_id: caseId } } }), e => e.data))
+  const { view, refresh } = outcomes
   const [intent, setIntent] = useState<Intent | null>(null)
   const [key, setKey] = useState('')
   const [result, setResult] = useState<CommandEnvelope | null>(null)
@@ -58,7 +73,7 @@ export function ContactOutcomePanel({ caseId }: { caseId: string }) {
       setResult(env)
       if (env.outcome === 'SUCCESS' || env.outcome === 'CONFLICT') {
         setIntent(null)
-        setReload(n => n + 1) // conflict: refresh server state, never overwrite
+        refresh() // conflict: refresh server state, never overwrite
       }
     } else {
       setResult({ outcome: 'FAILED', reasons: [], correlation_id: '' } as CommandEnvelope)

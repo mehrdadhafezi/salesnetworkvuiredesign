@@ -1,7 +1,7 @@
 import './workspace.css'
 import { Fragment, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { useApi, type AttemptHistoryEntry, type InvoiceDetail, type InvoiceTotals, type PaymentAttempt, type ReviewAttempt } from '../../shared/api'
+import { useApi, type AttemptHistoryEntry, type InvoiceDetail, type InvoiceTotals, type PageInfo, type PaymentAttempt, type ReviewAttempt } from '../../shared/api'
 import { settle, useRead, type ReadState } from '../../shared/read/load'
 import { ReadStates } from '../../shared/read/ReadStates'
 import { RelationLink } from '../../shared/relations/RelationLink'
@@ -162,7 +162,26 @@ export function AttemptHistory({ attemptId, zone }: { attemptId: string; zone: s
   )
 }
 
-const reviewBlocked = 'بررسی مالی پشت پرچم ویژگی است (finance.review_read · FEATURE_DISABLED).'
+export const reviewBlocked = 'بررسی مالی پشت پرچم ویژگی است (finance.review_read · FEATURE_DISABLED).'
+
+/**
+ * The Finance review read of one invoice's target-submitted attempts (one
+ * request, shared by the review section and the RM-P03 activity timeline).
+ * It runs only when `enabled` (the invoice detail read succeeded); the
+ * server still checks finance.review.read.
+ */
+export function useInvoiceReview(invoiceId: string, enabled: boolean) {
+  const api = useApi()
+  const c = useCursorStack()
+  const q = useRead(`frq-inv:${invoiceId}:${c.cursor ?? ''}:${enabled}`, async (): Promise<ReadState<{ items: ReviewAttempt[]; page: PageInfo } | null>> => enabled
+    ? settle(await api.GET('/api/v1/finance/review/attempts', {
+      params: { query: { invoice_id: invoiceId, limit: 10, ...(c.cursor ? { cursor: c.cursor } : {}) } } }),
+    e => e.data && e.page ? { items: e.data, page: e.page } : undefined)
+    : { status: 'ok', data: null, outcome: 'SUCCESS', allowed: undefined })
+  return { q, c }
+}
+
+export type InvoiceReview = ReturnType<typeof useInvoiceReview>
 
 /**
  * Target-submitted attempts of this invoice awaiting Finance review, read
@@ -170,21 +189,17 @@ const reviewBlocked = 'بررسی مالی پشت پرچم ویژگی است (fi
  * evidence readiness (D-43) and the maker / checker gate; there is no
  * approve or reject control (D-41, OPD-08, OPD-09).
  */
-export function FinanceReviewForInvoice({ invoiceId, zone }: { invoiceId: string; zone: string }) {
-  const api = useApi()
-  const c = useCursorStack()
-  const q = useRead(`frq-inv:${invoiceId}:${c.cursor ?? ''}`, async () => settle(await api.GET('/api/v1/finance/review/attempts', {
-    params: { query: { invoice_id: invoiceId, limit: 10, ...(c.cursor ? { cursor: c.cursor } : {}) } } }),
-  e => e.data && e.page ? { items: e.data, page: e.page } : undefined))
+export function FinanceReviewForInvoice({ review, zone }: { review: InvoiceReview; zone: string }) {
+  const { q, c } = review
   return (
     <>
       <p className="muted ws-note" role="note">تصمیم مالی (تأیید یا رد) در این نسخه وجود ندارد؛ این بخش فقط وضعیت شواهد و دلیل مسدود بودن تصمیم را نشان می‌دهد.</p>
       <ReadStates state={q} what="بررسی مالی" blockedDetail={reviewBlocked} />
-      {q.status === 'ok' && (q.data.items.length === 0
+      {q.status === 'ok' && q.data && (q.data.items.length === 0
         ? <StateBlock kind="empty" title="پرداخت ثبت‌شده‌ای از این فاکتور در انتظار بررسی مالی نیست"
           detail="فقط پرداخت‌هایی که در سامانه جدید ثبت شده‌اند در صف بررسی قرار می‌گیرند؛ تلاش‌های قدیمی در بخش تلاش‌های پرداخت هستند." />
         : <ReviewTable items={q.data.items} zone={zone} />)}
-      {q.status === 'ok' && <MiniPager hasMore={q.data.page.has_more} next={q.data.page.next_cursor} c={c} label="صفحه‌بندی بررسی مالی" />}
+      {q.status === 'ok' && q.data && <MiniPager hasMore={q.data.page.has_more} next={q.data.page.next_cursor} c={c} label="صفحه‌بندی بررسی مالی" />}
     </>
   )
 }

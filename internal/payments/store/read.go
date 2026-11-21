@@ -127,14 +127,29 @@ type HistoryEntry struct {
 	RecordedAt          time.Time
 }
 
-// History pages an attempt's state history (keyset on recorded_at, id).
-func History(ctx context.Context, tx db.Tx, attemptID string, after *string, limit int) ([]HistoryEntry, error) {
+// HistoryKey is the keyset position of a history row: its append order.
+type HistoryKey struct {
+	RecordedAt time.Time
+	ID         string
+}
+
+// History pages an attempt's state history in append order (keyset on
+// recorded_at, then history_id). history_id is a random UUID, so on its own
+// it is not an order; recorded_at is the time the import appended the row.
+func History(ctx context.Context, tx db.Tx, attemptID string, after *HistoryKey, limit int) ([]HistoryEntry, error) {
 	if err := ReadTx(tx); err != nil {
 		return nil, err
 	}
+	var at *time.Time
+	var id *string
+	if after != nil {
+		at, id = &after.RecordedAt, &after.ID
+	}
 	rows, err := tx.Query(ctx, `SELECT history_id::text, old_state_raw, new_state_raw, regression, batch_id::text, recorded_at
-		FROM payments.attempt_state_history WHERE attempt_id = $1 AND ($2::uuid IS NULL OR history_id > $2) ORDER BY history_id LIMIT $3`,
-		attemptID, after, limit+1)
+		FROM payments.attempt_state_history WHERE attempt_id = $1
+		AND ($2::timestamptz IS NULL OR (recorded_at, history_id) > ($2::timestamptz, $3::uuid))
+		ORDER BY recorded_at, history_id LIMIT $4`,
+		attemptID, at, id, limit+1)
 	if err != nil {
 		return nil, err
 	}
