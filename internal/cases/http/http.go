@@ -124,8 +124,15 @@ func (h *Handlers) ListCases(ctx context.Context, req oapi.ListCasesRequestObjec
 		return deref(stop), err
 	}
 	p := req.Params
-	res, err := h.q.ListCases(ctx, store.CaseFilter{Workflow: strp(p.WorkflowType), StateMapping: strp(p.StateMapping),
-		CustomerLinkState: strp(p.CustomerLinkState), Presence: strp(p.Presence), CustomerID: idp(p.CustomerId), SourceKey: p.SourceKey}, p.Cursor, p.Limit)
+	f := store.CaseFilter{Workflow: strp(p.WorkflowType), StateMapping: strp(p.StateMapping),
+		CustomerLinkState: strp(p.CustomerLinkState), Presence: strp(p.Presence), CustomerID: idp(p.CustomerId), SourceKey: p.SourceKey}
+	if p.CaseId != nil {
+		f.CaseIDs = make([]string, 0, len(*p.CaseId))
+		for _, id := range *p.CaseId {
+			f.CaseIDs = append(f.CaseIDs, id.String())
+		}
+	}
+	res, err := h.q.ListCases(ctx, f, p.Cursor, p.Limit)
 	if errors.Is(err, query.ErrInvalidQuery) {
 		return oapi.ListCases400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	}

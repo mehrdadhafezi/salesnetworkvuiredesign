@@ -8,7 +8,7 @@ import { formatFaNumber } from '../../../shared/ui/ds'
 import { ParityPill, ResolutionPill } from '../../sales/components'
 import { text, workflowLabel } from '../../sales/labels'
 import { Pager, useCursors } from '../../sales/pager'
-import { CaseLinks, CustodyCell, Holder, PresencePill, case360, caseCustody, useCustodyFor, type CustodyFor } from '../components'
+import { CaseEvidenceLinks, CaseLinks, CaseSourceCell, CustodyCell, Holder, PresencePill, caseCustody, useCasesFor, useCustodyFor, type CasesFor, type CustodyFor } from '../components'
 import { blockedSales, derivationLabel } from '../labels'
 
 export const PAGE = 25
@@ -26,35 +26,38 @@ export function CustodyList({ query, empty }: { query: Query; empty: string }) {
     // The query is built from an allowlisted form / exception definition; the server rejects anything else (400).
     params: { query: { ...(query as Record<string, never>), ...(c.cursor ? { cursor: c.cursor } : {}), limit: PAGE } },
   }), e => e.items && e.page ? { items: e.items, page: e.page } : undefined))
+  // RM-P06: the Case source of the visible page, one batch read from the cases module (server hint first).
+  const ids = list.status === 'ok' ? list.data.items.map(a => a.case_id) : undefined
+  const cases = useCasesFor(ids, list.status === 'ok' && actionHint(list.allowed, 'cases.case.read').allowed)
   return (
     <>
       <ReadStates state={list} what="نگهداری" blockedDetail={blockedSales} />
       {list.status === 'ok' && (list.data.items.length === 0
         ? <StateBlock kind="empty" title={empty} detail="نبود نتیجه برای این فیلتر به معنی صفر بودن کل داده نیست." />
-        : <CustodyTable items={list.data.items} />)}
+        : <CustodyTable items={list.data.items} cases={cases} />)}
       {list.status === 'ok' && <Pager page={list.data.page} c={c} />}
     </>
   )
 }
 
-export function CustodyTable({ items }: { items: CustodyAssignment[] }) {
+export function CustodyTable({ items, cases }: { items: CustodyAssignment[]; cases: CasesFor }) {
   return (
     <div className="mis-table-wrap">
       <table className="mis-table mis-stack">
         <caption className="sr">پروجکشن‌های نگهداری</caption>
         <thead>
-          <tr><th scope="col">پرونده</th><th scope="col">تطابق نگهدار</th><th scope="col">نگهدار استنتاجی (رویدادها)</th>
+          <tr><th scope="col">پرونده و منبع</th><th scope="col">تطابق نگهدار</th><th scope="col">نگهدار استنتاجی (رویدادها)</th>
             <th scope="col">نگهدار ثبت‌شده در منبع</th><th scope="col">حضور</th><th scope="col">رویداد · یافته</th></tr>
         </thead>
         <tbody>
           {items.map(a => (
             <tr key={a.case_id}>
-              <td data-label="پرونده">
-                <span className="mis-links">
-                  <Link to={caseCustody(a.case_id)}>شواهد نگهداری</Link>
-                  <Link to={case360(a.case_id)} className="mis-sub-link">نمای ۳۶۰</Link>
+              <td data-label="پرونده و منبع">
+                <span className="mis-case-cell">
+                  <CaseSourceCell cases={cases} caseId={a.case_id} />
+                  <span className="mis-id mis-ltr mis-uuid" title="شناسه بومی پرونده (UUID)">{a.case_id}</span>
+                  <CaseEvidenceLinks id={a.case_id} />
                 </span>
-                <span className="mis-id mis-ltr" title={a.case_id}>{a.case_id.slice(0, 8)}</span>
               </td>
               <td data-label="تطابق نگهدار"><ParityPill parity={a.parity} /></td>
               <td data-label="نگهدار استنتاجی"><Holder user={a.derived_holder} none="—" />

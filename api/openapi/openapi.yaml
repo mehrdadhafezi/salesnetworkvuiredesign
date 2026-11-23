@@ -778,6 +778,7 @@ paths:
         CONFLICT and NOT_RECOVERABLE links are never returned for it (list them with customer_link_state instead).
         customer_id with a customer_link_state other than RESOLVED is 400. An unknown customer_id is an empty page.
         source_key (RM-P05) is an exact provenance lookup of the Case's own source row key, never an identity join.
+        case_id (RM-P06, repeatable, 1..200) is an exact native Case UUID match; an invalid UUID or more than 200 ids is 400.
       parameters:
         - $ref: './components/parameters.yaml#/WorkflowType'
         - $ref: './components/parameters.yaml#/StateMapping'
@@ -785,6 +786,7 @@ paths:
         - $ref: './components/parameters.yaml#/Presence'
         - $ref: './components/parameters.yaml#/CustomerID'
         - $ref: './components/parameters.yaml#/CaseSourceKey'
+        - $ref: './components/parameters.yaml#/CaseIDs'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
       responses:

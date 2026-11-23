@@ -59,6 +59,9 @@ func check(name string, v *string) error {
 	return nil
 }
 
+// MaxCaseIDs bounds the exact case_id filter (RM-P06: one custody page).
+const MaxCaseIDs = 200
+
 // CasesPage is one page of Cases.
 type CasesPage struct {
 	Cases      []store.Case
@@ -76,6 +79,14 @@ func (s *Service) ListCases(ctx context.Context, f store.CaseFilter, cursor *str
 	}
 	if f.SourceKey != nil && !sourceKeyPattern.MatchString(*f.SourceKey) {
 		return CasesPage{}, invalid("source_key")
+	}
+	if f.CaseIDs != nil && (len(f.CaseIDs) == 0 || len(f.CaseIDs) > MaxCaseIDs) {
+		return CasesPage{}, invalid("case_id: 1..%d ids", MaxCaseIDs)
+	}
+	for _, id := range f.CaseIDs {
+		if !uuidPattern.MatchString(id) {
+			return CasesPage{}, invalid("case_id")
+		}
 	}
 	if f.CustomerID != nil {
 		if !uuidPattern.MatchString(*f.CustomerID) {

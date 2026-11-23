@@ -35,6 +35,10 @@
 .mis-nav-links{margin:0 0 12px}
 .mis-sub-link{font-size:var(--fs-sm)}
 .mis-holder{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
+.mis-case-cell{display:grid;gap:4px;justify-items:start;min-width:0}
+.mis-source{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;min-width:0}
+.mis-source-ref{font-weight:600;overflow-wrap:anywhere}
+.mis-uuid{overflow-wrap:anywhere;word-break:break-all;max-width:100%}
 .mis-custody-cell{display:grid;gap:4px;justify-items:start}
 .mis-transfer{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}
 .mis-count{font-weight:600;white-space:nowrap}
@@ -91,4 +95,7 @@
   .mis-stack tr{border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin:0 0 8px}
   .mis-stack td{border:0;padding:4px 0;display:grid;grid-template-columns:minmax(96px,34%) minmax(0,1fr);gap:8px;overflow-wrap:anywhere}
   .mis-stack td::before{content:attr(data-label);color:var(--text-2);font-weight:600}
+  /* RM-P06: long evidence pills wrap inside a stacked cell instead of being clipped. */
+  .mis-stack td > *,.mis-case-cell,.mis-custody-cell{min-width:0;max-width:100%}
+  .mis-stack .pill{white-space:normal;height:auto;min-height:24px;max-width:100%;padding-block:2px;overflow-wrap:anywhere}
 }

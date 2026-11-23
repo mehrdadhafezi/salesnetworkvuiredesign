@@ -416,8 +416,17 @@ func TestCustomerCaseInvoiceNavigation(t *testing.T) {
 				t.Fatalf("invoices allowlist lacks %s", k)
 			}
 		}
-		if slices.Contains(apiserver.ContractQuery["/api/v1/cases"], "case_id") {
-			t.Fatal("cases list must not accept case_id")
+		// RM-P06 added the exact native case_id filter to the cases list (the
+		// batch read of the MIS custody pages); its exactness, bounds and
+		// non-inference are proven in rm_p06_mis_evidence_test.go. Nothing
+		// identity-shaped (phone, name, legacy key) is ever accepted.
+		if !slices.Contains(apiserver.ContractQuery["/api/v1/cases"], "case_id") {
+			t.Fatal("cases allowlist lacks the RM-P06 exact case_id filter")
+		}
+		for _, k := range []string{"phone", "mobile", "name", "customer_name", "q", "search", "legacy_key"} {
+			if slices.Contains(apiserver.ContractQuery["/api/v1/cases"], k) {
+				t.Fatalf("cases list must not accept %s", k)
+			}
 		}
 	})
 }
