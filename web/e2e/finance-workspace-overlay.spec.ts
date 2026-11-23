@@ -23,7 +23,9 @@ const DB = {
   receiptsRef: Number(required('E2E_FW_RECEIPTS_REF')),
   unknownInvoice: Number(required('E2E_FW_UNKNOWN_INVOICE')),
 }
-const SHOTS = process.env.E2E_SCREENSHOT_DIR ?? ''
+// Dedicated variable: a regression run that sets the generic E2E_SCREENSHOT_DIR never writes RM-P07
+// evidence, and these files are always prefixed "finance-" (docs/governance pins the directory content).
+const SHOTS = process.env.E2E_FINANCE_SCREENSHOT_DIR ?? ''
 const fa = (n: number) => new Intl.NumberFormat('fa-IR').format(n)
 const SECTIONS = ['میز کار مالی', 'فاکتورها', 'تلاش‌های پرداخت (قدیمی)', 'صف بررسی و پرداخت‌های ثبت‌شده', 'شواهد رسید', 'استثناها و شواهد حل‌نشده']
 const COMMAND_WORDS = /تأیید|تایید|رد مالی|^رد$|استرداد|تسویه|ثبت در دفتر|تلاش دوباره|اصلاح|approve|reject|refund|retry|settle|post/i
@@ -60,7 +62,7 @@ async function shot(page: Page, region: Locator, name: string) {
       .filter(el => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).overflowX !== 'visible') return false; return true })
       .slice(0, 8).map(el => `${el.tagName.toLowerCase()}.${(el.getAttribute('class') ?? '').replace(/ /g, '.')} ${Math.round(el.getBoundingClientRect().left)}..${Math.round(el.getBoundingClientRect().right)}`))
     expect(offenders, `${name} ${vp} horizontal overflow`).toEqual([])
-    await region.screenshot({ path: `${SHOTS}/${name}-${vp}.png` })
+    await region.screenshot({ path: `${SHOTS}/finance-${name}-${vp}.png` })
   }
   await page.setViewportSize({ width: 1366, height: 900 })
 }

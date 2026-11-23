@@ -17,11 +17,11 @@ export const invoiceHref = (id: string, section?: string) => `/billing/invoices/
 export const shortId = (id: string) => id.slice(0, 8)
 
 /** A count read from a named aggregate, or the honest reason it is not available (never zero). */
-export function Count({ value, unavailable }: { value: number | null | undefined; unavailable?: string | undefined }) {
+export function Count({ value, unavailable, unit }: { value: number | null | undefined; unavailable?: string | undefined; unit?: string | undefined }) {
   if (value === null || value === undefined) {
     return <span className="fw-count fw-count-na" title={unavailable}>—<small> در دسترس نیست</small></span>
   }
-  return <span className="fw-count num">{formatFaNumber(value)}</span>
+  return <span className="fw-count"><span className="num">{formatFaNumber(value)}</span>{unit ? <small className="fw-unit">{` ${unit}`}</small> : null}</span>
 }
 
 /** Financial operations with the grounded reason each is unavailable: statuses, never controls. */

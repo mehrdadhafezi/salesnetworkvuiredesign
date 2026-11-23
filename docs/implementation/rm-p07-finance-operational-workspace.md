@@ -33,7 +33,10 @@ Section navigation is presentation only, gated through existing destinations (`b
 `billing.report`, `payments.evidence`, `finance.dashboard`); no destination was added. Invoice detail deep links (`#inv-attempts`,
 `#inv-receipts`, `#inv-review`, `#inv-stages`, `#inv-provenance`) scroll once the detail has loaded.
 
-Counters: each names its aggregate field and scope; the review-queue total, absent rows and invoice-level unknown-status counts have no
+Counters: each names its aggregate field, scope and **unit** (invoice, legacy attempt, submission, target receipt, legacy receipt
+reference, history row, amount evidence). A queue whose counter and list count different units says so ("دو مجموعه متفاوت"); a receipt
+count is never paired with a payment list (`target-receipt-nr` counts receipts and has no list contract; submissions with
+NOT_RECOVERABLE evidence are the separate `review-evidence-nr` queue, no one-to-one implied). Each counter the review-queue total, absent rows and invoice-level unknown-status counts have no
 contract and show «در دسترس نیست». A denied / disabled source never becomes 0. Regression count is history rows, not attempts (stated).
 Amounts are shown per row in their own unit; no sum, balance, conversion or "paid" inference exists. Nine financial operations are listed
 as unavailable with their blocking decisions; no control is rendered.
@@ -50,9 +53,11 @@ OpenAPI + generated Go/TS clients, query allowlist, module-owned READ ONLY trans
 
 - Go: `TestRMP07FinanceWorkspaceReads` (filters vs stored rows, partition, paging, 400s, review ⟂ invoice ⟂ attempt authorization,
   maker/checker, no command route for POST/PUT/PATCH/DELETE, read-only md5 fingerprint), full `go test ./...` on disposable PostgreSQL.
-- Web: typecheck, ESLint, Vitest (13 new in `web/src/modules/finance/workspace.test.tsx`), OpenAPI lint/regenerate, build.
+- Web: typecheck, ESLint, Vitest (16 new in `web/src/modules/finance/workspace.test.tsx`, incl. count/list unit semantics), OpenAPI lint/regenerate, build.
 - Browser: `TestBrowserFinanceWorkspaceReadOverlay` (5/5; financial snapshot unchanged, evidence store empty) plus every orchestrator
-  of `e2e-ci.yml`. Screenshots 1366 / 820 / 390 px with no horizontal overflow in `docs/evidence/rm-p07/`.
+  of `e2e-ci.yml`. Screenshots 1366 / 820 / 390 px with no horizontal overflow in `docs/evidence/rm-p07/` — only `finance-*.png`, written
+  through the dedicated `E2E_FINANCE_SCREENSHOT_DIR` (other suites use `E2E_SCREENSHOT_DIR`); `docs/governance/rm_p07_evidence_test.go`
+  pins the directory to exactly the 15 Finance files.
 
 ## Not done (approval-dependent, not invented)
 

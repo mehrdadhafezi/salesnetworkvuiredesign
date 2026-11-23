@@ -99,8 +99,9 @@ func TestBrowserFinanceWorkspaceReadOverlay(t *testing.T) {
 		"E2E_FW_RECEIPTS_REF":    itoa(e.count(t, `SELECT count(*) FROM payments.receipt WHERE presence = 'PRESENT' AND state = 'REFERENCE_ONLY'`)),
 		"E2E_FW_UNKNOWN_INVOICE": itoa(e.count(t, `SELECT count(*) FROM payments.payment_attempt WHERE presence = 'PRESENT' AND invoice_link_state = 'UNKNOWN'`)),
 	}
-	if dir := os.Getenv("E2E_SCREENSHOT_DIR"); dir != "" {
-		env["E2E_SCREENSHOT_DIR"] = dir
+	// RM-P07 evidence uses its own variable (never the generic E2E_SCREENSHOT_DIR the other suites share).
+	if dir := os.Getenv("E2E_FINANCE_SCREENSHOT_DIR"); dir != "" {
+		env["E2E_FINANCE_SCREENSHOT_DIR"] = dir
 	}
 	runPlaywright(t, root, "finance-workspace-read-overlay", env)
 

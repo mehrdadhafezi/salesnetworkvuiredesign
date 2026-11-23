@@ -4,7 +4,7 @@ import { useSession } from '../../../shared/auth/currentSession'
 import { Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/primitives'
 import { DsIcon } from '../../../shared/ui/ds'
 import { Count, InvoiceList, LegacyAttemptList, ReviewList } from '../workspace/components'
-import { EXCEPTIONS, EXCEPTION_GROUPS, exceptionById, type ExceptionDef } from '../workspace/exceptions'
+import { EXCEPTIONS, EXCEPTION_GROUPS, UNIT_LABEL, exceptionById, listUnit, type ExceptionDef } from '../workspace/exceptions'
 import { countOf, sourceOf, unavailableWhy, useFinanceReports, type FinanceReports } from '../workspace/reports'
 import { FinanceSectionNav } from '../workspace/sections'
 
@@ -35,7 +35,7 @@ export function FinanceExceptionsPage() {
                     <Link to={`/finance/exceptions?type=${x.id}`} aria-current={selected?.id === x.id ? 'true' : undefined} className="fw-exc-link">
                       <DsIcon name={x.icon} />
                       <span className="fw-exc-label">{x.label}</span>
-                      <Count value={countOf(x.count, reports)} unavailable={unavailableWhy(x.count, reports)} />
+                      <Count value={countOf(x.count, reports)} unavailable={unavailableWhy(x.count, reports)} unit={UNIT_LABEL[x.countUnit]} />
                     </Link>
                   </li>
                 ))}
@@ -64,17 +64,21 @@ function ExceptionDetail({ x, reports }: { x: ExceptionDef; reports: FinanceRepo
   const s = useSession()
   const zone = s.status === 'ready' ? s.session.display_zone : 'Asia/Tehran'
   const why = unavailableWhy(x.count, reports)
+  const unit = listUnit(x)
   const empty = 'موردی برای این صف ثبت نشده است'
   return (
     <>
       <Card title={x.label}>
         <p>{x.meaning}</p>
         <dl className="fw-kv">
-          <dt>شمارنده</dt><dd><Count value={countOf(x.count, reports)} unavailable={why} />{why ? <span className="muted"> — {why}</span> : null}</dd>
+          <dt>شمارنده</dt><dd><Count value={countOf(x.count, reports)} unavailable={why} unit={UNIT_LABEL[x.countUnit]} />{why ? <span className="muted"> — {why}</span> : null}</dd>
+          <dt>واحد شمارنده</dt><dd data-testid="count-unit">{UNIT_LABEL[x.countUnit]}</dd>
+          <dt>واحد فهرست</dt><dd data-testid="list-unit">{unit ? UNIT_LABEL[unit] : 'فهرست قراردادی ندارد'}</dd>
           <dt>منبع شمارنده</dt><dd className="fw-ltr fw-src">{sourceOf(x.count)}</dd>
           {x.count.kind !== 'none' ? <><dt>دامنه شمارش</dt><dd>{x.count.scope}{x.count.note ? ` — ${x.count.note}` : ''}</dd></> : null}
           <dt>فهرست</dt><dd className="fw-ltr fw-src">{x.list.read === 'none' ? '—' : `GET /api/v1/${LIST_PATH[x.list.read]}?${new URLSearchParams(x.list.params).toString()}`}</dd>
         </dl>
+        {x.cardinality ? <p className="fw-hint" role="note" data-testid="cardinality"><StatusPill tone="amber" icon="alert" label="دو مجموعه متفاوت" /> {x.cardinality}</p> : null}
         <p className="muted fw-hint">برای هر ردیف به جزئیات فاکتور یا مورد بررسی بروید؛ هیچ اقدام اصلاحی وجود ندارد.</p>
       </Card>
       <Card title="موارد">

@@ -86,3 +86,4 @@
   .fw-amount{white-space:normal}
 }
 @media (min-width:761px){.fw-table td:first-child{min-width:140px}}
+.fw-unit{font-weight:400;color:var(--text-2)}

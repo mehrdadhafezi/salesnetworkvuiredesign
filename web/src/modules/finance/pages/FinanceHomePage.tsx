@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import { Card, PageHeader, StatusPill } from '../../../shared/ui/primitives'
 import { DsIcon, type DsIconName } from '../../../shared/ui/ds'
 import { Count, OperationsStatus } from '../workspace/components'
-import { EXCEPTIONS } from '../workspace/exceptions'
+import { EXCEPTIONS, UNIT_LABEL } from '../workspace/exceptions'
 import { C, countOf, sourceOf, unavailableWhy, useFinanceReports, type CountSource, type FinanceReports } from '../workspace/reports'
 import { FinanceSectionNav, useFinanceSections } from '../workspace/sections'
 import { FinanceShadowSections } from './FinanceDashboardPage'
@@ -138,7 +138,7 @@ function ExceptionSummary({ reports }: { reports: FinanceReports }) {
       {EXCEPTIONS.map(x => (
         <li key={x.id}>
           <Link to={`/finance/exceptions?type=${x.id}`}>{x.label}</Link>
-          <Count value={countOf(x.count, reports)} unavailable={unavailableWhy(x.count, reports)} />
+          <Count value={countOf(x.count, reports)} unavailable={unavailableWhy(x.count, reports)} unit={UNIT_LABEL[x.countUnit]} />
           <span className="fw-src fw-ltr">{sourceOf(x.count)}</span>
         </li>
       ))}

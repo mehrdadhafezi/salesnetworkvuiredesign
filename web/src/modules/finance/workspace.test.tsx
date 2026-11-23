@@ -6,7 +6,7 @@ import { configFromEnv } from '../../app/config'
 import { buildRoutes } from '../../app/routes'
 import type { EffectiveAccess } from '../../shared/api'
 import { fakeApi, healthy, json, session, type Captured } from '../../test/fakeApi'
-import { EXCEPTIONS } from './workspace/exceptions'
+import { EXCEPTIONS, LIST_UNIT, UNIT_LABEL, exceptionById, listUnit } from './workspace/exceptions'
 import { FINANCIAL_OPERATIONS } from './workspace/operations'
 import { FINANCE_NAV_LABEL } from './workspace/sections'
 
@@ -315,5 +315,56 @@ describe('RM-P07 receipt evidence', () => {
     await waitFor(() => expect(within(legacy).getByText('۳۱')).toBeTruthy())
     expect(screen.getAllByText('دسترسی به این بخش ندارید').length).toBeGreaterThan(0)
     expect(screen.queryByRole('list', { name: 'شمارنده‌های فیش سامانه جدید' })).toBeNull()
+  })
+})
+
+describe('RM-P07 exception count / list semantics', () => {
+  it('a counter and a list never claim the same set unless they count the same unit', () => {
+    for (const x of EXCEPTIONS) {
+      const lu = listUnit(x)
+      if (x.count.kind === 'none' || lu === undefined || lu === x.countUnit) continue
+      expect(x.cardinality, `${x.id}: ${x.countUnit} counted, ${lu} listed, without a cardinality note`).toMatch(/\S/)
+    }
+    // Receipt counts are only ever paired with no list (no receipt list contract), never with a payment list.
+    for (const x of EXCEPTIONS.filter(e => e.countUnit === 'receipt' || e.countUnit === 'receipt-ref')) {
+      expect(x.list.read, x.id).toBe('none')
+      if (x.list.read === 'none') expect(x.list.why, x.id).toMatch(/قرارداد/)
+    }
+    // Every review-queue list is a list of submissions, and its count is never a receipt count.
+    for (const x of EXCEPTIONS.filter(e => e.list.read === 'review')) {
+      expect(LIST_UNIT.review).toBe('submission')
+      expect(x.countUnit, x.id).not.toBe('receipt')
+    }
+  })
+
+  it('target-receipt-nr: receipts counted as receipts, no payment list, the related submission queue named as a different set', () => {
+    const x = exceptionById('target-receipt-nr')
+    expect(x?.countUnit).toBe('receipt')
+    expect(x?.list.read).toBe('none')
+    expect(x?.label).toMatch(/شمار فیش/)
+    if (x?.list.read === 'none') {
+      expect(x.list.why).toMatch(/مجموعه دیگری/)
+      expect(x.list.why).toMatch(/یک‌به‌یک ادعا نمی‌شود/)
+    }
+    const related = exceptionById('review-evidence-nr')
+    expect(related?.list.read).toBe('review')
+    expect(related?.countUnit).toBe('submission')
+    expect(related?.count.kind).toBe('none') // no submission total exists; the receipt count is not reused for it
+  })
+
+  it('UI: the receipt queue shows a receipt count, no payment rows and no review request; the regression queue states the cardinality', async () => {
+    const { calls } = renderAt('/finance/exceptions?type=target-receipt-nr', base())
+    expect(await screen.findByText('فهرست این صف در قرارداد موجود نیست')).toBeTruthy()
+    expect(screen.getByTestId('count-unit').textContent).toBe(UNIT_LABEL.receipt)
+    expect(screen.getByTestId('list-unit').textContent).toBe('فهرست قراردادی ندارد')
+    const queues = screen.getByRole('navigation', { name: 'صف‌های استثنای مالی' })
+    await waitFor(() => expect(within(within(queues).getByRole('link', { name: /شمار فیش/ })).getByText(UNIT_LABEL.receipt)).toBeTruthy())
+    expect(screen.queryByRole('table')).toBeNull()
+    expect(reads(calls, '/api/v1/finance/review/attempts')).toHaveLength(0)
+    cleanup()
+    renderAt('/finance/exceptions?type=attempt-regression', base())
+    expect((await screen.findByTestId('cardinality')).textContent).toMatch(/دو عدد برابر نیستند/)
+    expect(screen.getByTestId('count-unit').textContent).toBe(UNIT_LABEL['history-row'])
+    expect(screen.getByTestId('list-unit').textContent).toBe(UNIT_LABEL.attempt)
   })
 })
