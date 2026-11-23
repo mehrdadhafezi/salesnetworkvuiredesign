@@ -193,7 +193,7 @@ var ContractQuery = map[string][]string{
 	"/api/v1/invoices/{invoice_id}/totals":                  {},
 	"/api/v1/invoices/{invoice_id}/payments":                {"cursor", "limit"},
 	"/api/v1/invoices/{invoice_id}/receipts":                {"cursor", "limit"},
-	"/api/v1/payments/attempts":                             {"channel", "state_mapping", "state", "approval_provenance", "presence", "invoice_link_state", "cursor", "limit"},
+	"/api/v1/payments/attempts":                             {"channel", "state_mapping", "state", "approval_provenance", "presence", "invoice_link_state", "has_state_regression", "cursor", "limit"},
 	"/api/v1/payments/attempts/{attempt_id}":                {},
 	"/api/v1/payments/attempts/{attempt_id}/history":        {"cursor", "limit"},
 	"/api/v1/payments/receipts/{receipt_id}":                {},
@@ -232,7 +232,7 @@ var ContractQuery = map[string][]string{
 	"/api/v1/payments/invoices/{invoice_id}/batches":    {},
 	"/api/v1/payments/batches/{batch_id}":               {},
 	"/api/v1/payments/evidence":                         {},
-	"/api/v1/finance/review/attempts":                   {"invoice_id", "cursor", "limit"},
+	"/api/v1/finance/review/attempts":                   {"invoice_id", "evidence_state", "cursor", "limit"},
 	"/api/v1/finance/review/attempts/{attempt_id}":      {},
 	// Slice 10: no phone (or any contact) parameter exists on any path.
 	"/api/v1/biawin/subscriptions":                                      {"run_id", "state", "customer_link_state", "invoice_link_state", "activation_evidence", "product", "cursor", "limit"},

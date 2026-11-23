@@ -81,12 +81,19 @@ func (h *ReviewHandlers) ListFinanceReviewQueue(ctx context.Context, req oapi.Li
 		}
 		after = &cur.ID
 	}
-	var invoice *string
+	var f paymentsapi.ReviewFilter
 	if req.Params.InvoiceId != nil {
 		s := req.Params.InvoiceId.String()
-		invoice = &s
+		f.InvoiceID = &s
 	}
-	rows, err := h.src.ReviewQueue(ctx, invoice, after, limit)
+	if req.Params.EvidenceState != nil {
+		if !req.Params.EvidenceState.Valid() {
+			return oapi.ListFinanceReviewQueue400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, "evidence_state")}, nil
+		}
+		s := string(*req.Params.EvidenceState)
+		f.EvidenceState = &s
+	}
+	rows, err := h.src.ReviewQueue(ctx, f, after, limit)
 	if err != nil {
 		return nil, err
 	}

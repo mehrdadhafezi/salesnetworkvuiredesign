@@ -150,7 +150,7 @@ func (h *Handlers) ListPaymentAttempts(ctx context.Context, req oapi.ListPayment
 	}
 	p := req.Params
 	res, err := h.q.ListAttempts(ctx, store.AttemptFilter{Channel: strp(p.Channel), StateMapping: strp(p.StateMapping), StateTarget: strp(p.State),
-		Provenance: strp(p.ApprovalProvenance), Presence: strp(p.Presence), InvoiceLink: strp(p.InvoiceLinkState)}, p.Cursor, p.Limit)
+		Provenance: strp(p.ApprovalProvenance), Presence: strp(p.Presence), InvoiceLink: strp(p.InvoiceLinkState), Regression: p.HasStateRegression}, p.Cursor, p.Limit)
 	if errors.Is(err, query.ErrInvalidQuery) {
 		return oapi.ListPaymentAttempts400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	}

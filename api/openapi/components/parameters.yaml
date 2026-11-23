@@ -382,6 +382,22 @@ InvoiceIDQuery:
   schema:
     $ref: './hr.yaml#/NativeID'
 
+ReviewEvidenceState:
+  name: evidence_state
+  in: query
+  required: false
+  description: Exact stored evidence state of the target-submitted attempt (RM-P07; read only).
+  schema:
+    $ref: './payments_writes.yaml#/EvidenceState'
+
+HasStateRegression:
+  name: has_state_regression
+  in: query
+  required: false
+  description: true keeps attempts with at least one append-only state-history row flagged as a regression; false keeps attempts with none (RM-P07; read only).
+  schema:
+    type: boolean
+
 AttemptID:
   name: attempt_id
   in: path

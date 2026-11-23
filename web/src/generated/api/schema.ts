@@ -837,7 +837,8 @@ export interface paths {
         /**
          * List shadow payment attempts
          * @description Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
-         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         *     Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+         *     has_state_regression (RM-P07) matches the attempt's own append-only state history only; it never changes or reconciles a state.
          */
         get: operations["listPaymentAttempts"];
         put?: never;
@@ -2227,7 +2228,8 @@ export interface paths {
          * Finance review queue of target-submitted attempts with their decision gate (read only)
          * @description Requires finance.review.read (flag finance.review_read). There is NO approve / reject command (D-41, OPD-08, OPD-09; D-43 gate shown).
          *     invoice_id (optional) keeps only attempts submitted against exactly that invoice (the attempt's own native invoice
-         *     reference); an unknown invoice id is an empty page. Unknown query parameters are 400 CONTRACT_INVALID.
+         *     reference); an unknown invoice id is an empty page. evidence_state (optional, RM-P07) keeps only attempts whose stored
+         *     evidence state equals it; filters are conjunctive (AND). Unknown query parameters are 400 CONTRACT_INVALID.
          */
         get: operations["listFinanceReviewQueue"];
         put?: never;
@@ -5790,6 +5792,8 @@ export interface components {
         AttemptState: components["schemas"]["AttemptState"];
         ApprovalProvenance: components["schemas"]["ApprovalProvenance"];
         InvoiceLinkState: "RESOLVED" | "UNKNOWN";
+        /** @description true keeps attempts with at least one append-only state-history row flagged as a regression; false keeps attempts with none (RM-P07; read only). */
+        HasStateRegression: boolean;
         AttemptID: components["schemas"]["NativeID"];
         ReceiptID: components["schemas"]["NativeID"];
         MetricID: string;
@@ -5861,6 +5865,8 @@ export interface components {
         WritebackStateFilter: components["schemas"]["WritebackState"];
         /** @description Exact native invoice id. */
         InvoiceIDQuery: components["schemas"]["NativeID"];
+        /** @description Exact stored evidence state of the target-submitted attempt (RM-P07; read only). */
+        ReviewEvidenceState: components["schemas"]["EvidenceState"];
     };
     requestBodies: never;
     headers: {
@@ -7028,6 +7034,8 @@ export interface operations {
                 approval_provenance?: components["parameters"]["ApprovalProvenance"];
                 presence?: components["parameters"]["Presence"];
                 invoice_link_state?: components["parameters"]["InvoiceLinkState"];
+                /** @description true keeps attempts with at least one append-only state-history row flagged as a regression; false keeps attempts with none (RM-P07; read only). */
+                has_state_regression?: components["parameters"]["HasStateRegression"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -9260,6 +9268,8 @@ export interface operations {
             query?: {
                 /** @description Exact native invoice id. */
                 invoice_id?: components["parameters"]["InvoiceIDQuery"];
+                /** @description Exact stored evidence state of the target-submitted attempt (RM-P07; read only). */
+                evidence_state?: components["parameters"]["ReviewEvidenceState"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];

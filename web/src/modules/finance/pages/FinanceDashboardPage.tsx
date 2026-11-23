@@ -14,6 +14,22 @@ const states = ['MATCH', 'MISMATCH', 'UNKNOWN', 'INCOMPLETE', 'CONFLICT', 'NOT_R
  * no rate, score or combined money total. The rebuild is an offline job.
  */
 export function FinanceDashboardPage() {
+  return (
+    <>
+      <PageHeader title="دفتر سایه مالی" subtitle="وضعیت اجرای سایه، پوشش منابع و خلاصه تطبیق با مانده‌های قدیمی.">
+        <StatusPill tone="slate" icon="lock" label="فقط خواندنی · SHADOW" />
+      </PageHeader>
+      <FinanceShadowSections />
+    </>
+  )
+}
+
+/**
+ * The shadow-ledger body (runs, coverage, reconciliation counts), shared by
+ * the dashboard and the RM-P07 Finance workspace landing. Unchanged reads:
+ * GET /api/v1/finance/shadow-runs and /shadow-runs/{id} (finance.shadow.read).
+ */
+export function FinanceShadowSections() {
   const api = useApi()
   const runs = useRead('fn-runs', async () => settle(await api.GET('/api/v1/finance/shadow-runs', { params: { query: compact({ limit: 10 }) } }),
     e => e.items ? { items: e.items } : undefined))
@@ -24,9 +40,6 @@ export function FinanceDashboardPage() {
     : { status: 'ok', data: null, outcome: 'UNKNOWN', allowed: undefined })
   return (
     <>
-      <PageHeader title="دفتر سایه مالی" subtitle="وضعیت اجرای سایه، پوشش منابع و خلاصه تطبیق با مانده‌های قدیمی.">
-        <StatusPill tone="slate" icon="lock" label="فقط خواندنی · SHADOW" />
-      </PageHeader>
       <ShadowBanner />
       <ReadStates state={runs} what="اجراهای سایه" blockedDetail={blockedDetail} />
       {runs.status === 'ok' && runs.data.items.length === 0 && (

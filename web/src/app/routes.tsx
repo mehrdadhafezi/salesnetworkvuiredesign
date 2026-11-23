@@ -49,8 +49,12 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'mis/source-quality', lazy: async () => ({ Component: (await import('../modules/reporting/pages/SourceQualityPage')).SourceQualityPage }) },
     { path: 'mis/reconciliation', lazy: async () => ({ Component: (await import('../modules/reporting/pages/ReconciliationPage')).ReconciliationPage }) },
     { path: 'reports/:report', lazy: async () => ({ Component: (await import('../modules/reporting/pages/ReportPage')).ReportPage }) },
-    // Slice 9 finance SHADOW ledger (read only; no mutation route or control).
-    { path: 'finance', lazy: async () => ({ Component: (await import('../modules/finance/pages/FinanceDashboardPage')).FinanceDashboardPage }) },
+    // Slice 9 finance SHADOW ledger (read only; no mutation route or control). RM-P07: /finance is the Finance
+    // workspace landing (same URL) with the shadow-ledger dashboard unchanged below it.
+    { path: 'finance', lazy: async () => ({ Component: (await import('../modules/finance/pages/FinanceHomePage')).FinanceHomePage }) },
+    // RM-P07 Finance operational workspace (read only): receipt evidence and exception queues.
+    { path: 'finance/receipts', lazy: async () => ({ Component: (await import('../modules/finance/pages/FinanceReceiptsPage')).FinanceReceiptsPage }) },
+    { path: 'finance/exceptions', lazy: async () => ({ Component: (await import('../modules/finance/pages/FinanceExceptionsPage')).FinanceExceptionsPage }) },
     { path: 'finance/ledger', lazy: async () => ({ Component: (await import('../modules/finance/pages/LedgerPage')).LedgerPage }) },
     { path: 'finance/balances', lazy: async () => ({ Component: (await import('../modules/finance/pages/BalancesPage')).BalancesPage }) },
     { path: 'finance/reconciliation', lazy: async () => ({ Component: (await import('../modules/finance/pages/FinanceReconciliationPage')).FinanceReconciliationPage }) },

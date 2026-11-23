@@ -1223,7 +1223,8 @@ paths:
       summary: List shadow payment attempts
       description: |
         Requires payments.attempt.read. Read-only (READ ONLY transaction); never imports, derives, repairs, posts or records.
-        Unknown query parameters are 400 CONTRACT_INVALID.
+        Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+        has_state_regression (RM-P07) matches the attempt's own append-only state history only; it never changes or reconciles a state.
       parameters:
         - $ref: './components/parameters.yaml#/PaymentChannel'
         - $ref: './components/parameters.yaml#/TargetMapping'
@@ -1231,6 +1232,7 @@ paths:
         - $ref: './components/parameters.yaml#/ApprovalProvenance'
         - $ref: './components/parameters.yaml#/Presence'
         - $ref: './components/parameters.yaml#/InvoiceLinkState'
+        - $ref: './components/parameters.yaml#/HasStateRegression'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
       responses:
@@ -3504,9 +3506,11 @@ paths:
       description: |
         Requires finance.review.read (flag finance.review_read). There is NO approve / reject command (D-41, OPD-08, OPD-09; D-43 gate shown).
         invoice_id (optional) keeps only attempts submitted against exactly that invoice (the attempt's own native invoice
-        reference); an unknown invoice id is an empty page. Unknown query parameters are 400 CONTRACT_INVALID.
+        reference); an unknown invoice id is an empty page. evidence_state (optional, RM-P07) keeps only attempts whose stored
+        evidence state equals it; filters are conjunctive (AND). Unknown query parameters are 400 CONTRACT_INVALID.
       parameters:
         - $ref: './components/parameters.yaml#/InvoiceIDQuery'
+        - $ref: './components/parameters.yaml#/ReviewEvidenceState'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
       responses:

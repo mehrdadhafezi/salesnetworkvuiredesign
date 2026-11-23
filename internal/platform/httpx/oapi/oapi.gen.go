@@ -11211,6 +11211,9 @@ type HasConflict = bool
 // HasFindings defines model for HasFindings.
 type HasFindings = bool
 
+// HasStateRegression defines model for HasStateRegression.
+type HasStateRegression = bool
+
 // HasUnknownStatus defines model for HasUnknownStatus.
 type HasUnknownStatus = bool
 
@@ -11306,6 +11309,9 @@ type ReportAttemptState string
 
 // ReportScope defines model for ReportScope.
 type ReportScope string
+
+// ReviewEvidenceState defines model for ReviewEvidenceState.
+type ReviewEvidenceState = EvidenceState
 
 // RunID Target native identifier. Never a phone, e-mail, login or legacy key.
 type RunID = NativeID
@@ -11656,6 +11662,9 @@ type ListFinanceReviewQueueParams struct {
 	// InvoiceId Exact native invoice id.
 	InvoiceId *InvoiceIDQuery `form:"invoice_id,omitempty" json:"invoice_id,omitempty"`
 
+	// EvidenceState Exact stored evidence state of the target-submitted attempt (RM-P07; read only).
+	EvidenceState *ReviewEvidenceState `form:"evidence_state,omitempty" json:"evidence_state,omitempty"`
+
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
@@ -11990,6 +11999,9 @@ type ListPaymentAttemptsParams struct {
 	ApprovalProvenance *ApprovalProvenance                        `form:"approval_provenance,omitempty" json:"approval_provenance,omitempty"`
 	Presence           *Presence                                  `form:"presence,omitempty" json:"presence,omitempty"`
 	InvoiceLinkState   *ListPaymentAttemptsParamsInvoiceLinkState `form:"invoice_link_state,omitempty" json:"invoice_link_state,omitempty"`
+
+	// HasStateRegression true keeps attempts with at least one append-only state-history row flagged as a regression; false keeps attempts with none (RM-P07; read only).
+	HasStateRegression *HasStateRegression `form:"has_state_regression,omitempty" json:"has_state_regression,omitempty"`
 
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
@@ -14867,6 +14879,19 @@ func (siw *ServerInterfaceWrapper) ListFinanceReviewQueue(w http.ResponseWriter,
 		return
 	}
 
+	// ------------- Optional query parameter "evidence_state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "evidence_state", r.URL.Query(), &params.EvidenceState, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "evidence_state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "evidence_state", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "cursor" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
@@ -17361,6 +17386,19 @@ func (siw *ServerInterfaceWrapper) ListPaymentAttempts(w http.ResponseWriter, r 
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "invoice_link_state"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invoice_link_state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "has_state_regression" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "has_state_regression", r.URL.Query(), &params.HasStateRegression, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has_state_regression"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has_state_regression", Err: err})
 		}
 		return
 	}
