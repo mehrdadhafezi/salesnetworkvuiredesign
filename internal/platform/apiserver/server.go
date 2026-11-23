@@ -178,7 +178,7 @@ var ContractQuery = map[string][]string{
 	"/api/v1/customer-identity/merge-cases":                 {"state", "evidence_strength", "reason", "customer_id", "cursor", "limit"},
 	"/api/v1/customer-identity/merge-cases/{merge_case_id}": {},
 	"/api/v1/customer-identity/resolution-report":           {},
-	"/api/v1/cases":                                         {"workflow_type", "state_mapping", "customer_link_state", "presence", "customer_id", "source_key", "cursor", "limit"},
+	"/api/v1/cases":                                         {"workflow_type", "state_mapping", "customer_link_state", "presence", "customer_id", "source_key", "case_id", "cursor", "limit"},
 	"/api/v1/cases/{case_id}":                               {},
 	"/api/v1/cases/{case_id}/history":                       {"cursor", "limit"},
 	"/api/v1/cases/{case_id}/attribution":                   {},

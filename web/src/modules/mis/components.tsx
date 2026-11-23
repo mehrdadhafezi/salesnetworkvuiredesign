@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { useApi, type CustodyAssignment, type UserRef } from '../../shared/api'
+import { useApi, type CaseSummary, type CustodyAssignment, type UserRef } from '../../shared/api'
 import { settle, useRead, type ReadState } from '../../shared/read/load'
 import { StatusPill } from '../../shared/ui/primitives'
 import { formatFaNumber } from '../../shared/ui/ds'
@@ -82,4 +82,68 @@ export function CustodyCell({ custody, caseId }: { custody: CustodyFor; caseId: 
       )
     }
   }
+}
+
+/**
+ * RM-P06: the Case source reference of one page of custody rows, read from
+ * the cases module with the exact case_id filter of GET /api/v1/cases (one
+ * request per visible page, never one per row). Not requested at all unless
+ * the server hint allows cases.case.read; a denied read keeps no case data.
+ */
+export type CasesFor = ReadState<Map<string, CaseSummary>> | { status: 'not-allowed' }
+
+export function useCasesFor(caseIds: string[] | undefined, allowed: boolean): CasesFor {
+  const api = useApi()
+  const ids = caseIds ? [...new Set(caseIds)] : undefined
+  const key = ids && allowed ? ids.join(',') : ''
+  const st = useRead(`cases-for:${key}`, async (): Promise<ReadState<Map<string, CaseSummary>>> => {
+    if (!ids || !allowed || ids.length === 0) return { status: 'ok', data: new Map(), outcome: 'SUCCESS', allowed: undefined }
+    return settle(await api.GET('/api/v1/cases', { params: { query: { case_id: ids, limit: Math.min(200, ids.length) } } }),
+      e => e.items ? new Map(e.items.map(c => [c.case_id, c])) : undefined)
+  })
+  if (caseIds && !allowed) return { status: 'not-allowed' }
+  return st
+}
+
+/** Links of one Case: Case 360°, its custody evidence and the existing activity timeline. */
+export function CaseEvidenceLinks({ id }: { id: string }) {
+  return (
+    <span className="mis-links">
+      <Link to={case360(id)}>نمای ۳۶۰</Link>
+      <Link to={caseCustody(id)} className="mis-sub-link">شواهد نگهداری</Link>
+      <Link to={caseTimeline(id)} className="mis-sub-link">خط زمانی</Link>
+    </span>
+  )
+}
+
+/**
+ * The Case source reference beside a custody row, or the honest reason it
+ * is not shown. Only data the cases read returned is rendered: a denied,
+ * disabled or failed read shows no source system, spec, key or batch.
+ */
+export function CaseSourceCell({ cases, caseId }: { cases: CasesFor; caseId: string }) {
+  switch (cases.status) {
+    case 'not-allowed': return <span className="muted mis-small">منبع پرونده: بدون دسترسی خواندن پرونده</span>
+    case 'loading': return <span className="muted mis-small" aria-busy="true">منبع پرونده: در حال خواندن…</span>
+    case 'denied': return <span className="muted mis-small">منبع پرونده: بدون دسترسی خواندن پرونده</span>
+    case 'blocked': return <span className="muted mis-small">منبع پرونده: غیرفعال</span>
+    case 'failed': return <StatusPill tone="slate" icon="question" label="منبع پرونده نامعلوم (خطای خواندن)" />
+    case 'ok': {
+      const c = cases.data.get(caseId)
+      if (!c) return <StatusPill tone="slate" icon="question" label="منبع پرونده نامعلوم (پرونده در ماژول پرونده یافت نشد)" />
+      return (
+        <span className="mis-source" data-testid="case-source">
+          <span className="mis-ltr mis-source-ref">{`${c.source.source_system} · ${c.source.source_spec} · #${c.source.source_key}`}</span>
+          <SourcePresence presence={c.source.presence} />
+        </span>
+      )
+    }
+  }
+}
+
+/** Presence of the Case's own source row; ABSENT_IN_LATEST is never "available". */
+export function SourcePresence({ presence }: { presence: string }) {
+  return presence === 'PRESENT'
+    ? <StatusPill tone="green" icon="check" label="منبع: حاضر" />
+    : <StatusPill tone="amber" icon="alert" label={presence === 'ABSENT_IN_LATEST' ? 'منبع: غایب در آخرین واردسازی' : `منبع: ${presence}`} />
 }

@@ -67,6 +67,10 @@ type CaseFilter struct {
 	// SourceKey (RM-P05) is an exact provenance lookup of the Case's own
 	// source row key; never an identity join.
 	SourceKey *string
+	// CaseIDs (RM-P06) is an exact native case_id match (1..200 ids, bound by
+	// the query service). Nil means no restriction; it never matches by phone,
+	// customer name or legacy key.
+	CaseIDs []string
 }
 
 // ListCases lists Cases by case id (keyset).
@@ -80,7 +84,8 @@ func ListCases(ctx context.Context, tx db.Tx, f CaseFilter, after *string, limit
 		  AND ($5::uuid IS NULL OR c.case_id > $5)
 		  AND ($7::uuid IS NULL OR (c.customer_id = $7::uuid AND c.customer_link_state = 'RESOLVED'))
 		  AND ($8::text IS NULL OR s.source_key = $8)
-		ORDER BY c.case_id LIMIT $6`, f.Workflow, f.StateMapping, f.CustomerLinkState, f.Presence, after, limit+1, f.CustomerID, f.SourceKey)
+		  AND ($9::uuid[] IS NULL OR c.case_id = ANY($9::uuid[]))
+		ORDER BY c.case_id LIMIT $6`, f.Workflow, f.StateMapping, f.CustomerLinkState, f.Presence, after, limit+1, f.CustomerID, f.SourceKey, f.CaseIDs)
 	if err != nil {
 		return nil, err
 	}

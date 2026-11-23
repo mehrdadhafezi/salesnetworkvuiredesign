@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { App } from '../../app/App'
@@ -75,8 +75,14 @@ const parity = {
   unknown_legacy_actions: {}, full_parity: false, notes: [],
 }
 
+const CASE_ROWS = () => [kase(1), kase(2, { state_mapping: 'UNKNOWN', state_raw: 'synthetic_unfamiliar', customer_link_state: 'CONFLICT' }), kase(3),
+  kase(7, { presence: 'ABSENT_IN_LATEST', source: { ...kase(7).source, presence: 'ABSENT_IN_LATEST', last_batch_id: ID(900) } })]
+
 function casesRoute(req: Request): Response {
   const q = new URL(req.url).searchParams
+  // RM-P06 exact case_id batch read: only the named Cases, never a widening.
+  const ids = q.getAll('case_id')
+  if (ids.length) return json(env({ items: CASE_ROWS().filter(c => ids.includes(c.case_id)), page: { has_more: false } }))
   if (q.get('cursor') === 'c-2') return json(env({ items: [kase(3)], page: { has_more: false } }))
   if (q.get('presence') === 'ABSENT_IN_LATEST') return json(env({ items: [kase(7, { presence: 'ABSENT_IN_LATEST' })], page: { has_more: false } }))
   return json(env({ items: [kase(1), kase(2, { state_mapping: 'UNKNOWN', state_raw: 'synthetic_unfamiliar', customer_link_state: 'CONFLICT' })], page: { has_more: true, next_cursor: 'c-2' } }))
@@ -399,5 +405,116 @@ describe('RM-P05 Case 360° timeline anchor', () => {
     }))
     const section = await screen.findByRole('region', { name: 'خط زمانی فعالیت پرونده' })
     expect(section.closest('#activity')).toBeTruthy()
+  })
+})
+
+describe('RM-P06 custody-to-case evidence', () => {
+  const custodyPage = () => calls0.filter(c => c.url === '/api/v1/cases')
+  let calls0: Captured[] = []
+
+  it('each custody row shows its case source from ONE batched cases read, with native id and three links', async () => {
+    const { calls } = renderAt('/mis/custody', base())
+    calls0 = calls
+    const table = await screen.findByRole('table', { name: 'پروجکشن‌های نگهداری' })
+    await waitFor(() => expect(within(table).getAllByTestId('case-source')).toHaveLength(3))
+    const caseCalls = custodyPage()
+    // One request for the whole page (no N+1), exact ids, nothing else.
+    expect(caseCalls).toHaveLength(1)
+    expect(caseCalls[0]?.search.getAll('case_id')).toEqual([ID(1), ID(2), ID(7)])
+    expect([...(caseCalls[0]?.search.keys() ?? [])].filter(k => k !== 'case_id').sort()).toEqual(['limit'])
+    const rows = within(table).getAllByRole('row').slice(1)
+    const r1 = rows[0] as HTMLElement
+    expect(within(r1).getByText('wp · legacy.dist_item.v1 · #501')).toBeTruthy()
+    expect(within(r1).getByText('منبع: حاضر')).toBeTruthy()
+    expect(within(r1).getByText(ID(1))).toBeTruthy()
+    expect(within(r1).getByRole('link', { name: 'نمای ۳۶۰' }).getAttribute('href')).toBe(`/sales/cases/${ID(1)}`)
+    expect(within(r1).getByRole('link', { name: 'شواهد نگهداری' }).getAttribute('href')).toBe(`/mis/custody/${ID(1)}`)
+    expect(within(r1).getByRole('link', { name: 'خط زمانی' }).getAttribute('href')).toBe(`/sales/cases/${ID(1)}#activity`)
+    // ABSENT_IN_LATEST stays absent, never "available".
+    const r3 = rows[2] as HTMLElement
+    expect(within(r3).getByText('منبع: غایب در آخرین واردسازی')).toBeTruthy()
+    expect(within(r3).queryByText(/حاضر|قابل استفاده|eligible/i)).toBeNull()
+    noOperationControls()
+    expect(onlyGets(calls)).toBe(true)
+  })
+
+  it('without the cases hint the case source is not requested; custody evidence still renders', async () => {
+    const { calls } = renderAt('/mis/custody', base({ 'GET /api/v1/custody/assignments': req => {
+      const r = custodyRoute(req)
+      return r.json().then(b => json({ ...b, allowed_actions: allowedActions(['custody.custody.read']) }))
+    } }))
+    const table = await screen.findByRole('table', { name: 'پروجکشن‌های نگهداری' })
+    expect(within(table).getAllByText('منبع پرونده: بدون دسترسی خواندن پرونده')).toHaveLength(3)
+    expect(within(table).getAllByText('کاربر قدیمی #41').length).toBeGreaterThan(0)
+    expect(calls.some(c => c.url === '/api/v1/cases')).toBe(false)
+    expect(document.body.textContent).not.toMatch(/legacy\.dist_item\.v1 · #|#501/)
+  })
+
+  it('cases denied by the server: no source system, spec, key or batch reaches the DOM; custody stays', async () => {
+    renderAt('/mis/custody', base({ 'GET /api/v1/cases': denied }))
+    const table = await screen.findByRole('table', { name: 'پروجکشن‌های نگهداری' })
+    await waitFor(() => expect(within(table).getAllByText('منبع پرونده: بدون دسترسی خواندن پرونده')).toHaveLength(3))
+    expect(within(table).getAllByText('کاربر قدیمی #41').length).toBeGreaterThan(0)
+    const text = document.body.textContent ?? ''
+    expect(text).not.toMatch(/#50[127]|legacy\.dist_item\.v1 · |wp · /)
+    expect(text).not.toContain(ID(900))
+    expect(screen.queryAllByTestId('case-source')).toHaveLength(0)
+  })
+
+  it('loading, disabled, failed and missing case sources are distinct and never shown as confirmed', async () => {
+    let release: (() => void) | undefined
+    const { calls } = renderAt('/mis/custody', base({ 'GET /api/v1/cases': () => new Promise<Response>(res => { release = () => res(blocked()) }) }))
+    const table = await screen.findByRole('table', { name: 'پروجکشن‌های نگهداری' })
+    expect(within(table).getAllByText('منبع پرونده: در حال خواندن…')).toHaveLength(3)
+    await waitFor(() => expect(release).toBeDefined())
+    release?.()
+    await waitFor(() => expect(within(table).getAllByText('منبع پرونده: غیرفعال')).toHaveLength(3))
+    expect(calls.filter(c => c.url === '/api/v1/cases')).toHaveLength(1)
+  })
+
+  it('a read failure is UNKNOWN, and a custody row whose case is not returned is UNKNOWN (no guessed relationship)', async () => {
+    renderAt('/mis/custody', base({ 'GET /api/v1/cases': () => json({ type: 'about:blank', title: 'x', status: 500 }, 500) }))
+    expect((await screen.findAllByText('منبع پرونده نامعلوم (خطای خواندن)')).length).toBe(3)
+    cleanup()
+    renderAt('/mis/custody', base({ 'GET /api/v1/cases': () => json(env({ items: [kase(1)], page: { has_more: false } })) }))
+    expect((await screen.findAllByText('منبع پرونده نامعلوم (پرونده در ماژول پرونده یافت نشد)')).length).toBe(2)
+    expect(screen.getAllByTestId('case-source')).toHaveLength(1)
+  })
+
+  it('exception queues backed by custody are enriched with the same single batched read', async () => {
+    const { calls } = renderAt('/mis/exceptions?type=holder-conflict', base())
+    const table = await screen.findByRole('table', { name: 'پروجکشن‌های نگهداری' })
+    expect(await within(table).findByText('wp · legacy.dist_item.v1 · #502')).toBeTruthy()
+    const caseCalls = calls.filter(c => c.url === '/api/v1/cases')
+    expect(caseCalls).toHaveLength(1)
+    expect(caseCalls[0]?.search.getAll('case_id')).toEqual([ID(2)])
+    noOperationControls()
+  })
+})
+
+describe('RM-P06 recorded provenance on the case custody evidence page', () => {
+  const routes = (over: Record<string, Route> = {}) => base({
+    [`GET /api/v1/cases/${ID(2)}`]: () => caseDetail(2),
+    [`GET /api/v1/custody/cases/${ID(2)}`]: () => custodyDetail(),
+    [`GET /api/v1/cases/${ID(2)}/attribution`]: attribution,
+    ...over,
+  })
+
+  it('shows first and latest observed batch, the native id, and import-run status as unavailable', async () => {
+    renderAt(`/mis/custody/${ID(2)}`, routes())
+    const list = await screen.findByLabelText('خاستگاه ثبت‌شده')
+    expect(within(list).getByText(ID(900))).toBeTruthy()
+    expect(within(list).getByText(ID(901))).toBeTruthy()
+    expect(within(list).getByText('در دسترس نیست')).toBeTruthy()
+    expect(within(list).getByText(/قرارداد خواندن اجرای واردسازی، فایل و دسته در API وجود ندارد/)).toBeTruthy()
+    expect(within(list).queryByText(/موفق$|کامل است|SUCCESS/)).toBeNull()
+    expect(screen.getByText(ID(2))).toBeTruthy()
+  })
+
+  it('cases denied: no provenance reaches the DOM; custody evidence still renders', async () => {
+    renderAt(`/mis/custody/${ID(2)}`, routes({ [`GET /api/v1/cases/${ID(2)}`]: denied }))
+    expect(await screen.findByRole('region', { name: 'استنتاج از رویدادها' })).toBeTruthy()
+    expect(screen.queryByLabelText('خاستگاه ثبت‌شده')).toBeNull()
+    expect(document.body.textContent).not.toContain(ID(900))
   })
 })

@@ -515,6 +515,7 @@ export interface paths {
          *     CONFLICT and NOT_RECOVERABLE links are never returned for it (list them with customer_link_state instead).
          *     customer_id with a customer_link_state other than RESOLVED is 400. An unknown customer_id is an empty page.
          *     source_key (RM-P05) is an exact provenance lookup of the Case's own source row key, never an identity join.
+         *     case_id (RM-P06, repeatable, 1..200) is an exact native Case UUID match; an invalid UUID or more than 200 ids is 400.
          */
         get: operations["listCases"];
         put?: never;
@@ -5757,6 +5758,12 @@ export interface components {
          *     partial match, no phone, no name). Several Cases may share a key across source specs; all are returned.
          */
         CaseSourceKey: components["schemas"]["LegacyKey"];
+        /**
+         * @description RM-P06. Exact native Case UUIDs (repeat the parameter, at most 200 ids). Only Cases whose own case_id equals one of
+         *     these are returned; never inferred from phone, customer name or legacy key. An unknown id is simply absent (an empty
+         *     page is not a denial). Conjunctive with every other filter; keyset paging is unchanged.
+         */
+        CaseIDs: components["schemas"]["NativeID"][];
         CaseID: components["schemas"]["NativeID"];
         Parity: components["schemas"]["Parity"];
         Derivation: components["schemas"]["Derivation"];
@@ -6564,6 +6571,12 @@ export interface operations {
                  *     partial match, no phone, no name). Several Cases may share a key across source specs; all are returned.
                  */
                 source_key?: components["parameters"]["CaseSourceKey"];
+                /**
+                 * @description RM-P06. Exact native Case UUIDs (repeat the parameter, at most 200 ids). Only Cases whose own case_id equals one of
+                 *     these are returned; never inferred from phone, customer name or legacy key. An unknown id is simply absent (an empty
+                 *     page is not a denial). Conjunctive with every other filter; keyset paging is unchanged.
+                 */
+                case_id?: components["parameters"]["CaseIDs"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];

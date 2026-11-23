@@ -301,6 +301,23 @@ CaseSourceKey:
   schema:
     $ref: './hr.yaml#/LegacyKey'
 
+CaseIDs:
+  name: case_id
+  in: query
+  required: false
+  description: |
+    RM-P06. Exact native Case UUIDs (repeat the parameter, at most 200 ids). Only Cases whose own case_id equals one of
+    these are returned; never inferred from phone, customer name or legacy key. An unknown id is simply absent (an empty
+    page is not a denial). Conjunctive with every other filter; keyset paging is unchanged.
+  style: form
+  explode: true
+  schema:
+    type: array
+    minItems: 1
+    maxItems: 200
+    items:
+      $ref: './hr.yaml#/NativeID'
+
 CustodyCaseIDs:
   name: case_id
   in: query

@@ -11125,6 +11125,9 @@ type CaseID = NativeID
 // CaseIDQuery Target native identifier. Never a phone, e-mail, login or legacy key.
 type CaseIDQuery = NativeID
 
+// CaseIDs defines model for CaseIDs.
+type CaseIDs = []NativeID
+
 // CaseLinkState RESOLVED (strong evidence; still never merged), RELATED (relationship
 // without equality), UNKNOWN (insufficient evidence), CONFLICT
 // (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
@@ -11402,6 +11405,11 @@ type ListCasesParams struct {
 	// SourceKey RM-P05. Exact legacy source key of the Case's own source row (provenance lookup only, never identity; no
 	// partial match, no phone, no name). Several Cases may share a key across source specs; all are returned.
 	SourceKey *CaseSourceKey `form:"source_key,omitempty" json:"source_key,omitempty"`
+
+	// CaseId RM-P06. Exact native Case UUIDs (repeat the parameter, at most 200 ids). Only Cases whose own case_id equals one of
+	// these are returned; never inferred from phone, customer name or legacy key. An unknown id is simply absent (an empty
+	// page is not a denial). Conjunctive with every other filter; keyset paging is unchanged.
+	CaseId *CaseIDs `form:"case_id,omitempty" json:"case_id,omitempty"`
 
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
@@ -13191,6 +13199,19 @@ func (siw *ServerInterfaceWrapper) ListCases(w http.ResponseWriter, r *http.Requ
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "source_key"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "source_key", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "case_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "case_id", r.URL.Query(), &params.CaseId, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "case_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
 		}
 		return
 	}

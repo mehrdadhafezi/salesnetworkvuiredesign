@@ -1,13 +1,13 @@
 import '../mis.css'
 import { Link, useParams } from 'react-router'
-import { useApi, type AttributionSnapshot, type CaseCustody, type CustodyEvent } from '../../../shared/api'
+import { useApi, type AttributionSnapshot, type CaseCustody, type CaseSummary, type CustodyEvent } from '../../../shared/api'
 import { settle, useRead } from '../../../shared/read/load'
 import { ReadStates } from '../../../shared/read/ReadStates'
 import { Card, PageHeader, StateBlock, StatusPill } from '../../../shared/ui/primitives'
 import { formatFaNumber } from '../../../shared/ui/ds'
 import { ParityPill, ResolutionPill } from '../../sales/components'
 import { eventKindLabel, facetLabel, findingLabel, text, workflowLabel } from '../../sales/labels'
-import { Holder, PresencePill, case360, caseTimeline, presenceText } from '../components'
+import { Holder, PresencePill, SourcePresence, case360, caseTimeline, presenceText } from '../components'
 import { blockedSales, contextLabel, derivationLabel } from '../labels'
 import { OperationsStatus } from '../workspace/Operations'
 import { MISSectionNav } from '../workspace/SectionNav'
@@ -60,9 +60,13 @@ export function CaseCustodyPage() {
               <dt>حضور</dt><dd><PresencePill presence={kase.data.case.presence} /> <span className="muted">{presenceText(kase.data.case.presence)}</span></dd>
               <dt>وضعیت (خام)</dt><dd><span className="mis-ltr">{`${kase.data.case.state_namespace}: ${text(kase.data.case.state_raw)}`}</span>
                 {kase.data.case.state_mapping === 'UNKNOWN' ? <span className="muted"> (نگاشت‌نشده؛ خام حفظ شد)</span> : null}</dd>
-              <dt>اولین · آخرین دسته منبع</dt><dd className="mis-ltr">{`${kase.data.case.source.first_batch_id.slice(0, 8)} · ${kase.data.case.source.last_batch_id.slice(0, 8)}`}</dd>
+              <dt>شناسه بومی پرونده</dt><dd className="mis-ltr mis-uuid">{kase.data.case.case_id}</dd>
             </dl>
           )}
+        </Card>
+        <Card title="خاستگاه و دسته‌های واردسازی (Provenance)">
+          <ReadStates state={kase} what="خاستگاه پرونده" blockedDetail={blockedSales} />
+          {kase.status === 'ok' && <Provenance c={kase.data.case} />}
         </Card>
         <Card title="نگهدار فعلی (Current Custody)">
           <ReadStates state={custody} what="نگهداری" blockedDetail={blockedSales} />
@@ -101,6 +105,35 @@ export function CaseCustodyPage() {
           <OperationsStatus absent={absent} />
         </Card>
       </div>
+    </>
+  )
+}
+
+/**
+ * RM-P06 recorded provenance of the Case's own source row, exactly as the
+ * cases read returns it. Import-run status, file and batch detail have no
+ * read contract (integration batches are not exposed over the API), so they
+ * are stated as unavailable — never shown as confirmed or complete.
+ */
+function Provenance({ c }: { c: CaseSummary }) {
+  const s = c.source
+  const sameBatch = s.first_batch_id === s.last_batch_id
+  return (
+    <>
+      <dl className="mis-kv" aria-label="خاستگاه ثبت‌شده">
+        <dt>حضور ردیف منبع</dt><dd><SourcePresence presence={s.presence} /> <span className="muted">{presenceText(s.presence)}</span></dd>
+        <dt>اولین دسته مشاهده</dt><dd><span className="mis-ltr mis-uuid">{s.first_batch_id}</span> <span className="muted mis-ltr">{s.first_seen_at}</span></dd>
+        <dt>آخرین دسته مشاهده</dt><dd><span className="mis-ltr mis-uuid">{s.last_batch_id}</span> <span className="muted mis-ltr">{s.last_seen_at}</span>
+          {sameBatch ? <span className="muted"> (همان دسته اول)</span> : null}</dd>
+        <dt>کانال · مرجع مبدأ (خام)</dt><dd className="mis-ltr">{`${text(s.channel_raw)} · ${text(s.origin_ref_raw)}`}</dd>
+        <dt>واردسازی · تازه‌سازی پرونده</dt><dd className="mis-ltr">{`${c.imported_at} · ${c.refreshed_at}`}</dd>
+        <dt>وضعیت اجرای واردسازی</dt><dd><StatusPill tone="slate" icon="question" label="در دسترس نیست" />
+          <span className="muted"> قرارداد خواندن اجرای واردسازی، فایل و دسته در API وجود ندارد؛ کامل یا موفق فرض نمی‌شود.</span></dd>
+        <dt>کامل‌بودن و تازگی</dt><dd><span className="muted">{s.presence === 'PRESENT'
+          ? 'ردیف در آخرین واردسازی کامل دیده شده است. تازگی پروجکشن‌های گزارشی در «تطبیق و پوشش» جداگانه و با دسترسی خودش نمایش داده می‌شود.'
+          : 'ردیف در آخرین واردسازی کامل دیده نشده است؛ آخرین شاهد همان دسته بالا است. این به معنی آزاد یا قابل استفاده مجدد نیست.'}</span></dd>
+      </dl>
+      <p className="muted mis-hint">خاستگاه فقط مرجع ردیف منبع است، نه هویت؛ هیچ پیوندی از تلفن، نام یا کلید قدیمی استنتاج نمی‌شود.</p>
     </>
   )
 }
