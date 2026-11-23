@@ -141,7 +141,13 @@ func TestRMP06ExactCaseLookup(t *testing.T) {
 		if r.code != c.code {
 			t.Fatalf("%q = %d, want %d", c.actor, r.code, c.code)
 		}
-		if c.code == 403 && (strings.Contains(r.body, `"items"`) || strings.Contains(r.body, `"source_key"`) || strings.Contains(r.body, key)) {
+		// The source key is a short digit string; the random server correlation id is removed before the
+		// substring check so a coincidental digit run in that UUID is never mistaken for leaked case data.
+		body := r.body
+		if cid, _ := r.json["correlation_id"].(string); cid != "" {
+			body = strings.ReplaceAll(body, cid, "")
+		}
+		if c.code == 403 && (strings.Contains(body, `"items"`) || strings.Contains(body, `"source_key"`) || strings.Contains(body, key)) {
 			t.Fatalf("denied body leaks case data: %s", r.body)
 		}
 	}

@@ -60,5 +60,7 @@ export default defineConfig({
     { name: 'mis-workspace-read-overlay', testMatch: 'mis-workspace-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
     // RM-P06 (TestBrowserMISEvidenceReadOverlay): custody-to-case evidence continuity through the TEST-ONLY dev auth stub.
     { name: 'mis-evidence-read-overlay', testMatch: 'mis-evidence-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
+    // RM-P07 (TestBrowserFinanceWorkspaceReadOverlay): the Finance operational workspace through the TEST-ONLY dev auth stub.
+    { name: 'finance-workspace-read-overlay', testMatch: 'finance-workspace-overlay.spec.ts', use: { ...devices['Desktop Chrome'] } },
   ],
 })

@@ -1,4 +1,5 @@
 import '../../writes/writes.css'
+import '../../finance/workspace/workspace.css'
 import '../payments.css'
 import { Link, useParams } from 'react-router'
 import { useApi } from '../../../shared/api'
@@ -8,7 +9,9 @@ import { ReadStates } from '../../../shared/read/ReadStates'
 import { formatInstant } from '../../../shared/ui/time'
 import { Card, PageHeader, StatusPill } from '../../../shared/ui/primitives'
 import { attemptStateLabel, money, receiptStateLabel, receiptStateTone } from '../labels'
-import { Gates, ReviewFlags } from './FinanceReviewPage'
+import { Gates, ReviewFlags } from '../review'
+import { invoiceHref } from '../../finance/workspace/components'
+import { FinanceSectionNav } from '../../finance/workspace/sections'
 
 /** One attempt awaiting review with its receipts and decision gate (read only). */
 export function FinanceReviewAttemptPage() {
@@ -23,14 +26,23 @@ export function FinanceReviewAttemptPage() {
       <PageHeader title="بررسی پرداخت" subtitle="فقط خواندنی؛ بدون تایید یا رد.">
         <StatusPill tone="slate" icon="lock" label="فقط خواندنی" />
       </PageHeader>
+      <FinanceSectionNav />
       <p><Link to="/finance/review">بازگشت به صف بررسی</Link></p>
       <ReadStates state={v} what="پرداخت" blockedDetail="صف بررسی مالی پشت پرچم finance.review_read است." />
       {v.status === 'ok' && (
         <div className="wr-sections">
           <Card title="پرداخت">
             <dl className="wr-dl">
-              <dt>مبلغ</dt><dd>{money(v.data.amount, v.data.unit)}</dd>
+              <dt>مبلغ ثبت‌شده</dt><dd>{money(v.data.amount, v.data.unit)} <span className="muted">(ادعای ثبت‌شده؛ وصول وجه، پرداخت فاکتور یا تسویه نیست)</span></dd>
+              <dt>منبع</dt><dd><StatusPill tone="blue" icon="inbox" label="ثبت در سامانه جدید (نه تلاش قدیمی)" /></dd>
               <dt>وضعیت</dt><dd>{attemptStateLabel[v.data.state] ?? v.data.state}</dd>
+              <dt>فاکتور</dt><dd className="fw-links">
+                <Link to={invoiceHref(v.data.invoice_id)}>جزئیات فاکتور</Link>
+                <Link to={invoiceHref(v.data.invoice_id, 'inv-stages')}>مراحل پرداخت</Link>
+                <Link to={invoiceHref(v.data.invoice_id, 'inv-attempts')}>تلاش‌های قدیمی</Link>
+                <Link to={invoiceHref(v.data.invoice_id, 'inv-receipts')}>ارجاع رسیدها</Link>
+                <Link to={`/finance/review?invoice_id=${v.data.invoice_id}`}>سایر پرداخت‌های ثبت‌شده این فاکتور</Link>
+              </dd>
               <dt>مرحله</dt><dd>{v.data.stage_no}</dd>
               <dt>ثبت</dt><dd>{formatInstant(v.data.submitted_at, zone)}</dd>
               <dt>شواهد</dt><dd><ReviewFlags a={v.data} /></dd>

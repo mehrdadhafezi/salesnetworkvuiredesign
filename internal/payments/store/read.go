@@ -80,6 +80,9 @@ func scanAttempt(r pgx.Row) (Attempt, error) {
 // AttemptFilter is the allowlisted attempt filter (no phone, no amount).
 type AttemptFilter struct {
 	InvoiceID, Channel, StateMapping, StateTarget, Provenance, Presence, InvoiceLink *string
+	// Regression (RM-P07): true keeps attempts with at least one append-only
+	// state-history row flagged regression; false keeps attempts with none.
+	Regression *bool
 }
 
 // ListAttempts lists attempts by attempt id (keyset).
@@ -90,7 +93,8 @@ func ListAttempts(ctx context.Context, tx db.Tx, f AttemptFilter, after *string,
 	rows, err := tx.Query(ctx, attemptSelect+` WHERE ($1::uuid IS NULL OR a.invoice_id = $1) AND ($2::text IS NULL OR a.channel = $2)
 		AND ($3::text IS NULL OR a.state_mapping = $3) AND ($4::text IS NULL OR a.state_target = $4) AND ($5::text IS NULL OR a.approval_provenance = $5)
 		AND ($6::text IS NULL OR a.presence = $6) AND ($7::text IS NULL OR a.invoice_link_state = $7) AND ($8::uuid IS NULL OR a.attempt_id > $8)
-		ORDER BY a.attempt_id LIMIT $9`, f.InvoiceID, f.Channel, f.StateMapping, f.StateTarget, f.Provenance, f.Presence, f.InvoiceLink, after, limit+1)
+		AND ($10::boolean IS NULL OR $10::boolean = EXISTS (SELECT 1 FROM payments.attempt_state_history h WHERE h.attempt_id = a.attempt_id AND h.regression))
+		ORDER BY a.attempt_id LIMIT $9`, f.InvoiceID, f.Channel, f.StateMapping, f.StateTarget, f.Provenance, f.Presence, f.InvoiceLink, after, limit+1, f.Regression)
 	if err != nil {
 		return nil, err
 	}

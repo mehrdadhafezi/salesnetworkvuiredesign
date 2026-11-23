@@ -213,23 +213,35 @@ func (s *Service) Batch(ctx context.Context, batchID string, actor Actor) (Batch
 	return b, found, err
 }
 
+// reviewEvidenceStates is the stored evidence_state vocabulary of a
+// submitted attempt (the EvidenceState contract enum). Anything else
+// matches nothing.
+var reviewEvidenceStates = map[string]bool{"PENDING_FINALISATION": true, "READY": true, "NOT_RECOVERABLE": true}
+
 // ReviewQueue implements api.ReviewSource.
-func (s *Service) ReviewQueue(ctx context.Context, invoiceID, after *string, limit int) ([]api.ReviewAttempt, error) {
-	if invoiceID != nil && !uuidPattern.MatchString(*invoiceID) {
+func (s *Service) ReviewQueue(ctx context.Context, f api.ReviewFilter, after *string, limit int) ([]api.ReviewAttempt, error) {
+	if f.InvoiceID != nil && !uuidPattern.MatchString(*f.InvoiceID) {
+		return nil, nil
+	}
+	if f.EvidenceState != nil && !reviewEvidenceStates[*f.EvidenceState] {
 		return nil, nil
 	}
 	var out []api.ReviewAttempt
 	err := s.read(ctx, func(ctx context.Context, tx db.Tx) error {
-		var cursor, invoice any
+		var cursor, invoice, evidence any
 		if after != nil {
 			cursor = *after
 		}
-		if invoiceID != nil {
-			invoice = *invoiceID
+		if f.InvoiceID != nil {
+			invoice = *f.InvoiceID
+		}
+		if f.EvidenceState != nil {
+			evidence = *f.EvidenceState
 		}
 		rows, err := tx.Query(ctx, `SELECT attempt_id::text FROM payments.submitted_attempt WHERE state = 'PENDING_REVIEW'
 			AND ($1::uuid IS NULL OR attempt_id > $1::uuid) AND ($3::uuid IS NULL OR invoice_id = $3::uuid)
-			ORDER BY attempt_id LIMIT $2`, cursor, limit+1, invoice)
+			AND ($4::text IS NULL OR evidence_state = $4::text)
+			ORDER BY attempt_id LIMIT $2`, cursor, limit+1, invoice, evidence)
 		if err != nil {
 			return err
 		}

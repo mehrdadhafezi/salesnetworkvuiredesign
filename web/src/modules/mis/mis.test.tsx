@@ -188,12 +188,15 @@ describe('RM-P05 landing counters', () => {
     renderAt('/mis', base({ 'GET /api/v1/sales/coverage-report': denied, 'GET /api/v1/sales/custody-parity': blocked }))
     const inv = await screen.findByRole('group', { name: 'شمارنده‌های موجودی' })
     await waitFor(() => expect(screen.getByText('دسترسی به این بخش ندارید')).toBeTruthy())
-    await screen.findByRole('list', { name: 'خلاصه استثناها' })
     expect(screen.getAllByText('این بخش هنوز فعال نشده است').length).toBeGreaterThan(0)
     expect(within(inv).queryByText('۰')).toBeNull()
     expect(within(inv).getAllByText('—').length).toBe(4)
-    const conflict = within(screen.getByRole('list', { name: 'خلاصه استثناها' })).getByRole('link', { name: 'تعارض نگهدار' }).closest('li') as HTMLElement
-    expect(within(conflict).queryByText('۰')).toBeNull()
+    // A denied read makes the shell re-check the session, which re-evaluates navigation access once; the
+    // access-gated summary may unmount and remount meanwhile, so assert on the settled render.
+    await waitFor(() => {
+      const conflict = within(screen.getByRole('list', { name: 'خلاصه استثناها' })).getByRole('link', { name: 'تعارض نگهدار' }).closest('li') as HTMLElement
+      expect(within(conflict).queryByText('۰')).toBeNull()
+    })
   })
 
   it('lists every inventory operation as unavailable with its reason and renders no control for any', async () => {

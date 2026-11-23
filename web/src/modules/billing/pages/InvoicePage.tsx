@@ -1,6 +1,6 @@
 import '../billing.css'
-import { Fragment } from 'react'
-import { Link, useParams } from 'react-router'
+import { Fragment, useEffect } from 'react'
+import { Link, useLocation, useParams } from 'react-router'
 import { useApi, type InvoiceUnitTotals } from '../../../shared/api'
 import { actionHint } from '../../../shared/permissions/allowedActions'
 import { settle, useRead, type ReadState } from '../../../shared/read/load'
@@ -67,6 +67,12 @@ export function InvoicePage() {
   const review = useInvoiceReview(invoiceId, invoiceOk)
   const totals = useRead(`t:${invoiceId}:${canPay}`, () => gated(canPay, async () => settle(await api.GET('/api/v1/invoices/{invoice_id}/totals', { params: { path } }), e => e.data)))
 
+  // RM-P07: deep links from the Finance workspace ("#inv-attempts", "#inv-receipts", ...) land on their section
+  // once the invoice detail has loaded (the anchors exist before; the content above them grows on load).
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (invoiceOk && /^#inv-[a-z]+$/.test(hash)) document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: 'start' })
+  }, [hash, invoiceId, invoiceOk])
   const title = detail.status === 'ok' ? `${detail.data.invoice.source.source_spec} #${detail.data.invoice.source.source_key}` : '…'
   const locked = <StateBlock kind="locked" title="دسترسی به شواهد پرداخت ندارید" />
   return (
