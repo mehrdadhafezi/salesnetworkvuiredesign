@@ -514,6 +514,7 @@ export interface paths {
          *     customer_id matches only Cases whose customer link is RESOLVED to exactly that customer; RELATED, UNKNOWN,
          *     CONFLICT and NOT_RECOVERABLE links are never returned for it (list them with customer_link_state instead).
          *     customer_id with a customer_link_state other than RESOLVED is 400. An unknown customer_id is an empty page.
+         *     source_key (RM-P05) is an exact provenance lookup of the Case's own source row key, never an identity join.
          */
         get: operations["listCases"];
         put?: never;
@@ -597,7 +598,9 @@ export interface paths {
         /**
          * List derived custody projections
          * @description Requires custody.custody.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
-         *     Unknown query parameters are 400 CONTRACT_INVALID.
+         *     Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+         *     RM-P05 adds case_id (repeatable, at most 200), finding_kind and holder_link=UNRESOLVED; none of them widens
+         *     the read or changes a projection.
          */
         get: operations["listCustodyAssignments"];
         put?: never;
@@ -3095,6 +3098,8 @@ export interface components {
         Parity: "MATCH" | "TARGET_UNKNOWN" | "LEGACY_UNKNOWN" | "CONFLICT" | "MULTIPLE_CURRENT" | "HISTORY_GAP" | "NOT_RECOVERABLE";
         /** @enum {string} */
         Derivation: "DERIVED" | "RELEASED" | "UNKNOWN" | "MULTIPLE" | "NONE";
+        /** @enum {string} */
+        CustodyFindingKind: "MISSING_PRIOR_OWNER" | "MISSING_TARGET_OWNER" | "HISTORY_GAP" | "MULTIPLE_CURRENT" | "ORDERING_CONTRADICTION" | "MISSING_EVENT_HISTORY" | "SOURCE_CURRENT_MISMATCH" | "UNKNOWN_ACTION";
         /** @description Derived, reconcilable custody projection next to the legacy current-holder evidence. */
         CustodyAssignment: {
             case_id: components["schemas"]["NativeID"];
@@ -3142,8 +3147,6 @@ export interface components {
             occurred_raw: components["schemas"]["RawText"];
             recorded_at: components["schemas"]["Timestamp"];
         };
-        /** @enum {string} */
-        CustodyFindingKind: "MISSING_PRIOR_OWNER" | "MISSING_TARGET_OWNER" | "HISTORY_GAP" | "MULTIPLE_CURRENT" | "ORDERING_CONTRADICTION" | "MISSING_EVENT_HISTORY" | "SOURCE_CURRENT_MISMATCH" | "UNKNOWN_ACTION";
         CustodyFinding: {
             finding_id: components["schemas"]["NativeID"];
             kind: components["schemas"]["CustodyFindingKind"];
@@ -5749,9 +5752,26 @@ export interface components {
         WorkflowType: components["schemas"]["WorkflowType"];
         StateMapping: components["schemas"]["StateMapping"];
         CustomerLinkState: components["schemas"]["ResolutionState"];
+        /**
+         * @description RM-P05. Exact legacy source key of the Case's own source row (provenance lookup only, never identity; no
+         *     partial match, no phone, no name). Several Cases may share a key across source specs; all are returned.
+         */
+        CaseSourceKey: components["schemas"]["LegacyKey"];
         CaseID: components["schemas"]["NativeID"];
         Parity: components["schemas"]["Parity"];
         Derivation: components["schemas"]["Derivation"];
+        /**
+         * @description RM-P05. Restrict the page to the projections of these Cases (repeat the parameter, at most 200 ids). Used to
+         *     show the custody state of one page of Cases; a Case without a projection is simply absent (never a holder).
+         */
+        CustodyCaseIDs: components["schemas"]["NativeID"][];
+        /** @description RM-P05. Only projections with at least one PRESENT custody finding of this kind. */
+        CustodyFindingKindFilter: components["schemas"]["CustodyFindingKind"];
+        /**
+         * @description RM-P05. UNRESOLVED = the derived or the legacy holder reference exists but the identity module resolved no
+         *     target user for it (the legacy key is kept; nothing is inferred). Never joined through phone or name.
+         */
+        HolderLink: "UNRESOLVED";
         CaseLinkState: components["schemas"]["ResolutionState"];
         /** @description Invoices with (true) / without (false) any UNKNOWN raw invoice or stage state. */
         HasUnknownStatus: boolean;
@@ -6539,6 +6559,11 @@ export interface operations {
                 customer_link_state?: components["parameters"]["CustomerLinkState"];
                 presence?: components["parameters"]["Presence"];
                 customer_id?: components["parameters"]["CustomerID"];
+                /**
+                 * @description RM-P05. Exact legacy source key of the Case's own source row (provenance lookup only, never identity; no
+                 *     partial match, no phone, no name). Several Cases may share a key across source specs; all are returned.
+                 */
+                source_key?: components["parameters"]["CaseSourceKey"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -6655,6 +6680,18 @@ export interface operations {
                 parity?: components["parameters"]["Parity"];
                 derivation?: components["parameters"]["Derivation"];
                 presence?: components["parameters"]["Presence"];
+                /**
+                 * @description RM-P05. Restrict the page to the projections of these Cases (repeat the parameter, at most 200 ids). Used to
+                 *     show the custody state of one page of Cases; a Case without a projection is simply absent (never a holder).
+                 */
+                case_id?: components["parameters"]["CustodyCaseIDs"];
+                /** @description RM-P05. Only projections with at least one PRESENT custody finding of this kind. */
+                finding_kind?: components["parameters"]["CustodyFindingKindFilter"];
+                /**
+                 * @description RM-P05. UNRESOLVED = the derived or the legacy holder reference exists but the identity module resolved no
+                 *     target user for it (the legacy key is kept; nothing is inferred). Never joined through phone or name.
+                 */
+                holder_link?: components["parameters"]["HolderLink"];
                 /** @description Opaque cursor from PageInfo.next_cursor. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];

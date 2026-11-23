@@ -1,5 +1,6 @@
 import '../sales.css'
-import { Link, useParams } from 'react-router'
+import { useEffect } from 'react'
+import { Link, useLocation, useParams } from 'react-router'
 import { useApi, type AttributionSnapshot, type CaseCustody, type Facet } from '../../../shared/api'
 import { actionHint } from '../../../shared/permissions/allowedActions'
 import { settle, useRead, type ReadState } from '../../../shared/read/load'
@@ -44,6 +45,11 @@ export function CasePage() {
   // Contact outcome facts are their own read (cases.case.read on the server), shared by the panel and the
   // RM-P03 timeline; with the session feature off nothing is requested (Slice 11 rule).
   const outcomes = useContactOutcomes(caseId, outcomeFeature)
+  // RM-P05: links to "#activity" (e.g. from the MIS workspace) land on the timeline section.
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (hash === '#activity') document.getElementById('activity')?.scrollIntoView?.({ block: 'start' })
+  }, [hash, caseId])
   const title = detail.status === 'ok' ? `${detail.data.case.source.source_spec} #${detail.data.case.source.source_key}` : '…'
   return (
     <>
@@ -94,9 +100,11 @@ export function CasePage() {
         <Card title="فاکتورهای این پرونده (پیوند تأییدشده)">
           <RelatedInvoices key={caseId} caseId={caseId} />
         </Card>
-        <Card title="خط زمانی فعالیت پرونده">
-          <CaseActivity history={history} hc={hc} custody={custody} canCustody={canCustody} attribution={attribution} outcomes={outcomes.view} zone={zone} />
-        </Card>
+        <div id="activity" className="sa-anchor">
+          <Card title="خط زمانی فعالیت پرونده">
+            <CaseActivity history={history} hc={hc} custody={custody} canCustody={canCustody} attribution={attribution} outcomes={outcomes.view} zone={zone} />
+          </Card>
+        </div>
       </div>
     </>
   )

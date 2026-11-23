@@ -45,7 +45,12 @@ var allowed = map[string]map[string]bool{
 		"HISTORY_GAP": true, "NOT_RECOVERABLE": true},
 	"derivation": {"DERIVED": true, "RELEASED": true, "UNKNOWN": true, "MULTIPLE": true, "NONE": true},
 	"presence":   {"PRESENT": true, "ABSENT_IN_LATEST": true},
+	"finding_kind": {"MISSING_PRIOR_OWNER": true, "MISSING_TARGET_OWNER": true, "HISTORY_GAP": true, "MULTIPLE_CURRENT": true,
+		"ORDERING_CONTRADICTION": true, "MISSING_EVENT_HISTORY": true, "SOURCE_CURRENT_MISMATCH": true, "UNKNOWN_ACTION": true},
 }
+
+// MaxCaseIDs bounds the case_id filter (one inventory page).
+const MaxCaseIDs = 200
 
 // AssignmentsPage is one page of projections.
 type AssignmentsPage struct {
@@ -55,9 +60,17 @@ type AssignmentsPage struct {
 
 // ListAssignments lists derived projections with allowlisted filters.
 func (s *Service) ListAssignments(ctx context.Context, f store.AssignmentFilter, cursor *string, limitIn *int) (AssignmentsPage, error) {
-	for name, v := range map[string]*string{"parity": f.Parity, "derivation": f.Derivation, "presence": f.Presence} {
+	for name, v := range map[string]*string{"parity": f.Parity, "derivation": f.Derivation, "presence": f.Presence, "finding_kind": f.FindingKind} {
 		if v != nil && !allowed[name][*v] {
 			return AssignmentsPage{}, invalid("%s", name)
+		}
+	}
+	if f.CaseIDs != nil && (len(f.CaseIDs) == 0 || len(f.CaseIDs) > MaxCaseIDs) {
+		return AssignmentsPage{}, invalid("case_id: 1..%d ids", MaxCaseIDs)
+	}
+	for _, id := range f.CaseIDs {
+		if !uuidPattern.MatchString(id) {
+			return AssignmentsPage{}, invalid("case_id")
 		}
 	}
 	limit, err := pagination.Limit(limitIn)

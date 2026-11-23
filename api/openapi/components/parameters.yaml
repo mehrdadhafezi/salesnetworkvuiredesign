@@ -291,6 +291,50 @@ Derivation:
   schema:
     $ref: './sales.yaml#/Derivation'
 
+CaseSourceKey:
+  name: source_key
+  in: query
+  required: false
+  description: |
+    RM-P05. Exact legacy source key of the Case's own source row (provenance lookup only, never identity; no
+    partial match, no phone, no name). Several Cases may share a key across source specs; all are returned.
+  schema:
+    $ref: './hr.yaml#/LegacyKey'
+
+CustodyCaseIDs:
+  name: case_id
+  in: query
+  required: false
+  description: |
+    RM-P05. Restrict the page to the projections of these Cases (repeat the parameter, at most 200 ids). Used to
+    show the custody state of one page of Cases; a Case without a projection is simply absent (never a holder).
+  style: form
+  explode: true
+  schema:
+    type: array
+    maxItems: 200
+    items:
+      $ref: './hr.yaml#/NativeID'
+
+CustodyFindingKindFilter:
+  name: finding_kind
+  in: query
+  required: false
+  description: RM-P05. Only projections with at least one PRESENT custody finding of this kind.
+  schema:
+    $ref: './sales.yaml#/CustodyFindingKind'
+
+HolderLink:
+  name: holder_link
+  in: query
+  required: false
+  description: |
+    RM-P05. UNRESOLVED = the derived or the legacy holder reference exists but the identity module resolved no
+    target user for it (the legacy key is kept; nothing is inferred). Never joined through phone or name.
+  schema:
+    type: string
+    enum: [UNRESOLVED]
+
 CaseID:
   name: case_id
   in: path

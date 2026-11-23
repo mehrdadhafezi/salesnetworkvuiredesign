@@ -4414,6 +4414,21 @@ func (e EntryState) Valid() bool {
 	}
 }
 
+// Defines values for HolderLink.
+const (
+	HolderLinkUNRESOLVED HolderLink = "UNRESOLVED"
+)
+
+// Valid indicates whether the value is a known member of the HolderLink enum.
+func (e HolderLink) Valid() bool {
+	switch e {
+	case HolderLinkUNRESOLVED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InvoiceLinkState.
 const (
 	InvoiceLinkStateRESOLVED InvoiceLinkState = "RESOLVED"
@@ -4807,6 +4822,21 @@ func (e ListCommissionFindingsParamsKind) Valid() bool {
 	case ListCommissionFindingsParamsKindREVERSALLINKMISSING:
 		return true
 	case ListCommissionFindingsParamsKindREWRITTENINPLACE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListCustodyAssignmentsParamsHolderLink.
+const (
+	ListCustodyAssignmentsParamsHolderLinkUNRESOLVED ListCustodyAssignmentsParamsHolderLink = "UNRESOLVED"
+)
+
+// Valid indicates whether the value is a known member of the ListCustodyAssignmentsParamsHolderLink enum.
+func (e ListCustodyAssignmentsParamsHolderLink) Valid() bool {
+	switch e {
+	case ListCustodyAssignmentsParamsHolderLinkUNRESOLVED:
 		return true
 	default:
 		return false
@@ -11100,6 +11130,9 @@ type CaseIDQuery = NativeID
 // (contradictory evidence), NOT_RECOVERABLE (source permanently missing).
 type CaseLinkState = ResolutionState
 
+// CaseSourceKey Legacy source key (provenance only, never identity).
+type CaseSourceKey = LegacyKey
+
 // CommissionEngineFilter defines model for CommissionEngineFilter.
 type CommissionEngineFilter = CommissionEngine
 
@@ -11114,6 +11147,12 @@ type CommissionRunID = openapi_types.UUID
 
 // Cursor defines model for Cursor.
 type Cursor = string
+
+// CustodyCaseIDs defines model for CustodyCaseIDs.
+type CustodyCaseIDs = []NativeID
+
+// CustodyFindingKindFilter defines model for CustodyFindingKindFilter.
+type CustodyFindingKindFilter = CustodyFindingKind
 
 // CustomerID Target native identifier. Never a phone, e-mail, login or legacy key.
 type CustomerID = NativeID
@@ -11171,6 +11210,9 @@ type HasFindings = bool
 
 // HasUnknownStatus defines model for HasUnknownStatus.
 type HasUnknownStatus = bool
+
+// HolderLink defines model for HolderLink.
+type HolderLink string
 
 // IdempotencyKey defines model for IdempotencyKey.
 type IdempotencyKey = string
@@ -11357,6 +11399,10 @@ type ListCasesParams struct {
 	Presence          *Presence          `form:"presence,omitempty" json:"presence,omitempty"`
 	CustomerId        *CustomerID        `form:"customer_id,omitempty" json:"customer_id,omitempty"`
 
+	// SourceKey RM-P05. Exact legacy source key of the Case's own source row (provenance lookup only, never identity; no
+	// partial match, no phone, no name). Several Cases may share a key across source specs; all are returned.
+	SourceKey *CaseSourceKey `form:"source_key,omitempty" json:"source_key,omitempty"`
+
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
@@ -11446,10 +11492,24 @@ type ListCustodyAssignmentsParams struct {
 	Derivation *Derivation `form:"derivation,omitempty" json:"derivation,omitempty"`
 	Presence   *Presence   `form:"presence,omitempty" json:"presence,omitempty"`
 
+	// CaseId RM-P05. Restrict the page to the projections of these Cases (repeat the parameter, at most 200 ids). Used to
+	// show the custody state of one page of Cases; a Case without a projection is simply absent (never a holder).
+	CaseId *CustodyCaseIDs `form:"case_id,omitempty" json:"case_id,omitempty"`
+
+	// FindingKind RM-P05. Only projections with at least one PRESENT custody finding of this kind.
+	FindingKind *CustodyFindingKindFilter `form:"finding_kind,omitempty" json:"finding_kind,omitempty"`
+
+	// HolderLink RM-P05. UNRESOLVED = the derived or the legacy holder reference exists but the identity module resolved no
+	// target user for it (the legacy key is kept; nothing is inferred). Never joined through phone or name.
+	HolderLink *ListCustodyAssignmentsParamsHolderLink `form:"holder_link,omitempty" json:"holder_link,omitempty"`
+
 	// Cursor Opaque cursor from PageInfo.next_cursor.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
 }
+
+// ListCustodyAssignmentsParamsHolderLink defines parameters for ListCustodyAssignments.
+type ListCustodyAssignmentsParamsHolderLink string
 
 // ListMergeCasesParams defines parameters for ListMergeCases.
 type ListMergeCasesParams struct {
@@ -13122,6 +13182,19 @@ func (siw *ServerInterfaceWrapper) ListCases(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// ------------- Optional query parameter "source_key" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "source_key", r.URL.Query(), &params.SourceKey, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "source_key"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "source_key", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "cursor" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
@@ -13774,6 +13847,45 @@ func (siw *ServerInterfaceWrapper) ListCustodyAssignments(w http.ResponseWriter,
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "presence"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "presence", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "case_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "case_id", r.URL.Query(), &params.CaseId, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "case_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "case_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "finding_kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "finding_kind", r.URL.Query(), &params.FindingKind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "finding_kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "finding_kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "holder_link" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "holder_link", r.URL.Query(), &params.HolderLink, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "holder_link"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "holder_link", Err: err})
 		}
 		return
 	}

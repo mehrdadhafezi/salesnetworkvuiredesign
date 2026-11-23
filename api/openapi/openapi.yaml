@@ -777,12 +777,14 @@ paths:
         customer_id matches only Cases whose customer link is RESOLVED to exactly that customer; RELATED, UNKNOWN,
         CONFLICT and NOT_RECOVERABLE links are never returned for it (list them with customer_link_state instead).
         customer_id with a customer_link_state other than RESOLVED is 400. An unknown customer_id is an empty page.
+        source_key (RM-P05) is an exact provenance lookup of the Case's own source row key, never an identity join.
       parameters:
         - $ref: './components/parameters.yaml#/WorkflowType'
         - $ref: './components/parameters.yaml#/StateMapping'
         - $ref: './components/parameters.yaml#/CustomerLinkState'
         - $ref: './components/parameters.yaml#/Presence'
         - $ref: './components/parameters.yaml#/CustomerID'
+        - $ref: './components/parameters.yaml#/CaseSourceKey'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
       responses:
@@ -894,11 +896,16 @@ paths:
       summary: List derived custody projections
       description: |
         Requires custody.custody.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
-        Unknown query parameters are 400 CONTRACT_INVALID.
+        Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+        RM-P05 adds case_id (repeatable, at most 200), finding_kind and holder_link=UNRESOLVED; none of them widens
+        the read or changes a projection.
       parameters:
         - $ref: './components/parameters.yaml#/Parity'
         - $ref: './components/parameters.yaml#/Derivation'
         - $ref: './components/parameters.yaml#/Presence'
+        - $ref: './components/parameters.yaml#/CustodyCaseIDs'
+        - $ref: './components/parameters.yaml#/CustodyFindingKindFilter'
+        - $ref: './components/parameters.yaml#/HolderLink'
         - $ref: './components/parameters.yaml#/Cursor'
         - $ref: './components/parameters.yaml#/Limit'
       responses:

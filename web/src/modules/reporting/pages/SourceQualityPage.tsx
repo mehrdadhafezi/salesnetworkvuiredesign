@@ -3,6 +3,7 @@ import { useApi, type SourceQualityRow } from '../../../shared/api'
 import { settle, useRead } from '../../../shared/read/load'
 import { ReadStates } from '../../../shared/read/ReadStates'
 import { Card, PageHeader, StatusPill } from '../../../shared/ui/primitives'
+import { MISSectionNav } from '../../mis/workspace/SectionNav'
 import { ReadOnlyNote } from '../components'
 import { blockedDetail, coverageLabel, coverageTone, sourceLabel } from '../labels'
 
@@ -25,6 +26,7 @@ export function SourceQualityPage() {
       <PageHeader title="کیفیت منبع" subtitle="معتبر / تکراری احتمالی / نامعتبر / نامعلوم / تعارض، با دانه صریح.">
         <StatusPill tone="slate" icon="lock" label="فقط خواندنی" />
       </PageHeader>
+      <MISSectionNav note={false} />
       <ReadOnlyNote />
       <ReadStates state={st} what="کیفیت منبع" blockedDetail={blockedDetail} />
       {st.status === 'ok' && (
