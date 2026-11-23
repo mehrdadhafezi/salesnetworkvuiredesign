@@ -801,12 +801,14 @@ paths:
         customer_id matches only Cases whose customer link is RESOLVED to exactly that customer; RELATED, UNKNOWN,
         CONFLICT and NOT_RECOVERABLE links are never returned for it (list them with customer_link_state instead).
         customer_id with a customer_link_state other than RESOLVED is 400. An unknown customer_id is an empty page.
+        source_key (RM-P05) is an exact provenance lookup of the Case's own source row key, never an identity join.
       parameters:
         - $ref: '#/components/parameters/WorkflowType'
         - $ref: '#/components/parameters/StateMapping'
         - $ref: '#/components/parameters/CustomerLinkState'
         - $ref: '#/components/parameters/Presence'
         - $ref: '#/components/parameters/CustomerID'
+        - $ref: '#/components/parameters/CaseSourceKey'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -922,11 +924,16 @@ paths:
       summary: List derived custody projections
       description: |
         Requires custody.custody.read. Read-only (READ ONLY transaction); never imports, derives, repairs or records.
-        Unknown query parameters are 400 CONTRACT_INVALID.
+        Unknown query parameters are 400 CONTRACT_INVALID. All filters are conjunctive (AND).
+        RM-P05 adds case_id (repeatable, at most 200), finding_kind and holder_link=UNRESOLVED; none of them widens
+        the read or changes a projection.
       parameters:
         - $ref: '#/components/parameters/Parity'
         - $ref: '#/components/parameters/Derivation'
         - $ref: '#/components/parameters/Presence'
+        - $ref: '#/components/parameters/CustodyCaseIDs'
+        - $ref: '#/components/parameters/CustodyFindingKindFilter'
+        - $ref: '#/components/parameters/HolderLink'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -3896,6 +3903,15 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/ResolutionState'
+    CaseSourceKey:
+      name: source_key
+      in: query
+      required: false
+      description: |
+        RM-P05. Exact legacy source key of the Case's own source row (provenance lookup only, never identity; no
+        partial match, no phone, no name). Several Cases may share a key across source specs; all are returned.
+      schema:
+        $ref: '#/components/schemas/LegacyKey'
     CaseID:
       name: case_id
       in: path
@@ -3914,6 +3930,38 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/Derivation'
+    CustodyCaseIDs:
+      name: case_id
+      in: query
+      required: false
+      description: |
+        RM-P05. Restrict the page to the projections of these Cases (repeat the parameter, at most 200 ids). Used to
+        show the custody state of one page of Cases; a Case without a projection is simply absent (never a holder).
+      style: form
+      explode: true
+      schema:
+        type: array
+        maxItems: 200
+        items:
+          $ref: '#/components/schemas/NativeID'
+    CustodyFindingKindFilter:
+      name: finding_kind
+      in: query
+      required: false
+      description: RM-P05. Only projections with at least one PRESENT custody finding of this kind.
+      schema:
+        $ref: '#/components/schemas/CustodyFindingKind'
+    HolderLink:
+      name: holder_link
+      in: query
+      required: false
+      description: |
+        RM-P05. UNRESOLVED = the derived or the legacy holder reference exists but the identity module resolved no
+        target user for it (the legacy key is kept; nothing is inferred). Never joined through phone or name.
+      schema:
+        type: string
+        enum:
+          - UNRESOLVED
     CaseLinkState:
       name: case_link_state
       in: query
@@ -6684,6 +6732,17 @@ components:
         - UNKNOWN
         - MULTIPLE
         - NONE
+    CustodyFindingKind:
+      type: string
+      enum:
+        - MISSING_PRIOR_OWNER
+        - MISSING_TARGET_OWNER
+        - HISTORY_GAP
+        - MULTIPLE_CURRENT
+        - ORDERING_CONTRADICTION
+        - MISSING_EVENT_HISTORY
+        - SOURCE_CURRENT_MISMATCH
+        - UNKNOWN_ACTION
     CustodyAssignment:
       type: object
       description: Derived, reconcilable custody projection next to the legacy current-holder evidence.
@@ -6813,17 +6872,6 @@ components:
           $ref: '#/components/schemas/RawText'
         recorded_at:
           $ref: '#/components/schemas/Timestamp'
-    CustodyFindingKind:
-      type: string
-      enum:
-        - MISSING_PRIOR_OWNER
-        - MISSING_TARGET_OWNER
-        - HISTORY_GAP
-        - MULTIPLE_CURRENT
-        - ORDERING_CONTRADICTION
-        - MISSING_EVENT_HISTORY
-        - SOURCE_CURRENT_MISMATCH
-        - UNKNOWN_ACTION
     CustodyFinding:
       type: object
       required:

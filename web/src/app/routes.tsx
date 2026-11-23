@@ -40,7 +40,12 @@ export function buildRoutes(config: AppConfig): RouteObject[] {
     { path: 'billing/attempts', lazy: async () => ({ Component: (await import('../modules/billing/pages/AttemptsPage')).AttemptsPage }) },
     { path: 'billing/report', lazy: async () => ({ Component: (await import('../modules/billing/pages/BillingReportPage')).BillingReportPage }) },
     // Slice 8 MIS / reporting (read-only). No Invoice Review page (D-24): its query surface is API only.
-    { path: 'mis', lazy: async () => ({ Component: (await import('../modules/reporting/pages/MisOverviewPage')).MisOverviewPage }) },
+    // RM-P05 MIS operational workspace (read only): landing, case inventory, custody evidence, exceptions.
+    { path: 'mis', lazy: async () => ({ Component: (await import('../modules/mis/pages/HomePage')).HomePage }) },
+    { path: 'mis/cases', lazy: async () => ({ Component: (await import('../modules/mis/pages/InventoryPage')).InventoryPage }) },
+    { path: 'mis/custody', lazy: async () => ({ Component: (await import('../modules/mis/pages/CustodyPage')).CustodyPage }) },
+    { path: 'mis/custody/:caseId', lazy: async () => ({ Component: (await import('../modules/mis/pages/CaseCustodyPage')).CaseCustodyPage }) },
+    { path: 'mis/exceptions', lazy: async () => ({ Component: (await import('../modules/mis/pages/ExceptionsPage')).ExceptionsPage }) },
     { path: 'mis/source-quality', lazy: async () => ({ Component: (await import('../modules/reporting/pages/SourceQualityPage')).SourceQualityPage }) },
     { path: 'mis/reconciliation', lazy: async () => ({ Component: (await import('../modules/reporting/pages/ReconciliationPage')).ReconciliationPage }) },
     { path: 'reports/:report', lazy: async () => ({ Component: (await import('../modules/reporting/pages/ReportPage')).ReportPage }) },

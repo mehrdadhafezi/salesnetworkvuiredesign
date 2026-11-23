@@ -38,7 +38,18 @@ func scanAssignment(r pgx.Row) (Assignment, error) {
 }
 
 // AssignmentFilter is the allowlisted filter.
-type AssignmentFilter struct{ Parity, Derivation, Presence *string }
+//
+// RM-P05: CaseIDs restricts to one page of Cases (custody state of an
+// inventory page); FindingKind keeps projections with a PRESENT finding of
+// that kind; HolderUnresolved keeps projections where a derived or legacy
+// holder reference exists without a resolved identity user. None of them
+// widens the read or changes a projection.
+type AssignmentFilter struct {
+	Parity, Derivation, Presence *string
+	CaseIDs                      []string
+	FindingKind                  *string
+	HolderUnresolved             bool
+}
 
 // ListAssignments lists projections by case id (keyset).
 func ListAssignments(ctx context.Context, tx db.Tx, f AssignmentFilter, after *string, limit int) ([]Assignment, error) {
@@ -48,7 +59,11 @@ func ListAssignments(ctx context.Context, tx db.Tx, f AssignmentFilter, after *s
 	rows, err := tx.Query(ctx, assignmentSelect+`
 		WHERE ($1::text IS NULL OR a.parity = $1) AND ($2::text IS NULL OR a.derivation = $2) AND ($3::text IS NULL OR a.presence = $3)
 		  AND ($4::uuid IS NULL OR a.case_id > $4)
-		ORDER BY a.case_id LIMIT $5`, f.Parity, f.Derivation, f.Presence, after, limit+1)
+		  AND ($6::uuid[] IS NULL OR a.case_id = ANY($6::uuid[]))
+		  AND ($7::text IS NULL OR EXISTS (SELECT 1 FROM custody.finding f WHERE f.case_id = a.case_id AND f.presence = 'PRESENT' AND f.kind = $7))
+		  AND (NOT $8::boolean OR (a.derived_legacy_key IS NOT NULL AND a.derived_user_id IS NULL)
+		                       OR (a.legacy_holder_key IS NOT NULL AND a.legacy_holder_user_id IS NULL))
+		ORDER BY a.case_id LIMIT $5`, f.Parity, f.Derivation, f.Presence, after, limit+1, caseIDs(f.CaseIDs), f.FindingKind, f.HolderUnresolved)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +77,14 @@ func ListAssignments(ctx context.Context, tx db.Tx, f AssignmentFilter, after *s
 		out = append(out, a)
 	}
 	return out, rows.Err()
+}
+
+// caseIDs keeps "no filter" (nil) apart from an explicit list.
+func caseIDs(ids []string) any {
+	if ids == nil {
+		return nil
+	}
+	return ids
 }
 
 // AssignmentOf returns the projection of one case.

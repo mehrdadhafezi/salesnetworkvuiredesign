@@ -20,3 +20,4 @@
 .sa-owner{border:1px solid var(--border);border-radius:8px;padding:10px}
 .sa-owner h3{font-size:var(--fs);margin:0 0 6px}
 .sa-sub{font-size:var(--fs);font-weight:600;margin:12px 0 4px}
+.sa-anchor{scroll-margin-top:72px}

@@ -93,8 +93,20 @@ func (h *Handlers) ListCustodyAssignments(ctx context.Context, req oapi.ListCust
 		return oapi.ListCustodyAssignments403JSONResponse{DeniedJSONResponse: *denied}, nil
 	}
 	p := req.Params
-	res, err := h.q.ListAssignments(ctx, store.AssignmentFilter{Parity: strp(p.Parity), Derivation: strp(p.Derivation), Presence: strp(p.Presence)},
-		p.Cursor, p.Limit)
+	f := store.AssignmentFilter{Parity: strp(p.Parity), Derivation: strp(p.Derivation), Presence: strp(p.Presence), FindingKind: strp(p.FindingKind)}
+	if p.CaseId != nil {
+		f.CaseIDs = make([]string, 0, len(*p.CaseId))
+		for _, id := range *p.CaseId {
+			f.CaseIDs = append(f.CaseIDs, id.String())
+		}
+	}
+	if p.HolderLink != nil {
+		if *p.HolderLink != oapi.ListCustodyAssignmentsParamsHolderLinkUNRESOLVED {
+			return oapi.ListCustodyAssignments400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, "holder_link")}, nil
+		}
+		f.HolderUnresolved = true
+	}
+	res, err := h.q.ListAssignments(ctx, f, p.Cursor, p.Limit)
 	if errors.Is(err, query.ErrInvalidQuery) {
 		return oapi.ListCustodyAssignments400ApplicationProblemPlusJSONResponse{ProblemApplicationProblemPlusJSONResponse: authzhttp.BadRequest(ctx, err.Error())}, nil
 	}

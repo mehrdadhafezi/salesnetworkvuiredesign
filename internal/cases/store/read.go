@@ -64,6 +64,9 @@ func scanCase(r pgx.Row) (Case, error) {
 type CaseFilter struct {
 	Workflow, StateMapping, CustomerLinkState, Presence *string
 	CustomerID                                          *string
+	// SourceKey (RM-P05) is an exact provenance lookup of the Case's own
+	// source row key; never an identity join.
+	SourceKey *string
 }
 
 // ListCases lists Cases by case id (keyset).
@@ -76,7 +79,8 @@ func ListCases(ctx context.Context, tx db.Tx, f CaseFilter, after *string, limit
 		  AND ($3::text IS NULL OR c.customer_link_state = $3) AND ($4::text IS NULL OR c.presence = $4)
 		  AND ($5::uuid IS NULL OR c.case_id > $5)
 		  AND ($7::uuid IS NULL OR (c.customer_id = $7::uuid AND c.customer_link_state = 'RESOLVED'))
-		ORDER BY c.case_id LIMIT $6`, f.Workflow, f.StateMapping, f.CustomerLinkState, f.Presence, after, limit+1, f.CustomerID)
+		  AND ($8::text IS NULL OR s.source_key = $8)
+		ORDER BY c.case_id LIMIT $6`, f.Workflow, f.StateMapping, f.CustomerLinkState, f.Presence, after, limit+1, f.CustomerID, f.SourceKey)
 	if err != nil {
 		return nil, err
 	}

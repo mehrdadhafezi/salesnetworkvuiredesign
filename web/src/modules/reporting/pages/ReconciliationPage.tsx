@@ -4,6 +4,7 @@ import { useApi } from '../../../shared/api'
 import { compact, settle, useRead } from '../../../shared/read/load'
 import { ReadStates } from '../../../shared/read/ReadStates'
 import { Card, PageHeader, StatusPill } from '../../../shared/ui/primitives'
+import { MISSectionNav } from '../../mis/workspace/SectionNav'
 import { MetricCard, ReadOnlyNote } from '../components'
 import { blockedDetail, coverageLabel, sourceLabel } from '../labels'
 import { Pager } from '../pager'
@@ -24,6 +25,7 @@ export function ReconciliationPage() {
       <PageHeader title="تطبیق و پوشش" subtitle="اجراهای پروجکشن، برش منبع و پوشش هر منبع.">
         <StatusPill tone="slate" icon="lock" label="فقط خواندنی" />
       </PageHeader>
+      <MISSectionNav note={false} />
       <ReadOnlyNote />
       <ReadStates state={st} what="تطبیق" blockedDetail={blockedDetail} />
       {st.status === 'ok' && (

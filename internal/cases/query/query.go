@@ -25,6 +25,8 @@ var (
 var (
 	uuidPattern    = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 	ordinalPattern = regexp.MustCompile(`^[1-9][0-9]{0,19}$`)
+	// sourceKeyPattern is the contract LegacyKey (provenance only).
+	sourceKeyPattern = regexp.MustCompile(`^[1-9][0-9]{0,19}$`)
 )
 
 func invalid(format string, a ...any) error {
@@ -71,6 +73,9 @@ func (s *Service) ListCases(ctx context.Context, f store.CaseFilter, cursor *str
 		if err := check(name, v); err != nil {
 			return CasesPage{}, err
 		}
+	}
+	if f.SourceKey != nil && !sourceKeyPattern.MatchString(*f.SourceKey) {
+		return CasesPage{}, invalid("source_key")
 	}
 	if f.CustomerID != nil {
 		if !uuidPattern.MatchString(*f.CustomerID) {

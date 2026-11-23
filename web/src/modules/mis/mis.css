@@ -1,0 +1,94 @@
+/*
+ * RM-P05 MIS operational workspace. Additive layout only, built from the
+ * SN-207 tokens (no raw colours, no new token family). Every table stacks on
+ * narrow screens; the page never scrolls horizontally.
+ */
+.mis-ws{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin:0 0 12px;min-width:0;max-width:100%}
+.mis-ws-nav{min-width:0;max-width:100%}
+.mis-ws-nav ul{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding-block-end:2px}
+.mis-ws-nav li{flex:0 0 auto}
+.mis-ws-nav a{display:inline-flex;align-items:center;min-height:36px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--text-2);text-decoration:none;white-space:nowrap;font-size:var(--fs-sm);background:var(--surface)}
+.mis-ws-nav a:hover{color:var(--text)}
+.mis-ws-nav a[aria-current="page"]{color:var(--text);font-weight:600;border-color:var(--text-2);background:var(--surface-2)}
+.mis-ws-nav a:focus-visible,.mis-tile:focus-visible,.mis-exc-link:focus-visible{outline:2px solid var(--text-2);outline-offset:2px}
+.mis-ws-meta{margin:0;font-size:var(--fs-sm);display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mis-note{margin:0;font-size:var(--fs-sm)}
+.mis-ltr{direction:ltr;unicode-bidi:isolate}
+.mis-hint{margin:8px 0 0;font-size:var(--fs-sm)}
+.mis-error{margin:8px 0 0;color:var(--red-fg, var(--text));font-size:var(--fs-sm)}
+.mis-h2{font-size:var(--t-lg);font-weight:600;margin:16px 0 8px}
+.mis-sections{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;min-width:0}
+.mis-sections .card + .card{margin-top:0}
+.mis-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px;margin:0 0 12px}
+.mis-two .card + .card{margin-top:0}
+.mis-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));gap:var(--gap);align-items:end}
+.mis-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.mis-kv{display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr);gap:6px 16px;margin:0}
+.mis-kv dt{color:var(--text-2)}
+.mis-kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.mis-src{font-size:var(--fs-sm);overflow-wrap:anywhere}
+.mis-small{display:block;font-size:var(--fs-sm)}
+.mis-id{display:block;font-size:var(--fs-sm);color:var(--text-2)}
+.mis-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.mis-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
+.mis-links{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.mis-nav-links{margin:0 0 12px}
+.mis-sub-link{font-size:var(--fs-sm)}
+.mis-holder{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
+.mis-custody-cell{display:grid;gap:4px;justify-items:start}
+.mis-transfer{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mis-count{font-weight:600;white-space:nowrap}
+.mis-count-na{color:var(--text-2);font-weight:400}
+/* Tables */
+.mis-table-wrap{overflow-x:auto;max-width:100%}
+.mis-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.mis-table th,.mis-table td{padding:8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:top}
+.mis-table th{color:var(--text-2);font-weight:600;background:var(--surface-2)}
+/* Concepts kept apart */
+.mis-concepts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px;margin:0 0 12px}
+.mis-concept{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);display:grid;gap:4px;align-content:start}
+.mis-concept h2{font-size:var(--fs);margin:0}
+.mis-concept p{margin:0}
+.mis-owners{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:var(--gap)}
+.mis-owner{border:1px solid var(--border);border-radius:8px;padding:10px;min-width:0}
+.mis-owner h3{font-size:var(--fs);margin:0 0 6px}
+.mis-owner p{margin:0 0 4px}
+/* Landing tiles */
+.mis-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px}
+.mis-tile{display:grid;gap:6px;align-content:start;border:1px solid var(--border);border-radius:var(--r-lg);padding:12px;background:var(--surface);color:var(--text);text-decoration:none;min-height:44px}
+.mis-tile:hover{border-color:var(--text-2)}
+.mis-tile-h{display:flex;align-items:center;gap:8px}
+.mis-exc-summary{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:8px 16px}
+.mis-exc-summary li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;align-items:baseline;border-bottom:1px solid var(--border);padding:4px 0}
+.mis-exc-summary .mis-src{grid-column:1 / -1}
+/* Operations status */
+.mis-ops-list{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:8px}
+.mis-ops-list li{border:1px dashed var(--border);border-radius:8px;padding:8px 10px;display:grid;gap:4px;font-size:var(--fs-sm)}
+.mis-ops-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mis-ops-by{font-size:var(--fs-sm)}
+/* Exceptions queue */
+.mis-exc{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:12px;align-items:start}
+.mis-exc-main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;min-width:0}
+.mis-exc-main .card + .card{margin-top:0}
+.mis-exc-nav{display:grid;gap:12px;min-width:0}
+.mis-exc-group{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);padding:8px}
+.mis-exc-group h2{font-size:var(--fs-sm);color:var(--text-2);margin:0 0 6px;font-weight:600}
+.mis-exc-group ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.mis-exc-link{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:40px;padding:6px 8px;border-radius:8px;color:var(--text);text-decoration:none}
+.mis-exc-link:hover{background:var(--surface-2)}
+.mis-exc-link[aria-current="true"]{background:var(--surface-2);font-weight:600;box-shadow:inset 0 0 0 1px var(--text-2)}
+.mis-exc-label{overflow-wrap:anywhere}
+@media (max-width:1024px){
+  .mis-exc{grid-template-columns:minmax(0,1fr)}
+  .mis-exc-nav{grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))}
+}
+@media (max-width:760px){
+  .mis-filters{grid-template-columns:1fr}
+  .mis-kv{grid-template-columns:1fr}
+  /* Stacked rows: each cell carries its column name (data-label); no horizontal page scroll. */
+  .mis-stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .mis-stack,.mis-stack tbody,.mis-stack tr,.mis-stack td{display:block;width:100%}
+  .mis-stack tr{border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin:0 0 8px}
+  .mis-stack td{border:0;padding:4px 0;display:grid;grid-template-columns:minmax(96px,34%) minmax(0,1fr);gap:8px;overflow-wrap:anywhere}
+  .mis-stack td::before{content:attr(data-label);color:var(--text-2);font-weight:600}
+}

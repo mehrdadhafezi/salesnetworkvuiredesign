@@ -13,14 +13,23 @@ import { blockedDetail, coverageLabel, coverageTone, freshnessLabel, freshnessTo
  * coverage, never a cached green.
  */
 export function MisOverviewPage() {
-  const api = useApi()
-  const st = useRead('mis-overview', async () => settle(await api.GET('/api/v1/mis/overview'), e => e.data))
   return (
     <>
       <PageHeader title="امروز MIS" subtitle="سلامت و پوشش داده؛ فقط شاخص‌های دارای قرارداد نهایی.">
         <StatusPill tone="slate" icon="lock" label="فقط خواندنی" />
       </PageHeader>
       <ReadOnlyNote />
+      <MisOverviewSections />
+    </>
+  )
+}
+
+/** The MIS overview read (GET /api/v1/mis/overview), reused by the RM-P05 MIS workspace landing page. */
+export function MisOverviewSections() {
+  const api = useApi()
+  const st = useRead('mis-overview', async () => settle(await api.GET('/api/v1/mis/overview'), e => e.data))
+  return (
+    <>
       <ReadStates state={st} what="نمای کلی" blockedDetail={blockedDetail} />
       {st.status === 'ok' && (
         <div className="rp-sections">
